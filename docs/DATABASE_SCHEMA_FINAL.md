@@ -304,7 +304,7 @@ export const connectionsIndexes = {
 
 ### 6. **Relations Table** (Person-to-Thing relationships)
 
-10 core relation types: KNOWS, LIKES, DISLIKES, ASSOCIATED_WITH, EXPERIENCED, HAS_SKILL, OWNS, HAS_IMPORTANT_DATE, IS, BELIEVES
+20 core relation types: KNOWS, LIKES, DISLIKES, ASSOCIATED_WITH, EXPERIENCED, HAS_SKILL, OWNS, HAS_IMPORTANT_DATE, IS, BELIEVES, FEARS, WANTS_TO_ACHIEVE, STRUGGLES_WITH, CARES_FOR, DEPENDS_ON, REGULARLY_DOES, PREFERS_OVER, USED_TO_BE, SENSITIVE_TO, UNCOMFORTABLE_WITH
 
 ```typescript
 export const relations = sqliteTable('relations', {
@@ -315,7 +315,7 @@ export const relations = sqliteTable('relations', {
   subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
   subjectType: text('subject_type').notNull().default('person'),
 
-  // Relation type (10 core types)
+  // Relation type (20 core types)
   relationType: text('relation_type', {
     enum: [
       'KNOWS',
@@ -328,6 +328,16 @@ export const relations = sqliteTable('relations', {
       'HAS_IMPORTANT_DATE',
       'IS',
       'BELIEVES',
+      'FEARS',
+      'WANTS_TO_ACHIEVE',
+      'STRUGGLES_WITH',
+      'CARES_FOR',
+      'DEPENDS_ON',
+      'REGULARLY_DOES',
+      'PREFERS_OVER',
+      'USED_TO_BE',
+      'SENSITIVE_TO',
+      'UNCOMFORTABLE_WITH',
     ],
   }).notNull(),
 
@@ -348,6 +358,13 @@ export const relations = sqliteTable('relations', {
   source: text('source', {
     enum: ['manual', 'ai_extraction', 'question_mode', 'voice_note', 'import'],
   }).default('manual'),
+
+  // Temporal metadata (for tracking changes over time)
+  validFrom: integer('valid_from', { mode: 'timestamp' }), // When this became true
+  validTo: integer('valid_to', { mode: 'timestamp' }), // When this stopped being true (null = current)
+  status: text('status', {
+    enum: ['current', 'past', 'future', 'aspiration'],
+  }).default('current'),
 
   // Timestamps
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
@@ -762,7 +779,7 @@ export const relations = sqliteTable(
     subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
     subjectType: text('subject_type').notNull().default('person'),
     relationType: text('relation_type', {
-      enum: ['KNOWS', 'LIKES', 'DISLIKES', 'ASSOCIATED_WITH', 'EXPERIENCED', 'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE', 'IS', 'BELIEVES'],
+      enum: ['KNOWS', 'LIKES', 'DISLIKES', 'ASSOCIATED_WITH', 'EXPERIENCED', 'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE', 'IS', 'BELIEVES', 'FEARS', 'WANTS_TO_ACHIEVE', 'STRUGGLES_WITH', 'CARES_FOR', 'DEPENDS_ON', 'REGULARLY_DOES', 'PREFERS_OVER', 'USED_TO_BE', 'SENSITIVE_TO', 'UNCOMFORTABLE_WITH'],
     }).notNull(),
     objectId: text('object_id'),
     objectType: text('object_type'),
@@ -774,6 +791,9 @@ export const relations = sqliteTable(
     source: text('source', {
       enum: ['manual', 'ai_extraction', 'question_mode', 'voice_note', 'import'],
     }).default('manual'),
+    validFrom: integer('valid_from', { mode: 'timestamp' }),
+    validTo: integer('valid_to', { mode: 'timestamp' }),
+    status: text('status', { enum: ['current', 'past', 'future', 'aspiration'] }).default('current'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
@@ -1170,7 +1190,7 @@ const userId = await getCurrentUserId(); // Returns authenticated user ID from s
 - ✅ Person archival
 - ✅ Secrets (encrypted)
 - ✅ Contact events
-- ✅ 10 core relation types
+- ✅ 20 core relation types
 - ✅ Soft deletes everywhere
 - ✅ UUID primary keys
 - ✅ Sync metadata fields (unused but ready)
