@@ -54,10 +54,13 @@ And Friends automatically understands:
 
 ## 🚀 Quick Start
 
+### Architecture: Local-First (Privacy-First!)
+
+**Your data stays on your device.** No cloud storage, no server-side database. Optional AI proxy for API key protection only.
+
 ### Prerequisites
 - Node.js 20+
-- PostgreSQL 15+
-- OpenAI API key (for AI features)
+- **No database needed!** Uses local RDF/Turtle files or SQLite
 
 ### Installation
 
@@ -69,49 +72,60 @@ cd friends
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database and API credentials
-
-# Run database migrations
-npm run migrate
-
-# Start development server
+# Start desktop app
 npm run dev
+
+# Your data will be stored locally at:
+# ~/Documents/Friends/graphs/main.ttl
 ```
 
-Visit `http://localhost:3000` to see the app!
+### Optional: AI Proxy Setup
+```bash
+# Only if you want to use OpenAI for entity extraction
+cd server
+cp .env.example .env
+# Add your OpenAI API key
+npm run proxy
+```
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture: Local-First Design
 
 ### Technology Stack
 
-#### Frontend
-- **Framework:** React 18 + TypeScript
-- **Styling:** Tailwind CSS + Shadcn/ui
-- **State:** Zustand
+#### Desktop App
+- **Framework:** Electron (or Tauri)
+- **UI:** React 18 + TypeScript + Tailwind CSS
+- **Data Layer:** RDF/Turtle (N3.js) ⭐ **Recommended for <10k triples**
+- **Alternative:** SQLite (better-sqlite3)
 - **Visualization:** D3.js, React Flow
-- **Forms:** React Hook Form + Zod
 
-#### Backend
+#### Optional AI Proxy (No Data Storage)
 - **Runtime:** Node.js + Express
-- **Database:** PostgreSQL (structured data) + Neo4j (relationships)
 - **AI:** OpenAI GPT-4 / Anthropic Claude
-- **Vector Store:** Pinecone (semantic search)
+- **Alternative:** Local models (Ollama + Llama 3)
 
 #### Future: Mobile
 - **Framework:** Expo (React Native)
-- **Architecture:** Monorepo with shared logic
+- **Data:** expo-sqlite or RDF library
+- **Sync:** Encrypted file sync
 
-### Data Flow
+### Data Flow (Local-First)
 
 ```
-User writes story → AI processes text → Extracts entities →
-Stores in PostgreSQL + Neo4j → Generates embeddings →
-Stores in vector DB → User sees insights
+User writes story → (Optional) AI Proxy extracts entities →
+Data saved to local RDF file (~/Documents/Friends/main.ttl) →
+User sees insights instantly (no network needed!)
 ```
+
+### Why Local-First?
+
+- 🔒 **Privacy:** Your data never leaves your device
+- ⚡ **Speed:** No network latency, instant queries
+- 💰 **Cost:** No server hosting fees
+- 🌐 **Offline:** Works without internet
+- 📦 **Simple:** No database to install or configure
 
 ---
 
@@ -296,9 +310,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Documentation
 
-- [Product Requirements Document (PRD)](docs/PRD.md) - Detailed product specifications
-- [Implementation Tasks](docs/TASKS.md) - Development task breakdown
-- [API Documentation](docs/API.md) - API reference (coming soon)
+- [Product Requirements Document (PRD)](PRD.md) - Detailed product specifications
+- [Implementation Tasks](TASKS.md) - Development task breakdown
+- [Local-First Architecture](docs/LOCAL_FIRST_ARCHITECTURE.md) - Privacy-first design ⭐ **NEW**
 - [Contributing Guide](CONTRIBUTING.md) - How to contribute
 
 ---
