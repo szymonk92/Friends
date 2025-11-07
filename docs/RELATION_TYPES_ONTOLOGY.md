@@ -1,7 +1,7 @@
 # Relation Types Ontology - Design Discussion
 
 **Updated:** November 7, 2025
-**Status:** Pre-Implementation Debate
+**Status:** Implemented (10 Core Relations)
 
 ---
 
@@ -436,6 +436,136 @@ User+Ola → HAS_IMPORTANT_DATE → friendship_anniversary
 
 ---
 
+### Category 9: Identity & Attributes (Person ↔ Identity)
+
+#### IS
+**Description:** Core identity attributes, characteristics, professions, beliefs, or categorical memberships
+
+**Sub-types by category:**
+- `category`: profession, religion, nationality, identity, lifestyle, condition, role
+- `attribute`: The specific identity or attribute
+- `confidence`: 0.0 to 1.0 (AI confidence)
+- `since`: When this became true (optional)
+- `verified`: boolean (user confirmed)
+- `context`: Additional context or qualifier
+
+**Examples:**
+```
+Sarah → IS → doctor
+  category: profession
+  confidence: 1.0
+  since: 2018-06
+  verified: true
+  context: "pediatrician"
+
+Mark → IS → catholic
+  category: religion
+  confidence: 0.95
+  verified: false
+  context: "mentioned attending church"
+
+Emma → IS → vegetarian
+  category: lifestyle
+  since: 2024-01
+  confidence: 1.0
+  verified: true
+
+Tom → IS → Brazilian
+  category: nationality
+  confidence: 1.0
+  verified: true
+
+Lisa → IS → parent
+  category: role
+  confidence: 1.0
+  context: "has two children"
+
+John → IS → diabetic
+  category: condition
+  confidence: 1.0
+  verified: true
+  context: "Type 2"
+```
+
+**AI Extraction Patterns:**
+- "[Person] is a [Profession]"
+- "[Person] is [Religion/Nationality/Identity]"
+- "[Person] works as a [Job]"
+- "[Person] has [Condition]"
+- "[Person] identifies as [Identity]"
+
+**Use Cases:**
+- Professional networking: "Who's a doctor?"
+- Event planning: "Consider dietary restrictions (vegetarians)"
+- Understanding context: "Remember John needs sugar-free options"
+- Gift recommendations: "Religious considerations for gifts"
+- Conversation starters: "Ask Sarah about her medical career"
+
+---
+
+### Category 10: Beliefs & Opinions (Person ↔ Belief)
+
+#### BELIEVES
+**Description:** Opinions, beliefs, values, and perspectives a person holds
+
+**Sub-types by category:**
+- `category`: political, social, environmental, philosophical, personal, value
+- `belief`: The specific belief or opinion
+- `intensity`: weak, moderate, strong, very_strong
+- `confidence`: 0.0 to 1.0 (AI confidence)
+- `context`: Additional context or evidence
+- `since`: When this belief was mentioned (optional)
+
+**Examples:**
+```
+Sarah → BELIEVES → climate_action_important
+  category: environmental
+  intensity: very_strong
+  confidence: 0.95
+  context: "Sarah is passionate about reducing carbon footprint"
+
+Mark → BELIEVES → education_access
+  category: social
+  intensity: strong
+  confidence: 0.9
+  context: "volunteers at literacy programs"
+
+Emma → BELIEVES → work_life_balance
+  category: personal
+  intensity: strong
+  confidence: 0.85
+  context: "left corporate job for better balance"
+
+Tom → BELIEVES → privacy_rights
+  category: political
+  intensity: moderate
+  confidence: 0.8
+  context: "mentioned concerns about data collection"
+
+Lisa → BELIEVES → family_first
+  category: value
+  intensity: very_strong
+  confidence: 1.0
+  context: "always prioritizes family time"
+```
+
+**AI Extraction Patterns:**
+- "[Person] thinks [Opinion]"
+- "[Person] believes [Belief]"
+- "[Person] is passionate about [Cause]"
+- "[Person] values [Value]"
+- "[Person] cares deeply about [Topic]"
+- "[Person] mentioned that [Opinion]"
+
+**Use Cases:**
+- Conversation topics: "Emma cares about work-life balance"
+- Gift ideas: "Get Sarah something eco-friendly"
+- Event planning: "Avoid controversial topics with Tom"
+- Understanding values: "Remember Mark volunteers for education"
+- Building connections: "Introduce people with shared values"
+
+---
+
 ## 🔄 Derived Relations (Computed, Not Stored)
 
 These are calculated from other relations:
@@ -608,7 +738,9 @@ Extract the following relation types:
 5. OWNS: Possessions
 6. ASSOCIATED_WITH: Location connections
 7. EXPERIENCED: Events and activities
-8. HAS_DIETARY_RESTRICTION: Food constraints
+8. HAS_IMPORTANT_DATE: Important dates to remember
+9. IS: Identity attributes (profession, religion, nationality, lifestyle, etc.)
+10. BELIEVES: Opinions, beliefs, values, and perspectives
 
 Story: "${storyText}"
 
@@ -763,21 +895,32 @@ Both → EXPERIENCED → italy_trips(count: 10)
 | **EXPERIENCED** | Person | Event | Shared memories, context | ⭐⭐⭐⭐ | 🔴 MVP |
 | **HAS_SKILL** | Person | Skill | Ask for help, delegation | ⭐⭐⭐⭐ | 🟡 Phase 2 |
 | **OWNS** | Person | Thing | Resource sharing | ⭐⭐⭐ | 🟡 Phase 2 |
-| **HAS_DIETARY_RESTRICTION** | Person | Restriction | Meal planning | ⭐⭐⭐⭐⭐ | 🔴 MVP (as DISLIKES) |
 | **HAS_IMPORTANT_DATE** | Person | Date | Reminders, celebrations | ⭐⭐⭐ | 🟡 Phase 2 |
+| **IS** | Person | Identity | Professional context, understanding background | ⭐⭐⭐⭐⭐ | 🟢 Phase 1.5 |
+| **BELIEVES** | Person | Belief | Conversation topics, gift ideas, avoid conflicts | ⭐⭐⭐⭐ | 🟢 Phase 1.5 |
 
 ---
 
 ## 🎯 Final Recommendation
 
-### MVP: Start with 5 Core Relations
+### Current Implementation: 10 Core Relations
 
 ```
-1. KNOWS (person → person)
-2. LIKES (person → thing)
-3. DISLIKES (person → thing) [includes dietary restrictions]
-4. ASSOCIATED_WITH (person → place)
-5. EXPERIENCED (person → event)
+Phase 1 (MVP - Essential):
+1. KNOWS (person → person) - Social graph
+2. LIKES (person → thing) - Positive preferences
+3. DISLIKES (person → thing) - Negative preferences, allergies
+4. ASSOCIATED_WITH (person → place) - Location connections
+5. EXPERIENCED (person → event) - Shared activities
+
+Phase 1.5 (Enhanced - Recently Added):
+9. IS (person → identity) - Identity attributes, professions, characteristics
+10. BELIEVES (person → belief) - Opinions, values, perspectives
+
+Phase 2 (Advanced):
+6. HAS_SKILL (person → skill) - Competencies, expertise
+7. OWNS (person → thing) - Possessions
+8. HAS_IMPORTANT_DATE (person → date) - Reminders, celebrations
 ```
 
 ### Implementation Approach

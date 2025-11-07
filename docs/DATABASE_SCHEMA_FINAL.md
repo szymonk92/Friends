@@ -304,7 +304,7 @@ export const connectionsIndexes = {
 
 ### 6. **Relations Table** (Person-to-Thing relationships)
 
-8 core relation types: KNOWS, LIKES, DISLIKES, ASSOCIATED_WITH, EXPERIENCED, HAS_SKILL, OWNS, HAS_IMPORTANT_DATE
+10 core relation types: KNOWS, LIKES, DISLIKES, ASSOCIATED_WITH, EXPERIENCED, HAS_SKILL, OWNS, HAS_IMPORTANT_DATE, IS, BELIEVES
 
 ```typescript
 export const relations = sqliteTable('relations', {
@@ -315,7 +315,7 @@ export const relations = sqliteTable('relations', {
   subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
   subjectType: text('subject_type').notNull().default('person'),
 
-  // Relation type (8 core types)
+  // Relation type (10 core types)
   relationType: text('relation_type', {
     enum: [
       'KNOWS',
@@ -326,6 +326,8 @@ export const relations = sqliteTable('relations', {
       'HAS_SKILL',
       'OWNS',
       'HAS_IMPORTANT_DATE',
+      'IS',
+      'BELIEVES',
     ],
   }).notNull(),
 
@@ -760,7 +762,7 @@ export const relations = sqliteTable(
     subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
     subjectType: text('subject_type').notNull().default('person'),
     relationType: text('relation_type', {
-      enum: ['KNOWS', 'LIKES', 'DISLIKES', 'ASSOCIATED_WITH', 'EXPERIENCED', 'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE'],
+      enum: ['KNOWS', 'LIKES', 'DISLIKES', 'ASSOCIATED_WITH', 'EXPERIENCED', 'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE', 'IS', 'BELIEVES'],
     }).notNull(),
     objectId: text('object_id'),
     objectType: text('object_type'),
@@ -1168,7 +1170,7 @@ const userId = await getCurrentUserId(); // Returns authenticated user ID from s
 - ✅ Person archival
 - ✅ Secrets (encrypted)
 - ✅ Contact events
-- ✅ 8 core relation types
+- ✅ 10 core relation types
 - ✅ Soft deletes everywhere
 - ✅ UUID primary keys
 - ✅ Sync metadata fields (unused but ready)
