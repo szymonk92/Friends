@@ -263,29 +263,36 @@ setInterval(checkAutoLock, 60000); // Check every minute
 
 ## 💰 Monetization Strategy
 
-### Free Tier
+### Free Tier - Manual-First Experience
 
-**Generous free tier to build user base:**
+**Core functionality, fully local, no AI required:**
 
 - ✅ Up to 50 people
-- ✅ Unlimited stories
+- ✅ **Manual drag-and-drop interface** for creating relations
+- ✅ **Predefined options** for preferences (food, activities, etc.)
+- ✅ Unlimited manual entries
 - ✅ All core features (preferences, timeline, basic search)
-- ✅ Local storage only
-- ✅ Manual export/import
+- ✅ Local storage only (100% private)
+- ✅ Manual export/import (JSON)
+- ✅ Basic visualizations (person detail, preference list)
+- ❌ No AI extraction
 - ❌ No cloud sync
-- ❌ No AI extraction (or 10 stories/month)
-- ❌ No advanced visualizations
+- ❌ No advanced visualizations (network graph)
+
+**Free tier philosophy:** Users manually build their social graph through an intuitive drag-and-drop interface. This ensures high data quality and keeps the app accessible to everyone.
 
 ### Premium Tier ($4.99/month or $49/year)
 
-**Unlock advanced features:**
+**AI-powered automation + cloud features:**
 
+- ✅ Everything in Free tier
 - ✅ **Unlimited people**
-- ✅ **AI entity extraction** (unlimited)
-- ✅ **Cloud backup & sync** (encrypted)
-- ✅ **Advanced visualizations** (network graph, insights)
+- ✅ **AI entity extraction** (unlimited) - Write stories, get automatic relations
+- ✅ **Cloud backup & sync** (encrypted, end-to-end)
+- ✅ **Advanced visualizations** (network graph, insights dashboard)
 - ✅ **Meal planning assistant**
 - ✅ **Gift recommendations**
+- ✅ **Question mode** (gamified data entry, Phase 2+)
 - ✅ **Priority support**
 - ✅ **Export to multiple formats** (PDF, JSON, Turtle)
 
@@ -315,19 +322,44 @@ function checkFeatureAccess(feature: string): boolean {
   const license = getLicense();
 
   if (license.tier === 'free') {
-    return ['basic_crud', 'local_storage', 'manual_export'].includes(feature);
+    return [
+      'basic_crud',
+      'local_storage',
+      'manual_export',
+      'drag_drop_interface',
+      'basic_visualizations',
+      'manual_entry',
+    ].includes(feature);
   }
 
   if (license.tier === 'premium') {
-    return !['api_access', 'white_label'].includes(feature);
+    return ![
+      'api_access',
+      'white_label',
+      'collaboration',
+      'multi_device',
+    ].includes(feature);
   }
 
   return true; // Pro has all features
 }
 
-// Usage
+// Usage examples
 if (!checkFeatureAccess('ai_extraction')) {
-  showUpgradeModal('AI extraction requires Premium');
+  showUpgradeModal({
+    title: 'AI Extraction is Premium',
+    message: 'Automatically extract preferences from stories with AI. Upgrade to Premium!',
+    ctaText: 'Upgrade Now',
+  });
+  return;
+}
+
+if (!checkFeatureAccess('cloud_sync')) {
+  showUpgradeModal({
+    title: 'Cloud Sync is Premium',
+    message: 'Sync your data across devices with encrypted cloud backup.',
+    ctaText: 'Upgrade Now',
+  });
   return;
 }
 
@@ -486,7 +518,7 @@ app.post('/api/extract', aiLimiter, async (req, res) => {
 
 ## 🎨 UX/Usability Best Practices
 
-### 1. **Onboarding Flow**
+### 1. **Onboarding Flow (Updated for Manual-First)**
 
 ```
 Step 1: Welcome
@@ -496,60 +528,72 @@ Step 1: Welcome
   Keep track of the people you care about.
   Never forget what matters.
 
+  All your data stays local. Private by default.
+
   [Get Started] →
 
-Step 2: Choose Data Location
+Step 2: How Friends Works
 ───────────────────────────────────────────────────
-  Where should we store your data?
+  Build your social memory by adding:
 
-  ○ Local only (recommended)
-    Your data stays on this device. Private & fast.
+  👥 People you know
+  ❤️  What they like or dislike
+  🔗 How they're connected
+  📅 Important dates and experiences
 
-  ○ Cloud sync (Premium)
-    Sync across devices. Requires account.
+  Your data is stored locally on this device.
+  100% private. No cloud required.
 
   [Continue] →
 
-Step 3: Optional AI Setup
+Step 3: Choose Your Tier
 ───────────────────────────────────────────────────
-  Enable AI-powered extraction?
+  Free Tier (No credit card needed)
+  ○ Up to 50 people
+  ○ Manual drag-and-drop interface
+  ○ 100% local, private
+  ○ Perfect for getting started!
 
-  ✓ Automatically extract preferences from stories
-  ✓ Suggest connections and insights
+  Premium ($4.99/month)
+  ○ Unlimited people
+  ○ AI-powered extraction from stories
+  ○ Cloud sync across devices
+  ○ Advanced insights
 
-  Choose AI provider:
-  ○ OpenAI (most accurate)
-  ○ Local models (private, free)
-  ○ Skip for now
-
-  [Continue] →
+  [Start Free] [Try Premium Free for 14 days]
 
 Step 4: Import Contacts (Optional)
 ───────────────────────────────────────────────────
-  Import existing contacts?
+  Want to import existing contacts?
 
   [Import from Phone] [Import from CSV] [Skip]
 
-Step 5: First Story
+Step 5: Add Your First Person
 ───────────────────────────────────────────────────
-  Let's add your first memory!
+  Let's add someone you know!
 
-  Write a story about someone:
+  Name: [____________]
+  Relationship: [Friend ▼]
 
+  Add what they like:
   ┌─────────────────────────────────────────────┐
-  │ I met my friend Alex at...                  │
-  │                                              │
+  │  🍕 Italian food                            │
+  │  🎸 Playing guitar                          │
+  │  + Add preference                           │
   └─────────────────────────────────────────────┘
 
-  [Add Story] [Skip]
+  [Add Person] [Skip]
 
 Step 6: Done!
 ───────────────────────────────────────────────────
   You're all set! 🎉
 
   ✓ Data stored locally
-  ✓ AI extraction enabled
+  ✓ 100% private
   ✓ 1 person added
+
+  Tip: Upgrade to Premium to use AI for automatic
+  extraction from stories!
 
   [Explore App] →
 ```
@@ -631,18 +675,332 @@ const shortcuts = {
 <ShortcutsModal shortcuts={shortcuts} />
 ```
 
+### 6. **Manual Drag-and-Drop Interface (Free Tier)**
+
+**Core free tier experience - no AI required:**
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  Add Information for: Ola                             [Save]   ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                                 ║
+║  DRAG ITEMS TO CREATE RELATIONS:                              ║
+║                                                                 ║
+║  ┌─────────────────┐                                          ║
+║  │  Ola            │ ←── Drag items here                      ║
+║  │  👤 Friend       │                                          ║
+║  └─────────────────┘                                          ║
+║                                                                 ║
+║  LIKES (Drag & drop from library or create new):              ║
+║  ┌────────────────────────────────────────────────────────┐  ║
+║  │  🍕 Italian food    🍦 Ice cream    🎵 Jazz music       │  ║
+║  │  ☕ Coffee          🥗 Salads        🎸 Guitar           │  ║
+║  │  ⛰️  Hiking         🏊 Swimming      📚 Reading          │  ║
+║  │                                                          │  ║
+║  │  [+ Create custom preference]                           │  ║
+║  └────────────────────────────────────────────────────────┘  ║
+║                                                                 ║
+║  DISLIKES:                                                     ║
+║  ┌────────────────────────────────────────────────────────┐  ║
+║  │  🍖 Red meat       🌶️  Spicy food   🚬 Smoking          │  ║
+║  │  [+ Create custom]                                       │  ║
+║  └────────────────────────────────────────────────────────┘  ║
+║                                                                 ║
+║  KNOWS (Who does Ola know?):                                  ║
+║  ┌────────────────────────────────────────────────────────┐  ║
+║  │  Search people: [__________]                            │  ║
+║  │                                                          │  ║
+║  │  [Simon] [Alex] [Maria] [+ Add person]                 │  ║
+║  └────────────────────────────────────────────────────────┘  ║
+║                                                                 ║
+║  CURRENT RELATIONS:                                           ║
+║  • Ola ──LIKES──> Ice cream ⭐⭐⭐⭐⭐                        ║
+║  • Ola ──LIKES──> Italian food ⭐⭐⭐⭐                       ║
+║  • Ola ──DISLIKES──> Red meat                                ║
+║  • Ola ──KNOWS──> Simon (married)                            ║
+║                                                                 ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**Implementation:**
+
+```typescript
+// Predefined preference library
+const PREFERENCE_LIBRARY = {
+  food: [
+    { id: 'italian', label: 'Italian food', icon: '🍕' },
+    { id: 'ice_cream', label: 'Ice cream', icon: '🍦' },
+    { id: 'coffee', label: 'Coffee', icon: '☕' },
+    { id: 'salads', label: 'Salads', icon: '🥗' },
+    // ... 50+ predefined food items
+  ],
+  activities: [
+    { id: 'hiking', label: 'Hiking', icon: '⛰️' },
+    { id: 'swimming', label: 'Swimming', icon: '🏊' },
+    { id: 'reading', label: 'Reading', icon: '📚' },
+    { id: 'guitar', label: 'Playing guitar', icon: '🎸' },
+    // ... 50+ predefined activities
+  ],
+  dietary_restrictions: [
+    { id: 'vegetarian', label: 'Vegetarian', icon: '🥕' },
+    { id: 'vegan', label: 'Vegan', icon: '🌱' },
+    { id: 'gluten_free', label: 'Gluten-free', icon: '🌾' },
+    // ...
+  ],
+};
+
+// Drag and drop handler
+function onPreferenceDrop(person: Person, preference: Preference, type: 'LIKES' | 'DISLIKES') {
+  await db.insert(relations).values({
+    id: crypto.randomUUID(),
+    subjectId: person.id,
+    subjectType: 'person',
+    relationType: type,
+    objectId: preference.id,
+    objectType: 'preference',
+    metadata: {
+      intensity: 'medium', // User can adjust
+      confidence: 1.0, // Manual entry = 100% confidence
+      source: 'manual',
+    },
+  });
+
+  showNotification(`Added: ${person.name} ${type.toLowerCase()} ${preference.label}`);
+}
+```
+
+**Benefits of Manual Entry:**
+- ✅ **High data quality** - User knows the information is accurate
+- ✅ **No API costs** - No AI required
+- ✅ **Privacy** - No external services needed
+- ✅ **Accessibility** - Works for everyone, no learning curve
+- ✅ **Predefined options** - Faster than typing, consistent data
+
+### 7. **Gamified Question Mode (Premium, Phase 2+)**
+
+**Tinder-style interface for quickly building your social graph:**
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  Question Mode 🎮                               [Exit] [⚙️]   ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                                 ║
+║                                                                 ║
+║              👤 Does Ola like Italian food? 🍕                ║
+║                                                                 ║
+║                     ┌────────────────┐                         ║
+║                     │                 │                         ║
+║                     │   [Photo of    │                         ║
+║                     │      Ola]       │                         ║
+║                     │                 │                         ║
+║                     └────────────────┘                         ║
+║                                                                 ║
+║                                                                 ║
+║         👈 NO              👇 SKIP             YES 👉          ║
+║                                                                 ║
+║  ───────────────────────────────────────────────────────────  ║
+║  Progress: ████████░░░░░░░░░░  15/50 questions today          ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+**How It Works:**
+
+1. **AI generates questions** based on incomplete data
+2. **User swipes:**
+   - **Right (Yes)** - Adds positive relation (LIKES)
+   - **Left (No)** - Adds negative relation (DISLIKES)
+   - **Down (Skip)** - Skips this question
+3. **Gamification:** Daily streaks, completion badges, progress tracking
+
+**Question Types:**
+
+```typescript
+interface GeneratedQuestion {
+  id: string;
+  type: 'preference' | 'relationship' | 'experience' | 'skill';
+  person: Person;
+  question: string;
+
+  // For preferences
+  item?: Preference; // "Italian food", "hiking"
+  category?: string; // "food", "activity"
+
+  // For relationships
+  otherPerson?: Person; // "Does Ola know Simon?"
+
+  // For experiences
+  experience?: Experience; // "Has Ola been to Italy?"
+}
+
+// Example questions generated by AI:
+const questions: GeneratedQuestion[] = [
+  {
+    type: 'preference',
+    person: ola,
+    question: 'Does Ola like Italian food?',
+    item: { id: 'italian', label: 'Italian food', icon: '🍕' },
+    category: 'food',
+  },
+  {
+    type: 'preference',
+    person: ola,
+    question: 'Does Ola drink alcohol?',
+    item: { id: 'alcohol', label: 'Alcohol', icon: '🍷' },
+    category: 'beverage',
+  },
+  {
+    type: 'relationship',
+    person: ola,
+    otherPerson: simon,
+    question: 'Are Ola and Simon close friends?',
+  },
+  {
+    type: 'skill',
+    person: mark,
+    question: 'Can Mark cook?',
+    item: { id: 'cooking', label: 'Cooking', icon: '👨‍🍳' },
+  },
+];
+```
+
+**Implementation:**
+
+```typescript
+// Swipe handler
+function handleSwipe(direction: 'left' | 'right' | 'down', question: GeneratedQuestion) {
+  if (direction === 'down') {
+    // Skip - move to next question
+    nextQuestion();
+    return;
+  }
+
+  const relationType = direction === 'right' ? 'LIKES' : 'DISLIKES';
+
+  // Add relation
+  await db.insert(relations).values({
+    id: crypto.randomUUID(),
+    subjectId: question.person.id,
+    relationType,
+    objectId: question.item.id,
+    metadata: {
+      source: 'question_mode',
+      confidence: 0.8, // User answered, but not as explicit as manual entry
+    },
+  });
+
+  // Update progress
+  incrementDailyProgress();
+
+  // Show next question
+  nextQuestion();
+}
+
+// Gamification
+interface QuestionModeProgress {
+  questionsAnsweredToday: number;
+  dailyGoal: 50;
+  currentStreak: number;
+  longestStreak: number;
+  totalQuestionsAnswered: number;
+  badges: Badge[];
+}
+
+// Generate intelligent questions
+async function generateQuestions(person: Person): Promise<GeneratedQuestion[]> {
+  // 1. Find gaps in knowledge
+  const existingPreferences = await db
+    .select()
+    .from(relations)
+    .where(eq(relations.subjectId, person.id));
+
+  // 2. Use AI to suggest relevant questions based on:
+  //    - Person's demographics
+  //    - Existing preferences (logical connections)
+  //    - Common preferences in social circle
+
+  const prompt = `
+    Given this person's profile:
+    - Name: ${person.name}
+    - Existing preferences: ${existingPreferences.map(p => p.objectLabel).join(', ')}
+
+    Generate 10 relevant yes/no questions about their preferences.
+    Focus on food, activities, and common interests.
+  `;
+
+  const aiResponse = await callAI(prompt);
+  return parseQuestionsFromAI(aiResponse);
+}
+```
+
+**Gamification Features:**
+
+```typescript
+// Daily streak tracking
+interface DailyStreak {
+  currentStreak: number; // Days in a row
+  longestStreak: number;
+  lastActivityDate: Date;
+}
+
+// Badges
+const BADGES = [
+  { id: 'first_10', name: 'Getting Started', icon: '🌟', requirement: 10 },
+  { id: 'streak_7', name: '7-Day Streak', icon: '🔥', requirement: 7 },
+  { id: 'completionist', name: 'Completionist', icon: '💯', requirement: 100 },
+  { id: 'social_butterfly', name: 'Social Butterfly', icon: '🦋', requirement: 50 },
+];
+
+// Celebration animations
+function celebrateMilestone(milestone: string) {
+  showConfetti();
+  playSound('achievement.mp3');
+  showNotification({
+    title: '🎉 Milestone Unlocked!',
+    message: milestone,
+    duration: 3000,
+  });
+}
+```
+
+**Why Question Mode?**
+
+- ✅ **Fast data entry** - Answer 50 questions in 5 minutes
+- ✅ **Fun & engaging** - Gamified experience keeps users coming back
+- ✅ **Intelligent** - AI asks relevant questions based on context
+- ✅ **Complete profiles** - Fills in gaps automatically
+- ✅ **Premium value** - Clear differentiation from free tier
+
 ---
 
 ## 🌐 Server Connections
 
-### What Needs Server?
+### Phase 1: 100% Local, No Server Required
 
-**Optional server for:**
-1. ✅ AI extraction (protect API keys)
-2. ✅ Cloud sync (Premium feature)
-3. ✅ License validation
-4. ✅ Analytics (opt-in)
-5. ❌ Core features (all local!)
+**For MVP launch, the app is completely local:**
+- ❌ **No server needed** for any functionality
+- ❌ **No cloud sync** (local-only)
+- ❌ **No AI proxy** (free tier is manual-only)
+- ❌ **No license validation** (will add in Phase 2)
+- ✅ **Everything stored locally** on user's device
+- ✅ **Works 100% offline**
+- ✅ **Zero infrastructure costs**
+
+**Why start local-only?**
+1. **Simplicity** - No server to build, deploy, or maintain
+2. **Privacy** - Users trust us with zero data collection
+3. **Cost** - No server hosting fees during beta
+4. **Speed** - Ship faster, validate product-market fit first
+5. **Focus** - All effort goes into core product experience
+
+### Phase 2+: Optional Server (Premium Features Only)
+
+**When we add Premium tier, minimal server for:**
+1. ✅ AI extraction (protect API keys) - Premium only
+2. ✅ Cloud sync (encrypted backups) - Premium only
+3. ✅ License validation - Premium only
+4. ✅ Question mode AI generation - Premium only
+5. ✅ Analytics (opt-in)
+6. ❌ Core features (still all local!)
 
 ### Server Architecture (Minimal)
 
@@ -810,25 +1168,41 @@ Optimization:
 
 ## 🚀 Final Checklist
 
-### Phase 1 MVP Must-Haves:
+### Phase 1 MVP Must-Haves (Free Tier, Local-Only):
 
 - [x] ✅ SQLite + Drizzle ORM
-- [x] ✅ 8 core relations (KNOWS, LIKES, etc.)
-- [x] ✅ Local storage (privacy-first)
-- [x] ✅ Profile photos support
-- [x] ✅ Secrets (encrypted notes)
-- [x] ✅ Free tier (50 people limit)
-- [x] ✅ Basic visualizations
-- [x] ✅ Search & filtering
-- [x] ✅ Export/import (JSON)
+- [x] ✅ 8 core relations (KNOWS, LIKES, DISLIKES, ASSOCIATED_WITH, EXPERIENCED, HAS_SKILL, OWNS, HAS_IMPORTANT_DATE)
+- [x] ✅ 100% local storage (no server required)
+- [x] ✅ **Manual drag-and-drop interface** with predefined preference library
+- [x] ✅ Person CRUD (create, read, update, delete)
+- [x] ✅ Profile photos support (optimized)
+- [x] ✅ Secrets (password-protected, encrypted notes)
+- [x] ✅ Free tier (50 people limit, manual-only)
+- [x] ✅ Basic visualizations (person detail, preference list)
+- [x] ✅ Search & filtering (by name, preferences, relationships)
+- [x] ✅ Manual export/import (JSON)
+- [x] ✅ Updated onboarding flow (manual-first)
+- [ ] ❌ No AI features in Phase 1
+- [ ] ❌ No cloud sync in Phase 1
+- [ ] ❌ No server in Phase 1
 
-### Phase 1.5 (Post-MVP):
+### Phase 2: Premium Tier Launch
 
-- [ ] Premium tier with license validation
-- [ ] AI extraction (via proxy)
-- [ ] Cloud sync (encrypted)
-- [ ] Advanced visualizations
+- [ ] Premium tier subscription ($4.99/mo)
+- [ ] License validation (local + optional online check)
+- [ ] AI extraction from stories (via proxy server)
+- [ ] Cloud sync (encrypted, end-to-end)
+- [ ] Advanced visualizations (network graph, insights dashboard)
+- [ ] **Question mode** (gamified Tinder-style data entry)
 - [ ] Meal planning assistant
+- [ ] Gift recommendations
+
+### Phase 3: Mobile & Advanced Features
+
+- [ ] Expo React Native mobile app
+- [ ] Multi-device sync (Pro tier)
+- [ ] Collaboration features
+- [ ] Advanced analytics
 
 ### Security Checklist:
 
@@ -852,7 +1226,25 @@ Optimization:
 
 ---
 
-## 💡 Answers to Your Questions
+## 💡 Updated Strategy Summary
+
+### ✅ Phase 1: Manual-First, 100% Local
+**Free tier is the core product:**
+- Manual drag-and-drop interface with predefined preference library
+- No AI required - high data quality, accessible to everyone
+- 100% local storage - no server needed
+- Up to 50 people limit
+- Works completely offline
+- Zero infrastructure costs during beta
+
+### ✅ Phase 2+: Premium Features (AI & Sync)
+**Clear upgrade path:**
+- AI extraction from stories (automatic relation detection)
+- Cloud sync across devices (encrypted)
+- Question mode (gamified Tinder-style data entry with daily streaks)
+- Advanced visualizations (network graph)
+- Meal planning & gift recommendations
+- Unlimited people
 
 ### ✅ Can 100 people visualizations work?
 **Yes!** With pagination, virtual scrolling, and proper indexing, SQLite handles this easily.
@@ -861,29 +1253,56 @@ Optimization:
 **Yes!** AES-256 encryption with master password. Auto-locks after 5 min.
 
 ### ✅ What about premium features?
-**Free tier:** 50 people, basic features
-**Premium ($4.99/mo):** Unlimited people, AI, cloud sync
-**Pro ($9.99/mo):** Multi-device, collaboration, API
+**Free tier:** 50 people, manual entry, local only, basic visualizations
+**Premium ($4.99/mo):** Unlimited people, AI extraction, cloud sync, question mode
+**Pro ($9.99/mo):** Multi-device, collaboration, API access
 
 ### ✅ Security concerns?
-- Encrypted secrets
-- Secure keychain for API keys
-- SQL injection prevention
-- Optional database encryption
+- Encrypted secrets (password-protected)
+- Secure keychain for API keys (Phase 2+)
+- SQL injection prevention (Drizzle parameterized queries)
+- No cloud data collection (Phase 1)
+- Optional database encryption (Phase 2+)
 
 ### ✅ Can we add images?
 **Yes!** Profile photos + story attachments. Optimized with Sharp (100 KB per photo).
 
 ### ✅ What needs server?
-**Only optional:**
-- AI proxy (protect keys)
-- Cloud sync (Premium)
-- License validation
+**Phase 1 (MVP):** Nothing! 100% local, no server required.
 
-**Core app:** 100% local, works offline!
+**Phase 2+ (Premium):**
+- AI proxy (protect keys)
+- Cloud sync (encrypted)
+- License validation
+- Question mode AI
+
+**Core app:** Always works offline, server only enhances premium features!
+
+### ✅ Gamified Question Mode?
+**Yes - Premium feature in Phase 2+:**
+- Tinder-style swipe interface (right=yes, left=no, down=skip)
+- AI-generated questions about preferences ("Does Ola like Italian food?")
+- Daily streaks, badges, progress tracking
+- Answer 50 questions in 5 minutes to quickly build profiles
+- Makes data entry fun and engaging
 
 ---
 
-**Ready to start building?** 🚀
+**Ready to start building Phase 1!** 🚀
 
-Next step: Create final database schema with all these considerations!
+**Focus for MVP:**
+1. SQLite + Drizzle database with 8 core relations
+2. Manual drag-and-drop interface with predefined preference library (50+ items)
+3. Person CRUD with profile photos
+4. Password-protected secrets
+5. Basic visualizations (person detail, preference list, timeline)
+6. Search & filtering
+7. Manual export/import (JSON)
+8. 100% local, no server, works offline
+
+**Deferred to Phase 2:**
+- AI extraction (via proxy)
+- Cloud sync
+- Question mode (gamified)
+- Advanced visualizations
+- Premium tier monetization
