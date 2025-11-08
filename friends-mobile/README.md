@@ -21,7 +21,8 @@ npm run web        # Web browser
 
 ### Phase 1 MVP (Complete ✅)
 
-- ✅ **People Management** - Add, view, and organize people in your network
+- ✅ **People Management** - Add, view, edit, and delete people in your network
+- ✅ **Manual Relation Management** - Add, edit, and delete relations without AI
 - ✅ **AI Story Extraction** - Share stories and Claude automatically extracts key information
 - ✅ **Relations Tracking** - Automatic extraction of 20+ relation types (LIKES, IS, FEARS, etc.)
 - ✅ **Person Profiles** - View detailed profiles with all relations grouped by type
@@ -47,14 +48,30 @@ npm run web        # Web browser
 3. **Person Profile** (`/person/[id]`)
    - View person details
    - See all relations grouped by type
-   - Delete person
+   - Edit/delete person
+   - Edit/delete individual relations
+   - Add new relations
 
 4. **Add Person** (`/modal`)
    - Manually add people
    - Set relationship type
    - Add notes
 
-5. **Dev Tools** (`/dev`)
+5. **Edit Person** (`/person/edit`)
+   - Update person details
+   - Change relationship type
+   - Edit notes
+
+6. **Add Relation** (`/person/add-relation`)
+   - Manually add relations to a person
+   - 10 common relation types
+   - Set intensity and category
+
+7. **Edit Relation** (`/person/edit-relation`)
+   - Update existing relation
+   - Change type, intensity, category
+
+8. **Dev Tools** (`/dev`)
    - Seed sample data for testing
    - Clear all data
    - Quick navigation
