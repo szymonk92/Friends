@@ -203,7 +203,7 @@ export const people = sqliteTable('people', {
 
   // Lifecycle management (NEW)
   status: text('status', {
-    enum: ['active', 'archived', 'deceased'],
+    enum: ['active', 'archived', 'deceased', 'placeholder', 'merged'],
   }).notNull().default('active'),
 
   archiveReason: text('archive_reason', {
@@ -221,6 +221,32 @@ export const people = sqliteTable('people', {
   // Notes
   notes: text('notes'), // Private notes about this person
 
+  // Person Classification & Management (NEW - for handling mentioned people)
+  personType: text('person_type', {
+    enum: ['primary', 'mentioned', 'placeholder'],
+  }).default('placeholder'), // How this person was created
+
+  dataCompleteness: text('data_completeness', {
+    enum: ['minimal', 'partial', 'complete'],
+  }).default('minimal'), // How much info we have
+
+  addedBy: text('added_by', {
+    enum: ['user', 'ai_extraction', 'auto_created', 'import'],
+  }).default('auto_created'), // How they were added
+
+  importanceToUser: text('importance_to_user', {
+    enum: ['unknown', 'peripheral', 'important', 'very_important'],
+  }).default('unknown'), // Calculated importance
+
+  // De-duplication & Merging
+  potentialDuplicates: text('potential_duplicates'), // JSON array of possible duplicate person IDs
+  canonicalId: text('canonical_id').references(() => people.id), // If merged, points to canonical record
+  mergedFrom: text('merged_from'), // JSON array of person IDs merged into this one
+
+  // Context for auto-created people
+  extractionContext: text('extraction_context'), // JSON: {mentioned_in_story, relation_to_primary, known_facts}
+  mentionCount: integer('mention_count').default(0), // How many times mentioned (for importance)
+
   // Timestamps
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
@@ -236,7 +262,213 @@ export const peopleIndexes = {
   userIdIndex: index('people_user_id_idx').on(people.userId),
   statusIndex: index('people_status_idx').on(people.status),
   nameIndex: index('people_name_idx').on(people.name),
+  personTypeIndex: index('people_person_type_idx').on(people.personType),
+  importanceIndex: index('people_importance_idx').on(people.importanceToUser),
+  canonicalIdIndex: index('people_canonical_id_idx').on(people.canonicalId),
 };
+```
+
+**Usage Examples: Person Management**
+
+```typescript
+// Example 1: User manually adds a primary person
+const emma = await db.insert(people).values({
+  id: crypto.randomUUID(),
+  userId: currentUserId,
+  name: 'Emma',
+  personType: 'primary',          // ← User-added primary person
+  dataCompleteness: 'complete',   // Full profile
+  addedBy: 'user',
+  importanceToUser: 'very_important',
+  status: 'active',
+  relationshipType: 'friend',
+  metDate: new Date('2015-01-01'),
+});
+
+// Example 2: AI auto-creates placeholder for "Sarah's mother"
+// Story: "Sarah takes care of her aging mother who has dementia"
+
+// Step 1: Check if mother exists
+const existing = await db.select().from(people)
+  .where(and(
+    eq(people.userId, sarahUserId),
+    like(people.name, '%mother%')
+  ));
+
+if (existing.length === 0) {
+  // Step 2: Auto-create placeholder
+  const motherRecord = await db.insert(people).values({
+    id: crypto.randomUUID(),
+    userId: sarahUserId,
+    name: "Sarah's mother",
+    personType: 'placeholder',      // ← Auto-created
+    dataCompleteness: 'minimal',    // Very little info
+    addedBy: 'auto_created',
+    importanceToUser: 'unknown',    // Will calculate later
+    status: 'placeholder',
+    relationshipType: 'family',
+    extractionContext: JSON.stringify({
+      mentioned_in_story: storyId,
+      relation_to_primary: 'mother',
+      primary_person: 'Sarah',
+      known_facts: ['has_dementia', 'receives_care']
+    }),
+    mentionCount: 1,
+  });
+
+  // Step 3: Create the CARES_FOR relation
+  await db.insert(relations).values({
+    userId: sarahUserId,
+    subjectId: sarahId,
+    relationType: 'CARES_FOR',
+    objectId: motherRecord.id,      // ← Link to placeholder person
+    objectLabel: "Sarah's mother",
+    objectType: 'person',
+    metadata: JSON.stringify({
+      care_type: 'elderly_parent',
+      level: 'part_time',
+      condition: 'dementia'
+    })
+  });
+}
+
+// Example 3: Calculate importance and upgrade placeholder
+async function calculateAndUpgradeImportance(personId: string) {
+  const person = await db.select().from(people)
+    .where(eq(people.id, personId)).limit(1);
+
+  // Calculate importance score
+  let score = 0;
+  score += person.mentionCount * 10;
+
+  // Check for high-importance relations
+  const caregivingRelations = await db.select().from(relations)
+    .where(and(
+      eq(relations.objectId, personId),
+      or(
+        eq(relations.relationType, 'CARES_FOR'),
+        eq(relations.DEPENDS_ON)
+      )
+    ));
+  score += caregivingRelations.length * 50;
+
+  // Determine importance
+  let importance: string;
+  if (score > 100) importance = 'very_important';
+  else if (score > 50) importance = 'important';
+  else if (score > 20) importance = 'peripheral';
+  else importance = 'unknown';
+
+  // Upgrade if important
+  if (importance === 'very_important' || importance === 'important') {
+    await db.update(people)
+      .set({
+        importanceToUser: importance,
+        personType: 'mentioned',  // Upgrade from placeholder
+        dataCompleteness: 'partial'
+      })
+      .where(eq(people.id, personId));
+
+    // Prompt user to add more details
+    return {
+      shouldPromptUser: true,
+      message: "Sarah's mother is mentioned frequently. Add her name and details?"
+    };
+  }
+}
+
+// Example 4: Duplicate detection for "Ola"
+async function findPotentialDuplicates(name: string, userId: string) {
+  // Fuzzy match
+  const candidates = await db.select().from(people)
+    .where(and(
+      eq(people.userId, userId),
+      or(
+        eq(people.name, name),
+        like(people.name, `%${name}%`),
+        like(people.nickname, `%${name}%`)
+      )
+    ));
+
+  // Score each candidate
+  return candidates.map(candidate => ({
+    id: candidate.id,
+    name: candidate.name,
+    confidence: calculateMatchConfidence(name, candidate),
+    reasons: getMatchReasons(name, candidate)
+  }));
+}
+
+function calculateMatchConfidence(newName: string, existing: Person): number {
+  let confidence = 0;
+
+  // Exact name match
+  if (existing.name.toLowerCase() === newName.toLowerCase()) {
+    confidence += 0.5;
+  }
+
+  // Similar name
+  if (existing.name.toLowerCase().includes(newName.toLowerCase())) {
+    confidence += 0.3;
+  }
+
+  // Has existing data
+  if (existing.photoId) confidence += 0.1;
+  if (existing.mentionCount > 2) confidence += 0.1;
+
+  return Math.min(confidence, 1.0);
+}
+
+// Example 5: Merge duplicate persons
+async function mergePersons(duplicateId: string, canonicalId: string) {
+  // 1. Mark duplicate as merged
+  await db.update(people)
+    .set({
+      status: 'merged',
+      canonicalId: canonicalId,
+      deletedAt: new Date()
+    })
+    .where(eq(people.id, duplicateId));
+
+  // 2. Transfer relations
+  await db.update(relations)
+    .set({ subjectId: canonicalId })
+    .where(eq(relations.subjectId, duplicateId));
+
+  await db.update(relations)
+    .set({ objectId: canonicalId })
+    .where(eq(relations.objectId, duplicateId));
+
+  // 3. Update canonical record's merge history
+  const canonical = await db.select().from(people)
+    .where(eq(people.id, canonicalId)).limit(1);
+
+  const mergedFromList = canonical[0].mergedFrom
+    ? JSON.parse(canonical[0].mergedFrom)
+    : [];
+  mergedFromList.push(duplicateId);
+
+  await db.update(people)
+    .set({
+      mergedFrom: JSON.stringify(mergedFromList),
+      mentionCount: canonical[0].mentionCount + 1
+    })
+    .where(eq(people.id, canonicalId));
+}
+
+// Example 6: Query for "Sarah's important people" (excluding placeholders)
+const importantPeople = await db
+  .select()
+  .from(people)
+  .where(and(
+    eq(people.userId, sarahUserId),
+    or(
+      eq(people.importanceToUser, 'important'),
+      eq(people.importanceToUser, 'very_important')
+    ),
+    ne(people.status, 'merged')
+  ))
+  .orderBy(people.mentionCount);
 ```
 
 ---
@@ -715,7 +947,33 @@ export const people = sqliteTable(
       enum: ['friend', 'family', 'colleague', 'acquaintance', 'partner'],
     }),
     metDate: integer('met_date', { mode: 'timestamp' }),
-    status: text('status', { enum: ['active', 'archived', 'deceased'] }).notNull().default('active'),
+
+    // Person Classification & Management
+    personType: text('person_type', {
+      enum: ['primary', 'mentioned', 'placeholder'],
+    }).default('placeholder'),
+    dataCompleteness: text('data_completeness', {
+      enum: ['minimal', 'partial', 'complete'],
+    }).default('minimal'),
+    addedBy: text('added_by', {
+      enum: ['user', 'ai_extraction', 'auto_created', 'import'],
+    }).default('auto_created'),
+    importanceToUser: text('importance_to_user', {
+      enum: ['unknown', 'peripheral', 'important', 'very_important'],
+    }).default('unknown'),
+
+    // De-duplication & Merging
+    potentialDuplicates: text('potential_duplicates'), // JSON array of {id, name, confidence}
+    canonicalId: text('canonical_id').references(() => people.id),
+    mergedFrom: text('merged_from'), // Comma-separated list of merged person IDs
+
+    // Context for auto-created people
+    extractionContext: text('extraction_context'), // JSON: {mentioned_in_story, relation_to_primary, known_facts}
+    mentionCount: integer('mention_count').default(0),
+
+    status: text('status', {
+      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged']
+    }).notNull().default('active'),
     archiveReason: text('archive_reason', {
       enum: ['no_longer_in_touch', 'moved_away', 'deceased', 'breakup', 'other'],
     }),
@@ -734,6 +992,9 @@ export const people = sqliteTable(
     userIdIdx: index('people_user_id_idx').on(table.userId),
     statusIdx: index('people_status_idx').on(table.status),
     nameIdx: index('people_name_idx').on(table.name),
+    personTypeIdx: index('people_person_type_idx').on(table.personType),
+    importanceIdx: index('people_importance_idx').on(table.importanceToUser),
+    canonicalIdIdx: index('people_canonical_id_idx').on(table.canonicalId),
   })
 );
 
