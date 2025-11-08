@@ -1,7 +1,8 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { migrate } from 'drizzle-orm/expo-sqlite/migrator';
-import { openDatabaseSync } from 'expo-sqlite/next';
+import { openDatabaseSync } from 'expo-sqlite';
 import * as schema from './schema';
+import migrations from './migrations/migrations';
 
 /**
  * Run database migrations
@@ -12,10 +13,8 @@ export async function runMigrations() {
     const db = openDatabaseSync('friends.db');
     const drizzleDb = drizzle(db, { schema });
 
-    // Run migrations from the migrations folder
-    await migrate(drizzleDb, {
-      migrationsFolder: './lib/db/migrations',
-    });
+    // Run migrations
+    await migrate(drizzleDb, migrations);
 
     console.log('✅ Database migrations completed');
   } catch (error) {

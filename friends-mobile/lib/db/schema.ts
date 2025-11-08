@@ -78,6 +78,7 @@ export const people = sqliteTable(
 
     // De-duplication & Merging
     potentialDuplicates: text('potential_duplicates'),
+    // @ts-ignore - Self-reference is valid in Drizzle
     canonicalId: text('canonical_id').references(() => people.id),
     mergedFrom: text('merged_from'),
 
