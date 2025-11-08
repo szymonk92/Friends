@@ -12,7 +12,7 @@ import {
 } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson } from '@/hooks/usePeople';
-import { usePersonRelations } from '@/hooks/useRelations';
+import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
 import {
   getInitials,
   formatRelativeTime,
@@ -26,6 +26,7 @@ export default function PersonProfileScreen() {
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(id!);
   const deletePerson = useDeletePerson();
+  const deleteRelation = useDeleteRelation();
 
   const handleDelete = () => {
     Alert.alert(
@@ -39,6 +40,23 @@ export default function PersonProfileScreen() {
           onPress: async () => {
             await deletePerson.mutateAsync(id!);
             router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteRelation = (relationId: string, objectLabel: string) => {
+    Alert.alert(
+      'Delete Relation',
+      `Are you sure you want to delete "${objectLabel}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteRelation.mutateAsync(relationId);
           },
         },
       ]
@@ -82,7 +100,14 @@ export default function PersonProfileScreen() {
         options={{
           title: person.name,
           headerRight: () => (
-            <IconButton icon="delete" onPress={handleDelete} iconColor="#d32f2f" />
+            <View style={{ flexDirection: 'row' }}>
+              <IconButton
+                icon="pencil"
+                onPress={() => router.push(`/person/edit?personId=${id}`)}
+                iconColor="#6200ee"
+              />
+              <IconButton icon="delete" onPress={handleDelete} iconColor="#d32f2f" />
+            </View>
           ),
         }}
       />
@@ -195,13 +220,25 @@ export default function PersonProfileScreen() {
                           }
                         />
                       )}
-                      right={(props) =>
-                        relation.intensity && (
-                          <Chip {...props} compact>
-                            {relation.intensity}
-                          </Chip>
-                        )
-                      }
+                      right={(props) => (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          {relation.intensity && (
+                            <Chip {...props} compact style={{ marginRight: 4 }}>
+                              {relation.intensity}
+                            </Chip>
+                          )}
+                          <IconButton
+                            icon="pencil-outline"
+                            size={20}
+                            onPress={() => router.push(`/person/edit-relation?relationId=${relation.id}`)}
+                          />
+                          <IconButton
+                            icon="delete-outline"
+                            size={20}
+                            onPress={() => handleDeleteRelation(relation.id, relation.objectLabel)}
+                          />
+                        </View>
+                      )}
                       style={styles.relationItem}
                     />
                   ))}
