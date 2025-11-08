@@ -8,6 +8,7 @@ import {
   Divider,
   List,
   IconButton,
+  FAB,
 } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson } from '@/hooks/usePeople';
@@ -85,11 +86,12 @@ export default function PersonProfileScreen() {
           ),
         }}
       />
-      <ScrollView style={styles.container}>
-        {/* Profile Header */}
-        <Card style={styles.headerCard}>
-          <Card.Content>
-            <View style={styles.header}>
+      <View style={styles.wrapper}>
+        <ScrollView style={styles.container}>
+          {/* Profile Header */}
+          <Card style={styles.headerCard}>
+            <Card.Content>
+              <View style={styles.header}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
               </View>
@@ -208,13 +210,24 @@ export default function PersonProfileScreen() {
           </Card.Content>
         </Card>
 
-        <View style={styles.spacer} />
-      </ScrollView>
+          <View style={styles.spacer} />
+        </ScrollView>
+
+        <FAB
+          icon="plus"
+          label="Add Relation"
+          style={styles.fab}
+          onPress={() => router.push(`/person/add-relation?personId=${id}`)}
+        />
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -311,5 +324,11 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 40,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
 });
