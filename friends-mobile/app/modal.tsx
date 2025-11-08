@@ -1,35 +1,168 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { useState } from 'react';
+import { router } from 'expo-router';
+import { useCreatePerson } from '@/hooks/usePeople';
+import { relationshipTypeEnum } from '@/lib/validation/schemas';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+export default function AddPersonModal() {
+  const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [relationshipType, setRelationshipType] = useState<string>('friend');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export default function ModalScreen() {
+  const createPerson = useCreatePerson();
+
+  const handleSubmit = async () => {
+    if (name.trim().length < 2) {
+      Alert.alert('Invalid Name', 'Please enter a name with at least 2 characters');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createPerson.mutateAsync({
+        name: name.trim(),
+        nickname: nickname.trim() || undefined,
+        relationshipType: relationshipType as any,
+        notes: notes.trim() || undefined,
+        personType: 'primary',
+        dataCompleteness: 'partial',
+        addedBy: 'user',
+        status: 'active',
+      });
+
+      Alert.alert('Success', `${name} has been added!`, [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add person. Please try again.');
+      console.error('Create person error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Modal</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/modal.tsx" />
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text variant="headlineMedium" style={styles.title}>
+          Add a Person
+        </Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>
+          Manually add someone to your network
+        </Text>
 
-      {/* Use a light status bar on iOS to account for the black space above the modal */}
+        <TextInput
+          mode="outlined"
+          label="Name *"
+          placeholder="Enter their name"
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+          autoFocus
+        />
+
+        <TextInput
+          mode="outlined"
+          label="Nickname"
+          placeholder="Optional nickname"
+          value={nickname}
+          onChangeText={setNickname}
+          style={styles.input}
+        />
+
+        <Text variant="titleSmall" style={styles.label}>
+          Relationship Type
+        </Text>
+        <SegmentedButtons
+          value={relationshipType}
+          onValueChange={setRelationshipType}
+          buttons={[
+            { value: 'friend', label: 'Friend', icon: 'account-heart' },
+            { value: 'family', label: 'Family', icon: 'home-heart' },
+            { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
+          ]}
+          style={styles.segmented}
+        />
+        <SegmentedButtons
+          value={relationshipType}
+          onValueChange={setRelationshipType}
+          buttons={[
+            { value: 'acquaintance', label: 'Acquaintance' },
+            { value: 'partner', label: 'Partner', icon: 'heart' },
+          ]}
+          style={styles.segmented}
+        />
+
+        <TextInput
+          mode="outlined"
+          label="Notes"
+          placeholder="Any notes about this person..."
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          numberOfLines={4}
+          style={styles.input}
+        />
+
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          loading={isSubmitting}
+          disabled={isSubmitting || name.trim().length < 2}
+          style={styles.submitButton}
+          contentStyle={styles.submitButtonContent}
+        >
+          Add Person
+        </Button>
+
+        <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+          Cancel
+        </Button>
+      </View>
+
       <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  content: {
+    padding: 24,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    marginBottom: 8,
   },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
+  subtitle: {
+    marginBottom: 24,
+    opacity: 0.7,
+  },
+  input: {
+    marginBottom: 16,
+  },
+  label: {
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  segmented: {
+    marginBottom: 12,
+  },
+  submitButton: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  submitButtonContent: {
+    paddingVertical: 8,
   },
 });
