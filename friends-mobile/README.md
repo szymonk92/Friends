@@ -19,13 +19,15 @@ npm run web        # Web browser
 
 ## Features
 
-### Phase 1 MVP (Current)
+### Phase 1 MVP (Complete ✅)
 
 - ✅ **People Management** - Add, view, and organize people in your network
-- ✅ **Story Input** - Share stories and the AI extracts key information
-- ✅ **Relations Tracking** - Automatic extraction of 20+ relation types
-- ✅ **Person Profiles** - View detailed profiles with all relations
+- ✅ **AI Story Extraction** - Share stories and Claude automatically extracts key information
+- ✅ **Relations Tracking** - Automatic extraction of 20+ relation types (LIKES, IS, FEARS, etc.)
+- ✅ **Person Profiles** - View detailed profiles with all relations grouped by type
 - ✅ **Search** - Find people quickly by name
+- ✅ **API Key Management** - Secure storage of your Anthropic API key
+- ✅ **Auto-Accept Logic** - High-confidence relations saved automatically
 - ✅ **Local-First** - All data stored locally in SQLite
 
 ### Core Screens
@@ -37,8 +39,10 @@ npm run web        # Web browser
 
 2. **Add Story** (`/(tabs)/two`)
    - Share stories about people you know
-   - AI extracts relations automatically
+   - AI extracts relations automatically (with your API key)
    - Cost estimation ($0.02/story)
+   - Auto-creates people mentioned in stories
+   - Auto-saves high-confidence relations
 
 3. **Person Profile** (`/person/[id]`)
    - View person details
@@ -131,14 +135,22 @@ npx tsc --noEmit
 npm run lint
 ```
 
-## Environment Variables
+## API Key Setup
 
+**Option 1: In-App (Recommended)**
+1. Open the app and go to "Add Story" tab
+2. Tap "Set API Key" button
+3. Enter your Anthropic API key
+4. Your key is securely stored locally
+
+**Option 2: Environment Variables**
 Create `.env` file:
-
 ```bash
-# Required for AI extraction
+# Optional - can also set in-app
 ANTHROPIC_API_KEY=your_api_key_here
 ```
+
+Get your API key from: https://console.anthropic.com
 
 ## Cost Optimization
 
@@ -148,15 +160,39 @@ ANTHROPIC_API_KEY=your_api_key_here
 - **97% cost reduction**: $0.02 vs $1.50 per story
 - 10x faster processing
 
-## Next Steps (Phase 2)
+## How to Use
 
-- [ ] AI extraction integration (backend ready, needs API key)
-- [ ] Review screen for extracted relations
-- [ ] Conflict detection UI
-- [ ] Duplicate person merging
-- [ ] Import/export data
-- [ ] Contact frequency tracking
+1. **Seed Sample Data** (recommended for first time)
+   - Navigate to `/dev` screen
+   - Tap "Seed Sample Data"
+   - Explore Emma, Mike, and Sarah's profiles
+
+2. **Set Your API Key**
+   - Go to "Add Story" tab
+   - Tap "Set API Key"
+   - Enter your Anthropic API key from https://console.anthropic.com
+
+3. **Add a Story**
+   - Write about someone you know
+   - Example: "Had lunch with Alex. He's a software engineer who loves hiking and hates spicy food."
+   - AI will automatically extract:
+     - Person: Alex (created automatically)
+     - Relations: HAS_SKILL "software engineering", LIKES "hiking", DISLIKES "spicy food"
+
+4. **View Results**
+   - Check "People" tab to see Alex
+   - Tap Alex's profile to see extracted relations
+   - Relations are grouped by type (LIKES, DISLIKES, HAS_SKILL, etc.)
+
+## Future Enhancements (Phase 2+)
+
+- [ ] Review screen for low-confidence relations (manual approval)
+- [ ] Conflict detection UI (contradictions between stories)
+- [ ] Duplicate person merging (intelligent de-duplication)
+- [ ] Import/export data (backup & restore)
+- [ ] Contact frequency tracking (relationship health)
 - [ ] Birthday reminders
+- [ ] Voice note support
 
 ## Troubleshooting
 

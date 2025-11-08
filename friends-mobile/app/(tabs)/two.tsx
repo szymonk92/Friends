@@ -1,13 +1,33 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import { Text, TextInput, Button, Card, HelperText } from 'react-native-paper';
-import { useState } from 'react';
+import {
+  Text,
+  TextInput,
+  Button,
+  Card,
+  HelperText,
+  Dialog,
+  Portal,
+} from 'react-native-paper';
+import { useState, useEffect } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
+import { useExtractStory } from '@/hooks/useExtraction';
+import { useSettings } from '@/store/useSettings';
 import { router } from 'expo-router';
 
 export default function StoryInputScreen() {
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
+
   const createStory = useCreateStory();
+  const extractStory = useExtractStory();
+  const { apiKey, setApiKey, loadApiKey, hasApiKey } = useSettings();
+
+  // Load API key on mount
+  useEffect(() => {
+    loadApiKey();
+  }, []);
 
   const handleSubmit = async () => {
     if (storyText.trim().length < 10) {
@@ -15,35 +35,104 @@ export default function StoryInputScreen() {
       return;
     }
 
-    setIsProcessing(true);
+    // Check if API key is set
+    if (!hasApiKey()) {
+      Alert.alert(
+        'API Key Required',
+        'To use AI extraction, you need to set your Anthropic API key first.',
+        [
+          { text: 'Set API Key', onPress: () => setApiKeyDialogVisible(true) },
+          {
+            text: 'Save Without AI',
+            onPress: () => saveStoryOnly(),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
 
+    await processStoryWithAI();
+  };
+
+  const saveStoryOnly = async () => {
+    setIsProcessing(true);
     try {
-      // Save story to database
+      await createStory.mutateAsync({
+        content: storyText,
+        title: null,
+        storyDate: new Date(),
+      });
+
+      Alert.alert('Story Saved!', 'Your story has been saved (without AI extraction).', [
+        { text: 'View People', onPress: () => router.push('/(tabs)/') },
+        { text: 'Add Another', onPress: () => setStoryText('') },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save story. Please try again.');
+      console.error('Story save error:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const processStoryWithAI = async () => {
+    setIsProcessing(true);
+    try {
+      // Step 1: Save story first
       const story = await createStory.mutateAsync({
         content: storyText,
         title: null,
         storyDate: new Date(),
       });
 
+      // Step 2: Extract with AI
+      const result = await extractStory.mutateAsync({
+        storyId: story.id,
+        storyText: storyText,
+        apiKey: apiKey!,
+      });
+
+      // Step 3: Show results
+      const message = `AI extraction complete!
+
+✅ ${result.newPeople.length} new people created
+✅ ${result.newRelations.length} relations extracted
+${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts detected` : ''}
+
+Tokens used: ${result.tokensUsed || 'N/A'}`;
+
+      Alert.alert('Success!', message, [
+        { text: 'View People', onPress: () => router.push('/(tabs)/') },
+        { text: 'Add Another', onPress: () => setStoryText('') },
+      ]);
+    } catch (error: any) {
+      console.error('AI extraction error:', error);
       Alert.alert(
-        'Story Saved!',
-        'Your story has been saved. AI extraction will process it shortly.',
-        [
-          {
-            text: 'View People',
-            onPress: () => router.push('/(tabs)/'),
-          },
-          {
-            text: 'Add Another',
-            onPress: () => setStoryText(''),
-          },
-        ]
+        'Extraction Failed',
+        `Failed to extract relations: ${error.message || 'Unknown error'}
+
+The story was saved, but AI extraction didn't work. Check your API key and try again.`,
+        [{ text: 'OK' }]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save story. Please try again.');
-      console.error('Story save error:', error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (tempApiKey.trim().length === 0) {
+      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      return;
+    }
+
+    try {
+      await setApiKey(tempApiKey.trim());
+      setApiKeyDialogVisible(false);
+      setTempApiKey('');
+      Alert.alert('Success', 'API key saved! You can now use AI extraction.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save API key. Please try again.');
     }
   };
 
@@ -61,6 +150,16 @@ export default function StoryInputScreen() {
             Share something about your friends, family, or anyone you know. Our AI will extract
             important details automatically.
           </Text>
+          {!hasApiKey() && (
+            <Button
+              mode="outlined"
+              onPress={() => setApiKeyDialogVisible(true)}
+              style={styles.apiKeyButton}
+              icon="key"
+            >
+              Set API Key
+            </Button>
+          )}
         </Card.Content>
       </Card>
 
@@ -77,7 +176,8 @@ export default function StoryInputScreen() {
             style={styles.input}
           />
           <HelperText type="info">
-            {wordCount} words • Est. cost: {estimatedCost}
+            {wordCount} words • Est. cost: {estimatedCost} • API key:{' '}
+            {hasApiKey() ? '✓ Set' : '✗ Not set'}
           </HelperText>
         </Card.Content>
       </Card>
@@ -107,10 +207,38 @@ export default function StoryInputScreen() {
         style={styles.button}
         contentStyle={styles.buttonContent}
       >
-        {isProcessing ? 'Processing...' : 'Save & Extract'}
+        {isProcessing ? 'Processing...' : hasApiKey() ? 'Save & Extract' : 'Save Story'}
       </Button>
 
       <View style={styles.spacer} />
+
+      {/* API Key Dialog */}
+      <Portal>
+        <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
+          <Dialog.Title>Set Anthropic API Key</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Enter your Anthropic API key to enable AI extraction.
+            </Text>
+            <Text variant="bodySmall" style={styles.dialogHelper}>
+              Get your key from: https://console.anthropic.com
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="API Key"
+              placeholder="sk-ant-..."
+              value={tempApiKey}
+              onChangeText={setTempApiKey}
+              secureTextEntry
+              style={styles.apiKeyInput}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleSaveApiKey}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   );
 }
@@ -133,6 +261,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     lineHeight: 20,
   },
+  apiKeyButton: {
+    marginTop: 12,
+  },
   input: {
     minHeight: 200,
     textAlignVertical: 'top',
@@ -153,5 +284,15 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 40,
+  },
+  dialogText: {
+    marginBottom: 8,
+  },
+  dialogHelper: {
+    marginBottom: 16,
+    opacity: 0.7,
+  },
+  apiKeyInput: {
+    marginTop: 8,
   },
 });
