@@ -4,7 +4,7 @@ import { useCreatePerson, useUpdatePerson } from './usePeople';
 import { useCreateRelations } from './useRelations';
 import { useMarkStoryProcessed } from './useStories';
 import { db, getCurrentUserId } from '@/lib/db';
-import { people } from '@/lib/db/schema';
+import { people, pendingExtractions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 interface ExtractionInput {
@@ -16,6 +16,7 @@ interface ExtractionInput {
 interface ExtractionOutput {
   newPeople: any[];
   newRelations: any[];
+  pendingReview: number; // Count of relations needing review
   conflicts: any[];
   rawResponse?: string;
   tokensUsed?: number;
@@ -128,6 +129,31 @@ export function useExtractStory() {
         createdRelations = await createRelations.mutateAsync(relationsToCreate);
       }
 
+      // Step 5.5: Save medium-confidence relations for review
+      const pendingCount = relationsNeedingReview.length;
+      if (pendingCount > 0) {
+        const pendingData = relationsNeedingReview.map((rel) => ({
+          userId,
+          storyId,
+          subjectId: rel.subjectId,
+          subjectName: personIdMap.get(rel.subjectId)
+            ? extractionResult.people.find((p: any) => personIdMap.get(p.id) === rel.subjectId)?.name || 'Unknown'
+            : 'Unknown',
+          relationType: rel.relationType,
+          objectLabel: rel.objectLabel,
+          objectType: rel.objectType || null,
+          intensity: rel.intensity || null,
+          confidence: rel.confidence,
+          category: rel.category || null,
+          metadata: rel.metadata ? JSON.stringify(rel.metadata) : null,
+          status: rel.status || 'current',
+          reviewStatus: 'pending' as const,
+          extractionReason: `AI confidence: ${(rel.confidence * 100).toFixed(0)}%`,
+        }));
+
+        await db.insert(pendingExtractions).values(pendingData as any);
+      }
+
       // Step 6: Mark story as processed
       await markProcessed.mutateAsync({
         id: storyId,
@@ -142,6 +168,7 @@ export function useExtractStory() {
       return {
         newPeople: newPeopleCreated,
         newRelations: createdRelations,
+        pendingReview: pendingCount,
         conflicts: extractionResult.conflicts,
         rawResponse: extractionResult.rawResponse,
         tokensUsed: extractionResult.tokensUsed,

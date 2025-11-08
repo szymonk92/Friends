@@ -8,6 +8,51 @@ const expoDb = openDatabaseSync('friends.db');
 // Create Drizzle instance
 export const db = drizzle(expoDb, { schema });
 
+// Initialize pending_extractions table if it doesn't exist
+try {
+  expoDb.execSync(`
+    CREATE TABLE IF NOT EXISTS pending_extractions (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      story_id TEXT REFERENCES stories(id) ON DELETE CASCADE,
+      subject_id TEXT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      subject_name TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      object_label TEXT NOT NULL,
+      object_type TEXT,
+      intensity TEXT,
+      confidence REAL NOT NULL,
+      category TEXT,
+      metadata TEXT,
+      status TEXT,
+      review_status TEXT NOT NULL DEFAULT 'pending',
+      reviewed_at INTEGER,
+      review_notes TEXT,
+      extraction_reason TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
+  expoDb.execSync(`
+    CREATE INDEX IF NOT EXISTS pending_extractions_user_id_idx ON pending_extractions(user_id);
+  `);
+
+  expoDb.execSync(`
+    CREATE INDEX IF NOT EXISTS pending_extractions_story_id_idx ON pending_extractions(story_id);
+  `);
+
+  expoDb.execSync(`
+    CREATE INDEX IF NOT EXISTS pending_extractions_subject_id_idx ON pending_extractions(subject_id);
+  `);
+
+  expoDb.execSync(`
+    CREATE INDEX IF NOT EXISTS pending_extractions_review_status_idx ON pending_extractions(review_status);
+  `);
+} catch (error) {
+  console.log('Pending extractions table initialization:', error);
+}
+
 // Initialize local user helper
 export async function initializeLocalUser(): Promise<string> {
   // Check if user exists

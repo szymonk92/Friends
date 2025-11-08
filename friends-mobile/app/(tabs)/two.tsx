@@ -97,15 +97,26 @@ export default function StoryInputScreen() {
       const message = `AI extraction complete!
 
 ✅ ${result.newPeople.length} new people created
-✅ ${result.newRelations.length} relations extracted
+✅ ${result.newRelations.length} relations auto-saved
+${result.pendingReview > 0 ? `⏳ ${result.pendingReview} relations need your review` : ''}
 ${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts detected` : ''}
 
 Tokens used: ${result.tokensUsed || 'N/A'}`;
 
-      Alert.alert('Success!', message, [
+      const buttons = [
         { text: 'View People', onPress: () => router.push('/(tabs)/') },
-        { text: 'Add Another', onPress: () => setStoryText('') },
-      ]);
+      ];
+
+      if (result.pendingReview > 0) {
+        buttons.unshift({
+          text: 'Review Now',
+          onPress: () => router.push('/review-extractions'),
+        });
+      }
+
+      buttons.push({ text: 'Add Another', onPress: () => setStoryText('') });
+
+      Alert.alert('Success!', message, buttons);
     } catch (error: any) {
       console.error('AI extraction error:', error);
       Alert.alert(

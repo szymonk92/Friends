@@ -335,6 +335,50 @@ export const files = sqliteTable(
   })
 );
 
+export const pendingExtractions = sqliteTable(
+  'pending_extractions',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    storyId: text('story_id').references(() => stories.id, { onDelete: 'cascade' }),
+
+    // The person this relation is about
+    subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
+    subjectName: text('subject_name').notNull(), // For display
+
+    // The relation type and object
+    relationType: text('relation_type').notNull(),
+    objectLabel: text('object_label').notNull(),
+    objectType: text('object_type'),
+
+    // Metadata
+    intensity: text('intensity'),
+    confidence: real('confidence').notNull(), // AI confidence score
+    category: text('category'),
+    metadata: text('metadata'), // JSON
+    status: text('status'),
+
+    // Review status
+    reviewStatus: text('review_status', {
+      enum: ['pending', 'approved', 'rejected', 'edited'],
+    }).notNull().default('pending'),
+    reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
+    reviewNotes: text('review_notes'),
+
+    // AI reasoning
+    extractionReason: text('extraction_reason'), // Why AI extracted this
+
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    userIdIdx: index('pending_extractions_user_id_idx').on(table.userId),
+    storyIdIdx: index('pending_extractions_story_id_idx').on(table.storyId),
+    subjectIdIdx: index('pending_extractions_subject_id_idx').on(table.subjectId),
+    reviewStatusIdx: index('pending_extractions_review_status_idx').on(table.reviewStatus),
+  })
+);
+
 // ============================================================================
 // TYPE EXPORTS
 // ============================================================================
@@ -368,3 +412,6 @@ export type NewEvent = typeof events.$inferInsert;
 
 export type File = typeof files.$inferSelect;
 export type NewFile = typeof files.$inferInsert;
+
+export type PendingExtraction = typeof pendingExtractions.$inferSelect;
+export type NewPendingExtraction = typeof pendingExtractions.$inferInsert;
