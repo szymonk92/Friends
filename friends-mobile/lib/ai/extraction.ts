@@ -51,7 +51,8 @@ export interface ExtractionResult {
 export async function extractRelationsFromStory(
   storyText: string,
   existingPeople: Array<{ id: string; name: string }>,
-  apiKey: string
+  apiKey: string,
+  existingRelations?: Array<{ relationType: string; objectLabel: string; subjectId: string; subjectName: string }>
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
 
@@ -63,6 +64,7 @@ export async function extractRelationsFromStory(
   // Create extraction context (lightweight - only names, not full profiles)
   const context: ExtractionContext = {
     existingPeople,
+    existingRelations,
     storyText,
   };
 
