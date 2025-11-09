@@ -114,6 +114,7 @@ export async function extractRelationsFromStory(
       processingTime,
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('AI extraction failed:', error);
     throw new Error(`Failed to extract relations: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

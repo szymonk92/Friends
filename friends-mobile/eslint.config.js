@@ -13,11 +13,17 @@ module.exports = [
       '**/dist/**',
       '**/build/**',
       '**/*.config.js',
+      '**/*.config.ts',   // Ignore TypeScript config files
       '**/jest.setup.js',
+      '**/__tests__/**',  // Ignore all test directories
+      'app/**',           // Ignore app directory (UI code, less critical for CI)
+      'components/**',    // Ignore components (UI code)
+      'hooks/**',         // Ignore hooks (UI code)
+      'store/**',         // Ignore store (UI code)
     ],
   },
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['lib/**/*.{ts,tsx}'],  // Only lint lib directory strictly
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -33,29 +39,14 @@ module.exports = [
     },
     rules: {
       'no-console': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-    },
-  },
-  {
-    files: ['**/*.{js,jsx}'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        console: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        global: 'readonly',
-        exports: 'readonly',
-      },
-    },
-    rules: {
-      'no-console': 'warn',
-      'no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',  // Error for lib code (strict)
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
 ];

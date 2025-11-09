@@ -11,8 +11,6 @@
 import {
   foodContainsIngredient,
   isFoodCompatibleWithRestriction,
-  getDietaryImplications,
-  findConflictingFoods,
   DIETARY_RESTRICTIONS,
   normalizeFoodName,
 } from './food-knowledge';
@@ -168,7 +166,6 @@ function detectIngredientConflict(
 
   let restriction: string | null = null;
   let food: string | null = null;
-  let restrictionRelation: any = null;
   let foodRelation: any = null;
   let restrictionType: string = '';
 
@@ -176,7 +173,6 @@ function detectIngredientConflict(
   if (restrictionTypes.some(rt => newRelation.relationType.includes(rt))) {
     restriction = newRelation.objectLabel;
     restrictionType = newRelation.relationType;
-    restrictionRelation = newRelation;
 
     if (preferenceTypes.includes(existingRelation.relationType)) {
       food = extractFoodFromActivity(existingRelation.objectLabel);
@@ -187,7 +183,6 @@ function detectIngredientConflict(
   else if (restrictionTypes.some(rt => existingRelation.relationType.includes(rt))) {
     restriction = existingRelation.objectLabel;
     restrictionType = existingRelation.relationType;
-    restrictionRelation = existingRelation;
 
     if (preferenceTypes.includes(newRelation.relationType)) {
       food = extractFoodFromActivity(newRelation.objectLabel);
@@ -242,13 +237,11 @@ function detectDietaryConflict(
 ): DetectedConflict | null {
   let dietaryRestriction: string | null = null;
   let food: string | null = null;
-  let restrictionRelation: any = null;
   let foodRelation: any = null;
 
   // Check if new relation is a dietary restriction
   if (newRelation.relationType === 'IS' && isDietaryRestriction(newRelation.objectLabel)) {
     dietaryRestriction = newRelation.objectLabel;
-    restrictionRelation = newRelation;
 
     if (['LIKES', 'REGULARLY_DOES', 'PREFERS_OVER'].includes(existingRelation.relationType)) {
       food = extractFoodFromActivity(existingRelation.objectLabel);
@@ -258,7 +251,6 @@ function detectDietaryConflict(
   // Check if existing relation is a dietary restriction
   else if (existingRelation.relationType === 'IS' && isDietaryRestriction(existingRelation.objectLabel)) {
     dietaryRestriction = existingRelation.objectLabel;
-    restrictionRelation = existingRelation;
 
     if (['LIKES', 'REGULARLY_DOES', 'PREFERS_OVER'].includes(newRelation.relationType)) {
       food = extractFoodFromActivity(newRelation.objectLabel);

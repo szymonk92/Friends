@@ -194,13 +194,18 @@ export async function seedSampleData() {
       storyDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     } as any);
 
+    // eslint-disable-next-line no-console
     console.log('✅ Sample data seeded successfully!');
+    // eslint-disable-next-line no-console
     console.log(`- Created 3 people: Emma, Mike, Sarah`);
+    // eslint-disable-next-line no-console
     console.log(`- Created ${4 + 2 + 2} relations`);
+    // eslint-disable-next-line no-console
     console.log(`- Created 1 story`);
 
     return { emma, mike, sarah };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Failed to seed sample data:', error);
     throw error;
   }
@@ -219,8 +224,10 @@ export async function clearAllData() {
     await db.delete(stories).where(eq(stories.userId, userId));
     await db.delete(people).where(eq(people.userId, userId));
 
+    // eslint-disable-next-line no-console
     console.log('✅ All data cleared successfully!');
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Failed to clear data:', error);
     throw error;
   }

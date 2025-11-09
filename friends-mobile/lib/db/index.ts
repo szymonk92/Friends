@@ -50,6 +50,7 @@ try {
     CREATE INDEX IF NOT EXISTS pending_extractions_review_status_idx ON pending_extractions(review_status);
   `);
 } catch (error) {
+  // eslint-disable-next-line no-console
   console.log('Pending extractions table initialization:', error);
 }
 

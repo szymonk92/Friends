@@ -16,8 +16,10 @@ export async function runMigrations() {
     // Run migrations
     await migrate(drizzleDb, migrations);
 
+    // eslint-disable-next-line no-console
     console.log('✅ Database migrations completed');
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Database migration failed:', error);
     throw error;
   }
