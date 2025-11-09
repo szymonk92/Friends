@@ -261,10 +261,42 @@ export const DIETARY_RESTRICTIONS: Record<string, DietaryRestriction> = {
 };
 
 /**
+ * Simple singularization for common food ingredients
+ */
+function singularize(word: string): string {
+  // Handle common plural forms
+  if (word.endsWith('ies')) {
+    return word.slice(0, -3) + 'y'; // berries -> berry
+  }
+  if (word.endsWith('oes')) {
+    return word.slice(0, -2); // potatoes -> potato, tomatoes -> tomato
+  }
+  if (word.endsWith('s') && !word.endsWith('ss')) {
+    return word.slice(0, -1); // nuts -> nut, but not glass -> glas
+  }
+  return word;
+}
+
+/**
  * Normalize food name for matching
  */
 export function normalizeFoodName(name: string): string {
-  return name.toLowerCase().trim();
+  const normalized = name.toLowerCase().trim();
+  // Try both the original and singularized form
+  return normalized;
+}
+
+/**
+ * Get both singular and plural forms for matching
+ */
+function getForms(name: string): string[] {
+  const normalized = normalizeFoodName(name);
+  const singular = singularize(normalized);
+
+  if (singular !== normalized) {
+    return [normalized, singular];
+  }
+  return [normalized];
 }
 
 /**
@@ -303,40 +335,50 @@ export function getAllIngredients(foodName: string): string[] {
  * Check if a food contains an ingredient (with derivative checking)
  */
 export function foodContainsIngredient(foodName: string, ingredient: string): boolean {
-  const normalizedFood = normalizeFoodName(foodName);
-  const normalizedIngredient = normalizeFoodName(ingredient);
+  const foodForms = getForms(foodName);
+  const ingredientForms = getForms(ingredient);
 
-  // Direct match
-  if (normalizedFood === normalizedIngredient) {
+  // Direct match (any form)
+  if (foodForms.some(f => ingredientForms.includes(f))) {
     return true;
   }
 
-  // Check if food is in database
-  const foodItem = FOOD_DATABASE[normalizedFood];
-  if (foodItem) {
-    // Check direct ingredients
-    if (foodItem.ingredients.some(ing => normalizeFoodName(ing) === normalizedIngredient)) {
-      return true;
-    }
+  // Check if food is in database (try all forms)
+  for (const foodForm of foodForms) {
+    const foodItem = FOOD_DATABASE[foodForm];
+    if (foodItem) {
+      // Check direct ingredients (try all forms of ingredient)
+      if (foodItem.ingredients.some(ing => {
+        const ingForms = getForms(ing);
+        return ingredientForms.some(ingf => ingForms.includes(ingf));
+      })) {
+        return true;
+      }
 
-    // Check if any ingredient has the queried ingredient as a derivative
-    for (const ing of foodItem.ingredients) {
-      const derivatives = INGREDIENT_DERIVATIVES[normalizeFoodName(ing)] || [];
-      if (derivatives.some(d => normalizeFoodName(d) === normalizedIngredient)) {
+      // Check if any ingredient has the queried ingredient as a derivative
+      for (const ing of foodItem.ingredients) {
+        const ingForms = getForms(ing);
+        for (const ingForm of ingForms) {
+          const derivatives = INGREDIENT_DERIVATIVES[ingForm] || [];
+          if (derivatives.some(d => ingredientForms.some(ingf => getForms(d).includes(ingf)))) {
+            return true;
+          }
+        }
+      }
+
+      // Check aliases
+      if (foodItem.aliases.some(alias => ingredientForms.some(ingf => getForms(alias).includes(ingf)))) {
         return true;
       }
     }
   }
 
-  // Check if the ingredient's derivatives include this food
-  const ingredientDerivatives = INGREDIENT_DERIVATIVES[normalizedIngredient] || [];
-  if (ingredientDerivatives.some(d => normalizeFoodName(d) === normalizedFood)) {
-    return true;
-  }
-
-  // Check aliases
-  if (foodItem?.aliases.some(alias => normalizeFoodName(alias) === normalizedIngredient)) {
-    return true;
+  // Check if the ingredient's derivatives include this food (try all forms)
+  for (const ingredientForm of ingredientForms) {
+    const ingredientDerivatives = INGREDIENT_DERIVATIVES[ingredientForm] || [];
+    if (ingredientDerivatives.some(d => foodForms.some(ff => getForms(d).includes(ff)))) {
+      return true;
+    }
   }
 
   return false;

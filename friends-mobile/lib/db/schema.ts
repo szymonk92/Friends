@@ -49,6 +49,7 @@ export const sessions = sqliteTable('sessions', {
 // CORE DATA
 // ============================================================================
 
+// @ts-expect-error - Circular reference for self-referencing foreign key is valid
 export const people = sqliteTable(
   'people',
   {

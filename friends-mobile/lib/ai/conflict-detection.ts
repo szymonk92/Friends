@@ -48,42 +48,48 @@ export function detectConflicts(
     intensity?: string;
     status?: string;
   },
-  existingRelations: Array<Relation | { relationType: string; objectLabel: string; status?: string; id?: string }>
+  existingRelations: Array<Relation | { relationType: string; objectLabel: string; status?: string | null; id?: string }>
 ): DetectedConflict[] {
   const conflicts: DetectedConflict[] = [];
 
   for (const existingRelation of existingRelations) {
+    // Normalize status to handle null
+    const normalizedExisting = {
+      ...existingRelation,
+      status: existingRelation.status ?? undefined,
+    };
+
     // Skip past/archived relations unless they're being updated
-    if (existingRelation.status === 'past' && newRelation.status !== 'current') {
+    if (normalizedExisting.status === 'past' && newRelation.status !== 'current') {
       continue;
     }
 
     // 1. Direct contradictions (LIKES vs DISLIKES)
-    const directConflict = detectDirectContradiction(newRelation, existingRelation);
+    const directConflict = detectDirectContradiction(newRelation, normalizedExisting);
     if (directConflict) {
       conflicts.push(directConflict);
     }
 
     // 2. Ingredient-level conflicts (allergy vs food containing that ingredient)
-    const ingredientConflict = detectIngredientConflict(newRelation, existingRelation);
+    const ingredientConflict = detectIngredientConflict(newRelation, normalizedExisting);
     if (ingredientConflict) {
       conflicts.push(ingredientConflict);
     }
 
     // 3. Dietary restriction implications
-    const dietaryConflict = detectDietaryConflict(newRelation, existingRelation);
+    const dietaryConflict = detectDietaryConflict(newRelation, normalizedExisting);
     if (dietaryConflict) {
       conflicts.push(dietaryConflict);
     }
 
     // 4. Logical implications
-    const logicalConflict = detectLogicalConflict(newRelation, existingRelation);
+    const logicalConflict = detectLogicalConflict(newRelation, normalizedExisting);
     if (logicalConflict) {
       conflicts.push(logicalConflict);
     }
 
     // 5. Temporal conflicts (can't be two places at once, etc.)
-    const temporalConflict = detectTemporalConflict(newRelation, existingRelation);
+    const temporalConflict = detectTemporalConflict(newRelation, normalizedExisting);
     if (temporalConflict) {
       conflicts.push(temporalConflict);
     }
@@ -131,6 +137,23 @@ function detectDirectContradiction(
 }
 
 /**
+ * Extract food name from activity phrases like "eats pizza", "drinks milk"
+ */
+function extractFoodFromActivity(text: string): string {
+  const activityWords = ['eats', 'eat', 'drinks', 'drink', 'drinking', 'eating', 'has', 'having'];
+  const words = text.toLowerCase().trim().split(' ');
+
+  // Remove activity words from the beginning
+  for (const activity of activityWords) {
+    if (words[0] === activity) {
+      return words.slice(1).join(' ').trim();
+    }
+  }
+
+  return text;
+}
+
+/**
  * Detect ingredient-level conflicts
  * Example: "SENSITIVE_TO potato" vs "LIKES fries" (fries contain potato)
  */
@@ -156,7 +179,7 @@ function detectIngredientConflict(
     restrictionRelation = newRelation;
 
     if (preferenceTypes.includes(existingRelation.relationType)) {
-      food = existingRelation.objectLabel;
+      food = extractFoodFromActivity(existingRelation.objectLabel);
       foodRelation = existingRelation;
     }
   }
@@ -167,7 +190,7 @@ function detectIngredientConflict(
     restrictionRelation = existingRelation;
 
     if (preferenceTypes.includes(newRelation.relationType)) {
-      food = newRelation.objectLabel;
+      food = extractFoodFromActivity(newRelation.objectLabel);
       foodRelation = newRelation;
     }
   }
@@ -175,12 +198,14 @@ function detectIngredientConflict(
   // If we found a restriction-food pair, check for conflicts
   if (restriction && food) {
     if (foodContainsIngredient(food, restriction)) {
+      const originalFood = foodRelation.objectLabel;
+
       // LIKES a food they're allergic to
       if (foodRelation.relationType === 'LIKES') {
         return {
           type: 'ingredient_conflict',
           severity: 'high',
-          description: `Cannot like "${food}" while being ${restrictionType.toLowerCase().replace('_', ' ')} "${restriction}" (${food} contains ${restriction})`,
+          description: `Cannot like "${originalFood}" while being ${restrictionType.toLowerCase().replace('_', ' ')} "${restriction}" (${food} contains ${restriction})`,
           existingRelation,
           newRelation,
           reasoning: `Ingredient analysis shows that ${food} contains ${restriction}, which conflicts with the ${restrictionType}`,
@@ -188,12 +213,12 @@ function detectIngredientConflict(
           autoResolvable: false,
         };
       }
-      // REGULARLY_DOES eating something they're allergic to
-      else if (foodRelation.relationType === 'REGULARLY_DOES' && foodRelation.objectLabel.includes('eat')) {
+      // REGULARLY_DOES eating/drinking something they're allergic to
+      else if (foodRelation.relationType === 'REGULARLY_DOES') {
         return {
           type: 'ingredient_conflict',
           severity: 'critical',
-          description: `Cannot regularly eat "${food}" while being ${restrictionType.toLowerCase().replace('_', ' ')} "${restriction}" (${food} contains ${restriction})`,
+          description: `Cannot regularly ${originalFood.toLowerCase()} while being ${restrictionType.toLowerCase().replace('_', ' ')} "${restriction}" (${food} contains ${restriction})`,
           existingRelation,
           newRelation,
           reasoning: `Health concern: ${food} contains ${restriction}`,
@@ -226,7 +251,7 @@ function detectDietaryConflict(
     restrictionRelation = newRelation;
 
     if (['LIKES', 'REGULARLY_DOES', 'PREFERS_OVER'].includes(existingRelation.relationType)) {
-      food = existingRelation.objectLabel;
+      food = extractFoodFromActivity(existingRelation.objectLabel);
       foodRelation = existingRelation;
     }
   }
@@ -236,7 +261,7 @@ function detectDietaryConflict(
     restrictionRelation = existingRelation;
 
     if (['LIKES', 'REGULARLY_DOES', 'PREFERS_OVER'].includes(newRelation.relationType)) {
-      food = newRelation.objectLabel;
+      food = extractFoodFromActivity(newRelation.objectLabel);
       foodRelation = newRelation;
     }
   }
@@ -245,10 +270,11 @@ function detectDietaryConflict(
     const { compatible, reason } = isFoodCompatibleWithRestriction(food, dietaryRestriction);
 
     if (!compatible && reason) {
+      const originalFood = foodRelation.objectLabel;
       return {
         type: 'logical_implication',
         severity: 'high',
-        description: `Cannot like "${food}" while being ${dietaryRestriction} (${reason})`,
+        description: `Cannot ${originalFood.toLowerCase()} while being ${dietaryRestriction} (${reason})`,
         existingRelation,
         newRelation,
         reasoning: `Dietary restriction "${dietaryRestriction}" excludes ${reason}`,
@@ -417,16 +443,17 @@ function areOpposingBeliefs(belief1: string, belief2: string): boolean {
 export function validateRelation(
   newRelation: { relationType: string; objectLabel: string; intensity?: string; status?: string },
   existingRelations: Relation[]
-): { valid: boolean; conflicts: DetectedConflict[]; warnings: string[] } {
+): { valid: boolean; conflicts: DetectedConflict[]; warnings: string[]; requiresUserReview: boolean } {
   const conflicts = detectConflicts(newRelation, existingRelations);
 
   // Critical conflicts make it invalid
   const criticalConflicts = conflicts.filter(c => c.severity === 'critical');
+  const highConflicts = conflicts.filter(c => c.severity === 'high');
 
   const warnings: string[] = [];
 
   // High severity conflicts become warnings
-  for (const conflict of conflicts.filter(c => c.severity === 'high')) {
+  for (const conflict of highConflicts) {
     warnings.push(conflict.description);
   }
 
@@ -434,6 +461,7 @@ export function validateRelation(
     valid: criticalConflicts.length === 0,
     conflicts,
     warnings,
+    requiresUserReview: highConflicts.length > 0 || criticalConflicts.length > 0,
   };
 }
 
