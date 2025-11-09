@@ -66,13 +66,7 @@ export function useMarkStoryProcessed() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      extractedData,
-    }: {
-      id: string;
-      extractedData: any;
-    }) => {
+    mutationFn: async ({ id, extractedData }: { id: string; extractedData: any }) => {
       const result = await db
         .update(stories)
         .set({

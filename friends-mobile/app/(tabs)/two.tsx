@@ -1,13 +1,5 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  Card,
-  HelperText,
-  Dialog,
-  Portal,
-} from 'react-native-paper';
+import { Text, TextInput, Button, Card, HelperText, Dialog, Portal } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
@@ -103,9 +95,7 @@ ${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts det
 
 Tokens used: ${result.tokensUsed || 'N/A'}`;
 
-      const buttons = [
-        { text: 'View People', onPress: () => router.push('/(tabs)/') },
-      ];
+      const buttons = [{ text: 'View People', onPress: () => router.push('/(tabs)/') }];
 
       if (result.pendingReview > 0) {
         buttons.unshift({

@@ -5,24 +5,36 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 // ============================================================================
 
 export const users = sqliteTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   email: text('email').unique(),
   emailVerified: integer('email_verified', { mode: 'timestamp' }),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
-  role: text('role', { enum: ['user', 'premium', 'pro'] }).notNull().default('user'),
-  subscriptionTier: text('subscription_tier', { enum: ['free', 'premium', 'pro'] }).notNull().default('free'),
+  role: text('role', { enum: ['user', 'premium', 'pro'] })
+    .notNull()
+    .default('user'),
+  subscriptionTier: text('subscription_tier', { enum: ['free', 'premium', 'pro'] })
+    .notNull()
+    .default('free'),
   subscriptionValidUntil: integer('subscription_valid_until', { mode: 'timestamp' }),
   settings: text('settings'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
   lastSyncAt: integer('last_sync_at', { mode: 'timestamp' }),
   syncToken: text('sync_token'),
 });
 
 export const magicLinkTokens = sqliteTable('magic_link_tokens', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   email: text('email').notNull(),
@@ -30,19 +42,29 @@ export const magicLinkTokens = sqliteTable('magic_link_tokens', {
   usedAt: integer('used_at', { mode: 'timestamp' }),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   sessionToken: text('session_token').notNull().unique(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   deviceName: text('device_name'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  lastActiveAt: integer('last_active_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  lastActiveAt: integer('last_active_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 // ============================================================================
@@ -53,8 +75,12 @@ export const sessions = sqliteTable('sessions', {
 export const people = sqliteTable(
   'people',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     nickname: text('nickname'),
     photoId: text('photo_id'),
@@ -88,8 +114,10 @@ export const people = sqliteTable(
     mentionCount: integer('mention_count').default(0),
 
     status: text('status', {
-      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged']
-    }).notNull().default('active'),
+      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged'],
+    })
+      .notNull()
+      .default('active'),
     archiveReason: text('archive_reason', {
       enum: ['no_longer_in_touch', 'moved_away', 'deceased', 'breakup', 'other'],
     }),
@@ -98,8 +126,12 @@ export const people = sqliteTable(
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
     notes: text('notes'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -117,14 +149,24 @@ export const people = sqliteTable(
 export const connections = sqliteTable(
   'connections',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    person1Id: text('person1_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
-    person2Id: text('person2_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    person1Id: text('person1_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    person2Id: text('person2_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
     relationshipType: text('relationship_type', {
       enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance'],
     }).notNull(),
-    status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] }).notNull().default('active'),
+    status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] })
+      .notNull()
+      .default('active'),
     qualifier: text('qualifier'),
     strength: real('strength').default(0.5),
     startDate: integer('start_date', { mode: 'timestamp' }),
@@ -134,8 +176,12 @@ export const connections = sqliteTable(
     }),
     hideFromSuggestions: integer('hide_from_suggestions', { mode: 'boolean' }).default(false),
     notes: text('notes'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -151,12 +197,39 @@ export const connections = sqliteTable(
 export const relations = sqliteTable(
   'relations',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    subjectId: text('subject_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
     subjectType: text('subject_type').notNull().default('person'),
     relationType: text('relation_type', {
-      enum: ['KNOWS', 'LIKES', 'DISLIKES', 'ASSOCIATED_WITH', 'EXPERIENCED', 'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE', 'IS', 'BELIEVES', 'FEARS', 'WANTS_TO_ACHIEVE', 'STRUGGLES_WITH', 'CARES_FOR', 'DEPENDS_ON', 'REGULARLY_DOES', 'PREFERS_OVER', 'USED_TO_BE', 'SENSITIVE_TO', 'UNCOMFORTABLE_WITH'],
+      enum: [
+        'KNOWS',
+        'LIKES',
+        'DISLIKES',
+        'ASSOCIATED_WITH',
+        'EXPERIENCED',
+        'HAS_SKILL',
+        'OWNS',
+        'HAS_IMPORTANT_DATE',
+        'IS',
+        'BELIEVES',
+        'FEARS',
+        'WANTS_TO_ACHIEVE',
+        'STRUGGLES_WITH',
+        'CARES_FOR',
+        'DEPENDS_ON',
+        'REGULARLY_DOES',
+        'PREFERS_OVER',
+        'USED_TO_BE',
+        'SENSITIVE_TO',
+        'UNCOMFORTABLE_WITH',
+      ],
     }).notNull(),
     objectId: text('object_id'),
     objectType: text('object_type'),
@@ -170,9 +243,15 @@ export const relations = sqliteTable(
     }).default('manual'),
     validFrom: integer('valid_from', { mode: 'timestamp' }),
     validTo: integer('valid_to', { mode: 'timestamp' }),
-    status: text('status', { enum: ['current', 'past', 'future', 'aspiration'] }).default('current'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    status: text('status', { enum: ['current', 'past', 'future', 'aspiration'] }).default(
+      'current'
+    ),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -188,8 +267,12 @@ export const relations = sqliteTable(
 export const stories = sqliteTable(
   'stories',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title'),
     content: text('content').notNull(),
     aiProcessed: integer('ai_processed', { mode: 'boolean' }).default(false),
@@ -198,8 +281,12 @@ export const stories = sqliteTable(
     peopleIds: text('people_ids'),
     attachmentIds: text('attachment_ids'),
     storyDate: integer('story_date', { mode: 'timestamp' }),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -213,14 +300,22 @@ export const stories = sqliteTable(
 export const secrets = sqliteTable(
   'secrets',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     personId: text('person_id').references(() => people.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     encryptedContent: text('encrypted_content').notNull(),
     encryptionSalt: text('encryption_salt').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -234,17 +329,27 @@ export const secrets = sqliteTable(
 export const contactEvents = sqliteTable(
   'contact_events',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    personId: text('person_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
     eventType: text('event_type', {
       enum: ['in_person', 'phone', 'video', 'message', 'email', 'social_media'],
     }).notNull(),
     notes: text('notes'),
     location: text('location'),
     duration: integer('duration'),
-    eventDate: integer('event_date', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    eventDate: integer('event_date', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -259,8 +364,12 @@ export const contactEvents = sqliteTable(
 export const relationshipHistory = sqliteTable(
   'relationship_history',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     connectionId: text('connection_id').references(() => connections.id, { onDelete: 'cascade' }),
     changeType: text('change_type', {
       enum: ['created', 'status_changed', 'qualifier_changed', 'ended', 'reactivated', 'archived'],
@@ -269,7 +378,9 @@ export const relationshipHistory = sqliteTable(
     newValue: text('new_value'),
     reason: text('reason'),
     notes: text('notes'),
-    changedAt: integer('changed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    changedAt: integer('changed_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
@@ -282,8 +393,12 @@ export const relationshipHistory = sqliteTable(
 export const events = sqliteTable(
   'events',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     description: text('description'),
     eventType: text('event_type', {
@@ -296,9 +411,15 @@ export const events = sqliteTable(
     menuSuggestions: text('menu_suggestions'),
     seatingArrangement: text('seating_arrangement'),
     warnings: text('warnings'),
-    status: text('status', { enum: ['planned', 'confirmed', 'completed', 'cancelled'] }).default('planned'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    status: text('status', { enum: ['planned', 'confirmed', 'completed', 'cancelled'] }).default(
+      'planned'
+    ),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
@@ -313,8 +434,12 @@ export const events = sqliteTable(
 export const files = sqliteTable(
   'files',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     filename: text('filename').notNull(),
     mimeType: text('mime_type').notNull(),
     size: integer('size').notNull(),
@@ -323,7 +448,9 @@ export const files = sqliteTable(
     personId: text('person_id').references(() => people.id, { onDelete: 'set null' }),
     storyId: text('story_id').references(() => stories.id, { onDelete: 'set null' }),
     thumbnailPath: text('thumbnail_path'),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }),
     cloudUrl: text('cloud_url'),
     syncVersion: integer('sync_version').default(1),
@@ -339,12 +466,18 @@ export const files = sqliteTable(
 export const pendingExtractions = sqliteTable(
   'pending_extractions',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     storyId: text('story_id').references(() => stories.id, { onDelete: 'cascade' }),
 
     // The person this relation is about
-    subjectId: text('subject_id').notNull().references(() => people.id, { onDelete: 'cascade' }),
+    subjectId: text('subject_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
     subjectName: text('subject_name').notNull(), // For display
 
     // The relation type and object
@@ -362,15 +495,21 @@ export const pendingExtractions = sqliteTable(
     // Review status
     reviewStatus: text('review_status', {
       enum: ['pending', 'approved', 'rejected', 'edited'],
-    }).notNull().default('pending'),
+    })
+      .notNull()
+      .default('pending'),
     reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
     reviewNotes: text('review_notes'),
 
     // AI reasoning
     extractionReason: text('extraction_reason'), // Why AI extracted this
 
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
   },
   (table) => ({
     userIdIdx: index('pending_extractions_user_id_idx').on(table.userId),

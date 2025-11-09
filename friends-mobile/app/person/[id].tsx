@@ -47,20 +47,16 @@ export default function PersonProfileScreen() {
   };
 
   const handleDeleteRelation = (relationId: string, objectLabel: string) => {
-    Alert.alert(
-      'Delete Relation',
-      `Are you sure you want to delete "${objectLabel}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteRelation.mutateAsync(relationId);
-          },
+    Alert.alert('Delete Relation', `Are you sure you want to delete "${objectLabel}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteRelation.mutateAsync(relationId);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (personLoading) {
@@ -117,135 +113,139 @@ export default function PersonProfileScreen() {
           <Card style={styles.headerCard}>
             <Card.Content>
               <View style={styles.header}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-              </View>
-              <View style={styles.headerInfo}>
-                <Text variant="headlineSmall" style={styles.name}>
-                  {person.name}
-                </Text>
-                {person.nickname && (
-                  <Text variant="bodyLarge" style={styles.nickname}>
-                    "{person.nickname}"
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+                </View>
+                <View style={styles.headerInfo}>
+                  <Text variant="headlineSmall" style={styles.name}>
+                    {person.name}
                   </Text>
+                  {person.nickname && (
+                    <Text variant="bodyLarge" style={styles.nickname}>
+                      "{person.nickname}"
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.chips}>
+                {person.relationshipType && (
+                  <Chip icon="heart" style={styles.chip}>
+                    {person.relationshipType}
+                  </Chip>
+                )}
+                {person.personType && (
+                  <Chip icon="account" style={styles.chip}>
+                    {person.personType}
+                  </Chip>
+                )}
+                {person.importanceToUser && person.importanceToUser !== 'unknown' && (
+                  <Chip icon="star" style={styles.chip}>
+                    {person.importanceToUser.replace('_', ' ')}
+                  </Chip>
                 )}
               </View>
-            </View>
 
-            <View style={styles.chips}>
-              {person.relationshipType && (
-                <Chip icon="heart" style={styles.chip}>
-                  {person.relationshipType}
-                </Chip>
-              )}
-              {person.personType && (
-                <Chip icon="account" style={styles.chip}>
-                  {person.personType}
-                </Chip>
-              )}
-              {person.importanceToUser && person.importanceToUser !== 'unknown' && (
-                <Chip icon="star" style={styles.chip}>
-                  {person.importanceToUser.replace('_', ' ')}
-                </Chip>
-              )}
-            </View>
-
-            {person.metDate && (
-              <Text variant="bodySmall" style={styles.metDate}>
-                Met on {formatShortDate(new Date(person.metDate))}
-              </Text>
-            )}
-
-            {person.notes && (
-              <Text variant="bodyMedium" style={styles.notes}>
-                {person.notes}
-              </Text>
-            )}
-
-            <Text variant="bodySmall" style={styles.meta}>
-              Last updated {formatRelativeTime(new Date(person.updatedAt))}
-            </Text>
-          </Card.Content>
-        </Card>
-
-        {/* Relations */}
-        <Card style={styles.relationsCard}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Relations ({personRelations?.length || 0})
-            </Text>
-            <Divider style={styles.divider} />
-
-            {relationsLoading && (
-              <View style={styles.centered}>
-                <ActivityIndicator />
-              </View>
-            )}
-
-            {!relationsLoading && personRelations && personRelations.length === 0 && (
-              <View style={styles.emptyRelations}>
-                <Text variant="bodyMedium" style={styles.emptyText}>
-                  No relations yet. Add a story to extract information about {person.name}.
+              {person.metDate && (
+                <Text variant="bodySmall" style={styles.metDate}>
+                  Met on {formatShortDate(new Date(person.metDate))}
                 </Text>
-                <Button mode="outlined" onPress={() => router.push('/(tabs)/two')}>
-                  Add a Story
-                </Button>
-              </View>
-            )}
+              )}
 
-            {relationsByType &&
-              Object.entries(relationsByType).map(([type, rels]) => (
-                <View key={type}>
-                  <List.Subheader>
-                    {getRelationEmoji(type)} {formatRelationType(type)} ({rels.length})
-                  </List.Subheader>
-                  {rels.map((relation) => (
-                    <List.Item
-                      key={relation.id}
-                      title={relation.objectLabel}
-                      description={
-                        relation.category ||
-                        relation.intensity ||
-                        formatRelativeTime(new Date(relation.createdAt))
-                      }
-                      left={(props) => (
-                        <List.Icon
-                          {...props}
-                          icon={
-                            relation.status === 'past'
-                              ? 'history'
-                              : relation.status === 'future'
-                                ? 'clock-outline'
-                                : 'check-circle-outline'
-                          }
-                        />
-                      )}
-                      right={(props) => (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          {relation.intensity && (
-                            <Chip {...props} compact style={{ marginRight: 4 }}>
-                              {relation.intensity}
-                            </Chip>
-                          )}
-                          <IconButton
-                            icon="pencil-outline"
-                            size={20}
-                            onPress={() => router.push(`/person/edit-relation?relationId=${relation.id}`)}
-                          />
-                          <IconButton
-                            icon="delete-outline"
-                            size={20}
-                            onPress={() => handleDeleteRelation(relation.id, relation.objectLabel)}
-                          />
-                        </View>
-                      )}
-                      style={styles.relationItem}
-                    />
-                  ))}
+              {person.notes && (
+                <Text variant="bodyMedium" style={styles.notes}>
+                  {person.notes}
+                </Text>
+              )}
+
+              <Text variant="bodySmall" style={styles.meta}>
+                Last updated {formatRelativeTime(new Date(person.updatedAt))}
+              </Text>
+            </Card.Content>
+          </Card>
+
+          {/* Relations */}
+          <Card style={styles.relationsCard}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Relations ({personRelations?.length || 0})
+              </Text>
+              <Divider style={styles.divider} />
+
+              {relationsLoading && (
+                <View style={styles.centered}>
+                  <ActivityIndicator />
                 </View>
-              ))}
-          </Card.Content>
-        </Card>
+              )}
+
+              {!relationsLoading && personRelations && personRelations.length === 0 && (
+                <View style={styles.emptyRelations}>
+                  <Text variant="bodyMedium" style={styles.emptyText}>
+                    No relations yet. Add a story to extract information about {person.name}.
+                  </Text>
+                  <Button mode="outlined" onPress={() => router.push('/(tabs)/two')}>
+                    Add a Story
+                  </Button>
+                </View>
+              )}
+
+              {relationsByType &&
+                Object.entries(relationsByType).map(([type, rels]) => (
+                  <View key={type}>
+                    <List.Subheader>
+                      {getRelationEmoji(type)} {formatRelationType(type)} ({rels.length})
+                    </List.Subheader>
+                    {rels.map((relation) => (
+                      <List.Item
+                        key={relation.id}
+                        title={relation.objectLabel}
+                        description={
+                          relation.category ||
+                          relation.intensity ||
+                          formatRelativeTime(new Date(relation.createdAt))
+                        }
+                        left={(props) => (
+                          <List.Icon
+                            {...props}
+                            icon={
+                              relation.status === 'past'
+                                ? 'history'
+                                : relation.status === 'future'
+                                  ? 'clock-outline'
+                                  : 'check-circle-outline'
+                            }
+                          />
+                        )}
+                        right={(props) => (
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {relation.intensity && (
+                              <Chip {...props} compact style={{ marginRight: 4 }}>
+                                {relation.intensity}
+                              </Chip>
+                            )}
+                            <IconButton
+                              icon="pencil-outline"
+                              size={20}
+                              onPress={() =>
+                                router.push(`/person/edit-relation?relationId=${relation.id}`)
+                              }
+                            />
+                            <IconButton
+                              icon="delete-outline"
+                              size={20}
+                              onPress={() =>
+                                handleDeleteRelation(relation.id, relation.objectLabel)
+                              }
+                            />
+                          </View>
+                        )}
+                        style={styles.relationItem}
+                      />
+                    ))}
+                  </View>
+                ))}
+            </Card.Content>
+          </Card>
 
           <View style={styles.spacer} />
         </ScrollView>

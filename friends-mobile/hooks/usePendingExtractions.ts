@@ -15,10 +15,7 @@ export function usePendingExtractions() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(
-            eq(pendingExtractions.userId, userId),
-            eq(pendingExtractions.reviewStatus, 'pending')
-          )
+          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
         )
         .orderBy(pendingExtractions.confidence); // Low confidence first (needs most attention)
 
@@ -213,10 +210,7 @@ export function usePendingExtractionsCount() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(
-            eq(pendingExtractions.userId, userId),
-            eq(pendingExtractions.reviewStatus, 'pending')
-          )
+          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
         );
 
       return results.length;

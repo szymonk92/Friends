@@ -125,11 +125,7 @@ export default function ReviewExtractionsScreen() {
           <Text variant="bodyMedium" style={styles.emptyText}>
             No extractions need your review right now.
           </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
+          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
             Go Back
           </Button>
         </View>
@@ -195,7 +191,8 @@ export default function ReviewExtractionsScreen() {
                   ]}
                   textStyle={{ color: 'white' }}
                 >
-                  {getConfidenceLabel(extraction.confidence)} ({(extraction.confidence * 100).toFixed(0)}%)
+                  {getConfidenceLabel(extraction.confidence)} (
+                  {(extraction.confidence * 100).toFixed(0)}%)
                 </Chip>
               </View>
 

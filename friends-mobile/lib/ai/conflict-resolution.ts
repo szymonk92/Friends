@@ -75,8 +75,8 @@ export function processConflicts(conflicts: DetectedConflict[]): {
   warnings: string[];
   suggestedActions: ResolutionAction[];
 } {
-  const criticalConflicts = conflicts.filter(c => c.severity === 'critical' && !c.autoResolvable);
-  const resolvableConflicts = conflicts.filter(c => c.autoResolvable);
+  const criticalConflicts = conflicts.filter((c) => c.severity === 'critical' && !c.autoResolvable);
+  const resolvableConflicts = conflicts.filter((c) => c.autoResolvable);
 
   const warnings: string[] = [];
   const suggestedActions: ResolutionAction[] = [];
@@ -116,8 +116,8 @@ export function canAddRelation(
 } {
   const conflicts = detectConflicts(newRelation, existingRelations);
 
-  const criticalConflicts = conflicts.filter(c => c.severity === 'critical');
-  const highConflicts = conflicts.filter(c => c.severity === 'high');
+  const criticalConflicts = conflicts.filter((c) => c.severity === 'critical');
+  const highConflicts = conflicts.filter((c) => c.severity === 'high');
 
   const warnings: string[] = [];
 
@@ -127,7 +127,7 @@ export function canAddRelation(
   }
 
   // Add warnings for medium/low conflicts
-  for (const conflict of conflicts.filter(c => c.severity === 'medium' || c.severity === 'low')) {
+  for (const conflict of conflicts.filter((c) => c.severity === 'medium' || c.severity === 'low')) {
     warnings.push(`Note: ${conflict.description}`);
   }
 
@@ -201,12 +201,14 @@ export function filterConflictingRelations(
 
   for (const newRelation of newRelations) {
     // Get existing relations for this subject
-    const subjectRelations = existingRelations.filter(r => r.subjectId === newRelation.subjectId);
+    const subjectRelations = existingRelations.filter((r) => r.subjectId === newRelation.subjectId);
 
     const detectedConflicts = detectConflicts(newRelation, subjectRelations);
 
     // Check if there are any critical or high-severity conflicts
-    const blocker = detectedConflicts.find(c => c.severity === 'critical' || c.severity === 'high');
+    const blocker = detectedConflicts.find(
+      (c) => c.severity === 'critical' || c.severity === 'high'
+    );
 
     if (blocker) {
       conflicts.push({
@@ -232,8 +234,8 @@ export function mergeConflictSources(
 
   // Add AI-detected conflicts that aren't already in local conflicts
   for (const aiConflict of aiConflicts) {
-    const alreadyDetected = localConflicts.some(
-      lc => lc.description.toLowerCase().includes(aiConflict.description.toLowerCase())
+    const alreadyDetected = localConflicts.some((lc) =>
+      lc.description.toLowerCase().includes(aiConflict.description.toLowerCase())
     );
 
     if (!alreadyDetected) {
@@ -263,10 +265,10 @@ export function createConflictSummary(conflicts: DetectedConflict[]): string {
   }
 
   const bySeverity = {
-    critical: conflicts.filter(c => c.severity === 'critical'),
-    high: conflicts.filter(c => c.severity === 'high'),
-    medium: conflicts.filter(c => c.severity === 'medium'),
-    low: conflicts.filter(c => c.severity === 'low'),
+    critical: conflicts.filter((c) => c.severity === 'critical'),
+    high: conflicts.filter((c) => c.severity === 'high'),
+    medium: conflicts.filter((c) => c.severity === 'medium'),
+    low: conflicts.filter((c) => c.severity === 'low'),
   };
 
   let summary = `## Conflict Detection Summary\n\n`;

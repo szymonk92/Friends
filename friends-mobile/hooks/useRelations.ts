@@ -53,14 +53,14 @@ export function useCreateRelation() {
   return useMutation({
     mutationFn: async (data: Omit<NewRelation, 'userId'>) => {
       const userId = await getCurrentUserId();
-      const result = await db
+      const result = (await db
         .insert(relations)
         .values({
           ...data,
           userId,
           id: crypto.randomUUID(),
         })
-        .returning() as any[];
+        .returning()) as any[];
       return result[0];
     },
     onSuccess: (data) => {
@@ -84,7 +84,7 @@ export function useCreateRelations() {
         userId,
         id: crypto.randomUUID(),
       }));
-      const result = await db.insert(relations).values(values).returning() as any[];
+      const result = (await db.insert(relations).values(values).returning()) as any[];
       return result;
     },
     onSuccess: () => {
@@ -101,11 +101,11 @@ export function useUpdateRelation() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Relation> & { id: string }) => {
-      const result = await db
+      const result = (await db
         .update(relations)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(relations.id, id))
-        .returning() as any[];
+        .returning()) as any[];
       return result[0];
     },
     onSuccess: (data) => {

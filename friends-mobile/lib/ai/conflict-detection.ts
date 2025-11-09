@@ -17,7 +17,11 @@ import {
 import type { Relation } from '../db/schema';
 
 export interface DetectedConflict {
-  type: 'direct_contradiction' | 'logical_implication' | 'ingredient_conflict' | 'temporal_conflict';
+  type:
+    | 'direct_contradiction'
+    | 'logical_implication'
+    | 'ingredient_conflict'
+    | 'temporal_conflict';
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   existingRelation: Relation | { relationType: string; objectLabel: string; id?: string };
@@ -46,7 +50,9 @@ export function detectConflicts(
     intensity?: string;
     status?: string;
   },
-  existingRelations: Array<Relation | { relationType: string; objectLabel: string; status?: string | null; id?: string }>
+  existingRelations: Array<
+    Relation | { relationType: string; objectLabel: string; status?: string | null; id?: string }
+  >
 ): DetectedConflict[] {
   const conflicts: DetectedConflict[] = [];
 
@@ -105,10 +111,10 @@ function detectDirectContradiction(
   existingRelation: { relationType: string; objectLabel: string; status?: string; id?: string }
 ): DetectedConflict | null {
   const opposites: Record<string, string[]> = {
-    'LIKES': ['DISLIKES', 'UNCOMFORTABLE_WITH'],
-    'DISLIKES': ['LIKES'],
-    'COMFORTABLE_WITH': ['UNCOMFORTABLE_WITH', 'SENSITIVE_TO'],
-    'WANTS_TO_ACHIEVE': ['STRUGGLES_WITH'],
+    LIKES: ['DISLIKES', 'UNCOMFORTABLE_WITH'],
+    DISLIKES: ['LIKES'],
+    COMFORTABLE_WITH: ['UNCOMFORTABLE_WITH', 'SENSITIVE_TO'],
+    WANTS_TO_ACHIEVE: ['STRUGGLES_WITH'],
   };
 
   const newType = newRelation.relationType;
@@ -124,7 +130,8 @@ function detectDirectContradiction(
         description: `Cannot both ${newType.toLowerCase()} and ${existingType.toLowerCase()} "${newRelation.objectLabel}"`,
         existingRelation,
         newRelation,
-        reasoning: 'Direct logical contradiction - person cannot simultaneously like and dislike the same thing',
+        reasoning:
+          'Direct logical contradiction - person cannot simultaneously like and dislike the same thing',
         suggestedResolution: 'user_review_required',
         autoResolvable: false,
       };
@@ -170,7 +177,7 @@ function detectIngredientConflict(
   let restrictionType: string = '';
 
   // Check if new relation is restriction, existing is food preference
-  if (restrictionTypes.some(rt => newRelation.relationType.includes(rt))) {
+  if (restrictionTypes.some((rt) => newRelation.relationType.includes(rt))) {
     restriction = newRelation.objectLabel;
     restrictionType = newRelation.relationType;
 
@@ -180,7 +187,7 @@ function detectIngredientConflict(
     }
   }
   // Check if existing is restriction, new is food preference
-  else if (restrictionTypes.some(rt => existingRelation.relationType.includes(rt))) {
+  else if (restrictionTypes.some((rt) => existingRelation.relationType.includes(rt))) {
     restriction = existingRelation.objectLabel;
     restrictionType = existingRelation.relationType;
 
@@ -249,7 +256,10 @@ function detectDietaryConflict(
     }
   }
   // Check if existing relation is a dietary restriction
-  else if (existingRelation.relationType === 'IS' && isDietaryRestriction(existingRelation.objectLabel)) {
+  else if (
+    existingRelation.relationType === 'IS' &&
+    isDietaryRestriction(existingRelation.objectLabel)
+  ) {
     dietaryRestriction = existingRelation.objectLabel;
 
     if (['LIKES', 'REGULARLY_DOES', 'PREFERS_OVER'].includes(newRelation.relationType)) {
@@ -373,10 +383,10 @@ function getIdentityConflicts(
   identity2: string
 ): { description: string; reasoning: string } | null {
   const conflictingIdentities: Record<string, string[]> = {
-    'vegan': ['vegetarian', 'pescatarian', 'meat-eater'],
-    'vegetarian': ['vegan', 'pescatarian', 'meat-eater'],
-    'atheist': ['christian', 'muslim', 'jewish', 'hindu', 'buddhist'],
-    'democrat': ['republican'],
+    vegan: ['vegetarian', 'pescatarian', 'meat-eater'],
+    vegetarian: ['vegan', 'pescatarian', 'meat-eater'],
+    atheist: ['christian', 'muslim', 'jewish', 'hindu', 'buddhist'],
+    democrat: ['republican'],
     'cat person': ['dog person'],
   };
 
@@ -412,13 +422,13 @@ function areOpposingBeliefs(belief1: string, belief2: string): boolean {
   const words2 = belief2.toLowerCase().split(' ');
 
   // If one has negation and the other doesn't, they might be opposing
-  const has1Negation = words1.some(w => negations.includes(w));
-  const has2Negation = words2.some(w => negations.includes(w));
+  const has1Negation = words1.some((w) => negations.includes(w));
+  const has2Negation = words2.some((w) => negations.includes(w));
 
   if (has1Negation !== has2Negation) {
     // Check if they're about the same topic
-    const topic1 = words1.filter(w => !negations.includes(w)).join(' ');
-    const topic2 = words2.filter(w => !negations.includes(w)).join(' ');
+    const topic1 = words1.filter((w) => !negations.includes(w)).join(' ');
+    const topic2 = words2.filter((w) => !negations.includes(w)).join(' ');
 
     if (topic1.includes(topic2) || topic2.includes(topic1)) {
       return true;
@@ -435,12 +445,17 @@ function areOpposingBeliefs(belief1: string, belief2: string): boolean {
 export function validateRelation(
   newRelation: { relationType: string; objectLabel: string; intensity?: string; status?: string },
   existingRelations: Relation[]
-): { valid: boolean; conflicts: DetectedConflict[]; warnings: string[]; requiresUserReview: boolean } {
+): {
+  valid: boolean;
+  conflicts: DetectedConflict[];
+  warnings: string[];
+  requiresUserReview: boolean;
+} {
   const conflicts = detectConflicts(newRelation, existingRelations);
 
   // Critical conflicts make it invalid
-  const criticalConflicts = conflicts.filter(c => c.severity === 'critical');
-  const highConflicts = conflicts.filter(c => c.severity === 'high');
+  const criticalConflicts = conflicts.filter((c) => c.severity === 'critical');
+  const highConflicts = conflicts.filter((c) => c.severity === 'high');
 
   const warnings: string[] = [];
 
@@ -471,11 +486,11 @@ export function explainConflict(conflict: DetectedConflict): string {
 
 function formatResolution(resolution: string): string {
   const resolutions: Record<string, string> = {
-    'reject_new': 'Reject the new information',
-    'replace_old': 'Replace the old information with the new',
-    'mark_old_as_past': 'Mark the old information as past/no longer current',
-    'add_both_with_context': 'Keep both with additional context',
-    'user_review_required': 'Requires user review to resolve',
+    reject_new: 'Reject the new information',
+    replace_old: 'Replace the old information with the new',
+    mark_old_as_past: 'Mark the old information as past/no longer current',
+    add_both_with_context: 'Keep both with additional context',
+    user_review_required: 'Requires user review to resolve',
   };
 
   return resolutions[resolution] || resolution;

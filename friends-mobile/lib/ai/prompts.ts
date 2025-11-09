@@ -5,7 +5,12 @@
 
 export interface ExtractionContext {
   existingPeople: Array<{ id: string; name: string }>;
-  existingRelations?: Array<{ relationType: string; objectLabel: string; subjectId: string; subjectName: string }>;
+  existingRelations?: Array<{
+    relationType: string;
+    objectLabel: string;
+    subjectId: string;
+    subjectName: string;
+  }>;
   storyText: string;
 }
 
@@ -23,7 +28,9 @@ export function createExtractionPrompt(context: ExtractionContext): string {
 
   const existingRelationsList =
     existingRelations && existingRelations.length > 0
-      ? existingRelations.map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`).join('\n')
+      ? existingRelations
+          .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
+          .join('\n')
       : 'None yet';
 
   return `You are an AI assistant that extracts structured relationship data from stories about people.

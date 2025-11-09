@@ -52,7 +52,12 @@ export async function extractRelationsFromStory(
   storyText: string,
   existingPeople: Array<{ id: string; name: string }>,
   apiKey: string,
-  existingRelations?: Array<{ relationType: string; objectLabel: string; subjectId: string; subjectName: string }>
+  existingRelations?: Array<{
+    relationType: string;
+    objectLabel: string;
+    subjectId: string;
+    subjectName: string;
+  }>
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
 
@@ -116,7 +121,9 @@ export async function extractRelationsFromStory(
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('AI extraction failed:', error);
-    throw new Error(`Failed to extract relations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to extract relations: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -134,12 +141,7 @@ export function shouldAutoAccept(relation: ExtractedRelation): boolean {
   }
 
   // Sensitive relations (higher risk)
-  const sensitiveRelations = [
-    'FEARS',
-    'STRUGGLES_WITH',
-    'UNCOMFORTABLE_WITH',
-    'SENSITIVE_TO',
-  ];
+  const sensitiveRelations = ['FEARS', 'STRUGGLES_WITH', 'UNCOMFORTABLE_WITH', 'SENSITIVE_TO'];
   if (sensitiveRelations.includes(relationType) && confidence >= 0.9) {
     return true;
   }
@@ -215,7 +217,8 @@ export function estimateExtractionCost(
   const inputCostPer1M = 3.0; // $3 per 1M input tokens
   const outputCostPer1M = 15.0; // $15 per 1M output tokens
 
-  const inputCost = ((basePromptTokens + storyTokens + peopleListTokens) / 1_000_000) * inputCostPer1M;
+  const inputCost =
+    ((basePromptTokens + storyTokens + peopleListTokens) / 1_000_000) * inputCostPer1M;
   const outputCost = (outputTokens / 1_000_000) * outputCostPer1M;
 
   return {

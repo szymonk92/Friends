@@ -62,10 +62,16 @@ describe('Food Knowledge Base', () => {
     });
 
     it('should detect lactose intolerance conflicts', () => {
-      const { compatible: milk } = isFoodCompatibleWithRestriction('ice cream', 'lactose intolerant');
+      const { compatible: milk } = isFoodCompatibleWithRestriction(
+        'ice cream',
+        'lactose intolerant'
+      );
       expect(milk).toBe(false);
 
-      const { compatible: cheese } = isFoodCompatibleWithRestriction('cheese', 'lactose intolerant');
+      const { compatible: cheese } = isFoodCompatibleWithRestriction(
+        'cheese',
+        'lactose intolerant'
+      );
       expect(cheese).toBe(false);
     });
 
@@ -81,18 +87,18 @@ describe('Food Knowledge Base', () => {
       const conflicts = findConflictingFoods('potato', foods);
 
       expect(conflicts.length).toBeGreaterThan(0);
-      expect(conflicts.some(c => c.food === 'fries')).toBe(true);
-      expect(conflicts.some(c => c.food === 'hash browns')).toBe(true);
+      expect(conflicts.some((c) => c.food === 'fries')).toBe(true);
+      expect(conflicts.some((c) => c.food === 'hash browns')).toBe(true);
     });
 
     it('should find all foods conflicting with vegan diet', () => {
       const foods = ['cheese', 'tofu', 'bacon', 'veggie burger', 'ice cream'];
       const conflicts = findConflictingFoods('vegan', foods);
 
-      expect(conflicts.some(c => c.food === 'cheese')).toBe(true);
-      expect(conflicts.some(c => c.food === 'bacon')).toBe(true);
-      expect(conflicts.some(c => c.food === 'ice cream')).toBe(true);
-      expect(conflicts.some(c => c.food === 'tofu')).toBe(false);
+      expect(conflicts.some((c) => c.food === 'cheese')).toBe(true);
+      expect(conflicts.some((c) => c.food === 'bacon')).toBe(true);
+      expect(conflicts.some((c) => c.food === 'ice cream')).toBe(true);
+      expect(conflicts.some((c) => c.food === 'tofu')).toBe(false);
     });
   });
 });

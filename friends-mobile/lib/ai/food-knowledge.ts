@@ -24,41 +24,71 @@ export interface DietaryRestriction {
  */
 export const INGREDIENT_DERIVATIVES: Record<string, string[]> = {
   // Dairy
-  'milk': ['cream', 'butter', 'cheese', 'yogurt', 'whey', 'casein', 'lactose', 'ghee', 'ice cream'],
-  'dairy': ['milk', 'cream', 'butter', 'cheese', 'yogurt', 'whey', 'casein', 'lactose', 'ghee', 'ice cream'],
+  milk: ['cream', 'butter', 'cheese', 'yogurt', 'whey', 'casein', 'lactose', 'ghee', 'ice cream'],
+  dairy: [
+    'milk',
+    'cream',
+    'butter',
+    'cheese',
+    'yogurt',
+    'whey',
+    'casein',
+    'lactose',
+    'ghee',
+    'ice cream',
+  ],
 
   // Eggs
-  'eggs': ['mayonnaise', 'meringue', 'custard', 'hollandaise'],
+  eggs: ['mayonnaise', 'meringue', 'custard', 'hollandaise'],
 
   // Meat
-  'beef': ['steak', 'hamburger', 'meatballs', 'beef broth', 'gelatin'],
-  'pork': ['bacon', 'ham', 'sausage', 'prosciutto', 'pepperoni', 'salami', 'pork chops'],
-  'chicken': ['chicken breast', 'chicken wings', 'chicken broth', 'chicken stock'],
-  'meat': ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'veal', 'duck', 'bacon', 'ham', 'sausage'],
+  beef: ['steak', 'hamburger', 'meatballs', 'beef broth', 'gelatin'],
+  pork: ['bacon', 'ham', 'sausage', 'prosciutto', 'pepperoni', 'salami', 'pork chops'],
+  chicken: ['chicken breast', 'chicken wings', 'chicken broth', 'chicken stock'],
+  meat: ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'veal', 'duck', 'bacon', 'ham', 'sausage'],
 
   // Seafood
-  'fish': ['salmon', 'tuna', 'cod', 'trout', 'halibut', 'sardines', 'anchovies'],
-  'shellfish': ['shrimp', 'crab', 'lobster', 'oysters', 'clams', 'mussels', 'scallops'],
-  'seafood': ['fish', 'shellfish', 'shrimp', 'crab', 'lobster', 'salmon', 'tuna'],
+  fish: ['salmon', 'tuna', 'cod', 'trout', 'halibut', 'sardines', 'anchovies'],
+  shellfish: ['shrimp', 'crab', 'lobster', 'oysters', 'clams', 'mussels', 'scallops'],
+  seafood: ['fish', 'shellfish', 'shrimp', 'crab', 'lobster', 'salmon', 'tuna'],
 
   // Nuts
-  'nuts': ['peanuts', 'almonds', 'walnuts', 'cashews', 'pecans', 'pistachios', 'hazelnuts', 'peanut butter', 'almond butter'],
-  'peanuts': ['peanut butter', 'peanut oil'],
-  'almonds': ['almond butter', 'almond milk', 'marzipan'],
+  nuts: [
+    'peanuts',
+    'almonds',
+    'walnuts',
+    'cashews',
+    'pecans',
+    'pistachios',
+    'hazelnuts',
+    'peanut butter',
+    'almond butter',
+  ],
+  peanuts: ['peanut butter', 'peanut oil'],
+  almonds: ['almond butter', 'almond milk', 'marzipan'],
 
   // Gluten
-  'gluten': ['wheat', 'barley', 'rye', 'bread', 'pasta', 'beer', 'flour', 'seitan'],
-  'wheat': ['bread', 'pasta', 'flour', 'couscous', 'semolina', 'crackers'],
+  gluten: ['wheat', 'barley', 'rye', 'bread', 'pasta', 'beer', 'flour', 'seitan'],
+  wheat: ['bread', 'pasta', 'flour', 'couscous', 'semolina', 'crackers'],
 
   // Vegetables
-  'potato': ['fries', 'french fries', 'chips', 'potato chips', 'hash browns', 'mashed potatoes', 'baked potato', 'potato salad'],
-  'tomato': ['ketchup', 'marinara', 'tomato sauce', 'salsa', 'pizza sauce'],
+  potato: [
+    'fries',
+    'french fries',
+    'chips',
+    'potato chips',
+    'hash browns',
+    'mashed potatoes',
+    'baked potato',
+    'potato salad',
+  ],
+  tomato: ['ketchup', 'marinara', 'tomato sauce', 'salsa', 'pizza sauce'],
 
   // Soy
-  'soy': ['tofu', 'tempeh', 'soy sauce', 'edamame', 'miso', 'soy milk'],
+  soy: ['tofu', 'tempeh', 'soy sauce', 'edamame', 'miso', 'soy milk'],
 
   // Sugar
-  'sugar': ['honey', 'syrup', 'molasses', 'agave'],
+  sugar: ['honey', 'syrup', 'molasses', 'agave'],
 };
 
 /**
@@ -66,7 +96,7 @@ export const INGREDIENT_DERIVATIVES: Record<string, string[]> = {
  */
 export const FOOD_DATABASE: Record<string, FoodItem> = {
   // Potato-based
-  'fries': {
+  fries: {
     name: 'fries',
     ingredients: ['potato', 'oil', 'salt'],
     categories: ['fried', 'side-dish', 'fast-food'],
@@ -104,13 +134,13 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
     categories: ['dessert', 'frozen', 'dairy'],
     aliases: ['gelato'],
   },
-  'cheese': {
+  cheese: {
     name: 'cheese',
     ingredients: ['milk', 'rennet'],
     categories: ['dairy'],
     aliases: ['cheddar', 'mozzarella', 'parmesan'],
   },
-  'pizza': {
+  pizza: {
     name: 'pizza',
     ingredients: ['wheat', 'cheese', 'tomato'],
     categories: ['italian', 'fast-food'],
@@ -124,13 +154,13 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
   },
 
   // Meat-based
-  'hamburger': {
+  hamburger: {
     name: 'hamburger',
     ingredients: ['beef', 'wheat', 'lettuce', 'tomato'],
     categories: ['fast-food', 'sandwich'],
     aliases: ['burger'],
   },
-  'bacon': {
+  bacon: {
     name: 'bacon',
     ingredients: ['pork', 'salt'],
     categories: ['meat', 'breakfast'],
@@ -156,7 +186,7 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
     categories: ['seafood', 'fried', 'british'],
     aliases: [],
   },
-  'sushi': {
+  sushi: {
     name: 'sushi',
     ingredients: ['fish', 'rice', 'seaweed'],
     categories: ['seafood', 'japanese'],
@@ -170,7 +200,7 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
     categories: ['vegetarian', 'sandwich'],
     aliases: [],
   },
-  'tofu': {
+  tofu: {
     name: 'tofu',
     ingredients: ['soy'],
     categories: ['vegan', 'protein'],
@@ -184,7 +214,7 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
     categories: ['breakfast'],
     aliases: [],
   },
-  'omelette': {
+  omelette: {
     name: 'omelette',
     ingredients: ['eggs', 'cheese'],
     categories: ['breakfast', 'eggs'],
@@ -198,7 +228,7 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
     categories: ['dessert', 'baked'],
     aliases: [],
   },
-  'cheesecake': {
+  cheesecake: {
     name: 'cheesecake',
     ingredients: ['cheese', 'eggs', 'sugar', 'wheat'],
     categories: ['dessert'],
@@ -210,19 +240,19 @@ export const FOOD_DATABASE: Record<string, FoodItem> = {
  * Dietary restrictions and their rules
  */
 export const DIETARY_RESTRICTIONS: Record<string, DietaryRestriction> = {
-  'vegan': {
+  vegan: {
     name: 'vegan',
     excludedIngredients: ['meat', 'dairy', 'eggs', 'honey', 'gelatin'],
     excludedCategories: ['meat', 'dairy', 'eggs'],
     description: 'No animal products',
   },
-  'vegetarian': {
+  vegetarian: {
     name: 'vegetarian',
     excludedIngredients: ['meat', 'fish', 'seafood', 'gelatin'],
     excludedCategories: ['meat', 'seafood'],
     description: 'No meat or fish',
   },
-  'pescatarian': {
+  pescatarian: {
     name: 'pescatarian',
     excludedIngredients: ['meat', 'pork', 'beef', 'chicken'],
     excludedCategories: ['meat'],
@@ -234,13 +264,13 @@ export const DIETARY_RESTRICTIONS: Record<string, DietaryRestriction> = {
     excludedCategories: ['dairy'],
     description: 'No dairy products',
   },
-  'kosher': {
+  kosher: {
     name: 'kosher',
     excludedIngredients: ['pork', 'shellfish'],
     excludedCategories: [],
     description: 'Jewish dietary laws',
   },
-  'halal': {
+  halal: {
     name: 'halal',
     excludedIngredients: ['pork', 'alcohol'],
     excludedCategories: [],
@@ -316,7 +346,7 @@ export function getAllIngredients(foodName: string): string[] {
 
       // Add derivatives
       const derivatives = INGREDIENT_DERIVATIVES[ingredient] || [];
-      derivatives.forEach(d => allIngredients.add(d));
+      derivatives.forEach((d) => allIngredients.add(d));
     }
 
     return Array.from(allIngredients);
@@ -339,7 +369,7 @@ export function foodContainsIngredient(foodName: string, ingredient: string): bo
   const ingredientForms = getForms(ingredient);
 
   // Direct match (any form)
-  if (foodForms.some(f => ingredientForms.includes(f))) {
+  if (foodForms.some((f) => ingredientForms.includes(f))) {
     return true;
   }
 
@@ -348,10 +378,12 @@ export function foodContainsIngredient(foodName: string, ingredient: string): bo
     const foodItem = FOOD_DATABASE[foodForm];
     if (foodItem) {
       // Check direct ingredients (try all forms of ingredient)
-      if (foodItem.ingredients.some(ing => {
-        const ingForms = getForms(ing);
-        return ingredientForms.some(ingf => ingForms.includes(ingf));
-      })) {
+      if (
+        foodItem.ingredients.some((ing) => {
+          const ingForms = getForms(ing);
+          return ingredientForms.some((ingf) => ingForms.includes(ingf));
+        })
+      ) {
         return true;
       }
 
@@ -360,14 +392,18 @@ export function foodContainsIngredient(foodName: string, ingredient: string): bo
         const ingForms = getForms(ing);
         for (const ingForm of ingForms) {
           const derivatives = INGREDIENT_DERIVATIVES[ingForm] || [];
-          if (derivatives.some(d => ingredientForms.some(ingf => getForms(d).includes(ingf)))) {
+          if (derivatives.some((d) => ingredientForms.some((ingf) => getForms(d).includes(ingf)))) {
             return true;
           }
         }
       }
 
       // Check aliases
-      if (foodItem.aliases.some(alias => ingredientForms.some(ingf => getForms(alias).includes(ingf)))) {
+      if (
+        foodItem.aliases.some((alias) =>
+          ingredientForms.some((ingf) => getForms(alias).includes(ingf))
+        )
+      ) {
         return true;
       }
     }
@@ -376,7 +412,7 @@ export function foodContainsIngredient(foodName: string, ingredient: string): bo
   // Check if the ingredient's derivatives include this food (try all forms)
   for (const ingredientForm of ingredientForms) {
     const ingredientDerivatives = INGREDIENT_DERIVATIVES[ingredientForm] || [];
-    if (ingredientDerivatives.some(d => foodForms.some(ff => getForms(d).includes(ff)))) {
+    if (ingredientDerivatives.some((d) => foodForms.some((ff) => getForms(d).includes(ff)))) {
       return true;
     }
   }
@@ -403,7 +439,7 @@ export function isFoodCompatibleWithRestriction(
 
   // Check if any food ingredient is in the excluded list
   for (const excludedIngredient of dietaryRestriction.excludedIngredients) {
-    if (foodIngredients.some(ing => foodContainsIngredient(ing, excludedIngredient))) {
+    if (foodIngredients.some((ing) => foodContainsIngredient(ing, excludedIngredient))) {
       return {
         compatible: false,
         reason: `Contains ${excludedIngredient} (${dietaryRestriction.description})`,

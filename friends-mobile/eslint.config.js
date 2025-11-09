@@ -13,17 +13,17 @@ module.exports = [
       '**/dist/**',
       '**/build/**',
       '**/*.config.js',
-      '**/*.config.ts',   // Ignore TypeScript config files
+      '**/*.config.ts', // Ignore TypeScript config files
       '**/jest.setup.js',
-      '**/__tests__/**',  // Ignore all test directories
-      'app/**',           // Ignore app directory (UI code, less critical for CI)
-      'components/**',    // Ignore components (UI code)
-      'hooks/**',         // Ignore hooks (UI code)
-      'store/**',         // Ignore store (UI code)
+      '**/__tests__/**', // Ignore all test directories
+      'app/**', // Ignore app directory (UI code, less critical for CI)
+      'components/**', // Ignore components (UI code)
+      'hooks/**', // Ignore hooks (UI code)
+      'store/**', // Ignore store (UI code)
     ],
   },
   {
-    files: ['lib/**/*.{ts,tsx}'],  // Only lint lib directory strictly
+    files: ['lib/**/*.{ts,tsx}'], // Only lint lib directory strictly
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -40,7 +40,7 @@ module.exports = [
     rules: {
       'no-console': 'warn',
       '@typescript-eslint/no-unused-vars': [
-        'error',  // Error for lib code (strict)
+        'error', // Error for lib code (strict)
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',

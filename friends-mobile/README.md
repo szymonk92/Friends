@@ -128,6 +128,7 @@ await seedSampleData();
 ```
 
 Creates:
+
 - 3 people (Emma, Mike, Sarah)
 - 8 relations (likes, skills, fears)
 - 1 story
@@ -155,6 +156,7 @@ npm run lint
 ## API Key Setup
 
 **Option 1: In-App (Recommended)**
+
 1. Open the app and go to "Add Story" tab
 2. Tap "Set API Key" button
 3. Enter your Anthropic API key
@@ -162,6 +164,7 @@ npm run lint
 
 **Option 2: Environment Variables**
 Create `.env` file:
+
 ```bash
 # Optional - can also set in-app
 ANTHROPIC_API_KEY=your_api_key_here
@@ -172,6 +175,7 @@ Get your API key from: https://console.anthropic.com
 ## Cost Optimization
 
 **Lightweight Context Strategy:**
+
 - Only sends person names to AI (not full profiles)
 - ~1,500 tokens per extraction vs ~50,000
 - **97% cost reduction**: $0.02 vs $1.50 per story
@@ -214,14 +218,17 @@ Get your API key from: https://console.anthropic.com
 ## Troubleshooting
 
 **Build errors:**
+
 - Run `npm install` to ensure all dependencies are installed
 - Clear cache: `npx expo start -c`
 
 **Database issues:**
+
 - Use `/dev` screen to clear and reseed data
 - Delete `friends.db` from app storage and restart
 
 **TypeScript errors:**
+
 - Run `npx tsc --noEmit` to check for issues
 - Most warnings are from Expo templates and can be ignored
 

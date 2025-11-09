@@ -11,7 +11,7 @@ export async function seedSampleData() {
     const userId = await getCurrentUserId();
 
     // Create sample people
-    const [emma] = await db
+    const [emma] = (await db
       .insert(people)
       .values({
         id: crypto.randomUUID(),
@@ -26,9 +26,9 @@ export async function seedSampleData() {
         status: 'active',
         notes: 'Best friend from college. Software engineer at Google.',
       })
-      .returning() as any[];
+      .returning()) as any[];
 
-    const [mike] = await db
+    const [mike] = (await db
       .insert(people)
       .values({
         id: crypto.randomUUID(),
@@ -42,9 +42,9 @@ export async function seedSampleData() {
         status: 'active',
         notes: 'Works on the backend team.',
       })
-      .returning() as any[];
+      .returning()) as any[];
 
-    const [sarah] = await db
+    const [sarah] = (await db
       .insert(people)
       .values({
         id: crypto.randomUUID(),
@@ -58,7 +58,7 @@ export async function seedSampleData() {
         importanceToUser: 'important',
         status: 'active',
       })
-      .returning() as any[];
+      .returning()) as any[];
 
     // Create sample relations for Emma
     await db.insert(relations).values([

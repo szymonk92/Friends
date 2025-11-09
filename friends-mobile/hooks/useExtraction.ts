@@ -38,7 +38,11 @@ export function useExtractStory() {
   const markProcessed = useMarkStoryProcessed();
 
   return useMutation({
-    mutationFn: async ({ storyId, storyText, apiKey }: ExtractionInput): Promise<ExtractionOutput> => {
+    mutationFn: async ({
+      storyId,
+      storyText,
+      apiKey,
+    }: ExtractionInput): Promise<ExtractionOutput> => {
       // Step 1: Get existing people (for lightweight context)
       const userId = await getCurrentUserId();
       const existingPeople = await db
@@ -47,11 +51,7 @@ export function useExtractStory() {
         .where(eq(people.userId, userId));
 
       // Step 2: Call AI extraction
-      const extractionResult = await extractRelationsFromStory(
-        storyText,
-        existingPeople,
-        apiKey
-      );
+      const extractionResult = await extractRelationsFromStory(storyText, existingPeople, apiKey);
 
       // Step 3: Process extracted people
       const personIdMap = new Map<string, string>(); // Map temp IDs to real IDs
@@ -137,7 +137,8 @@ export function useExtractStory() {
           storyId,
           subjectId: rel.subjectId,
           subjectName: personIdMap.get(rel.subjectId)
-            ? extractionResult.people.find((p: any) => personIdMap.get(p.id) === rel.subjectId)?.name || 'Unknown'
+            ? extractionResult.people.find((p: any) => personIdMap.get(p.id) === rel.subjectId)
+                ?.name || 'Unknown'
             : 'Unknown',
           relationType: rel.relationType,
           objectLabel: rel.objectLabel,

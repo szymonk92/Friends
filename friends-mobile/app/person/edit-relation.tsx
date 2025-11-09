@@ -1,5 +1,12 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, Card, ActivityIndicator } from 'react-native-paper';
+import {
+  Text,
+  TextInput,
+  Button,
+  SegmentedButtons,
+  Card,
+  ActivityIndicator,
+} from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useUpdateRelation } from '@/hooks/useRelations';

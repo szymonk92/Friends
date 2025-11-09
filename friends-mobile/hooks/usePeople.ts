@@ -15,11 +15,7 @@ export function usePeople() {
         .select()
         .from(people)
         .where(
-          and(
-            eq(people.userId, userId),
-            ne(people.status, 'merged'),
-            isNull(people.deletedAt)
-          )
+          and(eq(people.userId, userId), ne(people.status, 'merged'), isNull(people.deletedAt))
         )
         .orderBy(desc(people.updatedAt));
     },
@@ -33,11 +29,7 @@ export function usePerson(personId: string) {
   return useQuery({
     queryKey: ['people', personId],
     queryFn: async () => {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.id, personId))
-        .limit(1);
+      const result = await db.select().from(people).where(eq(people.id, personId)).limit(1);
       return result[0] || null;
     },
     enabled: !!personId,
@@ -53,14 +45,14 @@ export function useCreatePerson() {
   return useMutation({
     mutationFn: async (data: Omit<NewPerson, 'userId'>) => {
       const userId = await getCurrentUserId();
-      const result = await db
+      const result = (await db
         .insert(people)
         .values({
           ...data,
           userId,
           id: crypto.randomUUID(),
         })
-        .returning() as any[];
+        .returning()) as any[];
       return result[0];
     },
     onSuccess: () => {
@@ -77,11 +69,11 @@ export function useUpdatePerson() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Person> & { id: string }) => {
-      const result = await db
+      const result = (await db
         .update(people)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(people.id, id))
-        .returning() as any[];
+        .returning()) as any[];
       return result[0];
     },
     onSuccess: (_, variables) => {
@@ -99,10 +91,7 @@ export function useDeletePerson() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await db
-        .update(people)
-        .set({ deletedAt: new Date() })
-        .where(eq(people.id, id));
+      await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });

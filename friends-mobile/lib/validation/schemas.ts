@@ -181,14 +181,7 @@ export const caresForMetadataSchema = z.object({
 
 // IS metadata (identity)
 export const isMetadataSchema = z.object({
-  category: z.enum([
-    'profession',
-    'role',
-    'trait',
-    'identity',
-    'health',
-    'relationship_status',
-  ]),
+  category: z.enum(['profession', 'role', 'trait', 'identity', 'health', 'relationship_status']),
   since: z.string().optional(),
   context: z.string().optional(),
 });

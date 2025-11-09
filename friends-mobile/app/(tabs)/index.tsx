@@ -1,13 +1,5 @@
 import { StyleSheet, View, FlatList } from 'react-native';
-import {
-  Text,
-  Card,
-  FAB,
-  Searchbar,
-  Chip,
-  ActivityIndicator,
-  Button,
-} from 'react-native-paper';
+import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useState } from 'react';
 import { usePeople } from '@/hooks/usePeople';
 import { router } from 'expo-router';
