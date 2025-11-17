@@ -10,6 +10,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import * as Clipboard from 'expo-clipboard';
+import MentionTextInput from '@/components/MentionTextInput';
 
 export default function StoryInputScreen() {
   const [storyText, setStoryText] = useState('');
@@ -187,8 +188,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             Tell a Story
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Share something about your friends, family, or anyone you know. Our AI will extract
-            important details automatically.
+            Share something about your friends, family, or anyone you know. Use @mentions to reference people clearly. Our AI will extract important details automatically.
           </Text>
           {!hasApiKey() && (
             <Button
@@ -205,13 +205,11 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
       <Card style={styles.card}>
         <Card.Content>
-          <TextInput
-            mode="outlined"
+          <MentionTextInput
             label="Your Story"
-            placeholder="Example: Had dinner with Sarah last night. She mentioned she's now vegan and really into yoga. We talked about her new job at Google..."
+            placeholder="Example: Had dinner with @Sarah last night. @Sarah mentioned she's now vegan and really into yoga..."
             value={storyText}
             onChangeText={setStoryText}
-            multiline
             numberOfLines={12}
             style={styles.input}
           />
@@ -225,16 +223,16 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.exampleTitle}>
-            Example Stories
+            Example Stories (with @mentions)
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            • "Met Emma for coffee. She's training for a marathon and loves oat milk lattes."
+            • "Met @Emma for coffee. @Emma is training for a marathon and loves oat milk lattes."
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            • "Mike mentioned his mother has dementia. He's been taking care of her part-time."
+            • "@Mike mentioned his mother has dementia. He's been taking care of her part-time."
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            • "Sarah and Tom broke up last month. She's uncomfortable talking about it."
+            • "@Sarah and @Tom broke up last month. @Sarah is uncomfortable talking about it."
           </Text>
         </Card.Content>
       </Card>

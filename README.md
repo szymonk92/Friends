@@ -313,6 +313,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Product Requirements Document (PRD)](PRD.md) - Detailed product specifications
 - [Implementation Tasks](TASKS.md) - Development task breakdown
 - [Local-First Architecture](docs/LOCAL_FIRST_ARCHITECTURE.md) - Privacy-first design ⭐ **NEW**
+- [Agent Reference Guide](docs/AGENT_MENTION_REFERENCE.md) - Using @mentions for clear person references 🤖 **NEW**
+- [AI Extraction Strategy](docs/AI_EXTRACTION_STRATEGY.md) - Entity extraction pipeline
+- [Relation Usage Guide](docs/RELATION_USAGE_GUIDE.md) - Choosing correct relation types
 - [Contributing Guide](CONTRIBUTING.md) - How to contribute
 
 ---

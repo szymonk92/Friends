@@ -47,6 +47,14 @@ STORY TO ANALYZE:
 YOUR TASK:
 Extract all people mentioned and their relations (preferences, facts, experiences, etc.)
 
+⚠️ ATTENTION: @MENTION SYNTAX ⚠️
+The user may use @mentions to reference people (e.g., "@Sarah", "@Mark").
+- When you see @Name, that's a person reference
+- @Name is the same as Name (don't treat @ as part of the name)
+- Match @mentions with existing people in the database
+- If @Sarah appears and "Sarah" is in EXISTING PEOPLE, use that person's ID
+- Pay special attention to @mentions - they indicate the user wants to clearly identify specific people
+
 RELATION TYPES (use exactly these):
 - KNOWS: knows a person/place/thing
 - LIKES: enjoys, prefers, loves
