@@ -323,6 +323,36 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
+                Party Planning
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                Organize a party or gathering. Select guests, get seating suggestions based on their
+                connections, and see food recommendations based on everyone's preferences.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push('/party-planner')}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="party-popper"
+              >
+                Plan a Party
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Creates an event with date, location, guest list, and AI-powered suggestions for seating
+                and menu.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
                 Reset App State
               </Text>
               <Divider style={styles.divider} />
