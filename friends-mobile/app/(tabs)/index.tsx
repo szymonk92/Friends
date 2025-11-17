@@ -1,10 +1,11 @@
 import { StyleSheet, View, FlatList, ScrollView, RefreshControl, Image } from 'react-native';
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
+import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 
 export default function PeopleListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +13,12 @@ export default function PeopleListScreen() {
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'importance'>('date');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
   const { data: people = [], isLoading, error, refetch } = usePeople();
+
+  useEffect(() => {
+    getRelationshipColors().then(setRelationshipColors);
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -46,8 +52,8 @@ export default function PeopleListScreen() {
           return a.name.localeCompare(b.name);
         case 'importance': {
           const importanceOrder = ['critical', 'very_important', 'important', 'moderate', 'low', 'unknown'];
-          const aIndex = importanceOrder.indexOf(a.importanceToUser || 'unknown');
-          const bIndex = importanceOrder.indexOf(b.importanceToUser || 'unknown');
+          const aIndex = importanceOrder.indexOf(a.importanceLevel || 'unknown');
+          const bIndex = importanceOrder.indexOf(b.importanceLevel || 'unknown');
           return aIndex - bIndex;
         }
         case 'date':
@@ -230,57 +236,69 @@ export default function PeopleListScreen() {
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#6200ee']} />
         }
-        renderItem={({ item }) => (
-          <Card style={styles.card} onPress={() => router.push(`/person/${item.id}`)}>
-            <Card.Content>
-              <View style={styles.cardHeader}>
-                {item.avatarUrl ? (
-                  <Image source={{ uri: item.avatarUrl }} style={styles.avatarImage} />
-                ) : (
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
-                  </View>
-                )}
-                <View style={styles.cardInfo}>
-                  <Text variant="titleMedium" style={styles.name}>
-                    {item.name}
-                  </Text>
-                  {item.nickname && (
-                    <Text variant="bodySmall" style={styles.nickname}>
-                      "{item.nickname}"
-                    </Text>
+        renderItem={({ item }) => {
+          const cardColor = item.relationshipType
+            ? relationshipColors[item.relationshipType] || '#e0e0e0'
+            : '#e0e0e0';
+          return (
+            <Card
+              style={[styles.card, { borderLeftWidth: 4, borderLeftColor: cardColor }]}
+              onPress={() => router.push(`/person/${item.id}`)}
+            >
+              <Card.Content>
+                <View style={styles.cardHeader}>
+                  {item.photoPath ? (
+                    <Image source={{ uri: item.photoPath }} style={styles.avatarImage} />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: cardColor }]}>
+                      <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+                    </View>
                   )}
-                  <Text variant="bodySmall" style={styles.meta}>
-                    Updated {formatRelativeTime(new Date(item.updatedAt))}
-                  </Text>
+                  <View style={styles.cardInfo}>
+                    <Text variant="titleMedium" style={styles.name}>
+                      {item.name}
+                    </Text>
+                    {item.nickname && (
+                      <Text variant="bodySmall" style={styles.nickname}>
+                        "{item.nickname}"
+                      </Text>
+                    )}
+                    <Text variant="bodySmall" style={styles.meta}>
+                      Updated {formatRelativeTime(new Date(item.updatedAt))}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.chips}>
-                {item.relationshipType && (
-                  <Chip icon="heart" style={styles.chip}>
-                    {item.relationshipType}
-                  </Chip>
-                )}
-                {item.importanceToUser && item.importanceToUser !== 'unknown' && (
-                  <Chip
-                    style={[
-                      styles.chip,
-                      { backgroundColor: getImportanceColor(item.importanceToUser) + '20' },
-                    ]}
-                  >
-                    {item.importanceToUser.replace('_', ' ')}
-                  </Chip>
-                )}
-                {parseTags(item.tags).map((tag) => (
-                  <Chip key={tag} icon="tag" style={styles.tagChip} compact>
-                    {tag}
-                  </Chip>
-                ))}
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+                <View style={styles.chips}>
+                  {item.relationshipType && (
+                    <Chip
+                      icon="heart"
+                      style={[styles.chip, { backgroundColor: cardColor + '30' }]}
+                      textStyle={{ color: cardColor }}
+                    >
+                      {item.relationshipType}
+                    </Chip>
+                  )}
+                  {item.importanceLevel && item.importanceLevel !== 'unknown' && (
+                    <Chip
+                      style={[
+                        styles.chip,
+                        { backgroundColor: getImportanceColor(item.importanceLevel) + '20' },
+                      ]}
+                    >
+                      {item.importanceLevel.replace('_', ' ')}
+                    </Chip>
+                  )}
+                  {parseTags(item.tags).map((tag) => (
+                    <Chip key={tag} icon="tag" style={styles.tagChip} compact>
+                      {tag}
+                    </Chip>
+                  ))}
+                </View>
+              </Card.Content>
+            </Card>
+          );
+        }}
         contentContainerStyle={styles.listContent}
       />
 

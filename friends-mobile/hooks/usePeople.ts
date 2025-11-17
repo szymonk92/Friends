@@ -1,5 +1,5 @@
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, type NewPerson, type Person } from '@/lib/db/schema';
+import { people, files, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
@@ -37,13 +37,40 @@ export function usePeople() {
     queryKey: ['people'],
     queryFn: async () => {
       const userId = await getCurrentUserId();
-      return db
-        .select()
+      const results = await db
+        .select({
+          id: people.id,
+          userId: people.userId,
+          name: people.name,
+          nickname: people.nickname,
+          photoId: people.photoId,
+          relationshipType: people.relationshipType,
+          metDate: people.metDate,
+          personType: people.personType,
+          status: people.status,
+          confidenceScore: people.confidenceScore,
+          importanceLevel: people.importanceLevel,
+          tags: people.tags,
+          notes: people.notes,
+          birthday: people.birthday,
+          email: people.email,
+          phone: people.phone,
+          address: people.address,
+          company: people.company,
+          jobTitle: people.jobTitle,
+          socialLinks: people.socialLinks,
+          createdAt: people.createdAt,
+          updatedAt: people.updatedAt,
+          deletedAt: people.deletedAt,
+          photoPath: files.filePath,
+        })
         .from(people)
+        .leftJoin(files, eq(people.photoId, files.id))
         .where(
           and(eq(people.userId, userId), ne(people.status, 'merged'), isNull(people.deletedAt))
         )
         .orderBy(desc(people.updatedAt));
+      return results;
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),

@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, Alert, ScrollView } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, ScrollView, Image } from 'react-native';
 import {
   Text,
   Card,
@@ -13,7 +13,7 @@ import {
   SegmentedButtons,
   Menu,
 } from 'react-native-paper';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import {
   useContactEvents,
@@ -24,6 +24,7 @@ import {
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
+import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -57,15 +58,22 @@ export default function TimelineScreen() {
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
   const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
 
-  // Generate birthday events from people with dateOfBirth
+  // Relationship colors
+  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+
+  useEffect(() => {
+    getRelationshipColors().then(setRelationshipColors);
+  }, []);
+
+  // Generate birthday events from people with birthday
   const birthdayEvents = useMemo(() => {
     return people
-      .filter((p) => p.dateOfBirth)
+      .filter((p) => p.birthday)
       .map((p) => ({
         id: `birthday-${p.id}`,
         personId: p.id,
         eventType: 'birthday',
-        eventDate: p.dateOfBirth,
+        eventDate: p.birthday,
         notes: `${p.name}'s birthday`,
         isBirthday: true,
       }));
@@ -228,6 +236,9 @@ export default function TimelineScreen() {
     const isBirthday = item.isBirthday || item.eventType === 'birthday';
     const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';
     const isSpecialEvent = isBirthday || isImportantDate;
+    const personColor = person?.relationshipType
+      ? relationshipColors[person.relationshipType] || '#6200ee'
+      : '#6200ee';
 
     return (
       <View style={styles.timelineItem}>
@@ -236,6 +247,7 @@ export default function TimelineScreen() {
           <View
             style={[
               styles.timelineDot,
+              { backgroundColor: personColor },
               isBirthday && styles.birthdayDot,
               isImportantDate && styles.anniversaryDot,
             ]}
@@ -247,6 +259,7 @@ export default function TimelineScreen() {
         <Card
           style={[
             styles.eventCard,
+            { borderLeftWidth: 3, borderLeftColor: personColor },
             isBirthday && styles.birthdayCard,
             isImportantDate && styles.anniversaryCard,
           ]}
@@ -295,9 +308,13 @@ export default function TimelineScreen() {
 
             <View style={styles.personRow}>
               {person && (
-                <View style={styles.personAvatar}>
-                  <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
-                </View>
+                person.photoPath ? (
+                  <Image source={{ uri: person.photoPath }} style={styles.personAvatarImage} />
+                ) : (
+                  <View style={[styles.personAvatar, { backgroundColor: personColor }]}>
+                    <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
+                  </View>
+                )
               )}
               <Text
                 variant="titleMedium"
@@ -629,6 +646,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  personAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
   },
   personName: {
     fontWeight: '600',

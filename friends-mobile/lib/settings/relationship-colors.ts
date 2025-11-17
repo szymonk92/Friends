@@ -1,24 +1,16 @@
 import * as SecureStore from 'expo-secure-store';
 
-const RELATIONSHIP_COLORS_KEY = 'relationship_colors';
-
 export interface RelationshipColorMap {
-  friend: string;
-  family: string;
-  colleague: string;
-  acquaintance: string;
-  partner: string;
-  professional: string;
-  [key: string]: string; // Allow custom relationship types
+  [key: string]: string;
 }
 
 export const DEFAULT_COLORS: RelationshipColorMap = {
-  friend: '#4CAF50', // Green
-  family: '#E91E63', // Pink
-  colleague: '#2196F3', // Blue
-  acquaintance: '#9E9E9E', // Gray
-  partner: '#F44336', // Red
-  professional: '#FF9800', // Orange
+  friend: '#4CAF50',
+  family: '#E91E63',
+  colleague: '#2196F3',
+  acquaintance: '#9E9E9E',
+  partner: '#F44336',
+  professional: '#FF9800',
 };
 
 export const AVAILABLE_COLORS = [
@@ -39,45 +31,40 @@ export const AVAILABLE_COLORS = [
   { name: 'Orange', value: '#FF9800' },
   { name: 'Deep Orange', value: '#FF5722' },
   { name: 'Brown', value: '#795548' },
-  { name: 'Gray', value: '#9E9E9E' },
-  { name: 'Blue Gray', value: '#607D8B' },
+  { name: 'Grey', value: '#9E9E9E' },
+  { name: 'Blue Grey', value: '#607D8B' },
 ];
+
+const STORAGE_KEY = 'relationship_colors';
 
 export async function getRelationshipColors(): Promise<RelationshipColorMap> {
   try {
-    const stored = await SecureStore.getItemAsync(RELATIONSHIP_COLORS_KEY);
+    const stored = await SecureStore.getItemAsync(STORAGE_KEY);
     if (stored) {
       return { ...DEFAULT_COLORS, ...JSON.parse(stored) };
     }
   } catch (error) {
     console.error('Failed to load relationship colors:', error);
   }
-  return DEFAULT_COLORS;
+  return { ...DEFAULT_COLORS };
 }
 
-export async function saveRelationshipColors(colors: RelationshipColorMap): Promise<void> {
+export async function setRelationshipColor(relationshipType: string, color: string): Promise<void> {
   try {
-    await SecureStore.setItemAsync(RELATIONSHIP_COLORS_KEY, JSON.stringify(colors));
+    const current = await getRelationshipColors();
+    current[relationshipType] = color;
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(current));
   } catch (error) {
-    console.error('Failed to save relationship colors:', error);
+    console.error('Failed to save relationship color:', error);
     throw error;
   }
 }
 
-export async function setRelationshipColor(type: string, color: string): Promise<void> {
-  const currentColors = await getRelationshipColors();
-  currentColors[type] = color;
-  await saveRelationshipColors(currentColors);
-}
-
 export async function resetRelationshipColors(): Promise<void> {
-  await saveRelationshipColors(DEFAULT_COLORS);
-}
-
-export function getColorForRelationship(
-  type: string | null | undefined,
-  colors: RelationshipColorMap
-): string {
-  if (!type) return '#9E9E9E'; // Default gray
-  return colors[type] || colors[type.toLowerCase()] || '#9E9E9E';
+  try {
+    await SecureStore.deleteItemAsync(STORAGE_KEY);
+  } catch (error) {
+    console.error('Failed to reset relationship colors:', error);
+    throw error;
+  }
 }
