@@ -3,6 +3,7 @@ import { Text, Button, Card, Divider, TextInput } from 'react-native-paper';
 import { router, Stack } from 'expo-router';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
+import { resetOnboarding } from './onboarding';
 import { useState } from 'react';
 
 /**
@@ -286,6 +287,61 @@ export default function DevScreen() {
               >
                 Add Person
               </Button>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Food Preferences Quiz
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                Tinder-style swipe quiz to quickly add food preferences for your primary contacts. Swipe
+                right for likes, left for dislikes, down for unknown.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push('/food-quiz')}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="food-apple"
+              >
+                Start Food Quiz
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Asks about popular foods like tomatoes, mushrooms, spicy food, etc. for primary people
+                only.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Reset App State
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Button
+                mode="outlined"
+                onPress={async () => {
+                  await resetOnboarding();
+                  Alert.alert('Success', 'Onboarding reset. Restart the app to see it again.');
+                }}
+                style={styles.button}
+                icon="restart"
+              >
+                Reset Onboarding
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Shows the intro tutorial again on next app start.
+              </Text>
             </Card.Content>
           </Card>
         </View>

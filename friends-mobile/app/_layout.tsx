@@ -1,15 +1,16 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { runMigrations } from '@/lib/db/migrate';
+import { checkOnboardingComplete } from './onboarding';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [appReady, setAppReady] = useState(false);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -49,18 +51,31 @@ export default function RootLayout() {
     if (loaded) {
       // Run database migrations on app start
       runMigrations()
-        .then(() => {
+        .then(async () => {
           console.log('✅ Database ready');
+
+          // Check if onboarding is complete
+          const onboardingComplete = await checkOnboardingComplete();
+
+          if (!onboardingComplete) {
+            // Redirect to onboarding after navigation is ready
+            setTimeout(() => {
+              router.replace('/onboarding');
+            }, 100);
+          }
+
+          setAppReady(true);
           SplashScreen.hideAsync();
         })
         .catch((err) => {
           console.error('❌ Migration failed:', err);
+          setAppReady(true);
           SplashScreen.hideAsync();
         });
     }
   }, [loaded]);
 
-  if (!loaded) {
+  if (!loaded || !appReady) {
     return null;
   }
 
@@ -78,6 +93,8 @@ function RootLayoutNav() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="person" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
           </Stack>
         </ThemeProvider>
       </PaperProvider>
