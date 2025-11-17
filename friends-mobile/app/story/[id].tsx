@@ -1,18 +1,24 @@
+import { useState } from 'react';
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, Chip, Divider, ActivityIndicator } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { stories, extractionResults } from '@/lib/db/schema';
+import { stories, pendingExtractions } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { useDeleteStory } from '@/hooks/useStories';
+import { useExtractRelations } from '@/hooks/useAIExtraction';
 import { formatRelativeTime } from '@/lib/utils/format';
+import { useSettings } from '@/store/useSettings';
 
 export default function StoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const deleteStory = useDeleteStory();
+  const extractRelations = useExtractRelations();
+  const { hasApiKey } = useSettings();
+  const [extractionResult, setExtractionResult] = useState<any>(null);
 
-  const { data: story, isLoading } = useQuery({
+  const { data: story, isLoading, refetch } = useQuery({
     queryKey: ['story', id],
     queryFn: async () => {
       const userId = await getCurrentUserId();
@@ -27,19 +33,60 @@ export default function StoryDetailScreen() {
     enabled: !!id,
   });
 
-  // Get extraction results for this story
+  // Get pending extractions for this story
   const { data: extractions = [] } = useQuery({
     queryKey: ['story-extractions', id],
     queryFn: async () => {
       const results = await db
         .select()
-        .from(extractionResults)
-        .where(eq(extractionResults.storyId, id!));
+        .from(pendingExtractions)
+        .where(eq(pendingExtractions.storyId, id!));
 
       return results;
     },
     enabled: !!id,
   });
+
+  const handleExtractRelations = async () => {
+    if (!hasApiKey()) {
+      Alert.alert(
+        'API Key Required',
+        'Please configure your Anthropic API key in Settings before using AI extraction.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Go to Settings', onPress: () => router.push('/settings') },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Extract Relations',
+      'This will use AI to extract people, preferences, and relationships from your story. This action uses your API key and cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Extract',
+          onPress: async () => {
+            try {
+              const result = await extractRelations.mutateAsync(id!);
+              setExtractionResult(result);
+              refetch();
+              Alert.alert(
+                'Extraction Complete',
+                `Successfully extracted:\n• ${result.newPeople} new people\n• ${result.autoAcceptedRelations} auto-accepted relations\n• ${result.pendingRelations} relations pending review\n• ${result.conflicts} conflicts detected\n\nTokens used: ${result.tokensUsed}\nProcessing time: ${result.processingTime}ms`
+              );
+            } catch (error) {
+              Alert.alert(
+                'Extraction Failed',
+                error instanceof Error ? error.message : 'Unknown error occurred'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleDelete = () => {
     const hasExtractions = extractions.length > 0 || story?.aiProcessed;
@@ -149,6 +196,37 @@ export default function StoryDetailScreen() {
           </Card.Content>
         </Card>
 
+        {/* AI Extraction Action */}
+        {!story.aiProcessed && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                AI Analysis
+              </Text>
+              <Divider style={styles.divider} />
+              <Text variant="bodySmall" style={styles.extractionDescription}>
+                Use AI to automatically extract people, preferences, and relationships from this story.
+                The AI will identify @mentions, detect likes/dislikes, and create connections.
+              </Text>
+              <Button
+                mode="contained"
+                icon="robot"
+                onPress={handleExtractRelations}
+                loading={extractRelations.isPending}
+                disabled={extractRelations.isPending}
+                style={styles.extractButton}
+              >
+                {extractRelations.isPending ? 'Extracting...' : 'Extract Relations'}
+              </Button>
+              {!hasApiKey() && (
+                <Text variant="labelSmall" style={styles.apiKeyWarning}>
+                  Note: API key required. Configure in Settings.
+                </Text>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Story Content */}
         <Card style={styles.card}>
           <Card.Content>
@@ -248,6 +326,19 @@ const styles = StyleSheet.create({
   storyText: {
     lineHeight: 24,
     color: '#333',
+  },
+  extractionDescription: {
+    opacity: 0.8,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  extractButton: {
+    marginTop: 8,
+  },
+  apiKeyWarning: {
+    marginTop: 8,
+    color: '#ff9800',
+    fontStyle: 'italic',
   },
   extractionInfo: {
     opacity: 0.7,
