@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { db, getCurrentUserId } from './index';
 import { people, relations, stories } from './schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * Seed the database with sample data for testing
@@ -14,7 +14,7 @@ export async function seedSampleData() {
     const [emma] = (await db
       .insert(people)
       .values({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         name: 'Emma Rodriguez',
         nickname: 'Em',
@@ -31,7 +31,7 @@ export async function seedSampleData() {
     const [mike] = (await db
       .insert(people)
       .values({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         name: 'Mike Chen',
         relationshipType: 'colleague',
@@ -47,7 +47,7 @@ export async function seedSampleData() {
     const [sarah] = (await db
       .insert(people)
       .values({
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         name: 'Sarah Thompson',
         nickname: 'Sally',
@@ -63,7 +63,7 @@ export async function seedSampleData() {
     // Create sample relations for Emma
     await db.insert(relations).values([
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: emma.id,
         subjectType: 'person',
@@ -77,7 +77,7 @@ export async function seedSampleData() {
         status: 'current',
       },
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: emma.id,
         subjectType: 'person',
@@ -90,7 +90,7 @@ export async function seedSampleData() {
         status: 'current',
       },
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: emma.id,
         subjectType: 'person',
@@ -104,7 +104,7 @@ export async function seedSampleData() {
         status: 'current',
       },
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: emma.id,
         subjectType: 'person',
@@ -121,7 +121,7 @@ export async function seedSampleData() {
     // Create sample relations for Mike
     await db.insert(relations).values([
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: mike.id,
         subjectType: 'person',
@@ -135,7 +135,7 @@ export async function seedSampleData() {
         status: 'current',
       },
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: mike.id,
         subjectType: 'person',
@@ -153,7 +153,7 @@ export async function seedSampleData() {
     // Create sample relations for Sarah
     await db.insert(relations).values([
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: sarah.id,
         subjectType: 'person',
@@ -167,7 +167,7 @@ export async function seedSampleData() {
         status: 'current',
       },
       {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         userId,
         subjectId: sarah.id,
         subjectType: 'person',
@@ -185,7 +185,7 @@ export async function seedSampleData() {
 
     // Create a sample story
     await db.insert(stories).values({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       userId,
       title: 'Coffee with Emma',
       content:

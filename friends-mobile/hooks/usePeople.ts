@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, type Person, type NewPerson } from '@/lib/db/schema';
-import { eq, and, ne, isNull, desc } from 'drizzle-orm';
+import { people, type NewPerson, type Person } from '@/lib/db/schema';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { and, desc, eq, isNull, ne } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 /**
  * Hook to fetch all people
@@ -50,7 +51,7 @@ export function useCreatePerson() {
         .values({
           ...data,
           userId,
-          id: crypto.randomUUID(),
+          id: randomUUID(),
         })
         .returning()) as any[];
       return result[0];

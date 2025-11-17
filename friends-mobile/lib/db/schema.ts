@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { randomUUID } from 'expo-crypto';
 
 // ============================================================================
 // USERS & AUTHENTICATION
@@ -7,7 +8,7 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 export const users = sqliteTable('users', {
   id: text('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .$defaultFn(() => randomUUID()),
   email: text('email').unique(),
   emailVerified: integer('email_verified', { mode: 'timestamp' }),
   displayName: text('display_name'),
@@ -34,7 +35,7 @@ export const users = sqliteTable('users', {
 export const magicLinkTokens = sqliteTable('magic_link_tokens', {
   id: text('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .$defaultFn(() => randomUUID()),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   email: text('email').notNull(),
@@ -50,7 +51,7 @@ export const magicLinkTokens = sqliteTable('magic_link_tokens', {
 export const sessions = sqliteTable('sessions', {
   id: text('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .$defaultFn(() => randomUUID()),
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -77,7 +78,7 @@ export const people = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -151,7 +152,7 @@ export const connections = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -199,7 +200,7 @@ export const relations = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -269,7 +270,7 @@ export const stories = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -302,7 +303,7 @@ export const secrets = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -331,7 +332,7 @@ export const contactEvents = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -366,7 +367,7 @@ export const relationshipHistory = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -395,7 +396,7 @@ export const events = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -436,7 +437,7 @@ export const files = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
@@ -468,7 +469,7 @@ export const pendingExtractions = sqliteTable(
   {
     id: text('id')
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .$defaultFn(() => randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

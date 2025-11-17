@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { relations, type Relation, type NewRelation } from '@/lib/db/schema';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { relations, type NewRelation, type Relation } from '@/lib/db/schema';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 /**
  * Hook to fetch relations for a specific person
@@ -58,7 +59,7 @@ export function useCreateRelation() {
         .values({
           ...data,
           userId,
-          id: crypto.randomUUID(),
+          id: randomUUID(),
         })
         .returning()) as any[];
       return result[0];
@@ -82,7 +83,7 @@ export function useCreateRelations() {
       const values = dataList.map((data) => ({
         ...data,
         userId,
-        id: crypto.randomUUID(),
+        id: randomUUID(),
       }));
       const result = (await db.insert(relations).values(values).returning()) as any[];
       return result;
