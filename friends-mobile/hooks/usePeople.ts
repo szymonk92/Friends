@@ -3,6 +3,7 @@ import { people, files, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+import { peopleLogger, logPerformance } from '@/lib/logger';
 
 /**
  * Check if a person name already exists (case-insensitive)
@@ -36,7 +37,9 @@ export function usePeople() {
   return useQuery({
     queryKey: ['people'],
     queryFn: async () => {
+      const perf = logPerformance(peopleLogger, 'fetchAllPeople');
       const userId = await getCurrentUserId();
+      peopleLogger.debug('Fetching people', { userId });
 
       // First get all people
       const peopleResults = await db
@@ -46,6 +49,8 @@ export function usePeople() {
           and(eq(people.userId, userId), ne(people.status, 'merged'), isNull(people.deletedAt))
         )
         .orderBy(desc(people.updatedAt));
+
+      peopleLogger.info('People fetched', { count: peopleResults.length });
 
       // Then try to get photo paths for people with photoId
       const photoIds = peopleResults
@@ -63,17 +68,21 @@ export function usePeople() {
           for (const photo of photosResults) {
             photoMap[photo.id] = photo.filePath;
           }
+          peopleLogger.debug('Photos loaded', { count: photosResults.length });
         } catch (error) {
           // Files table might not exist yet, ignore
-          console.warn('Failed to fetch photo paths:', error);
+          peopleLogger.warn('Failed to fetch photo paths', { error });
         }
       }
 
       // Combine results
-      return peopleResults.map((person) => ({
+      const result = peopleResults.map((person) => ({
         ...person,
         photoPath: person.photoId ? photoMap[person.photoId] || null : null,
       }));
+
+      perf.end(true, { peopleCount: result.length });
+      return result;
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
@@ -103,10 +112,13 @@ export function useCreatePerson() {
 
   return useMutation({
     mutationFn: async (data: Omit<NewPerson, 'userId'>) => {
+      const perf = logPerformance(peopleLogger, 'createPerson');
       const userId = await getCurrentUserId();
+      peopleLogger.info('Creating person', { name: data.name, type: data.personType });
 
       // Check for duplicate name
       if (data.name && (await checkNameExists(userId, data.name))) {
+        peopleLogger.warn('Duplicate person name', { name: data.name });
         throw new Error(`A person named "${data.name}" already exists`);
       }
 
@@ -118,6 +130,8 @@ export function useCreatePerson() {
           id: randomUUID(),
         })
         .returning()) as any[];
+
+      perf.end(true, { personId: result[0]?.id, name: data.name });
       return result[0];
     },
     onSuccess: () => {
@@ -134,10 +148,14 @@ export function useUpdatePerson() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Person> & { id: string }) => {
+      const perf = logPerformance(peopleLogger, 'updatePerson');
+      peopleLogger.info('Updating person', { personId: id, fields: Object.keys(data) });
+
       // Check for duplicate name if name is being updated
       if (data.name) {
         const userId = await getCurrentUserId();
         if (await checkNameExists(userId, data.name, id)) {
+          peopleLogger.warn('Duplicate person name on update', { name: data.name });
           throw new Error(`A person named "${data.name}" already exists`);
         }
       }
@@ -147,6 +165,8 @@ export function useUpdatePerson() {
         .set({ ...data, updatedAt: new Date() })
         .where(eq(people.id, id))
         .returning()) as any[];
+
+      perf.end(true, { personId: id });
       return result[0];
     },
     onSuccess: (_, variables) => {
@@ -164,7 +184,9 @@ export function useDeletePerson() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      peopleLogger.info('Deleting person (soft)', { personId: id });
       await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, id));
+      peopleLogger.info('Person deleted', { personId: id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });

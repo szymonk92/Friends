@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme } from '@/components/useColorScheme';
 import { runMigrations } from '@/lib/db/migrate';
 import { checkOnboardingComplete } from './onboarding';
+import { appLogger, logPerformance } from '@/lib/logger';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -49,26 +50,33 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
+      const perf = logPerformance(appLogger, 'appInitialization');
+      appLogger.info('App starting', { fontsLoaded: true });
+
       // Run database migrations on app start
       runMigrations()
         .then(async () => {
-          console.log('✅ Database ready');
+          appLogger.info('Database migrations completed');
 
           // Check if onboarding is complete
           const onboardingComplete = await checkOnboardingComplete();
+          appLogger.debug('Onboarding status', { complete: onboardingComplete });
 
           if (!onboardingComplete) {
             // Redirect to onboarding after navigation is ready
+            appLogger.info('Redirecting to onboarding');
             setTimeout(() => {
               router.replace('/onboarding');
             }, 100);
           }
 
+          perf.end(true);
           setAppReady(true);
           SplashScreen.hideAsync();
         })
         .catch((err) => {
-          console.error('❌ Migration failed:', err);
+          appLogger.error('Migration failed', { error: err });
+          perf.end(false);
           setAppReady(true);
           SplashScreen.hideAsync();
         });

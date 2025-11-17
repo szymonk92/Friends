@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { randomUUID } from 'expo-crypto';
 import { openDatabaseSync } from 'expo-sqlite';
 import * as schema from './schema';
+import { dbLogger, logPerformance } from '@/lib/logger';
 
 // Open the database
 const expoDb = openDatabaseSync('friends.db');
@@ -348,19 +349,21 @@ export async function initializeDatabase() {
       );
     `);
 
-    console.log('✅ Database schema initialized');
+    dbLogger.info('Database schema initialized successfully');
     await initializeLocalUser();
   } catch (error) {
-    console.error('Database initialization error:', error);
+    dbLogger.error('Database initialization error', { error });
   }
 }
 
 // Initialize local user helper
 export async function initializeLocalUser(): Promise<string> {
   try {
+    dbLogger.debug('Initializing local user');
     const existingUsers = await db.select().from(schema.users).limit(1);
 
     if (existingUsers.length > 0) {
+      dbLogger.debug('Local user exists', { userId: existingUsers[0].id });
       return existingUsers[0].id;
     }
 
@@ -374,9 +377,10 @@ export async function initializeLocalUser(): Promise<string> {
         subscriptionTier: 'free',
       });
 
+    dbLogger.info('Local user created', { userId });
     return userId;
   } catch (error) {
-    console.error('Error initializing local user:', error);
+    dbLogger.error('Error initializing local user', { error });
     return randomUUID();
   }
 }
@@ -387,12 +391,13 @@ export async function getCurrentUserId(): Promise<string> {
     const existingUsers = await db.select({ id: schema.users.id }).from(schema.users).limit(1);
 
     if (existingUsers.length === 0) {
+      dbLogger.debug('No users found, creating new user');
       return await initializeLocalUser();
     }
 
     return existingUsers[0].id;
   } catch (error) {
-    console.error('Error getting user ID:', error);
+    dbLogger.error('Error getting user ID', { error });
     return randomUUID();
   }
 }

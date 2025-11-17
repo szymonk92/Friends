@@ -5,6 +5,7 @@ import { Stack, router } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelation, useRelations } from '@/hooks/useRelations';
 import { getInitials } from '@/lib/utils/format';
+import { quizLogger, logPerformance } from '@/lib/logger';
 
 const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.25;
@@ -108,6 +109,13 @@ export default function FoodQuizScreen() {
       const preference: 'LIKES' | 'DISLIKES' | 'UNKNOWN' =
         direction === 'right' ? 'LIKES' : direction === 'left' ? 'DISLIKES' : 'UNKNOWN';
 
+      quizLogger.debug('Answer recorded', {
+        person: person.name,
+        food: food.item,
+        preference,
+        questionIndex: qIndex,
+      });
+
       // Record ALL answers including UNKNOWN
       setAnswers((prev) => [
         ...prev,
@@ -125,6 +133,7 @@ export default function FoodQuizScreen() {
         setCurrentQuestionIndex(qIndex + 1);
       } else {
         // Quiz complete
+        quizLogger.info('Quiz completed', { totalAnswers: qIndex + 1 });
         setIsComplete(true);
       }
     },
@@ -178,6 +187,8 @@ export default function FoodQuizScreen() {
   );
 
   const handleSaveAnswers = async () => {
+    const perf = logPerformance(quizLogger, 'saveQuizAnswers');
+    quizLogger.info('Saving quiz answers', { totalAnswers: answers.length });
     setIsSaving(true);
     let saved = 0;
     let failed = 0;
@@ -195,12 +206,19 @@ export default function FoodQuizScreen() {
         });
         saved++;
       } catch (error) {
-        console.error(`Failed to save ${answer.personName} ${answer.preference} ${answer.item}:`, error);
+        quizLogger.error('Failed to save answer', {
+          person: answer.personName,
+          preference: answer.preference,
+          item: answer.item,
+          error,
+        });
         failed++;
       }
     }
 
     setIsSaving(false);
+    perf.end(failed === 0, { saved, failed });
+
     Alert.alert(
       'Quiz Complete!',
       `Saved ${saved} food preferences.${failed > 0 ? `\n${failed} failed to save.` : ''}`,
