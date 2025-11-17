@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 import { db, getCurrentUserId } from './index';
 import { people, relations, stories } from './schema';
 

@@ -86,3 +86,19 @@ export function useMarkStoryProcessed() {
     },
   });
 }
+
+/**
+ * Hook to delete a story (soft delete)
+ */
+export function useDeleteStory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await db.update(stories).set({ deletedAt: new Date() }).where(eq(stories.id, id));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+}
