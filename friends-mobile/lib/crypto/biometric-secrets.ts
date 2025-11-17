@@ -200,8 +200,12 @@ export async function encryptContent(content: string, key: string): Promise<stri
     encrypted[i] = contentBytes[i] ^ keyBytes[i % keyBytes.length];
   }
 
-  // Return as base64
-  return btoa(String.fromCharCode(...encrypted));
+  // Return as base64 - convert Uint8Array to string without spread operator
+  let binaryString = '';
+  for (let i = 0; i < encrypted.length; i++) {
+    binaryString += String.fromCharCode(encrypted[i]);
+  }
+  return btoa(binaryString);
 }
 
 /**
@@ -361,5 +365,22 @@ export async function verifyPassword(password: string): Promise<boolean> {
     return passwordHash === storedHash;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Get encryption key - automatically handles both biometric and password modes
+ * For password mode, password parameter is required
+ */
+export async function getEncryptionKeyUnified(password?: string): Promise<string | null> {
+  const isPasswordMode = await isPasswordBasedEncryption();
+
+  if (isPasswordMode) {
+    if (!password) {
+      throw new Error('PASSWORD_REQUIRED');
+    }
+    return getEncryptionKeyWithPassword(password);
+  } else {
+    return getEncryptionKey();
   }
 }

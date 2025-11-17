@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, ScrollView, Alert, FlatList } from 'react-native';
 import {
   Text,
@@ -11,6 +11,7 @@ import {
   IconButton,
   Dialog,
   Portal,
+  Menu,
 } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import {
@@ -24,6 +25,7 @@ import {
   useInitializeWithPassword,
   usePasswordBasedEncryption,
 } from '@/hooks/useSecrets';
+import { usePeople } from '@/hooks/usePeople';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { formatRelativeTime } from '@/lib/utils/format';
 
@@ -34,6 +36,7 @@ export default function SecretsScreen() {
   const initializeSecrets = useInitializeSecrets();
   const initializeWithPassword = useInitializeWithPassword();
   const { data: secrets = [], isLoading: loadingSecrets } = useSecrets();
+  const { data: people = [] } = usePeople();
   const createSecret = useCreateSecret();
   const decryptSecret = useDecryptSecret();
   const deleteSecret = useDeleteSecret();
@@ -41,15 +44,74 @@ export default function SecretsScreen() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showPasswordSetupDialog, setShowPasswordSetupDialog] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [showPersonMenu, setShowPersonMenu] = useState(false);
   const [newSecretTitle, setNewSecretTitle] = useState('');
   const [newSecretContent, setNewSecretContent] = useState('');
+  const [selectedPersonId, setSelectedPersonId] = useState<string | undefined>(undefined);
   const [setupPassword, setSetupPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [pendingAction, setPendingAction] = useState<'create' | 'view' | null>(null);
+  const [pendingSecretId, setPendingSecretId] = useState<string | null>(null);
   const [viewedSecret, setViewedSecret] = useState<{
     id: string;
     title: string;
     content: string;
   } | null>(null);
+  const [remainingTime, setRemainingTime] = useState(60);
+
+  // Security: Auto-clear decrypted secret after 60 seconds
+  const secretViewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (showViewDialog && viewedSecret) {
+      // Reset countdown
+      setRemainingTime(60);
+
+      // Clear any existing timers
+      if (secretViewTimerRef.current) {
+        clearTimeout(secretViewTimerRef.current);
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+
+      // Set countdown interval
+      countdownTimerRef.current = setInterval(() => {
+        setRemainingTime((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Set timer to auto-close after 60 seconds
+      secretViewTimerRef.current = setTimeout(() => {
+        setShowViewDialog(false);
+        setViewedSecret(null);
+        Alert.alert('Security', 'Secret view closed automatically for security.');
+      }, 60000);
+    }
+
+    return () => {
+      if (secretViewTimerRef.current) {
+        clearTimeout(secretViewTimerRef.current);
+      }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, [showViewDialog, viewedSecret]);
+
+  // Clear password from memory immediately after use
+  const clearSensitiveData = () => {
+    setAccessPassword('');
+    setSetupPassword('');
+    setConfirmPassword('');
+  };
 
   const handleSetup = async () => {
     try {
@@ -98,9 +160,16 @@ export default function SecretsScreen() {
     );
   };
 
-  const handleCreateSecret = async () => {
+  const handleCreateSecret = async (password?: string) => {
     if (!newSecretTitle.trim() || !newSecretContent.trim()) {
       Alert.alert('Error', 'Please enter both title and content');
+      return;
+    }
+
+    // If password mode and no password provided, show prompt
+    if (isPasswordBased && !password) {
+      setPendingAction('create');
+      setShowPasswordPrompt(true);
       return;
     }
 
@@ -108,27 +177,64 @@ export default function SecretsScreen() {
       await createSecret.mutateAsync({
         title: newSecretTitle.trim(),
         content: newSecretContent.trim(),
+        personId: selectedPersonId,
+        password,
       });
       setShowCreateDialog(false);
       setNewSecretTitle('');
       setNewSecretContent('');
+      setSelectedPersonId(undefined);
       Alert.alert('Success', 'Secret saved and encrypted!');
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save secret');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save secret';
+      if (errorMsg === 'Invalid password') {
+        Alert.alert('Wrong Password', 'The password you entered is incorrect.');
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
     }
   };
 
-  const handleViewSecret = async (secretId: string) => {
+  const handleViewSecret = async (secretId: string, password?: string) => {
+    // If password mode and no password provided, show prompt
+    if (isPasswordBased && !password) {
+      setPendingAction('view');
+      setPendingSecretId(secretId);
+      setShowPasswordPrompt(true);
+      return;
+    }
+
     try {
-      const decrypted = await decryptSecret.mutateAsync(secretId);
+      const decrypted = await decryptSecret.mutateAsync({ secretId, password });
       setViewedSecret(decrypted);
       setShowViewDialog(true);
     } catch (error) {
-      Alert.alert(
-        'Access Denied',
-        error instanceof Error ? error.message : 'Failed to decrypt secret'
-      );
+      const errorMsg = error instanceof Error ? error.message : 'Failed to decrypt secret';
+      if (errorMsg === 'Invalid password') {
+        Alert.alert('Wrong Password', 'The password you entered is incorrect.');
+      } else {
+        Alert.alert('Access Denied', errorMsg);
+      }
     }
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!accessPassword) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    setShowPasswordPrompt(false);
+
+    if (pendingAction === 'create') {
+      await handleCreateSecret(accessPassword);
+    } else if (pendingAction === 'view' && pendingSecretId) {
+      await handleViewSecret(pendingSecretId, accessPassword);
+    }
+
+    setAccessPassword('');
+    setPendingAction(null);
+    setPendingSecretId(null);
   };
 
   const handleDeleteSecret = (secretId: string, title: string) => {
@@ -347,23 +453,33 @@ export default function SecretsScreen() {
             data={secrets}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <Card style={styles.secretCard} onPress={() => handleViewSecret(item.id)}>
-                <Card.Content style={styles.secretCardContent}>
-                  <View style={styles.secretInfo}>
-                    <Text variant="titleMedium">{item.title}</Text>
-                    <Text variant="bodySmall" style={styles.secretDate}>
-                      {formatRelativeTime(new Date(item.createdAt))}
-                    </Text>
-                  </View>
-                  <IconButton
-                    icon="delete"
-                    size={20}
-                    onPress={() => handleDeleteSecret(item.id, item.title)}
-                  />
-                </Card.Content>
-              </Card>
-            )}
+            renderItem={({ item }) => {
+              const associatedPerson = item.personId
+                ? people.find((p) => p.id === item.personId)
+                : null;
+              return (
+                <Card style={styles.secretCard} onPress={() => handleViewSecret(item.id)}>
+                  <Card.Content style={styles.secretCardContent}>
+                    <View style={styles.secretInfo}>
+                      <Text variant="titleMedium">{item.title}</Text>
+                      {associatedPerson && (
+                        <Text variant="bodySmall" style={styles.personTag}>
+                          {associatedPerson.name}
+                        </Text>
+                      )}
+                      <Text variant="bodySmall" style={styles.secretDate}>
+                        {formatRelativeTime(new Date(item.createdAt))}
+                      </Text>
+                    </View>
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      onPress={() => handleDeleteSecret(item.id, item.title)}
+                    />
+                  </Card.Content>
+                </Card>
+              );
+            }}
           />
         )}
 
@@ -396,14 +512,48 @@ export default function SecretsScreen() {
                 style={styles.input}
                 secureTextEntry
               />
+              <Menu
+                visible={showPersonMenu}
+                onDismiss={() => setShowPersonMenu(false)}
+                anchor={
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowPersonMenu(true)}
+                    style={styles.personSelector}
+                    icon="account"
+                  >
+                    {selectedPersonId
+                      ? people.find((p) => p.id === selectedPersonId)?.name || 'Select Person'
+                      : 'Associate with Person (Optional)'}
+                  </Button>
+                }
+              >
+                <Menu.Item
+                  onPress={() => {
+                    setSelectedPersonId(undefined);
+                    setShowPersonMenu(false);
+                  }}
+                  title="No Association"
+                />
+                {people.map((person) => (
+                  <Menu.Item
+                    key={person.id}
+                    onPress={() => {
+                      setSelectedPersonId(person.id);
+                      setShowPersonMenu(false);
+                    }}
+                    title={person.name}
+                  />
+                ))}
+              </Menu>
               <Text variant="bodySmall" style={styles.dialogHint}>
-                Content will be encrypted with your biometric key
+                Content will be encrypted with your {isPasswordBased ? 'password' : 'biometric key'}
               </Text>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setShowCreateDialog(false)}>Cancel</Button>
               <Button
-                onPress={handleCreateSecret}
+                onPress={() => handleCreateSecret()}
                 loading={createSecret.isPending}
                 disabled={createSecret.isPending}
               >
@@ -422,6 +572,9 @@ export default function SecretsScreen() {
           >
             <Dialog.Title>{viewedSecret?.title || 'Secret'}</Dialog.Title>
             <Dialog.Content>
+              <Text variant="bodySmall" style={styles.securityTimer}>
+                Auto-closing in {remainingTime}s for security
+              </Text>
               <Text variant="bodyMedium" style={styles.secretContent}>
                 {viewedSecret?.content}
               </Text>
@@ -434,6 +587,52 @@ export default function SecretsScreen() {
                 }}
               >
                 Close
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          {/* Password Prompt Dialog */}
+          <Dialog
+            visible={showPasswordPrompt}
+            onDismiss={() => {
+              setShowPasswordPrompt(false);
+              setAccessPassword('');
+              setPendingAction(null);
+              setPendingSecretId(null);
+            }}
+          >
+            <Dialog.Title>Enter Password</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodySmall" style={styles.passwordPromptText}>
+                Enter your password to {pendingAction === 'create' ? 'save' : 'decrypt'} the secret
+              </Text>
+              <TextInput
+                label="Password"
+                value={accessPassword}
+                onChangeText={setAccessPassword}
+                mode="outlined"
+                secureTextEntry
+                style={styles.input}
+                autoFocus
+              />
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button
+                onPress={() => {
+                  setShowPasswordPrompt(false);
+                  setAccessPassword('');
+                  setPendingAction(null);
+                  setPendingSecretId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onPress={handlePasswordSubmit}
+                loading={createSecret.isPending || decryptSecret.isPending}
+                disabled={!accessPassword || createSecret.isPending || decryptSecret.isPending}
+              >
+                Submit
               </Button>
             </Dialog.Actions>
           </Dialog>
@@ -542,6 +741,11 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: 4,
   },
+  personTag: {
+    color: '#6200ee',
+    marginTop: 2,
+    fontWeight: '500',
+  },
   fab: {
     position: 'absolute',
     margin: 16,
@@ -582,5 +786,18 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
     marginTop: -8,
     marginBottom: 8,
+  },
+  personSelector: {
+    marginBottom: 12,
+  },
+  passwordPromptText: {
+    marginBottom: 16,
+    opacity: 0.7,
+  },
+  securityTimer: {
+    color: '#ff5722',
+    marginBottom: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

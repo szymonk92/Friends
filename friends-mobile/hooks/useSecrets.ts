@@ -14,6 +14,7 @@ import {
   initializeWithPassword,
   getEncryptionKeyWithPassword,
   isPasswordBasedEncryption,
+  getEncryptionKeyUnified,
   type BiometricStatus,
 } from '@/lib/crypto/biometric-secrets';
 
@@ -99,13 +100,15 @@ export function useCreateSecret() {
       title,
       content,
       personId,
+      password,
     }: {
       title: string;
       content: string;
       personId?: string;
+      password?: string;
     }) => {
-      // Authenticate and get encryption key
-      const key = await getEncryptionKey();
+      // Authenticate and get encryption key (handles both biometric and password modes)
+      const key = await getEncryptionKeyUnified(password);
       if (!key) {
         throw new Error('Failed to authenticate or get encryption key');
       }
@@ -145,9 +148,9 @@ export function useCreateSecret() {
  */
 export function useDecryptSecret() {
   return useMutation({
-    mutationFn: async (secretId: string) => {
-      // Authenticate and get encryption key
-      const key = await getEncryptionKey();
+    mutationFn: async ({ secretId, password }: { secretId: string; password?: string }) => {
+      // Authenticate and get encryption key (handles both biometric and password modes)
+      const key = await getEncryptionKeyUnified(password);
       if (!key) {
         throw new Error('Failed to authenticate or get encryption key');
       }
@@ -194,10 +197,12 @@ export function useUpdateSecret() {
       id,
       title,
       content,
+      password,
     }: {
       id: string;
       title?: string;
       content?: string;
+      password?: string;
     }) => {
       const updates: Record<string, any> = {
         updatedAt: new Date(),
@@ -208,8 +213,8 @@ export function useUpdateSecret() {
       }
 
       if (content) {
-        // Authenticate and get encryption key
-        const key = await getEncryptionKey();
+        // Authenticate and get encryption key (handles both biometric and password modes)
+        const key = await getEncryptionKeyUnified(password);
         if (!key) {
           throw new Error('Failed to authenticate or get encryption key');
         }
