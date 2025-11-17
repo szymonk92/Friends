@@ -69,11 +69,14 @@ export default function FoodQuizScreen() {
     return answered;
   }, [existingRelations]);
 
-  // Generate list of unanswered questions for each person
+  // Generate list of unanswered questions - MIXED across people
   const questionsToAsk = useMemo(() => {
     const questions: Array<{ person: (typeof primaryPeople)[0]; food: (typeof FOOD_QUESTIONS)[0] }> = [];
-    for (const person of primaryPeople) {
-      for (const food of FOOD_QUESTIONS) {
+
+    // Create a mixed list: iterate through foods first, then people
+    // This ensures we ask about food A for person 1, food A for person 2, etc.
+    for (const food of FOOD_QUESTIONS) {
+      for (const person of primaryPeople) {
         const key = `${person.id}:${food.item}`;
         if (!answeredQuestions.has(key)) {
           questions.push({ person, food });
@@ -165,15 +168,19 @@ export default function FoodQuizScreen() {
           position.setValue({ x: gesture.dx, y: gesture.dy });
         },
         onPanResponderRelease: (_, gesture) => {
-          if (gesture.dx > SWIPE_THRESHOLD) {
+          const absX = Math.abs(gesture.dx);
+          const absY = Math.abs(gesture.dy);
+
+          // Prioritize down gesture if vertical movement is greater than horizontal
+          if (gesture.dy > SWIPE_THRESHOLD && absY > absX) {
+            // Swipe down = SKIP/IDK
+            swipeCard('down');
+          } else if (gesture.dx > SWIPE_THRESHOLD) {
             // Swipe right = LIKES
             swipeCard('right');
           } else if (gesture.dx < -SWIPE_THRESHOLD) {
             // Swipe left = DISLIKES
             swipeCard('left');
-          } else if (gesture.dy > SWIPE_THRESHOLD) {
-            // Swipe down = SKIP/IDK
-            swipeCard('down');
           } else {
             // Reset position
             Animated.spring(position, {
@@ -197,14 +204,19 @@ export default function FoodQuizScreen() {
       try {
         await createRelation.mutateAsync({
           subjectId: answer.personId,
-          relationType: answer.preference,
+          relationType: answer.preference as any, // Type coercion for UNKNOWN
           objectLabel: answer.item,
           category: answer.category,
           confidence: answer.preference === 'UNKNOWN' ? 0.0 : 0.7, // User-provided via quiz
-          source: 'question_mode',
-          intensity: answer.preference === 'UNKNOWN' ? 'unknown' : 'medium',
+          source: 'question_mode' as any,
+          intensity: (answer.preference === 'UNKNOWN' ? 'unknown' : 'medium') as any,
         });
         saved++;
+        quizLogger.debug('Saved answer', {
+          person: answer.personName,
+          preference: answer.preference,
+          item: answer.item,
+        });
       } catch (error) {
         quizLogger.error('Failed to save answer', {
           person: answer.personName,
