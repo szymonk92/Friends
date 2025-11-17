@@ -43,6 +43,30 @@ import {
   formatShortDate,
 } from '@/lib/utils/format';
 
+// Priority order for relation types (higher priority = shown first)
+const RELATION_TYPE_PRIORITY: Record<string, number> = {
+  CARES_FOR: 100,
+  DEPENDS_ON: 95,
+  STRUGGLES_WITH: 90,
+  FEARS: 85,
+  WANTS_TO_ACHIEVE: 80,
+  IS: 75,
+  HAS_SKILL: 70,
+  REGULARLY_DOES: 65,
+  KNOWS: 60,
+  BELIEVES: 55,
+  LIKES: 50,
+  PREFERS_OVER: 45,
+  ASSOCIATED_WITH: 40,
+  EXPERIENCED: 35,
+  OWNS: 30,
+  UNCOMFORTABLE_WITH: 25,
+  SENSITIVE_TO: 20,
+  DISLIKES: 10,
+  USED_TO_BE: 5,
+  UNKNOWN: 0,
+};
+
 export default function PersonProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: person, isLoading: personLoading } = usePerson(id!);
@@ -410,7 +434,7 @@ export default function PersonProfileScreen() {
     );
   }
 
-  // Group relations by type
+  // Group relations by type and sort by priority
   const relationsByType = personRelations?.reduce(
     (acc, relation) => {
       const type = relation.relationType;
@@ -420,6 +444,13 @@ export default function PersonProfileScreen() {
     },
     {} as Record<string, typeof personRelations>
   );
+
+  // Sort relation types by priority (higher priority first)
+  const sortedRelationTypes = relationsByType
+    ? Object.keys(relationsByType).sort(
+        (a, b) => (RELATION_TYPE_PRIORITY[b] || 0) - (RELATION_TYPE_PRIORITY[a] || 0)
+      )
+    : [];
 
   return (
     <>
@@ -827,9 +858,18 @@ export default function PersonProfileScreen() {
           {/* Relations */}
           <Card style={styles.relationsCard}>
             <Card.Content>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Relations ({personRelations?.length || 0})
-              </Text>
+              <View style={styles.relationsTitleRow}>
+                <Text variant="titleLarge" style={styles.sectionTitle}>
+                  Relations ({personRelations?.length || 0})
+                </Text>
+                {personRelations && personRelations.length > 0 && (
+                  <IconButton
+                    icon="dots-vertical"
+                    size={20}
+                    onPress={() => router.push(`/person/manage-relations?personId=${id}`)}
+                  />
+                )}
+              </View>
               <Divider style={styles.divider} />
 
               {relationsLoading && (
@@ -865,61 +905,41 @@ export default function PersonProfileScreen() {
                 </Button>
               )}
 
-              {relationsByType &&
-                Object.entries(relationsByType).map(([type, rels]) => (
-                  <View key={type}>
-                    <List.Subheader>
-                      {getRelationEmoji(type)} {formatRelationType(type)} ({rels.length})
-                    </List.Subheader>
-                    {rels.map((relation) => (
-                      <List.Item
-                        key={relation.id}
-                        title={relation.objectLabel}
-                        description={
-                          relation.category ||
-                          relation.intensity ||
-                          formatRelativeTime(new Date(relation.createdAt))
-                        }
-                        left={(props) => (
-                          <List.Icon
-                            {...props}
-                            icon={
-                              relation.status === 'past'
-                                ? 'history'
-                                : relation.status === 'future'
-                                  ? 'clock-outline'
-                                  : 'check-circle-outline'
-                            }
-                          />
-                        )}
-                        right={(props) => (
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            {relation.intensity && (
-                              <Chip {...props} compact style={{ marginRight: 4 }}>
-                                {relation.intensity}
-                              </Chip>
-                            )}
-                            <IconButton
-                              icon="pencil-outline"
-                              size={20}
-                              onPress={() =>
-                                router.push(`/person/edit-relation?relationId=${relation.id}`)
-                              }
-                            />
-                            <IconButton
-                              icon="delete-outline"
-                              size={20}
-                              onPress={() =>
-                                handleDeleteRelation(relation.id, relation.objectLabel)
-                              }
-                            />
-                          </View>
-                        )}
-                        style={styles.relationItem}
-                      />
-                    ))}
+              {/* Compact relations list sorted by priority */}
+              {sortedRelationTypes.map((type) => {
+                const rels = relationsByType![type];
+                return (
+                  <View key={type} style={styles.relationTypeSection}>
+                    <Text variant="labelLarge" style={styles.relationTypeLabel}>
+                      {getRelationEmoji(type)} {formatRelationType(type)}
+                    </Text>
+                    <View style={styles.relationChipsContainer}>
+                      {rels.map((relation) => (
+                        <Chip
+                          key={relation.id}
+                          compact
+                          style={styles.relationChip}
+                          textStyle={styles.relationChipText}
+                        >
+                          {relation.objectLabel}
+                          {relation.intensity && relation.intensity !== 'medium' && (
+                            <Text style={styles.intensityIndicator}>
+                              {' '}
+                              {relation.intensity === 'very_strong'
+                                ? '💪'
+                                : relation.intensity === 'strong'
+                                  ? '+'
+                                  : relation.intensity === 'weak'
+                                    ? '-'
+                                    : ''}
+                            </Text>
+                          )}
+                        </Chip>
+                      ))}
+                    </View>
                   </View>
-                ))}
+                );
+              })}
             </Card.Content>
           </Card>
 
@@ -1452,6 +1472,33 @@ const styles = StyleSheet.create({
   },
   relationItem: {
     paddingVertical: 8,
+  },
+  relationsTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  relationTypeSection: {
+    marginBottom: 12,
+  },
+  relationTypeLabel: {
+    marginBottom: 6,
+    opacity: 0.8,
+  },
+  relationChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  relationChip: {
+    marginBottom: 2,
+  },
+  relationChipText: {
+    fontSize: 12,
+  },
+  intensityIndicator: {
+    fontSize: 10,
+    opacity: 0.8,
   },
   connectionAvatar: {
     width: 40,
