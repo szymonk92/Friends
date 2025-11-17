@@ -10,10 +10,27 @@ export default function AddPersonModal() {
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createPerson = useCreatePerson();
+
+  const parseFlexibleDate = (input: string): Date | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
+
+    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
+      return new Date(parts[0], 0, 1);
+    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
+      return new Date(parts[0], parts[1] - 1, 1);
+    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return null;
+  };
 
   const handleSubmit = async () => {
     if (name.trim().length < 2) {
@@ -34,10 +51,13 @@ export default function AddPersonModal() {
     setIsSubmitting(true);
 
     try {
+      const parsedBirthday = parseFlexibleDate(dateOfBirth);
+
       await createPerson.mutateAsync({
         name: name.trim(),
         nickname: nickname.trim() || undefined,
         relationshipType: relationshipType as any,
+        dateOfBirth: parsedBirthday || undefined,
         notes: notes.trim() || undefined,
         personType: 'primary',
         dataCompleteness: 'partial',
@@ -126,6 +146,18 @@ export default function AddPersonModal() {
 
         <TextInput
           mode="outlined"
+          label="Birthday (optional)"
+          placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+          value={dateOfBirth}
+          onChangeText={setDateOfBirth}
+          style={styles.input}
+        />
+        <Text variant="labelSmall" style={styles.birthdayHint}>
+          Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
+        </Text>
+
+        <TextInput
+          mode="outlined"
           label="Notes"
           placeholder="Any notes about this person..."
           value={notes}
@@ -187,5 +219,10 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
+  },
+  birthdayHint: {
+    opacity: 0.6,
+    marginTop: -12,
+    marginBottom: 16,
   },
 });

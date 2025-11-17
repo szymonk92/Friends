@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, ScrollView } from 'react-native';
 import {
   Text,
   Card,
@@ -11,8 +11,9 @@ import {
   Portal,
   TextInput,
   SegmentedButtons,
+  Menu,
 } from 'react-native-paper';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import {
   useContactEvents,
@@ -29,6 +30,7 @@ const EVENT_TYPES = [
   { value: 'messaged', label: 'Messaged', icon: 'message' },
   { value: 'hung_out', label: 'Hung Out', icon: 'coffee' },
   { value: 'special', label: 'Special Event', icon: 'star' },
+  { value: 'birthday', label: 'Birthday', icon: 'cake-variant' },
 ];
 
 export default function TimelineScreen() {
@@ -42,9 +44,41 @@ export default function TimelineScreen() {
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [eventType, setEventType] = useState('met');
-  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]); // Flexible: YYYY, YYYY-MM, or YYYY-MM-DD
+  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filters
+  const [filterPersonId, setFilterPersonId] = useState<string | null>(null);
+  const [filterEventType, setFilterEventType] = useState<string | null>(null);
+  const [personMenuVisible, setPersonMenuVisible] = useState(false);
+
+  // Generate birthday events from people with dateOfBirth
+  const birthdayEvents = useMemo(() => {
+    return people
+      .filter((p) => p.dateOfBirth)
+      .map((p) => ({
+        id: `birthday-${p.id}`,
+        personId: p.id,
+        eventType: 'birthday',
+        eventDate: p.dateOfBirth,
+        notes: `${p.name}'s birthday`,
+        isBirthday: true,
+      }));
+  }, [people]);
+
+  // Combine and filter events
+  const filteredEvents = useMemo(() => {
+    const allEvents = [...events, ...birthdayEvents];
+
+    return allEvents
+      .filter((event) => {
+        if (filterPersonId && event.personId !== filterPersonId) return false;
+        if (filterEventType && event.eventType !== filterEventType) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+  }, [events, birthdayEvents, filterPersonId, filterEventType]);
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
@@ -173,17 +207,18 @@ export default function TimelineScreen() {
   const renderEventItem = ({ item, index }: { item: any; index: number }) => {
     const personName = getPersonName(item.personId);
     const person = people.find((p) => p.id === item.personId);
+    const isBirthday = item.isBirthday || item.eventType === 'birthday';
 
     return (
       <View style={styles.timelineItem}>
         {/* Timeline line */}
         <View style={styles.timelineLine}>
-          <View style={styles.timelineDot} />
-          {index < events.length - 1 && <View style={styles.timelineConnector} />}
+          <View style={[styles.timelineDot, isBirthday && styles.birthdayDot]} />
+          {index < filteredEvents.length - 1 && <View style={styles.timelineConnector} />}
         </View>
 
         {/* Event card */}
-        <Card style={styles.eventCard}>
+        <Card style={[styles.eventCard, isBirthday && styles.birthdayCard]}>
           <Card.Content>
             <View style={styles.eventHeader}>
               <View style={styles.eventInfo}>
@@ -194,18 +229,20 @@ export default function TimelineScreen() {
                   {formatRelativeTime(new Date(item.eventDate))}
                 </Text>
               </View>
-              <View style={styles.eventActions}>
-                <IconButton
-                  icon="pencil-outline"
-                  size={20}
-                  onPress={() => handleEditEvent(item)}
-                />
-                <IconButton
-                  icon="delete-outline"
-                  size={20}
-                  onPress={() => handleDeleteEvent(item.id)}
-                />
-              </View>
+              {!isBirthday && (
+                <View style={styles.eventActions}>
+                  <IconButton
+                    icon="pencil-outline"
+                    size={20}
+                    onPress={() => handleEditEvent(item)}
+                  />
+                  <IconButton
+                    icon="delete-outline"
+                    size={20}
+                    onPress={() => handleDeleteEvent(item.id)}
+                  />
+                </View>
+              )}
             </View>
 
             <View style={styles.personRow}>
@@ -255,23 +292,98 @@ export default function TimelineScreen() {
         <Text variant="bodyMedium" style={styles.subtitle}>
           Track your interactions with people
         </Text>
+
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+            {/* Person filter */}
+            <Menu
+              visible={personMenuVisible}
+              onDismiss={() => setPersonMenuVisible(false)}
+              anchor={
+                <Chip
+                  icon="account"
+                  onPress={() => setPersonMenuVisible(true)}
+                  onClose={filterPersonId ? () => setFilterPersonId(null) : undefined}
+                  style={styles.filterChip}
+                >
+                  {filterPersonId ? getPersonName(filterPersonId) : 'All People'}
+                </Chip>
+              }
+            >
+              <Menu.Item
+                onPress={() => {
+                  setFilterPersonId(null);
+                  setPersonMenuVisible(false);
+                }}
+                title="All People"
+              />
+              {people.map((person) => (
+                <Menu.Item
+                  key={person.id}
+                  onPress={() => {
+                    setFilterPersonId(person.id);
+                    setPersonMenuVisible(false);
+                  }}
+                  title={person.name}
+                />
+              ))}
+            </Menu>
+
+            {/* Event type filters */}
+            <Chip
+              icon="filter-variant"
+              onPress={() => setFilterEventType(null)}
+              selected={!filterEventType}
+              style={styles.filterChip}
+            >
+              All Types
+            </Chip>
+            {EVENT_TYPES.map((type) => (
+              <Chip
+                key={type.value}
+                icon={type.icon}
+                onPress={() => setFilterEventType(type.value)}
+                selected={filterEventType === type.value}
+                style={styles.filterChip}
+              >
+                {type.label}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
-      {events.length === 0 ? (
+      {filteredEvents.length === 0 ? (
         <View style={styles.emptyState}>
           <Text variant="titleLarge" style={styles.emptyTitle}>
-            No events yet
+            {filterPersonId || filterEventType ? 'No matching events' : 'No events yet'}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyDescription}>
-            Start tracking when you meet, call, or interact with people in your network.
+            {filterPersonId || filterEventType
+              ? 'Try adjusting your filters or add new events.'
+              : 'Start tracking when you meet, call, or interact with people in your network.'}
           </Text>
-          <Button mode="contained" onPress={() => setAddDialogVisible(true)}>
-            Add First Event
-          </Button>
+          {!filterPersonId && !filterEventType && (
+            <Button mode="contained" onPress={() => setAddDialogVisible(true)}>
+              Add First Event
+            </Button>
+          )}
+          {(filterPersonId || filterEventType) && (
+            <Button
+              mode="outlined"
+              onPress={() => {
+                setFilterPersonId(null);
+                setFilterEventType(null);
+              }}
+            >
+              Clear Filters
+            </Button>
+          )}
         </View>
       ) : (
         <FlatList
-          data={events}
+          data={filteredEvents}
           renderItem={renderEventItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -392,6 +504,16 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
+    marginBottom: 12,
+  },
+  filtersContainer: {
+    marginTop: 8,
+  },
+  filterScroll: {
+    flexGrow: 0,
+  },
+  filterChip: {
+    marginRight: 8,
   },
   list: {
     padding: 16,
@@ -412,6 +534,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200ee',
     marginTop: 16,
   },
+  birthdayDot: {
+    backgroundColor: '#ff9800',
+  },
   timelineConnector: {
     width: 2,
     flex: 1,
@@ -422,6 +547,10 @@ const styles = StyleSheet.create({
   eventCard: {
     flex: 1,
     marginLeft: 8,
+  },
+  birthdayCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
   },
   eventHeader: {
     flexDirection: 'row',
