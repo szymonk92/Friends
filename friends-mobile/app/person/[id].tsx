@@ -479,17 +479,17 @@ export default function PersonProfileScreen() {
               <View style={styles.chips}>
                 {person.relationshipType && (
                   <Chip icon="heart" style={styles.chip}>
-                    {person.relationshipType}
+                    {person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
                   </Chip>
                 )}
                 {person.personType && (
                   <Chip icon="account" style={styles.chip}>
-                    {person.personType}
+                    {person.personType.charAt(0).toUpperCase() + person.personType.slice(1)}
                   </Chip>
                 )}
                 {person.importanceToUser && person.importanceToUser !== 'unknown' && (
                   <Chip icon="star" style={styles.chip}>
-                    {person.importanceToUser.replace('_', ' ')}
+                    {person.importanceToUser.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </Chip>
                 )}
               </View>
@@ -841,12 +841,28 @@ export default function PersonProfileScreen() {
               {!relationsLoading && personRelations && personRelations.length === 0 && (
                 <View style={styles.emptyRelations}>
                   <Text variant="bodyMedium" style={styles.emptyText}>
-                    No relations yet. Add a story to extract information about {person.name}.
+                    No relations yet. Add preferences, facts, or information about {person.name}.
                   </Text>
-                  <Button mode="outlined" onPress={() => router.push('/(tabs)/two')}>
-                    Add a Story
+                  <Button
+                    mode="outlined"
+                    icon="plus"
+                    onPress={() => router.push(`/person/add-relation?personId=${id}`)}
+                  >
+                    Add Relation
                   </Button>
                 </View>
+              )}
+
+              {!relationsLoading && personRelations && personRelations.length > 0 && (
+                <Button
+                  mode="text"
+                  icon="plus"
+                  onPress={() => router.push(`/person/add-relation?personId=${id}`)}
+                  style={styles.addRelationButton}
+                  compact
+                >
+                  Add Relation
+                </Button>
               )}
 
               {relationsByType &&
@@ -1429,6 +1445,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     opacity: 0.7,
+  },
+  addRelationButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 8,
   },
   relationItem: {
     paddingVertical: 8,
