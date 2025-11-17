@@ -154,8 +154,8 @@ export default function AddConnectionScreen() {
             )}
 
             {!selectedPerson && availablePeople.length > 0 && (
-              <View style={styles.peopleList}>
-                {availablePeople.slice(0, 10).map((p) => (
+              <ScrollView style={styles.peopleList} nestedScrollEnabled>
+                {availablePeople.map((p) => (
                   <List.Item
                     key={p.id}
                     title={p.name}
@@ -169,12 +169,7 @@ export default function AddConnectionScreen() {
                     style={styles.listItem}
                   />
                 ))}
-                {availablePeople.length > 10 && (
-                  <Text style={styles.moreText}>
-                    + {availablePeople.length - 10} more (use search to find)
-                  </Text>
-                )}
-              </View>
+              </ScrollView>
             )}
           </Card.Content>
         </Card>
