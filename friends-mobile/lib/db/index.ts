@@ -208,6 +208,95 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Create magic_link_tokens table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS magic_link_tokens (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        used_at INTEGER,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create sessions table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        session_token TEXT NOT NULL UNIQUE,
+        expires_at INTEGER NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        device_name TEXT,
+        created_at INTEGER NOT NULL,
+        last_active_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create secrets table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS secrets (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        person_id TEXT REFERENCES people(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        encrypted_content TEXT NOT NULL,
+        encryption_salt TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER,
+        sync_version INTEGER DEFAULT 1,
+        last_synced_at INTEGER
+      );
+    `);
+
+    // Create relationship_history table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS relationship_history (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        connection_id TEXT REFERENCES connections(id) ON DELETE CASCADE,
+        change_type TEXT NOT NULL,
+        previous_value TEXT,
+        new_value TEXT,
+        reason TEXT,
+        notes TEXT,
+        changed_at INTEGER NOT NULL,
+        sync_version INTEGER DEFAULT 1,
+        last_synced_at INTEGER
+      );
+    `);
+
+    // Create pending_extractions table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS pending_extractions (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        story_id TEXT REFERENCES stories(id) ON DELETE CASCADE,
+        subject_id TEXT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+        subject_name TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        object_label TEXT NOT NULL,
+        object_type TEXT,
+        intensity TEXT,
+        confidence REAL NOT NULL,
+        category TEXT,
+        metadata TEXT,
+        status TEXT,
+        review_status TEXT DEFAULT 'pending' NOT NULL,
+        reviewed_at INTEGER,
+        review_notes TEXT,
+        extraction_reason TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
     console.log('✅ Database schema initialized');
     await initializeLocalUser();
   } catch (error) {
