@@ -39,6 +39,7 @@ export default function TimelineScreen() {
   const [addDialogVisible, setAddDialogVisible] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [eventType, setEventType] = useState('met');
+  const [eventDate, setEventDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,18 +70,35 @@ export default function TimelineScreen() {
         personId: selectedPersonId,
         eventType: eventType as any,
         notes: notes.trim() || undefined,
-        eventDate: new Date(),
+        eventDate: eventDate,
       });
 
       setAddDialogVisible(false);
       setSelectedPersonId(null);
       setEventType('met');
+      setEventDate(new Date());
       setNotes('');
       Alert.alert('Success', 'Event added to timeline!');
     } catch (err) {
       Alert.alert('Error', 'Failed to add event');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const formatDateForInput = (date: Date) => {
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+
+  const handleDateChange = (dateString: string) => {
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // months are 0-indexed
+      const day = parseInt(parts[2], 10);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        setEventDate(new Date(year, month, day));
+      }
     }
   };
 
@@ -269,6 +287,19 @@ export default function TimelineScreen() {
               style={styles.segmented}
             />
 
+            <Text variant="titleSmall" style={styles.dialogLabel}>
+              Event Date
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Date"
+              placeholder="YYYY-MM-DD"
+              value={formatDateForInput(eventDate)}
+              onChangeText={handleDateChange}
+              style={styles.dateInput}
+              keyboardType="numeric"
+            />
+
             <TextInput
               mode="outlined"
               label="Notes (optional)"
@@ -446,5 +477,8 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     marginTop: 8,
+  },
+  dateInput: {
+    marginBottom: 8,
   },
 });
