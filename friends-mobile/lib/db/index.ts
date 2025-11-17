@@ -39,6 +39,30 @@ export async function initializeDatabase() {
       // Column already exists, ignore error
     }
 
+    // Migration: Add all potentially missing columns to users table
+    const userColumnMigrations = [
+      'ALTER TABLE users ADD COLUMN email TEXT;',
+      'ALTER TABLE users ADD COLUMN avatar_url TEXT;',
+      'ALTER TABLE users ADD COLUMN role TEXT DEFAULT "user";',
+      'ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT "free";',
+      'ALTER TABLE users ADD COLUMN subscription_valid_until INTEGER;',
+      'ALTER TABLE users ADD COLUMN settings TEXT;',
+      'ALTER TABLE users ADD COLUMN deleted_at INTEGER;',
+      'ALTER TABLE users ADD COLUMN last_sync_at INTEGER;',
+      'ALTER TABLE users ADD COLUMN sync_token TEXT;',
+      'ALTER TABLE users ADD COLUMN display_name TEXT;',
+      `ALTER TABLE users ADD COLUMN created_at INTEGER DEFAULT ${Date.now()};`,
+      `ALTER TABLE users ADD COLUMN updated_at INTEGER DEFAULT ${Date.now()};`,
+    ];
+
+    for (const migration of userColumnMigrations) {
+      try {
+        expoDb.execSync(migration);
+      } catch {
+        // Column already exists, ignore error
+      }
+    }
+
     // Create people table
     expoDb.execSync(`
       CREATE TABLE IF NOT EXISTS people (
