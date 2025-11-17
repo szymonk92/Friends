@@ -11,8 +11,9 @@ import {
   FAB,
 } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { usePerson, useDeletePerson } from '@/hooks/usePeople';
+import { usePerson, useDeletePerson, usePeople } from '@/hooks/usePeople';
 import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
+import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
 import {
   getInitials,
   formatRelativeTime,
@@ -25,8 +26,11 @@ export default function PersonProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(id!);
+  const { data: personConnections, isLoading: connectionsLoading } = usePersonConnections(id!);
+  const { data: allPeople = [] } = usePeople();
   const deletePerson = useDeletePerson();
   const deleteRelation = useDeleteRelation();
+  const deleteConnection = useDeleteConnection();
 
   const handleDelete = () => {
     Alert.alert(
@@ -57,6 +61,29 @@ export default function PersonProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleDeleteConnection = (connectionId: string, personName: string) => {
+    Alert.alert(
+      'Delete Connection',
+      `Are you sure you want to remove the connection with ${personName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteConnection.mutateAsync(connectionId);
+          },
+        },
+      ]
+    );
+  };
+
+  const getConnectedPerson = (connection: any) => {
+    const connectedId =
+      connection.person1Id === id ? connection.person2Id : connection.person1Id;
+    return allPeople.find((p) => p.id === connectedId);
   };
 
   const handleAvatarPress = () => {
@@ -263,6 +290,79 @@ export default function PersonProfileScreen() {
             </Card.Content>
           </Card>
 
+          {/* Connections (Person-to-Person) */}
+          <Card style={styles.relationsCard}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Connections ({personConnections?.length || 0})
+              </Text>
+              <Divider style={styles.divider} />
+
+              {connectionsLoading && (
+                <View style={styles.centered}>
+                  <ActivityIndicator />
+                </View>
+              )}
+
+              {!connectionsLoading && personConnections && personConnections.length === 0 && (
+                <View style={styles.emptyRelations}>
+                  <Text variant="bodyMedium" style={styles.emptyText}>
+                    No connections yet. Add connections to show how {person.name} relates to other
+                    people.
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    onPress={() => router.push(`/person/add-connection?personId=${id}`)}
+                  >
+                    Add Connection
+                  </Button>
+                </View>
+              )}
+
+              {personConnections &&
+                personConnections.map((connection) => {
+                  const connectedPerson = getConnectedPerson(connection);
+                  if (!connectedPerson) return null;
+
+                  return (
+                    <List.Item
+                      key={connection.id}
+                      title={connectedPerson.name}
+                      description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`}
+                      left={() => (
+                        <View style={styles.connectionAvatar}>
+                          <Text style={styles.connectionAvatarText}>
+                            {getInitials(connectedPerson.name)}
+                          </Text>
+                        </View>
+                      )}
+                      right={() => (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Chip compact style={{ marginRight: 4 }}>
+                            {connection.status}
+                          </Chip>
+                          <IconButton
+                            icon="open-in-new"
+                            size={20}
+                            onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                          />
+                          <IconButton
+                            icon="delete-outline"
+                            size={20}
+                            onPress={() =>
+                              handleDeleteConnection(connection.id, connectedPerson.name)
+                            }
+                          />
+                        </View>
+                      )}
+                      onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                      style={styles.relationItem}
+                    />
+                  );
+                })}
+            </Card.Content>
+          </Card>
+
           <View style={styles.spacer} />
         </ScrollView>
 
@@ -394,6 +494,20 @@ const styles = StyleSheet.create({
   },
   relationItem: {
     paddingVertical: 8,
+  },
+  connectionAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#03dac6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  connectionAvatarText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   spacer: {
     height: 40,

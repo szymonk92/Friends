@@ -39,6 +39,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="plus-circle" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="stories"
+        options={{
+          title: 'Stories',
+          tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

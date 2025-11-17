@@ -1,0 +1,245 @@
+import { StyleSheet, View, FlatList, Alert } from 'react-native';
+import { Text, Card, FAB, Searchbar, ActivityIndicator, Button, Chip } from 'react-native-paper';
+import { useState } from 'react';
+import { router } from 'expo-router';
+import { useStories, useDeleteStory } from '@/hooks/useStories';
+import { formatRelativeTime } from '@/lib/utils/format';
+
+export default function StoriesListScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: stories = [], isLoading, error, refetch } = useStories();
+  const deleteStory = useDeleteStory();
+
+  const filteredStories = stories.filter((story) =>
+    story.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleDeleteStory = (storyId: string) => {
+    Alert.alert('Delete Story', 'Are you sure you want to delete this story?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteStory.mutateAsync(storyId);
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete story');
+          }
+        },
+      },
+    ]);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.loadingText}>Loading stories...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text variant="bodyLarge" style={styles.errorText}>
+          Failed to load stories
+        </Text>
+        <Button mode="contained" onPress={() => refetch()} style={styles.retryButton}>
+          Retry
+        </Button>
+      </View>
+    );
+  }
+
+  const renderStoryItem = ({ item }: { item: any }) => {
+    const wordCount = item.content.trim().split(/\s+/).filter(Boolean).length;
+    const preview = item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
+
+    return (
+      <Card style={styles.storyCard} onLongPress={() => handleDeleteStory(item.id)}>
+        <Card.Content>
+          <View style={styles.storyHeader}>
+            <Text variant="labelSmall" style={styles.storyDate}>
+              {formatRelativeTime(new Date(item.createdAt))}
+            </Text>
+            <View style={styles.chips}>
+              {item.aiProcessed && (
+                <Chip icon="robot" compact style={styles.chip}>
+                  AI Processed
+                </Chip>
+              )}
+              <Chip icon="text" compact style={styles.chip}>
+                {wordCount} words
+              </Chip>
+            </View>
+          </View>
+
+          {item.title && (
+            <Text variant="titleMedium" style={styles.storyTitle}>
+              {item.title}
+            </Text>
+          )}
+
+          <Text variant="bodyMedium" style={styles.storyContent}>
+            {preview}
+          </Text>
+
+          {item.storyDate && (
+            <Text variant="labelSmall" style={styles.storyEventDate}>
+              Event date: {new Date(item.storyDate).toLocaleDateString()}
+            </Text>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={styles.title}>
+          Your Stories
+        </Text>
+        <Searchbar
+          placeholder="Search stories..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchbar}
+        />
+      </View>
+
+      {stories.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text variant="titleLarge" style={styles.emptyTitle}>
+            No stories yet
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptyDescription}>
+            Start capturing memories by adding your first story. Tell us about your friends,
+            family, and the moments you share together.
+          </Text>
+          <Button mode="contained" onPress={() => router.push('/(tabs)/two')} style={styles.addButton}>
+            Add Your First Story
+          </Button>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredStories}
+          renderItem={renderStoryItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.noResults}>
+              <Text variant="bodyLarge">No stories match your search</Text>
+            </View>
+          }
+        />
+      )}
+
+      {stories.length > 0 && (
+        <FAB icon="plus" style={styles.fab} onPress={() => router.push('/(tabs)/two')} />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+  },
+  errorText: {
+    marginBottom: 16,
+    color: '#d32f2f',
+  },
+  retryButton: {
+    marginTop: 8,
+  },
+  header: {
+    padding: 16,
+    paddingBottom: 8,
+    backgroundColor: '#fff',
+    elevation: 2,
+  },
+  title: {
+    marginBottom: 12,
+  },
+  searchbar: {
+    elevation: 0,
+    backgroundColor: '#f5f5f5',
+  },
+  list: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  storyCard: {
+    marginBottom: 16,
+  },
+  storyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  storyDate: {
+    opacity: 0.6,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  chip: {
+    height: 24,
+  },
+  storyTitle: {
+    marginBottom: 8,
+    fontWeight: 'bold',
+  },
+  storyContent: {
+    lineHeight: 22,
+    color: '#333',
+  },
+  storyEventDate: {
+    marginTop: 8,
+    opacity: 0.6,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyTitle: {
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  addButton: {
+    marginTop: 8,
+  },
+  noResults: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+  },
+});
