@@ -151,6 +151,16 @@ export default function EditPersonScreen() {
           Save Changes
         </Button>
 
+        <Button
+          mode="outlined"
+          onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+          icon="plus"
+          style={styles.addRelationButton}
+          disabled={isSubmitting}
+        >
+          Add Relation
+        </Button>
+
         <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
           Cancel
         </Button>
@@ -204,5 +214,8 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
+  },
+  addRelationButton: {
+    marginBottom: 8,
   },
 });
