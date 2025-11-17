@@ -1,16 +1,19 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Animated, PanResponder, Dimensions, Alert } from 'react-native';
+import { StyleSheet, View, Animated, PanResponder, Dimensions, LogBox } from 'react-native';
 import { Text, Button, Card, Chip, ProgressBar, IconButton } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelation, useRelations } from '@/hooks/useRelations';
 import { getInitials } from '@/lib/utils/format';
-import { quizLogger, logPerformance } from '@/lib/logger';
+import { quizLogger } from '@/lib/logger';
 import { db, getCurrentUserId } from '@/lib/db';
 import { quizDismissals } from '@/lib/db/schema';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+
+// Suppress reanimated warnings from react-native-paper
+LogBox.ignoreLogs(['It looks like you might be using shared value']);
 
 const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.25;
@@ -41,14 +44,6 @@ const FOOD_QUESTIONS = [
 
 // Pre-compute food item names for efficient lookup
 const FOOD_ITEM_SET = new Set(FOOD_QUESTIONS.map((q) => q.item));
-
-interface Answer {
-  personId: string;
-  personName: string;
-  item: string;
-  category: string;
-  preference: 'LIKES' | 'DISLIKES';
-}
 
 export default function FoodQuizScreen() {
   const queryClient = useQueryClient();
@@ -132,9 +127,8 @@ export default function FoodQuizScreen() {
   }, [primaryPeople, answeredQuestions, dismissedSet, dismissalsLoading]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [savedCount, setSavedCount] = useState({ likes: 0, dislikes: 0, skipped: 0 });
   const [isComplete, setIsComplete] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   const position = useRef(new Animated.ValueXY()).current;
 
@@ -150,7 +144,7 @@ export default function FoodQuizScreen() {
   stateRef.current = { currentQuestionIndex, currentPerson, currentFood };
 
   const recordAnswer = useCallback(
-    (direction: 'left' | 'right' | 'down') => {
+    async (direction: 'left' | 'right' | 'down') => {
       const {
         currentPerson: person,
         currentFood: food,
@@ -169,20 +163,39 @@ export default function FoodQuizScreen() {
       });
 
       if (isSkip) {
-        // Save dismissal to database
+        // Save dismissal to database immediately
         saveDismissal.mutate({ personId: person.id, questionKey: food.item });
+        setSavedCount((prev) => ({ ...prev, skipped: prev.skipped + 1 }));
       } else {
-        // Record LIKES or DISLIKES to save later
-        setAnswers((prev) => [
-          ...prev,
-          {
-            personId: person.id,
-            personName: person.name,
-            item: food.item,
+        // Save LIKES or DISLIKES to database immediately
+        try {
+          await createRelation.mutateAsync({
+            subjectId: person.id,
+            relationType: preference,
+            objectLabel: food.item,
             category: food.category,
+            confidence: 0.7,
+            source: 'question_mode',
+            intensity: 'medium',
+          });
+          setSavedCount((prev) => ({
+            ...prev,
+            likes: preference === 'LIKES' ? prev.likes + 1 : prev.likes,
+            dislikes: preference === 'DISLIKES' ? prev.dislikes + 1 : prev.dislikes,
+          }));
+          quizLogger.info('Saved relation immediately', {
+            person: person.name,
             preference,
-          },
-        ]);
+            item: food.item,
+          });
+        } catch (error) {
+          quizLogger.error('Failed to save relation', {
+            person: person.name,
+            preference,
+            item: food.item,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       // Move to next question
@@ -194,7 +207,7 @@ export default function FoodQuizScreen() {
         setIsComplete(true);
       }
     },
-    [questionsToAsk.length, saveDismissal]
+    [questionsToAsk.length, saveDismissal, createRelation]
   );
 
   const swipeCard = useCallback(
@@ -246,63 +259,6 @@ export default function FoodQuizScreen() {
       }),
     [position, swipeCard]
   );
-
-  const handleSaveAnswers = async () => {
-    const perf = logPerformance(quizLogger, 'saveQuizAnswers');
-    quizLogger.info('Saving quiz answers', { totalAnswers: answers.length });
-
-    if (answers.length === 0) {
-      Alert.alert('No Answers', 'No preferences to save. All answers were skipped.');
-      return;
-    }
-
-    setIsSaving(true);
-    let saved = 0;
-    let failed = 0;
-
-    for (const answer of answers) {
-      try {
-        quizLogger.debug('Attempting to save', {
-          personId: answer.personId,
-          item: answer.item,
-          preference: answer.preference,
-        });
-
-        await createRelation.mutateAsync({
-          subjectId: answer.personId,
-          relationType: answer.preference,
-          objectLabel: answer.item,
-          category: answer.category,
-          confidence: 0.7, // User-provided via quiz
-          source: 'question_mode',
-          intensity: 'medium',
-        });
-        saved++;
-        quizLogger.info('Saved relation', {
-          person: answer.personName,
-          preference: answer.preference,
-          item: answer.item,
-        });
-      } catch (error) {
-        quizLogger.error('Failed to save answer', {
-          person: answer.personName,
-          preference: answer.preference,
-          item: answer.item,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        failed++;
-      }
-    }
-
-    setIsSaving(false);
-    perf.end(failed === 0, { saved, failed });
-
-    Alert.alert(
-      'Quiz Complete!',
-      `Saved ${saved} food preferences.${failed > 0 ? `\n${failed} failed to save.` : ''}`,
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
-  };
 
   const cardRotate = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
@@ -368,6 +324,7 @@ export default function FoodQuizScreen() {
   }
 
   if (isComplete) {
+    const totalSaved = savedCount.likes + savedCount.dislikes;
     return (
       <>
         <Stack.Screen options={{ title: 'Quiz Complete' }} />
@@ -377,33 +334,25 @@ export default function FoodQuizScreen() {
             Quiz Complete!
           </Text>
           <Text variant="bodyLarge" style={styles.completeSummary}>
-            You answered {answers.length} questions.
+            Saved {totalSaved} preferences automatically.
           </Text>
           <Text variant="titleMedium" style={styles.statsTitle}>
             Results:
           </Text>
           <View style={styles.statsContainer}>
             <Chip icon="thumb-up" style={styles.statChip}>
-              {answers.filter((a) => a.preference === 'LIKES').length} Likes
+              {savedCount.likes} Likes
             </Chip>
             <Chip icon="thumb-down" style={styles.statChip}>
-              {answers.filter((a) => a.preference === 'DISLIKES').length} Dislikes
+              {savedCount.dislikes} Dislikes
+            </Chip>
+            <Chip icon="help-circle" style={styles.statChip}>
+              {savedCount.skipped} Skipped
             </Chip>
           </View>
 
-          <Button
-            mode="contained"
-            onPress={handleSaveAnswers}
-            loading={isSaving}
-            disabled={isSaving || answers.length === 0}
-            style={styles.saveButton}
-            icon="content-save"
-          >
-            Save {answers.length} Preferences
-          </Button>
-
-          <Button mode="outlined" onPress={() => router.back()} style={styles.cancelButton}>
-            Cancel
+          <Button mode="contained" onPress={() => router.back()} style={styles.saveButton}>
+            Done
           </Button>
         </View>
       </>
@@ -669,9 +618,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginBottom: 12,
-    minWidth: 250,
-  },
-  cancelButton: {
     minWidth: 250,
   },
 });
