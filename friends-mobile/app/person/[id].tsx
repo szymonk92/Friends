@@ -12,6 +12,7 @@ import {
   Portal,
   Dialog,
   TextInput as PaperInput,
+  SegmentedButtons,
 } from 'react-native-paper';
 import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -19,6 +20,12 @@ import { usePerson, useDeletePerson, usePeople } from '@/hooks/usePeople';
 import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';
 import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
+import {
+  usePersonGiftIdeas,
+  useCreateGiftIdea,
+  useUpdateGiftIdea,
+  useDeleteGiftIdea,
+} from '@/hooks/useGifts';
 import {
   getInitials,
   formatRelativeTime,
@@ -38,11 +45,23 @@ export default function PersonProfileScreen() {
   const deleteConnection = useDeleteConnection();
   const createContactEvent = useCreateContactEvent();
   const createRelation = useCreateRelation();
+  const { data: giftIdeas = [] } = usePersonGiftIdeas(id!);
+  const createGiftIdea = useCreateGiftIdea();
+  const updateGiftIdea = useUpdateGiftIdea();
+  const deleteGiftIdea = useDeleteGiftIdea();
 
   const [addDateDialogVisible, setAddDateDialogVisible] = useState(false);
   const [dateName, setDateName] = useState('');
   const [dateValue, setDateValue] = useState('');
   const [isAddingDate, setIsAddingDate] = useState(false);
+
+  // Gift dialog state
+  const [addGiftDialogVisible, setAddGiftDialogVisible] = useState(false);
+  const [giftItem, setGiftItem] = useState('');
+  const [giftNotes, setGiftNotes] = useState('');
+  const [giftPriority, setGiftPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [giftOccasion, setGiftOccasion] = useState('');
+  const [isAddingGift, setIsAddingGift] = useState(false);
 
   const handleDelete = () => {
     Alert.alert(
@@ -168,6 +187,57 @@ export default function PersonProfileScreen() {
 
   // Get important dates from relations
   const importantDates = personRelations?.filter((r) => r.relationType === 'HAS_IMPORTANT_DATE') || [];
+
+  const handleAddGiftIdea = async () => {
+    if (!giftItem.trim()) {
+      Alert.alert('Error', 'Please enter a gift idea');
+      return;
+    }
+
+    setIsAddingGift(true);
+    try {
+      await createGiftIdea.mutateAsync({
+        personId: id!,
+        item: giftItem.trim(),
+        notes: giftNotes.trim() || undefined,
+        priority: giftPriority,
+        occasion: giftOccasion.trim() || undefined,
+      });
+      setAddGiftDialogVisible(false);
+      setGiftItem('');
+      setGiftNotes('');
+      setGiftPriority('medium');
+      setGiftOccasion('');
+      Alert.alert('Success', 'Gift idea added!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add gift idea');
+    } finally {
+      setIsAddingGift(false);
+    }
+  };
+
+  const handleMarkGiftGiven = (giftId: string, item: string) => {
+    Alert.alert('Mark as Given', `Mark "${item}" as given?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Given',
+        onPress: () => updateGiftIdea.mutateAsync({ id: giftId, given: true }),
+      },
+    ]);
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return '#d32f2f';
+      case 'medium':
+        return '#ff9800';
+      case 'low':
+        return '#4caf50';
+      default:
+        return '#757575';
+    }
+  };
 
   if (personLoading) {
     return (
@@ -392,6 +462,89 @@ export default function PersonProfileScreen() {
             </Card.Content>
           </Card>
 
+          {/* Gift Ideas */}
+          <Card style={styles.giftIdeasCard}>
+            <Card.Content>
+              <View style={styles.giftIdeasHeader}>
+                <Text variant="titleMedium" style={styles.giftIdeasTitle}>
+                  Gift Ideas
+                </Text>
+                <Button
+                  mode="outlined"
+                  compact
+                  icon="gift"
+                  onPress={() => setAddGiftDialogVisible(true)}
+                >
+                  Add
+                </Button>
+              </View>
+
+              {giftIdeas.length === 0 ? (
+                <Text variant="bodySmall" style={styles.noGiftText}>
+                  No gift ideas yet. Add ideas for {person.name}!
+                </Text>
+              ) : (
+                giftIdeas.map((gift) => (
+                  <View key={gift.id} style={styles.giftItem}>
+                    <View style={styles.giftInfo}>
+                      <View style={styles.giftHeader}>
+                        <Text
+                          variant="bodyMedium"
+                          style={[
+                            styles.giftItemText,
+                            gift.status === 'given' && styles.giftGiven,
+                          ]}
+                        >
+                          {gift.item}
+                        </Text>
+                        <Chip
+                          compact
+                          style={[
+                            styles.priorityChip,
+                            { backgroundColor: getPriorityColor(gift.priority) + '20' },
+                          ]}
+                          textStyle={{ color: getPriorityColor(gift.priority), fontSize: 10 }}
+                        >
+                          {gift.priority}
+                        </Chip>
+                      </View>
+                      {gift.occasion && (
+                        <Text variant="labelSmall" style={styles.giftOccasion}>
+                          For: {gift.occasion}
+                        </Text>
+                      )}
+                      {gift.notes && (
+                        <Text variant="labelSmall" style={styles.giftNotes}>
+                          {gift.notes}
+                        </Text>
+                      )}
+                      {gift.status === 'given' && gift.givenDate && (
+                        <Text variant="labelSmall" style={styles.giftGivenDate}>
+                          Given on {formatShortDate(gift.givenDate)}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.giftActions}>
+                      {gift.status !== 'given' && (
+                        <IconButton
+                          icon="check-circle-outline"
+                          size={20}
+                          iconColor="#4caf50"
+                          onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
+                        />
+                      )}
+                      <IconButton
+                        icon="delete-outline"
+                        size={20}
+                        onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
+                      />
+                    </View>
+                  </View>
+                ))
+              )}
+            </Card.Content>
+          </Card>
+
           {/* Relations */}
           <Card style={styles.relationsCard}>
             <Card.Content>
@@ -591,6 +744,62 @@ export default function PersonProfileScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Add Gift Idea Dialog */}
+      <Portal>
+        <Dialog visible={addGiftDialogVisible} onDismiss={() => setAddGiftDialogVisible(false)}>
+          <Dialog.Title>Add Gift Idea</Dialog.Title>
+          <Dialog.Content>
+            <PaperInput
+              mode="outlined"
+              label="Gift Item *"
+              placeholder="e.g., Hiking boots, Coffee machine"
+              value={giftItem}
+              onChangeText={setGiftItem}
+              style={{ marginBottom: 12 }}
+            />
+
+            <Text variant="labelMedium" style={{ marginBottom: 8 }}>
+              Priority
+            </Text>
+            <SegmentedButtons
+              value={giftPriority}
+              onValueChange={(v) => setGiftPriority(v as any)}
+              buttons={[
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+              ]}
+              style={{ marginBottom: 12 }}
+            />
+
+            <PaperInput
+              mode="outlined"
+              label="Occasion (optional)"
+              placeholder="e.g., Birthday, Christmas"
+              value={giftOccasion}
+              onChangeText={setGiftOccasion}
+              style={{ marginBottom: 12 }}
+            />
+
+            <PaperInput
+              mode="outlined"
+              label="Notes (optional)"
+              placeholder="Size, color, where to buy, etc."
+              value={giftNotes}
+              onChangeText={setGiftNotes}
+              multiline
+              numberOfLines={2}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setAddGiftDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleAddGiftIdea} loading={isAddingGift} disabled={isAddingGift}>
+              Add
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -738,6 +947,67 @@ const styles = StyleSheet.create({
   noDateText: {
     opacity: 0.6,
     fontStyle: 'italic',
+  },
+  giftIdeasCard: {
+    margin: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  giftIdeasHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  giftIdeasTitle: {
+    fontWeight: 'bold',
+  },
+  noGiftText: {
+    opacity: 0.6,
+    fontStyle: 'italic',
+  },
+  giftItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  giftInfo: {
+    flex: 1,
+  },
+  giftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  giftItemText: {
+    fontWeight: '500',
+  },
+  giftGiven: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
+  },
+  priorityChip: {
+    height: 24,
+  },
+  giftOccasion: {
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+  giftNotes: {
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  giftGivenDate: {
+    color: '#4caf50',
+    marginTop: 4,
+  },
+  giftActions: {
+    flexDirection: 'row',
   },
   relationsCard: {
     margin: 16,
