@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, stories, pendingExtractions } from '@/lib/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   extractRelationsFromStory,
@@ -142,7 +142,7 @@ async function processExtractionResults(
       await db
         .update(people)
         .set({
-          mentionCount: db.raw('mention_count + 1') as any,
+          mentionCount: sql`mention_count + 1` as any,
           updatedAt: new Date(),
         })
         .where(eq(people.id, person.id));

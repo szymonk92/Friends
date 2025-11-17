@@ -76,8 +76,8 @@ const RELATIONSHIP_TYPES = [
   'friend', 'family', 'colleague', 'acquaintance', 'professional',
 ];
 
-const IMPORTANCE_LEVELS = ['critical', 'high', 'medium', 'low', 'minimal'] as const;
-const COMPLETENESS_LEVELS = ['comprehensive', 'good', 'moderate', 'minimal', 'incomplete'] as const;
+const IMPORTANCE_LEVELS = ['critical', 'high', 'medium', 'low', 'minimal'];
+const COMPLETENESS_LEVELS = ['comprehensive', 'good', 'moderate', 'minimal', 'incomplete'];
 
 // Helper functions
 function pickRandom<T>(arr: T[]): T {
@@ -229,20 +229,20 @@ export async function seedTestData(count: number = 500) {
         category: relationType.toLowerCase().replace('has_', '').replace('_', ' '),
         source: 'test_seed' as const,
         confidence: 0.8 + Math.random() * 0.2,
-        intensity: pickRandom(['strong', 'moderate', 'weak'] as const),
+        intensity: pickRandom(['strong', 'medium', 'weak']),
       });
     }
 
     // Insert relations in batches of 500
     if (relationsBatch.length >= 500) {
-      await db.insert(relations).values(relationsBatch.splice(0, 500));
+      await db.insert(relations).values(relationsBatch.splice(0, 500) as any);
       console.log(`Inserted relations batch...`);
     }
   }
 
   // Insert remaining relations
   if (relationsBatch.length > 0) {
-    await db.insert(relations).values(relationsBatch);
+    await db.insert(relations).values(relationsBatch as any);
   }
 
   console.log(`Created ${createdPeople.length * 6} relations. Now adding connections between people...`);
@@ -286,7 +286,7 @@ export async function seedTestData(count: number = 500) {
 
       // Insert connections in batches
       if (connectionsBatch.length >= 500) {
-        await db.insert(connections).values(connectionsBatch.splice(0, 500));
+        await db.insert(connections).values(connectionsBatch.splice(0, 500) as any);
         console.log(`Inserted connections batch...`);
       }
     }
@@ -294,7 +294,7 @@ export async function seedTestData(count: number = 500) {
 
   // Insert remaining connections
   if (connectionsBatch.length > 0) {
-    await db.insert(connections).values(connectionsBatch);
+    await db.insert(connections).values(connectionsBatch as any);
   }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);

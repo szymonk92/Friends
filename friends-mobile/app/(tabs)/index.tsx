@@ -22,7 +22,7 @@ export default function PeopleListScreen() {
   const { data: allTags = [] } = useAllTags();
 
   // Get unique relationship types from people
-  const relationshipTypes = [...new Set(people.map((p) => p.relationshipType).filter(Boolean))].sort();
+  const relationshipTypes = Array.from(new Set(people.map((p) => p.relationshipType).filter(Boolean))).sort();
 
   const filteredPeople = people
     .filter((person) => {

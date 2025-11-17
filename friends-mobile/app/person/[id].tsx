@@ -489,7 +489,7 @@ export default function PersonProfileScreen() {
                 )}
                 {person.importanceToUser && person.importanceToUser !== 'unknown' && (
                   <Chip icon="star" style={styles.chip}>
-                    {person.importanceToUser.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    {person.importanceToUser.replace('_', ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </Chip>
                 )}
               </View>

@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Keyboard } from 'react-
 import { TextInput, Text, Card, Chip } from 'react-native-paper';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
-import { eq, or, like } from 'drizzle-orm';
+import { and, eq, or, like } from 'drizzle-orm';
 
 interface Person {
   id: string;
@@ -106,8 +106,10 @@ export default function MentionTextInput({
         })
         .from(people)
         .where(
-          eq(people.userId, userId),
-          or(like(people.name, searchPattern), like(people.nickname, searchPattern))
+          and(
+            eq(people.userId, userId),
+            or(like(people.name, searchPattern), like(people.nickname, searchPattern))
+          )
         )
         .limit(5);
 
