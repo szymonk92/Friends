@@ -9,10 +9,10 @@ import {
   Searchbar,
   ActivityIndicator,
 } from 'react-native-paper';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCreateConnection } from '@/hooks/useConnections';
-import { usePerson, usePeople } from '@/hooks/usePeople';
+import { usePerson, usePeople, useMePerson } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
 
 const RELATIONSHIP_TYPES = [
@@ -33,7 +33,8 @@ const CONNECTION_STATUSES = [
 export default function AddConnectionScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person } = usePerson(personId!);
-  const { data: allPeople = [], isLoading: loadingPeople } = usePeople();
+  const { data: regularPeople = [], isLoading: loadingPeople } = usePeople();
+  const { data: mePerson } = useMePerson();
   const createConnection = useCreateConnection();
 
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
@@ -43,6 +44,15 @@ export default function AddConnectionScreen() {
   const [notes, setNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Combine regular people with ME
+  const allPeople = useMemo(() => {
+    const combined = [...regularPeople];
+    if (mePerson) {
+      combined.push(mePerson);
+    }
+    return combined;
+  }, [regularPeople, mePerson]);
 
   // Filter out the current person and filter by search
   const availablePeople = allPeople

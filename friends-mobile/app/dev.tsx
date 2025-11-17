@@ -4,6 +4,7 @@ import { router, Stack } from 'expo-router';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { resetOnboarding } from './onboarding';
+import { useMePerson } from '@/hooks/usePeople';
 import { useState } from 'react';
 
 /**
@@ -11,6 +12,7 @@ import { useState } from 'react';
  * Access via /dev route
  */
 export default function DevScreen() {
+  const { data: mePerson } = useMePerson();
   const [isLoading, setIsLoading] = useState(false);
   const [loadTestCount, setLoadTestCount] = useState('500');
   const [loadTestResult, setLoadTestResult] = useState<string | null>(null);
@@ -346,6 +348,39 @@ export default function DevScreen() {
               <Text variant="bodySmall" style={styles.note}>
                 Creates an event with date, location, guest list, and AI-powered suggestions for seating
                 and menu.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                My Preferences
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                Track your own preferences, skills, and traits. This is your personal profile for
+                managing what you like, dislike, know, and care about.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => {
+                  if (mePerson) {
+                    router.push(`/person/${mePerson.id}`);
+                  } else {
+                    Alert.alert('Not Found', 'Your profile could not be found.');
+                  }
+                }}
+                style={styles.button}
+                icon="account-circle"
+              >
+                Open My Profile
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Add your food preferences, skills, hobbies, and other personal traits.
               </Text>
             </Card.Content>
           </Card>
