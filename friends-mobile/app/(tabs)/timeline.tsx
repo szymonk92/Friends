@@ -317,13 +317,6 @@ export default function TimelineScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Timeline
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Track your interactions with people
-        </Text>
-
         {/* Filters */}
         <View style={styles.filtersContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -526,19 +519,13 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
   },
   header: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     elevation: 2,
   },
-  title: {
-    marginBottom: 4,
-  },
-  subtitle: {
-    opacity: 0.7,
-    marginBottom: 12,
-  },
   filtersContainer: {
-    marginTop: 8,
+    marginTop: 0,
   },
   filterScroll: {
     flexGrow: 0,
