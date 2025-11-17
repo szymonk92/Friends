@@ -1,4 +1,5 @@
 import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { openDatabaseSync } from 'expo-sqlite';
 import * as schema from './schema';
@@ -385,6 +386,8 @@ export async function initializeLocalUser(): Promise<string> {
 
     if (existingUsers.length > 0) {
       dbLogger.debug('Local user exists', { userId: existingUsers[0].id });
+      // Ensure "ME" person exists
+      await ensureMePerson(existingUsers[0].id);
       return existingUsers[0].id;
     }
 
@@ -398,11 +401,50 @@ export async function initializeLocalUser(): Promise<string> {
         subscriptionTier: 'free',
       });
 
+    // Create "ME" person for self-relations
+    await ensureMePerson(userId);
+
     dbLogger.info('Local user created', { userId });
     return userId;
   } catch (error) {
     dbLogger.error('Error initializing local user', { error });
     return randomUUID();
+  }
+}
+
+// Ensure "ME" person exists for self-relations
+async function ensureMePerson(userId: string): Promise<void> {
+  try {
+    // Check if ME person already exists
+    const existingMe = await db
+      .select()
+      .from(schema.people)
+      .where(
+        and(eq(schema.people.userId, userId), eq(schema.people.personType, 'self' as any))
+      )
+      .limit(1);
+
+    if (existingMe.length > 0) {
+      dbLogger.debug('ME person already exists', { personId: existingMe[0].id });
+      return;
+    }
+
+    // Create ME person
+    const mePersonId = randomUUID();
+    await db.insert(schema.people).values({
+      id: mePersonId,
+      userId,
+      name: 'Me',
+      personType: 'self' as any,
+      dataCompleteness: 'complete',
+      addedBy: 'user',
+      importanceToUser: 'very_important',
+      status: 'active',
+    });
+
+    dbLogger.info('ME person created', { personId: mePersonId });
+  } catch (error) {
+    dbLogger.warn('Failed to create ME person', { error });
   }
 }
 

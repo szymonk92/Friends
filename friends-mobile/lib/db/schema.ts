@@ -92,7 +92,7 @@ export const people = sqliteTable(
 
     // Person Classification & Management
     personType: text('person_type', {
-      enum: ['primary', 'mentioned', 'placeholder'],
+      enum: ['primary', 'mentioned', 'placeholder', 'self'],
     }).default('placeholder'),
     dataCompleteness: text('data_completeness', {
       enum: ['minimal', 'partial', 'complete'],

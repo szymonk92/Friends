@@ -41,12 +41,17 @@ export function usePeople() {
       const userId = await getCurrentUserId();
       peopleLogger.debug('Fetching people', { userId });
 
-      // First get all people
+      // First get all people (excluding 'self' type which is the user themselves)
       const peopleResults = await db
         .select()
         .from(people)
         .where(
-          and(eq(people.userId, userId), ne(people.status, 'merged'), isNull(people.deletedAt))
+          and(
+            eq(people.userId, userId),
+            ne(people.status, 'merged'),
+            isNull(people.deletedAt),
+            ne(people.personType, 'self')
+          )
         )
         .orderBy(desc(people.updatedAt));
 
@@ -101,6 +106,24 @@ export function usePerson(personId: string) {
       return result[0] || null;
     },
     enabled: !!personId,
+  });
+}
+
+/**
+ * Hook to fetch the "ME" person (user themselves) for self-relations
+ */
+export function useMePerson() {
+  return useQuery({
+    queryKey: ['people', 'me'],
+    queryFn: async () => {
+      const userId = await getCurrentUserId();
+      const result = await db
+        .select()
+        .from(people)
+        .where(and(eq(people.userId, userId), eq(people.personType, 'self')))
+        .limit(1);
+      return result[0] || null;
+    },
   });
 }
 
