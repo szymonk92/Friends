@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
 import { useState, useEffect } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { usePerson, useUpdatePerson } from '@/hooks/usePeople';
 
 export default function EditPersonScreen() {
@@ -112,14 +112,18 @@ export default function EditPersonScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Edit Person
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Update information for {person.name}
-        </Text>
+    <>
+      <Stack.Screen
+        options={{
+          title: `Edit ${person.name}`,
+          headerBackTitle: 'Cancel',
+        }}
+      />
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Update information for {person.name}
+          </Text>
 
         <TextInput
           mode="outlined"
@@ -224,6 +228,7 @@ export default function EditPersonScreen() {
 
       <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
     </ScrollView>
+    </>
   );
 }
 
