@@ -29,6 +29,7 @@
     "@tanstack/react-query": "^5.90.7",
     "drizzle-orm": "^0.44.7",
     "expo": "~54.0.23",
+    "expo-clipboard": "^8.0.7",
     "expo-constants": "~18.0.10",
     "expo-crypto": "^15.0.7",
     "expo-document-picker": "^14.0.7",

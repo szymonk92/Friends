@@ -5,12 +5,19 @@ import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
 import { router } from 'expo-router';
+import { createExtractionPrompt } from '@/lib/ai/prompts';
+import { db, getCurrentUserId } from '@/lib/db';
+import { people } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import * as Clipboard from 'expo-clipboard';
 
 export default function StoryInputScreen() {
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const [promptPreviewDialogVisible, setPromptPreviewDialogVisible] = useState(false);
+  const [promptPreviewText, setPromptPreviewText] = useState('');
 
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
@@ -137,6 +144,38 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
     }
   };
 
+  const handleShowPrompt = async () => {
+    if (storyText.trim().length < 10) {
+      Alert.alert('Story too short', 'Please write at least 10 characters');
+      return;
+    }
+
+    try {
+      // Get existing people for context
+      const userId = await getCurrentUserId();
+      const existingPeople = await db
+        .select({ id: people.id, name: people.name })
+        .from(people)
+        .where(eq(people.userId, userId));
+
+      // Generate the prompt
+      const prompt = createExtractionPrompt({
+        existingPeople,
+        storyText: storyText.trim(),
+      });
+
+      setPromptPreviewText(prompt);
+      setPromptPreviewDialogVisible(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to generate prompt preview');
+    }
+  };
+
+  const handleCopyPrompt = async () => {
+    await Clipboard.setStringAsync(promptPreviewText);
+    Alert.alert('Copied!', 'Prompt copied to clipboard');
+  };
+
   const wordCount = storyText.trim().split(/\s+/).filter(Boolean).length;
   const estimatedCost = wordCount > 0 ? '$0.02' : '$0.00';
 
@@ -211,6 +250,17 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
         {isProcessing ? 'Processing...' : hasApiKey() ? 'Save & Extract' : 'Save Story'}
       </Button>
 
+      {/* DEV: Show Prompt Button */}
+      <Button
+        mode="outlined"
+        onPress={handleShowPrompt}
+        disabled={storyText.trim().length < 10}
+        style={styles.devButton}
+        icon="code-tags"
+      >
+        DEV: Show Prompt
+      </Button>
+
       <View style={styles.spacer} />
 
       {/* API Key Dialog */}
@@ -237,6 +287,30 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           <Dialog.Actions>
             <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleSaveApiKey}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Prompt Preview Dialog */}
+      <Portal>
+        <Dialog
+          visible={promptPreviewDialogVisible}
+          onDismiss={() => setPromptPreviewDialogVisible(false)}
+          style={styles.promptDialog}
+        >
+          <Dialog.Title>AI Extraction Prompt</Dialog.Title>
+          <Dialog.ScrollArea style={styles.promptScrollArea}>
+            <ScrollView>
+              <Text variant="bodySmall" style={styles.promptText}>
+                {promptPreviewText}
+              </Text>
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={handleCopyPrompt} icon="content-copy">
+              Copy
+            </Button>
+            <Button onPress={() => setPromptPreviewDialogVisible(false)}>Close</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -283,6 +357,10 @@ const styles = StyleSheet.create({
   buttonContent: {
     paddingVertical: 8,
   },
+  devButton: {
+    marginTop: 12,
+    borderColor: '#ff9800',
+  },
   spacer: {
     height: 40,
   },
@@ -295,5 +373,17 @@ const styles = StyleSheet.create({
   },
   apiKeyInput: {
     marginTop: 8,
+  },
+  promptDialog: {
+    maxHeight: '80%',
+  },
+  promptScrollArea: {
+    maxHeight: 400,
+  },
+  promptText: {
+    fontFamily: 'monospace',
+    fontSize: 11,
+    lineHeight: 16,
+    padding: 16,
   },
 });
