@@ -104,6 +104,11 @@ export const people = sqliteTable(
       enum: ['unknown', 'peripheral', 'important', 'very_important'],
     }).default('unknown'),
 
+    // User's personal sentiment towards this person
+    userSentiment: text('user_sentiment', {
+      enum: ['neutral', 'positive', 'negative', 'complicated'],
+    }).default('neutral'),
+
     // De-duplication & Merging
     potentialDuplicates: text('potential_duplicates'),
     // @ts-ignore - Self-reference is valid in Drizzle

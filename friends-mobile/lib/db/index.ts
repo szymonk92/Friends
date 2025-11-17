@@ -79,6 +79,7 @@ export async function initializeDatabase() {
         data_completeness TEXT DEFAULT 'minimal',
         added_by TEXT DEFAULT 'auto_created',
         importance_to_user TEXT DEFAULT 'unknown',
+        user_sentiment TEXT DEFAULT 'neutral',
         potential_duplicates TEXT,
         canonical_id TEXT REFERENCES people(id),
         merged_from TEXT,
@@ -103,6 +104,13 @@ export async function initializeDatabase() {
     // Migration: Add tags column to people table
     try {
       expoDb.execSync('ALTER TABLE people ADD COLUMN tags TEXT;');
+    } catch {
+      // Column already exists
+    }
+
+    // Migration: Add user_sentiment column to people table
+    try {
+      expoDb.execSync("ALTER TABLE people ADD COLUMN user_sentiment TEXT DEFAULT 'neutral';");
     } catch {
       // Column already exists
     }

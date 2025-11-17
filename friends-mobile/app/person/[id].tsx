@@ -982,13 +982,20 @@ export default function PersonProfileScreen() {
                       key={connection.id}
                       title={connectedPerson.name}
                       description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`}
-                      left={() => (
-                        <View style={styles.connectionAvatar}>
-                          <Text style={styles.connectionAvatarText}>
-                            {getInitials(connectedPerson.name)}
-                          </Text>
-                        </View>
-                      )}
+                      left={() =>
+                        connectedPerson.photoPath ? (
+                          <Image
+                            source={{ uri: connectedPerson.photoPath }}
+                            style={styles.connectionPhoto}
+                          />
+                        ) : (
+                          <View style={styles.connectionAvatar}>
+                            <Text style={styles.connectionAvatarText}>
+                              {getInitials(connectedPerson.name)}
+                            </Text>
+                          </View>
+                        )
+                      }
                       right={() => (
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <Chip compact style={{ marginRight: 4 }}>
@@ -1013,6 +1020,19 @@ export default function PersonProfileScreen() {
                     />
                   );
                 })}
+
+              {/* Always show Add Connection button */}
+              {personConnections && personConnections.length > 0 && (
+                <Button
+                  mode="text"
+                  icon="plus"
+                  onPress={() => router.push(`/person/add-connection?personId=${id}`)}
+                  style={styles.addRelationButton}
+                  compact
+                >
+                  Add Connection
+                </Button>
+              )}
             </Card.Content>
           </Card>
 
@@ -1507,6 +1527,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#03dac6',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
+  },
+  connectionPhoto: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginLeft: 8,
   },
   connectionAvatarText: {
