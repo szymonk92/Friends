@@ -318,6 +318,30 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Developer Tools */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Developer Tools
+            </Text>
+            <Divider style={styles.divider} />
+
+            <Text variant="bodySmall" style={styles.description}>
+              Testing utilities for development. Generate test data, seed sample people, and debug the
+              application.
+            </Text>
+
+            <Button
+              mode="outlined"
+              onPress={() => router.push('/dev')}
+              icon="code-tags"
+              style={styles.button}
+            >
+              Open Dev Tools
+            </Button>
+          </Card.Content>
+        </Card>
+
         {/* App Info */}
         <Card style={styles.card}>
           <Card.Content>
