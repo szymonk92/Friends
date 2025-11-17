@@ -1,7 +1,8 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import { Text, Button, Card, Divider } from 'react-native-paper';
+import { Text, Button, Card, Divider, TextInput } from 'react-native-paper';
 import { router, Stack } from 'expo-router';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
+import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { useState } from 'react';
 
 /**
@@ -10,6 +11,8 @@ import { useState } from 'react';
  */
 export default function DevScreen() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadTestCount, setLoadTestCount] = useState('500');
+  const [loadTestResult, setLoadTestResult] = useState<string | null>(null);
 
   const handleSeedData = async () => {
     setIsLoading(true);
@@ -44,6 +47,72 @@ export default function DevScreen() {
               Alert.alert('Success', 'All data has been cleared.');
             } catch (error) {
               Alert.alert('Error', 'Failed to clear data. Check console for details.');
+              console.error(error);
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleHighLoadTest = async () => {
+    const count = parseInt(loadTestCount, 10);
+    if (isNaN(count) || count < 1 || count > 1000) {
+      Alert.alert('Invalid Count', 'Please enter a number between 1 and 1000');
+      return;
+    }
+
+    Alert.alert(
+      'Generate High Load Test Data',
+      `This will create:\n\n• ${count} people\n• ${count * 6} relations (likes, dislikes, diets, etc.)\n• ~${count * 5} connections between people\n\nThis may take a while for large numbers.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Generate',
+          onPress: async () => {
+            setIsLoading(true);
+            setLoadTestResult(null);
+            try {
+              const result = await seedTestData(count);
+              setLoadTestResult(
+                `✓ Created ${result.peopleCount} people\n✓ Created ${result.connectionsCount} connections\n✓ Time: ${result.duration}s`
+              );
+              Alert.alert(
+                'High Load Test Data Created!',
+                `Successfully generated:\n\n• ${result.peopleCount} people\n• ~${result.peopleCount * 6} relations\n• ${result.connectionsCount} connections\n\nTime taken: ${result.duration} seconds`,
+                [{ text: 'View People', onPress: () => router.push('/(tabs)/') }]
+              );
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to generate test data');
+              console.error(error);
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearTestData = async () => {
+    Alert.alert(
+      'Clear Test Data Only?',
+      'This will delete only the high load test data (people with addedBy="test_seed"). Your manually added data will be preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Test Data',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              await clearTestData();
+              setLoadTestResult(null);
+              Alert.alert('Success', 'Test data has been cleared. Your real data is preserved.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear test data');
               console.error(error);
             } finally {
               setIsLoading(false);
@@ -95,6 +164,62 @@ export default function DevScreen() {
               <Text variant="bodySmall" style={styles.note}>
                 Adds: Emma Rodriguez (friend), Mike Chen (colleague), Sarah Thompson (friend) with
                 various relations.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                High Load Test
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                Generate hundreds of test people with realistic data including diets, likes, dislikes,
+                cares about, and connections between people. Perfect for performance testing!
+              </Text>
+
+              <TextInput
+                mode="outlined"
+                label="Number of People"
+                value={loadTestCount}
+                onChangeText={setLoadTestCount}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+
+              <Button
+                mode="contained"
+                onPress={handleHighLoadTest}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="database-plus"
+              >
+                Generate {loadTestCount} People
+              </Button>
+
+              {loadTestResult && (
+                <Text variant="bodySmall" style={styles.successNote}>
+                  {loadTestResult}
+                </Text>
+              )}
+
+              <Button
+                mode="outlined"
+                onPress={handleClearTestData}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="database-remove"
+              >
+                Clear Test Data Only
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Each person gets: random name, job, diet, 3-8 likes, 2-5 dislikes, 2-6 cares about,
+                tags, birthday (70% chance), and 2-10 connections to other people.
               </Text>
             </Card.Content>
           </Card>
@@ -200,9 +325,17 @@ const styles = StyleSheet.create({
   button: {
     marginBottom: 12,
   },
+  input: {
+    marginBottom: 12,
+  },
   note: {
     opacity: 0.7,
     fontStyle: 'italic',
+  },
+  successNote: {
+    color: '#4caf50',
+    marginBottom: 12,
+    fontWeight: 'bold',
   },
   warningNote: {
     color: '#d32f2f',
