@@ -16,7 +16,7 @@ import {
 } from 'react-native-paper';
 import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { usePerson, useDeletePerson, usePeople } from '@/hooks/usePeople';
+import { usePerson, useDeletePerson, usePeople, useUpdatePerson } from '@/hooks/usePeople';
 import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';
 import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
@@ -50,6 +50,7 @@ export default function PersonProfileScreen() {
   const { data: personConnections, isLoading: connectionsLoading } = usePersonConnections(id!);
   const { data: allPeople = [] } = usePeople();
   const deletePerson = useDeletePerson();
+  const updatePerson = useUpdatePerson();
   const deleteRelation = useDeleteRelation();
   const deleteConnection = useDeleteConnection();
   const createContactEvent = useCreateContactEvent();
@@ -224,22 +225,47 @@ export default function PersonProfileScreen() {
       return;
     }
 
+    // Check if this is a birthday
+    const birthdayKeywords = ['birthday', 'b-day', 'bday', 'birth day', 'birth-day', 'dob', 'date of birth'];
+    const isBirthday = birthdayKeywords.some((keyword) =>
+      dateName.trim().toLowerCase().includes(keyword)
+    );
+
+    // Check if this is an anniversary
+    const anniversaryKeywords = ['anniversary', 'wedding', 'married'];
+    const isAnniversary = anniversaryKeywords.some((keyword) =>
+      dateName.trim().toLowerCase().includes(keyword)
+    );
+
     setIsAddingDate(true);
     try {
-      await createRelation.mutateAsync({
-        subjectId: id!,
-        relationType: 'HAS_IMPORTANT_DATE',
-        objectLabel: dateName.trim(),
-        validFrom: parsedDate,
-        category: 'important_date',
-        source: 'manual',
-        intensity: 'strong',
-        confidence: 1.0,
-      });
-      setAddDateDialogVisible(false);
-      setDateName('');
-      setDateValue('');
-      Alert.alert('Success', `${dateName} added to important dates!`);
+      if (isBirthday) {
+        // Update the person's dateOfBirth field
+        await updatePerson.mutateAsync({
+          id: id!,
+          dateOfBirth: parsedDate,
+        });
+        setAddDateDialogVisible(false);
+        setDateName('');
+        setDateValue('');
+        Alert.alert('Success', `Birthday set to ${formatShortDate(parsedDate)}!`);
+      } else {
+        // Add as regular important date (with special handling for anniversaries)
+        await createRelation.mutateAsync({
+          subjectId: id!,
+          relationType: 'HAS_IMPORTANT_DATE',
+          objectLabel: isAnniversary ? `Anniversary: ${dateName.trim()}` : dateName.trim(),
+          validFrom: parsedDate,
+          category: 'important_date',
+          source: 'manual',
+          intensity: 'strong',
+          confidence: 1.0,
+        });
+        setAddDateDialogVisible(false);
+        setDateName('');
+        setDateValue('');
+        Alert.alert('Success', `${dateName} added to important dates!`);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to add important date');
     } finally {
