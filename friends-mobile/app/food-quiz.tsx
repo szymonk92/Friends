@@ -250,23 +250,35 @@ export default function FoodQuizScreen() {
   const handleSaveAnswers = async () => {
     const perf = logPerformance(quizLogger, 'saveQuizAnswers');
     quizLogger.info('Saving quiz answers', { totalAnswers: answers.length });
+
+    if (answers.length === 0) {
+      Alert.alert('No Answers', 'No preferences to save. All answers were skipped.');
+      return;
+    }
+
     setIsSaving(true);
     let saved = 0;
     let failed = 0;
 
     for (const answer of answers) {
       try {
+        quizLogger.debug('Attempting to save', {
+          personId: answer.personId,
+          item: answer.item,
+          preference: answer.preference,
+        });
+
         await createRelation.mutateAsync({
           subjectId: answer.personId,
-          relationType: answer.preference as any,
+          relationType: answer.preference,
           objectLabel: answer.item,
           category: answer.category,
           confidence: 0.7, // User-provided via quiz
-          source: 'question_mode' as any,
-          intensity: 'medium' as any,
+          source: 'question_mode',
+          intensity: 'medium',
         });
         saved++;
-        quizLogger.debug('Saved answer', {
+        quizLogger.info('Saved relation', {
           person: answer.personName,
           preference: answer.preference,
           item: answer.item,
@@ -276,7 +288,7 @@ export default function FoodQuizScreen() {
           person: answer.personName,
           preference: answer.preference,
           item: answer.item,
-          error,
+          error: error instanceof Error ? error.message : String(error),
         });
         failed++;
       }
