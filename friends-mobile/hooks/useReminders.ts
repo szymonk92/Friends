@@ -3,19 +3,25 @@ import { reminders, people } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull, gte, lt } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Lazy load notifications to avoid crash if not configured
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+  // Configure notification handler
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch {
+  console.warn('expo-notifications not available - reminders will be stored but notifications disabled');
+}
 
 export interface ReminderData {
   id: string;
@@ -34,15 +40,21 @@ export interface ReminderData {
  * Request notification permissions
  */
 export async function requestNotificationPermissions() {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  if (!Notifications) return false;
 
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    return finalStatus === 'granted';
+  } catch {
+    return false;
   }
-
-  return finalStatus === 'granted';
 }
 
 /**
@@ -182,7 +194,7 @@ export function useCreateReminder() {
       let notificationId: string | null = null;
       try {
         const hasPermission = await requestNotificationPermissions();
-        if (hasPermission && data.scheduledFor > new Date()) {
+        if (Notifications && hasPermission && data.scheduledFor > new Date()) {
           notificationId = await Notifications.scheduleNotificationAsync({
             content: {
               title: data.title,
@@ -239,7 +251,9 @@ export function useCancelReminder() {
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
-          await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
+          if (Notifications) {
+            await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
+          }
         } catch {
           // Notification may already be sent/cancelled
         }
@@ -274,7 +288,9 @@ export function useDeleteReminder() {
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
-          await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
+          if (Notifications) {
+            await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
+          }
         } catch {
           // Notification may already be sent/cancelled
         }
