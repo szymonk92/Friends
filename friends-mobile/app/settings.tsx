@@ -10,7 +10,7 @@ import {
   Portal,
   Dialog,
 } from 'react-native-paper';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from '@/hooks/useDataExport';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
@@ -183,6 +183,29 @@ export default function SettingsScreen() {
             <Text variant="labelSmall" style={styles.apiKeyHelp}>
               Get your key from: https://console.anthropic.com
             </Text>
+          </Card.Content>
+        </Card>
+
+        {/* Security */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Security
+            </Text>
+            <Divider style={styles.divider} />
+
+            <Text variant="bodySmall" style={styles.description}>
+              Store sensitive information securely with biometric protection (Fingerprint/Face ID).
+            </Text>
+
+            <Button
+              mode="contained"
+              onPress={() => router.push('/secrets')}
+              icon="shield-lock"
+              style={styles.button}
+            >
+              Manage Secrets
+            </Button>
           </Card.Content>
         </Card>
 
