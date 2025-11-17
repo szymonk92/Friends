@@ -25,6 +25,14 @@ import {
   getUpcomingBirthdays,
   type BirthdayReminderSettings,
 } from '@/lib/notifications/birthday-reminders';
+import {
+  getRelationshipColors,
+  setRelationshipColor,
+  resetRelationshipColors,
+  AVAILABLE_COLORS,
+  DEFAULT_COLORS,
+  type RelationshipColorMap,
+} from '@/lib/settings/relationship-colors';
 
 export default function SettingsScreen() {
   const exportData = useExportData();
@@ -43,9 +51,15 @@ export default function SettingsScreen() {
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
   const [savingBirthdaySettings, setSavingBirthdaySettings] = useState(false);
 
+  // Relationship color settings
+  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const [colorPickerVisible, setColorPickerVisible] = useState(false);
+  const [selectedRelationType, setSelectedRelationType] = useState<string>('');
+
   useEffect(() => {
     loadApiKey();
     loadBirthdaySettings();
+    loadRelationshipColors();
   }, []);
 
   const loadBirthdaySettings = async () => {
@@ -53,6 +67,31 @@ export default function SettingsScreen() {
     setBirthdaySettings(settings);
     const upcoming = await getUpcomingBirthdays(30);
     setUpcomingBirthdays(upcoming);
+  };
+
+  const loadRelationshipColors = async () => {
+    const colors = await getRelationshipColors();
+    setRelationshipColors(colors);
+  };
+
+  const handleColorChange = async (color: string) => {
+    await setRelationshipColor(selectedRelationType, color);
+    setRelationshipColors((prev) => ({ ...prev, [selectedRelationType]: color }));
+    setColorPickerVisible(false);
+  };
+
+  const handleResetColors = async () => {
+    Alert.alert('Reset Colors', 'Reset all relationship colors to default?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        onPress: async () => {
+          await resetRelationshipColors();
+          setRelationshipColors(DEFAULT_COLORS);
+          Alert.alert('Success', 'Colors reset to defaults');
+        },
+      },
+    ]);
   };
 
   const handleBirthdaySettingChange = async (key: keyof BirthdayReminderSettings, value: any) => {
@@ -247,6 +286,53 @@ export default function SettingsScreen() {
               style={styles.button}
             >
               Manage Secrets
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {/* Relationship Colors */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Relationship Colors
+            </Text>
+            <Divider style={styles.divider} />
+
+            <Text variant="bodySmall" style={styles.description}>
+              Customize colors for different relationship types to easily identify them in the app.
+            </Text>
+
+            {Object.keys(DEFAULT_COLORS).map((type) => (
+              <List.Item
+                key={type}
+                title={type.charAt(0).toUpperCase() + type.slice(1)}
+                left={() => (
+                  <View
+                    style={[styles.colorSwatch, { backgroundColor: relationshipColors[type] }]}
+                  />
+                )}
+                right={() => (
+                  <Button
+                    compact
+                    mode="text"
+                    onPress={() => {
+                      setSelectedRelationType(type);
+                      setColorPickerVisible(true);
+                    }}
+                  >
+                    Change
+                  </Button>
+                )}
+              />
+            ))}
+
+            <Button
+              mode="outlined"
+              onPress={handleResetColors}
+              icon="refresh"
+              style={styles.button}
+            >
+              Reset to Defaults
             </Button>
           </Card.Content>
         </Card>
@@ -543,6 +629,32 @@ export default function SettingsScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Color Picker Dialog */}
+      <Portal>
+        <Dialog visible={colorPickerVisible} onDismiss={() => setColorPickerVisible(false)}>
+          <Dialog.Title>Choose Color for {selectedRelationType}</Dialog.Title>
+          <Dialog.Content>
+            <View style={styles.colorGrid}>
+              {AVAILABLE_COLORS.map((color) => (
+                <Button
+                  key={color.value}
+                  mode={relationshipColors[selectedRelationType] === color.value ? 'contained' : 'outlined'}
+                  onPress={() => handleColorChange(color.value)}
+                  style={[styles.colorButton, { borderColor: color.value }]}
+                  labelStyle={{ color: color.value }}
+                  compact
+                >
+                  <View style={[styles.colorPreview, { backgroundColor: color.value }]} />
+                </Button>
+              ))}
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setColorPickerVisible(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -619,5 +731,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 8,
     fontWeight: '600',
+  },
+  colorSwatch: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginLeft: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  colorButton: {
+    margin: 4,
+    minWidth: 60,
+  },
+  colorPreview: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
 });

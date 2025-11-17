@@ -55,6 +55,7 @@ export default function TimelineScreen() {
   const [filterPersonId, setFilterPersonId] = useState<string | null>(null);
   const [filterEventType, setFilterEventType] = useState<string | null>(null);
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
+  const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
 
   // Generate birthday events from people with dateOfBirth
   const birthdayEvents = useMemo(() => {
@@ -261,18 +262,34 @@ export default function TimelineScreen() {
                 </Text>
               </View>
               {!isSpecialEvent && (
-                <View style={styles.eventActions}>
-                  <IconButton
-                    icon="pencil-outline"
-                    size={20}
-                    onPress={() => handleEditEvent(item)}
+                <Menu
+                  visible={eventMenuVisible === item.id}
+                  onDismiss={() => setEventMenuVisible(null)}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      size={20}
+                      onPress={() => setEventMenuVisible(item.id)}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => {
+                      setEventMenuVisible(null);
+                      handleEditEvent(item);
+                    }}
+                    title="Edit"
+                    leadingIcon="pencil-outline"
                   />
-                  <IconButton
-                    icon="delete-outline"
-                    size={20}
-                    onPress={() => handleDeleteEvent(item.id)}
+                  <Menu.Item
+                    onPress={() => {
+                      setEventMenuVisible(null);
+                      handleDeleteEvent(item.id);
+                    }}
+                    title="Delete"
+                    leadingIcon="delete-outline"
                   />
-                </View>
+                </Menu>
               )}
             </View>
 

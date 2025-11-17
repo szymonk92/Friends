@@ -2,6 +2,7 @@ import { StyleSheet, View, Dimensions, ScrollView } from 'react-native';
 import { Text, Card, ActivityIndicator, Button, Chip } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
+import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router } from 'expo-router';
 import { getInitials } from '@/lib/utils/format';
 import Svg, { Circle, Line, Text as SvgText, G } from 'react-native-svg';
@@ -16,30 +17,75 @@ const RADIUS = GRAPH_SIZE / 2 - 50;
 export default function NetworkScreen() {
   const { data: people = [], isLoading: loadingPeople, refetch } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
+  const { data: allTags = [] } = useAllTags();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
+
+  // Get unique relationship types
+  const relationshipTypes = useMemo(() => {
+    return Array.from(new Set(people.map((p) => p.relationshipType).filter(Boolean))).sort();
+  }, [people]);
+
+  // Filter people based on selected tags and relationship types
+  const filteredPeople = useMemo(() => {
+    return people.filter((person) => {
+      // Filter by tags
+      const personTags = parseTags(person.tags);
+      const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
+
+      // Filter by relationship type
+      const matchesRelationType =
+        selectedRelationTypes.length === 0 ||
+        (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
+
+      return matchesTags && matchesRelationType;
+    });
+  }, [people, selectedTags, selectedRelationTypes]);
+
+  // Filter connections to only show those between filtered people
+  const filteredConnections = useMemo(() => {
+    const filteredIds = new Set(filteredPeople.map((p) => p.id));
+    return connections.filter((c) => filteredIds.has(c.person1Id) && filteredIds.has(c.person2Id));
+  }, [connections, filteredPeople]);
 
   // Calculate node positions in a circle
   const nodePositions = useMemo(() => {
     const positions: Record<string, { x: number; y: number }> = {};
-    people.forEach((person, index) => {
-      const angle = (2 * Math.PI * index) / people.length - Math.PI / 2;
+    filteredPeople.forEach((person, index) => {
+      const angle = (2 * Math.PI * index) / filteredPeople.length - Math.PI / 2;
       positions[person.id] = {
         x: CENTER_X + RADIUS * Math.cos(angle),
         y: CENTER_Y + RADIUS * Math.sin(angle),
       };
     });
     return positions;
-  }, [people]);
+  }, [filteredPeople]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  };
+
+  const toggleRelationType = (type: string) => {
+    setSelectedRelationTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedTags([]);
+    setSelectedRelationTypes([]);
+  };
 
   // Calculate connection statistics
   const connectionStats = useMemo(() => {
     const stats: Record<string, number> = {};
-    connections.forEach((conn) => {
+    filteredConnections.forEach((conn) => {
       stats[conn.person1Id] = (stats[conn.person1Id] || 0) + 1;
       stats[conn.person2Id] = (stats[conn.person2Id] || 0) + 1;
     });
     return stats;
-  }, [connections]);
+  }, [filteredConnections]);
 
   // Get node size based on connections
   const getNodeSize = (personId: string) => {
@@ -50,10 +96,10 @@ export default function NetworkScreen() {
   // Get connections for selected person
   const selectedConnections = useMemo(() => {
     if (!selectedPersonId) return [];
-    return connections.filter(
+    return filteredConnections.filter(
       (c) => c.person1Id === selectedPersonId || c.person2Id === selectedPersonId
     );
-  }, [selectedPersonId, connections]);
+  }, [selectedPersonId, filteredConnections]);
 
   const isLoading = loadingPeople || loadingConnections;
 
@@ -95,22 +141,89 @@ export default function NetworkScreen() {
         </Text>
       </View>
 
+      {/* Filters */}
+      {(allTags.length > 0 || relationshipTypes.length > 0) && (
+        <Card style={styles.filterCard}>
+          <Card.Content>
+            <View style={styles.filterHeader}>
+              <Text variant="titleMedium">Filter Graph</Text>
+              {(selectedTags.length > 0 || selectedRelationTypes.length > 0) && (
+                <Button compact mode="text" onPress={clearFilters}>
+                  Clear All
+                </Button>
+              )}
+            </View>
+
+            {relationshipTypes.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text variant="labelMedium" style={styles.filterLabel}>
+                  Relationship Type:
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.chipRow}>
+                    {relationshipTypes.map((type) => (
+                      <Chip
+                        key={type}
+                        selected={selectedRelationTypes.includes(type)}
+                        onPress={() => toggleRelationType(type)}
+                        style={styles.filterChip}
+                        compact
+                      >
+                        {type}
+                      </Chip>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {allTags.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text variant="labelMedium" style={styles.filterLabel}>
+                  Tags:
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.chipRow}>
+                    {allTags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        selected={selectedTags.includes(tag)}
+                        onPress={() => toggleTag(tag)}
+                        style={styles.filterChip}
+                        compact
+                      >
+                        {tag}
+                      </Chip>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Stats */}
       <Card style={styles.statsCard}>
         <Card.Content>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text variant="headlineMedium">{people.length}</Text>
-              <Text variant="labelSmall">People</Text>
+              <Text variant="headlineMedium">{filteredPeople.length}</Text>
+              <Text variant="labelSmall">
+                People{filteredPeople.length !== people.length && ` / ${people.length}`}
+              </Text>
             </View>
             <View style={styles.stat}>
-              <Text variant="headlineMedium">{connections.length}</Text>
-              <Text variant="labelSmall">Connections</Text>
+              <Text variant="headlineMedium">{filteredConnections.length}</Text>
+              <Text variant="labelSmall">
+                Connections
+                {filteredConnections.length !== connections.length && ` / ${connections.length}`}
+              </Text>
             </View>
             <View style={styles.stat}>
               <Text variant="headlineMedium">
-                {people.length > 0
-                  ? ((connections.length * 2) / people.length).toFixed(1)
+                {filteredPeople.length > 0
+                  ? ((filteredConnections.length * 2) / filteredPeople.length).toFixed(1)
                   : '0'}
               </Text>
               <Text variant="labelSmall">Avg Links</Text>
@@ -132,7 +245,7 @@ export default function NetworkScreen() {
           <View style={styles.graphContainer}>
             <Svg width={GRAPH_SIZE} height={GRAPH_SIZE}>
               {/* Draw connections */}
-              {connections.map((conn) => {
+              {filteredConnections.map((conn) => {
                 const pos1 = nodePositions[conn.person1Id];
                 const pos2 = nodePositions[conn.person2Id];
                 if (!pos1 || !pos2) return null;
@@ -155,7 +268,7 @@ export default function NetworkScreen() {
               })}
 
               {/* Draw nodes */}
-              {people.map((person) => {
+              {filteredPeople.map((person) => {
                 const pos = nodePositions[person.id];
                 if (!pos) return null;
 
@@ -307,6 +420,30 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
+  },
+  filterCard: {
+    margin: 16,
+    marginBottom: 8,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  filterSection: {
+    marginBottom: 12,
+  },
+  filterLabel: {
+    marginBottom: 8,
+    opacity: 0.7,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterChip: {
+    marginRight: 4,
   },
   statsCard: {
     margin: 16,
