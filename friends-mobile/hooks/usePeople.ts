@@ -45,6 +45,9 @@ export function usePeople() {
         )
         .orderBy(desc(people.updatedAt));
     },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 30000,
   });
 }
 

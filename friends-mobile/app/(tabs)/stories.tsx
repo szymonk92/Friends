@@ -14,8 +14,12 @@ export default function StoriesListScreen() {
     story.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDeleteStory = (storyId: string) => {
-    Alert.alert('Delete Story', 'Are you sure you want to delete this story?', [
+  const handleDeleteStory = (storyId: string, aiProcessed: boolean) => {
+    const message = aiProcessed
+      ? 'Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.'
+      : 'Are you sure you want to delete this story?';
+
+    Alert.alert('Delete Story', message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -23,8 +27,9 @@ export default function StoriesListScreen() {
         onPress: async () => {
           try {
             await deleteStory.mutateAsync(storyId);
+            Alert.alert('Success', 'Story deleted successfully');
           } catch (err) {
-            Alert.alert('Error', 'Failed to delete story');
+            Alert.alert('Error', 'Failed to delete story. Please try again.');
           }
         },
       },
@@ -58,7 +63,11 @@ export default function StoriesListScreen() {
     const preview = item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
 
     return (
-      <Card style={styles.storyCard} onLongPress={() => handleDeleteStory(item.id)}>
+      <Card
+        style={styles.storyCard}
+        onPress={() => router.push(`/story/${item.id}`)}
+        onLongPress={() => handleDeleteStory(item.id, item.aiProcessed)}
+      >
         <Card.Content>
           <View style={styles.storyHeader}>
             <Text variant="labelSmall" style={styles.storyDate}>
@@ -91,6 +100,10 @@ export default function StoriesListScreen() {
               Event date: {new Date(item.storyDate).toLocaleDateString()}
             </Text>
           )}
+
+          <Text variant="labelSmall" style={styles.tapHint}>
+            Tap to view full story • Long press to delete
+          </Text>
         </Card.Content>
       </Card>
     );
@@ -212,6 +225,11 @@ const styles = StyleSheet.create({
   storyEventDate: {
     marginTop: 8,
     opacity: 0.6,
+  },
+  tapHint: {
+    marginTop: 12,
+    opacity: 0.5,
+    fontStyle: 'italic',
   },
   emptyState: {
     flex: 1,

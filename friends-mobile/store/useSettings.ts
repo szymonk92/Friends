@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface SettingsState {
   apiKey: string | null;
   setApiKey: (key: string) => Promise<void>;
+  clearApiKey: () => Promise<void>;
   loadApiKey: () => Promise<void>;
   hasApiKey: () => boolean;
 }
@@ -23,6 +24,16 @@ export const useSettings = create<SettingsState>((set, get) => ({
       set({ apiKey: key });
     } catch (error) {
       console.error('Failed to save API key:', error);
+      throw error;
+    }
+  },
+
+  clearApiKey: async () => {
+    try {
+      await AsyncStorage.removeItem(API_KEY_STORAGE_KEY);
+      set({ apiKey: null });
+    } catch (error) {
+      console.error('Failed to clear API key:', error);
       throw error;
     }
   },

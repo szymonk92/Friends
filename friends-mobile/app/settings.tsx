@@ -6,12 +6,16 @@ import {
   List,
   Divider,
   ActivityIndicator,
+  TextInput,
+  Portal,
+  Dialog,
 } from 'react-native-paper';
 import { Stack } from 'expo-router';
 import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from '@/hooks/useDataExport';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSettings } from '@/store/useSettings';
 
 export default function SettingsScreen() {
   const exportData = useExportData();
@@ -19,6 +23,49 @@ export default function SettingsScreen() {
   const importData = useImportData();
   const { data: stats, isLoading: statsLoading } = useExportStats();
   const [importLoading, setImportLoading] = useState(false);
+
+  // API Key state
+  const { apiKey, setApiKey, clearApiKey, loadApiKey, hasApiKey } = useSettings();
+  const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
+
+  useEffect(() => {
+    loadApiKey();
+  }, []);
+
+  const handleSaveApiKey = async () => {
+    if (tempApiKey.trim().length === 0) {
+      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      return;
+    }
+
+    try {
+      await setApiKey(tempApiKey.trim());
+      setApiKeyDialogVisible(false);
+      setTempApiKey('');
+      Alert.alert('Success', 'API key saved successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save API key. Please try again.');
+    }
+  };
+
+  const handleClearApiKey = () => {
+    Alert.alert(
+      'Clear API Key',
+      'Are you sure you want to remove your API key? You will need to re-enter it to use AI extraction.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearApiKey();
+            Alert.alert('Success', 'API key cleared.');
+          },
+        },
+      ]
+    );
+  };
 
   const handleExportJSON = async () => {
     try {
@@ -78,6 +125,67 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen options={{ title: 'Settings' }} />
       <ScrollView style={styles.container}>
+        {/* AI Configuration */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              AI Configuration
+            </Text>
+            <Divider style={styles.divider} />
+
+            <Text variant="bodySmall" style={styles.description}>
+              Configure your Anthropic API key to enable AI-powered story extraction.
+            </Text>
+
+            <List.Item
+              title="API Key Status"
+              description={hasApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
+              left={(props) => (
+                <List.Icon
+                  {...props}
+                  icon={hasApiKey() ? 'check-circle' : 'alert-circle'}
+                  color={hasApiKey() ? '#4caf50' : '#ff9800'}
+                />
+              )}
+            />
+
+            {hasApiKey() ? (
+              <View style={styles.apiKeyButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setApiKeyDialogVisible(true)}
+                  icon="key-change"
+                  style={styles.button}
+                >
+                  Change API Key
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleClearApiKey}
+                  icon="delete"
+                  textColor="#d32f2f"
+                  style={styles.button}
+                >
+                  Clear API Key
+                </Button>
+              </View>
+            ) : (
+              <Button
+                mode="contained"
+                onPress={() => setApiKeyDialogVisible(true)}
+                icon="key-plus"
+                style={styles.button}
+              >
+                Set API Key
+              </Button>
+            )}
+
+            <Text variant="labelSmall" style={styles.apiKeyHelp}>
+              Get your key from: https://console.anthropic.com
+            </Text>
+          </Card.Content>
+        </Card>
+
         {/* Data Statistics */}
         <Card style={styles.card}>
           <Card.Content>
@@ -215,6 +323,34 @@ export default function SettingsScreen() {
 
         <View style={styles.spacer} />
       </ScrollView>
+
+      {/* API Key Dialog */}
+      <Portal>
+        <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
+          <Dialog.Title>{hasApiKey() ? 'Change API Key' : 'Set API Key'}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Enter your Anthropic API key to enable AI extraction features.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="API Key"
+              placeholder="sk-ant-..."
+              value={tempApiKey}
+              onChangeText={setTempApiKey}
+              secureTextEntry
+              style={styles.apiKeyInput}
+            />
+            <Text variant="labelSmall" style={styles.dialogHelper}>
+              Your key is stored securely on your device and never sent to any server except Anthropic.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleSaveApiKey}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -255,5 +391,22 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 40,
+  },
+  apiKeyButtons: {
+    gap: 8,
+  },
+  apiKeyHelp: {
+    opacity: 0.6,
+    marginTop: 8,
+  },
+  dialogText: {
+    marginBottom: 12,
+  },
+  dialogHelper: {
+    opacity: 0.6,
+    marginTop: 8,
+  },
+  apiKeyInput: {
+    marginTop: 8,
   },
 });

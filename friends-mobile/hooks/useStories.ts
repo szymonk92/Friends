@@ -18,6 +18,9 @@ export function useStories() {
         .where(and(eq(stories.userId, userId), isNull(stories.deletedAt)))
         .orderBy(desc(stories.createdAt));
     },
+    retry: 3, // Retry failed queries
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 }
 
@@ -57,6 +60,8 @@ export function useCreateStory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
+    retry: 2, // Retry failed mutations up to 2 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }
 
@@ -100,5 +105,6 @@ export function useDeleteStory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
+    retry: 1, // Retry once on failure
   });
 }
