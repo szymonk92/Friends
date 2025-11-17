@@ -22,6 +22,7 @@ import {
   useUpdateContactEvent,
 } from '@/hooks/useContactEvents';
 import { usePeople } from '@/hooks/usePeople';
+import { useRelations } from '@/hooks/useRelations';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 
 const EVENT_TYPES = [
@@ -31,11 +32,13 @@ const EVENT_TYPES = [
   { value: 'hung_out', label: 'Hung Out', icon: 'coffee' },
   { value: 'special', label: 'Special Event', icon: 'star' },
   { value: 'birthday', label: 'Birthday', icon: 'cake-variant' },
+  { value: 'anniversary', label: 'Anniversary', icon: 'calendar-star' },
 ];
 
 export default function TimelineScreen() {
   const { data: events = [], isLoading, error, refetch } = useContactEvents();
   const { data: people = [] } = usePeople();
+  const { data: allRelations = [] } = useRelations();
   const createEvent = useCreateContactEvent();
   const deleteEvent = useDeleteContactEvent();
   const updateEvent = useUpdateContactEvent();
@@ -67,9 +70,23 @@ export default function TimelineScreen() {
       }));
   }, [people]);
 
+  // Generate important date events from relations
+  const importantDateEvents = useMemo(() => {
+    return allRelations
+      .filter((r) => r.relationType === 'HAS_IMPORTANT_DATE' && r.validFrom)
+      .map((r) => ({
+        id: `important-${r.id}`,
+        personId: r.subjectId,
+        eventType: 'anniversary',
+        eventDate: r.validFrom,
+        notes: r.objectLabel,
+        isImportantDate: true,
+      }));
+  }, [allRelations]);
+
   // Combine and filter events
   const filteredEvents = useMemo(() => {
-    const allEvents = [...events, ...birthdayEvents];
+    const allEvents = [...events, ...birthdayEvents, ...importantDateEvents];
 
     return allEvents
       .filter((event) => {
@@ -78,7 +95,7 @@ export default function TimelineScreen() {
         return true;
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
-  }, [events, birthdayEvents, filterPersonId, filterEventType]);
+  }, [events, birthdayEvents, importantDateEvents, filterPersonId, filterEventType]);
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
@@ -208,17 +225,31 @@ export default function TimelineScreen() {
     const personName = getPersonName(item.personId);
     const person = people.find((p) => p.id === item.personId);
     const isBirthday = item.isBirthday || item.eventType === 'birthday';
+    const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';
+    const isSpecialEvent = isBirthday || isImportantDate;
 
     return (
       <View style={styles.timelineItem}>
         {/* Timeline line */}
         <View style={styles.timelineLine}>
-          <View style={[styles.timelineDot, isBirthday && styles.birthdayDot]} />
+          <View
+            style={[
+              styles.timelineDot,
+              isBirthday && styles.birthdayDot,
+              isImportantDate && styles.anniversaryDot,
+            ]}
+          />
           {index < filteredEvents.length - 1 && <View style={styles.timelineConnector} />}
         </View>
 
         {/* Event card */}
-        <Card style={[styles.eventCard, isBirthday && styles.birthdayCard]}>
+        <Card
+          style={[
+            styles.eventCard,
+            isBirthday && styles.birthdayCard,
+            isImportantDate && styles.anniversaryCard,
+          ]}
+        >
           <Card.Content>
             <View style={styles.eventHeader}>
               <View style={styles.eventInfo}>
@@ -229,7 +260,7 @@ export default function TimelineScreen() {
                   {formatRelativeTime(new Date(item.eventDate))}
                 </Text>
               </View>
-              {!isBirthday && (
+              {!isSpecialEvent && (
                 <View style={styles.eventActions}>
                   <IconButton
                     icon="pencil-outline"
@@ -537,6 +568,9 @@ const styles = StyleSheet.create({
   birthdayDot: {
     backgroundColor: '#ff9800',
   },
+  anniversaryDot: {
+    backgroundColor: '#e91e63',
+  },
   timelineConnector: {
     width: 2,
     flex: 1,
@@ -551,6 +585,10 @@ const styles = StyleSheet.create({
   birthdayCard: {
     borderLeftWidth: 4,
     borderLeftColor: '#ff9800',
+  },
+  anniversaryCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#e91e63',
   },
   eventHeader: {
     flexDirection: 'row',
