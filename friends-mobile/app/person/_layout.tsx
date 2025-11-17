@@ -2,8 +2,11 @@ import { Stack } from 'expo-router';
 
 export default function PersonLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="[id]" options={{ headerShown: true }} />
+    <Stack screenOptions={{ headerShown: true }}>
+      <Stack.Screen name="[id]" options={{ title: 'Person' }} />
+      <Stack.Screen name="edit" options={{ title: 'Edit Person' }} />
+      <Stack.Screen name="add-relation" options={{ title: 'Add Relation' }} />
+      <Stack.Screen name="edit-relation" options={{ title: 'Edit Relation' }} />
     </Stack>
   );
 }

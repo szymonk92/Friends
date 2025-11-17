@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import {
   Text,
   Card,
@@ -59,6 +59,12 @@ export default function PersonProfileScreen() {
     ]);
   };
 
+  const handleAvatarPress = () => {
+    Alert.alert('Add Photo', 'Photo upload will be available in a future update.', [
+      { text: 'OK' },
+    ]);
+  };
+
   if (personLoading) {
     return (
       <View style={styles.centered}>
@@ -113,9 +119,19 @@ export default function PersonProfileScreen() {
           <Card style={styles.headerCard}>
             <Card.Content>
               <View style={styles.header}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                </View>
+                <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+                  </View>
+                  <View style={styles.avatarBadge}>
+                    <IconButton
+                      icon="camera"
+                      size={16}
+                      iconColor="#fff"
+                      style={styles.cameraIcon}
+                    />
+                  </View>
+                </TouchableOpacity>
                 <View style={styles.headerInfo}>
                   <Text variant="headlineSmall" style={styles.name}>
                     {person.name}
@@ -290,19 +306,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#6200ee',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   avatarText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#03dac6',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  cameraIcon: {
+    margin: 0,
+    padding: 0,
   },
   headerInfo: {
     flex: 1,
