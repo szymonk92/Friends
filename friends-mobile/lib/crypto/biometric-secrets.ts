@@ -246,7 +246,8 @@ function hexToBytes(hex: string): Uint8Array {
 export async function isSecretsSetup(): Promise<boolean> {
   try {
     const initialized = await SecureStore.getItemAsync(KEY_CHECK_ALIAS);
-    return initialized === 'true';
+    // Support both biometric ('true') and password ('password') modes
+    return initialized === 'true' || initialized === 'password';
   } catch {
     return false;
   }
