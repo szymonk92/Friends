@@ -9,6 +9,8 @@ import { useAllTags, parseTags } from '@/hooks/useTags';
 export default function PeopleListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'importance'>('date');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: people = [], isLoading, error, refetch } = usePeople();
 
@@ -19,19 +21,53 @@ export default function PeopleListScreen() {
   }, [refetch]);
   const { data: allTags = [] } = useAllTags();
 
-  const filteredPeople = people.filter((person) => {
-    // Filter by search query
-    const matchesSearch = person.name.toLowerCase().includes(searchQuery.toLowerCase());
+  // Get unique relationship types from people
+  const relationshipTypes = [...new Set(people.map((p) => p.relationshipType).filter(Boolean))].sort();
 
-    // Filter by selected tags (person must have ALL selected tags)
-    const personTags = parseTags(person.tags);
-    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
+  const filteredPeople = people
+    .filter((person) => {
+      // Filter by search query
+      const matchesSearch = person.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch && matchesTags;
-  });
+      // Filter by selected tags (person must have ALL selected tags)
+      const personTags = parseTags(person.tags);
+      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
+
+      // Filter by relationship type
+      const matchesRelationType =
+        selectedRelationTypes.length === 0 ||
+        (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
+
+      return matchesSearch && matchesTags && matchesRelationType;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'importance': {
+          const importanceOrder = ['critical', 'very_important', 'important', 'moderate', 'low', 'unknown'];
+          const aIndex = importanceOrder.indexOf(a.importanceToUser || 'unknown');
+          const bIndex = importanceOrder.indexOf(b.importanceToUser || 'unknown');
+          return aIndex - bIndex;
+        }
+        case 'date':
+        default:
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+    });
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  };
+
+  const toggleRelationType = (type: string) => {
+    setSelectedRelationTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+  };
+
+  const clearAllFilters = () => {
+    setSelectedTags([]);
+    setSelectedRelationTypes([]);
+    setSearchQuery('');
   };
 
   const clearTagFilters = () => {
@@ -67,12 +103,85 @@ export default function PeopleListScreen() {
         style={styles.searchbar}
       />
 
+      {/* Sort and Filter Controls */}
+      <View style={styles.controlsContainer}>
+        <View style={styles.sortRow}>
+          <Text variant="labelMedium" style={styles.sortLabel}>
+            Sort by:
+          </Text>
+          <Chip
+            selected={sortBy === 'date'}
+            onPress={() => setSortBy('date')}
+            style={styles.sortChip}
+            compact
+          >
+            Recent
+          </Chip>
+          <Chip
+            selected={sortBy === 'name'}
+            onPress={() => setSortBy('name')}
+            style={styles.sortChip}
+            compact
+          >
+            Name
+          </Chip>
+          <Chip
+            selected={sortBy === 'importance'}
+            onPress={() => setSortBy('importance')}
+            style={styles.sortChip}
+            compact
+          >
+            Importance
+          </Chip>
+        </View>
+
+        <Text variant="bodySmall" style={styles.resultCount}>
+          Showing {filteredPeople.length} of {people.length} people
+          {(selectedTags.length > 0 || selectedRelationTypes.length > 0) && (
+            <Text onPress={clearAllFilters} style={styles.clearAllLink}>
+              {' '}
+              (Clear filters)
+            </Text>
+          )}
+        </Text>
+      </View>
+
+      {/* Relationship Type Filters */}
+      {relationshipTypes.length > 0 && (
+        <View style={styles.tagFilterContainer}>
+          <View style={styles.tagFilterHeader}>
+            <Text variant="labelMedium" style={styles.tagFilterLabel}>
+              Relationship type:
+            </Text>
+            {selectedRelationTypes.length > 0 && (
+              <Button compact mode="text" onPress={() => setSelectedRelationTypes([])}>
+                Clear
+              </Button>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagScroll}>
+            {relationshipTypes.map((type) => (
+              <Chip
+                key={type}
+                selected={selectedRelationTypes.includes(type)}
+                onPress={() => toggleRelationType(type)}
+                style={styles.filterChip}
+                mode={selectedRelationTypes.includes(type) ? 'flat' : 'outlined'}
+                icon={selectedRelationTypes.includes(type) ? 'check' : 'heart'}
+              >
+                {type}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Tag Filters */}
       {allTags.length > 0 && (
         <View style={styles.tagFilterContainer}>
           <View style={styles.tagFilterHeader}>
             <Text variant="labelMedium" style={styles.tagFilterLabel}>
-              Filter by tags:
+              Tags:
             </Text>
             {selectedTags.length > 0 && (
               <Button compact mode="text" onPress={clearTagFilters}>
@@ -202,6 +311,30 @@ const styles = StyleSheet.create({
   searchbar: {
     margin: 16,
     marginBottom: 8,
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sortLabel: {
+    opacity: 0.7,
+    marginRight: 8,
+  },
+  sortChip: {
+    marginRight: 6,
+  },
+  resultCount: {
+    opacity: 0.6,
+    marginBottom: 4,
+  },
+  clearAllLink: {
+    color: '#6200ee',
+    fontWeight: '500',
   },
   tagFilterContainer: {
     paddingHorizontal: 16,
