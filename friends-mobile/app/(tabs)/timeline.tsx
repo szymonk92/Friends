@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useContactEvents';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
+import { useEvents } from '@/hooks/useEvents';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 
@@ -34,12 +35,16 @@ const EVENT_TYPES = [
   { value: 'special', label: 'Special Event', icon: 'star' },
   { value: 'birthday', label: 'Birthday', icon: 'cake-variant' },
   { value: 'anniversary', label: 'Anniversary', icon: 'calendar-star' },
+  { value: 'party', label: 'Party', icon: 'party-popper' },
+  { value: 'dinner', label: 'Dinner', icon: 'silverware-fork-knife' },
+  { value: 'gathering', label: 'Gathering', icon: 'account-group' },
 ];
 
 export default function TimelineScreen() {
   const { data: events = [], isLoading, error, refetch } = useContactEvents();
   const { data: people = [] } = usePeople();
   const { data: allRelations = [] } = useRelations();
+  const { data: partyEvents = [] } = useEvents();
   const createEvent = useCreateContactEvent();
   const deleteEvent = useDeleteContactEvent();
   const updateEvent = useUpdateContactEvent();
@@ -93,9 +98,53 @@ export default function TimelineScreen() {
       }));
   }, [allRelations]);
 
+  // Transform party/gathering events into timeline format
+  const partyTimelineEvents = useMemo(() => {
+    return partyEvents
+      .filter((event) => event.eventDate)
+      .flatMap((event) => {
+        // Parse guest IDs from JSON
+        const guestIds: string[] = event.guestIds ? JSON.parse(event.guestIds) : [];
+        const guestNames = guestIds.map((gid) => {
+          const person = people.find((p) => p.id === gid);
+          return person?.name || 'Unknown';
+        });
+
+        // Create an event entry for each guest (so it shows up for each person)
+        if (guestIds.length === 0) {
+          return [
+            {
+              id: `party-${event.id}`,
+              personId: null as any,
+              eventType: event.eventType || 'party',
+              eventDate: event.eventDate,
+              notes: `${event.name}${event.location ? ` at ${event.location}` : ''}`,
+              isPartyEvent: true,
+              partyDetails: event,
+              guestCount: 0,
+              guestNames: [],
+            },
+          ];
+        }
+
+        // Return one timeline event per guest
+        return guestIds.map((guestId) => ({
+          id: `party-${event.id}-${guestId}`,
+          personId: guestId,
+          eventType: event.eventType || 'party',
+          eventDate: event.eventDate,
+          notes: `${event.name} with ${guestNames.filter((n) => n !== people.find((p) => p.id === guestId)?.name).slice(0, 3).join(', ')}${guestNames.length > 4 ? '...' : ''}${event.location ? ` at ${event.location}` : ''}`,
+          isPartyEvent: true,
+          partyDetails: event,
+          guestCount: guestIds.length,
+          guestNames,
+        }));
+      });
+  }, [partyEvents, people]);
+
   // Combine and filter events
   const filteredEvents = useMemo(() => {
-    const allEvents = [...events, ...birthdayEvents, ...importantDateEvents];
+    const allEvents = [...events, ...birthdayEvents, ...importantDateEvents, ...partyTimelineEvents];
 
     return allEvents
       .filter((event) => {
@@ -104,7 +153,7 @@ export default function TimelineScreen() {
         return true;
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
-  }, [events, birthdayEvents, importantDateEvents, filterPersonId, filterEventType]);
+  }, [events, birthdayEvents, importantDateEvents, partyTimelineEvents, filterPersonId, filterEventType]);
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
