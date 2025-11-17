@@ -161,6 +161,16 @@ export default function EditPersonScreen() {
           Add Relation
         </Button>
 
+        <Button
+          mode="outlined"
+          onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
+          icon="account-multiple-plus"
+          style={styles.addRelationButton}
+          disabled={isSubmitting}
+        >
+          Add Connection to Person
+        </Button>
+
         <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
           Cancel
         </Button>
