@@ -89,6 +89,7 @@ export async function initializeDatabase() {
         date_of_birth INTEGER,
         hide_from_active_views INTEGER DEFAULT 0,
         notes TEXT,
+        tags TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         deleted_at INTEGER,
@@ -96,6 +97,13 @@ export async function initializeDatabase() {
         last_synced_at INTEGER
       );
     `);
+
+    // Migration: Add tags column to people table
+    try {
+      expoDb.execSync('ALTER TABLE people ADD COLUMN tags TEXT;');
+    } catch {
+      // Column already exists
+    }
 
     // Create stories table
     expoDb.execSync(`
@@ -318,6 +326,25 @@ export async function initializeDatabase() {
         extraction_reason TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create reminders table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS reminders (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        person_id TEXT REFERENCES people(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        message TEXT,
+        reminder_type TEXT NOT NULL,
+        scheduled_for INTEGER NOT NULL,
+        repeat_interval TEXT DEFAULT 'none',
+        notification_id TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER
       );
     `);
 

@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import {
   Text,
   Card,
@@ -26,6 +26,15 @@ import {
   useUpdateGiftIdea,
   useDeleteGiftIdea,
 } from '@/hooks/useGifts';
+import { usePersonTags, useAddTagToPerson, useRemoveTagFromPerson, useAllTags } from '@/hooks/useTags';
+import {
+  usePersonPhotos,
+  useAddPhotoToPerson,
+  useTakePhoto,
+  useSetProfilePhoto,
+  useDeletePhoto,
+} from '@/hooks/usePhotos';
+import { useCreateContactReminder } from '@/hooks/useReminders';
 import {
   getInitials,
   formatRelativeTime,
@@ -49,11 +58,26 @@ export default function PersonProfileScreen() {
   const createGiftIdea = useCreateGiftIdea();
   const updateGiftIdea = useUpdateGiftIdea();
   const deleteGiftIdea = useDeleteGiftIdea();
+  const { data: personTags = [] } = usePersonTags(id!);
+  const { data: allTags = [] } = useAllTags();
+  const addTagToPerson = useAddTagToPerson();
+  const removeTagFromPerson = useRemoveTagFromPerson();
+  const { data: personPhotos = [] } = usePersonPhotos(id!);
+  const addPhotoToPerson = useAddPhotoToPerson();
+  const takePhoto = useTakePhoto();
+  const setProfilePhoto = useSetProfilePhoto();
+  const deletePhoto = useDeletePhoto();
+  const createContactReminder = useCreateContactReminder();
 
   const [addDateDialogVisible, setAddDateDialogVisible] = useState(false);
   const [dateName, setDateName] = useState('');
   const [dateValue, setDateValue] = useState('');
   const [isAddingDate, setIsAddingDate] = useState(false);
+
+  // Tag dialog state
+  const [addTagDialogVisible, setAddTagDialogVisible] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   // Gift dialog state
   const [addGiftDialogVisible, setAddGiftDialogVisible] = useState(false);
@@ -118,10 +142,48 @@ export default function PersonProfileScreen() {
   };
 
   const handleAvatarPress = () => {
-    Alert.alert('Add Photo', 'Photo upload will be available in a future update.', [
-      { text: 'OK' },
-    ]);
+    Alert.alert(
+      'Profile Photo',
+      'Choose how to add a photo',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            try {
+              const result = await takePhoto.mutateAsync({ personId: id! });
+              await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
+              Alert.alert('Success', 'Profile photo updated!');
+            } catch (error: any) {
+              if (!error.message.includes('cancelled')) {
+                Alert.alert('Error', error.message || 'Failed to take photo');
+              }
+            }
+          },
+        },
+        {
+          text: 'Choose from Library',
+          onPress: async () => {
+            try {
+              const result = await addPhotoToPerson.mutateAsync({ personId: id! });
+              await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
+              Alert.alert('Success', 'Profile photo updated!');
+            } catch (error: any) {
+              if (!error.message.includes('cancelled')) {
+                Alert.alert('Error', error.message || 'Failed to add photo');
+              }
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
+
+  // Get the profile photo path
+  const profilePhoto = person?.photoId
+    ? personPhotos.find((p) => p.id === person.photoId)
+    : null;
 
   const handleQuickAction = async (eventType: string, label: string) => {
     try {
@@ -226,6 +288,69 @@ export default function PersonProfileScreen() {
     ]);
   };
 
+  const handleAddTag = async () => {
+    if (!newTagName.trim()) {
+      Alert.alert('Error', 'Please enter a tag name');
+      return;
+    }
+
+    setIsAddingTag(true);
+    try {
+      await addTagToPerson.mutateAsync({ personId: id!, tag: newTagName.trim() });
+      setAddTagDialogVisible(false);
+      setNewTagName('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add tag');
+    } finally {
+      setIsAddingTag(false);
+    }
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    Alert.alert('Remove Tag', `Remove "${tag}" from ${person?.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => removeTagFromPerson.mutateAsync({ personId: id!, tag }),
+      },
+    ]);
+  };
+
+  // Filter out tags that are already assigned to this person
+  const availableTags = allTags.filter((tag) => !personTags.includes(tag));
+
+  const handleSetReminder = () => {
+    Alert.alert(
+      'Set Reminder',
+      `Remind me to contact ${person?.name} in:`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: '1 Day',
+          onPress: () =>
+            createContactReminder
+              .mutateAsync({ personId: id!, personName: person!.name, daysFromNow: 1 })
+              .then(() => Alert.alert('Reminder Set', 'You will be reminded tomorrow at 10 AM')),
+        },
+        {
+          text: '1 Week',
+          onPress: () =>
+            createContactReminder
+              .mutateAsync({ personId: id!, personName: person!.name, daysFromNow: 7 })
+              .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 week')),
+        },
+        {
+          text: '1 Month',
+          onPress: () =>
+            createContactReminder
+              .mutateAsync({ personId: id!, personName: person!.name, daysFromNow: 30 })
+              .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 month')),
+        },
+      ]
+    );
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -294,9 +419,16 @@ export default function PersonProfileScreen() {
             <Card.Content>
               <View style={styles.header}>
                 <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                  </View>
+                  {profilePhoto ? (
+                    <Image
+                      source={{ uri: profilePhoto.filePath }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+                    </View>
+                  )}
                   <View style={styles.avatarBadge}>
                     <IconButton
                       icon="camera"
@@ -354,6 +486,45 @@ export default function PersonProfileScreen() {
             </Card.Content>
           </Card>
 
+          {/* Tags */}
+          <Card style={styles.tagsCard}>
+            <Card.Content>
+              <View style={styles.tagsHeader}>
+                <Text variant="titleMedium" style={styles.tagsTitle}>
+                  Tags
+                </Text>
+                <Button
+                  mode="outlined"
+                  compact
+                  icon="tag-plus"
+                  onPress={() => setAddTagDialogVisible(true)}
+                >
+                  Add
+                </Button>
+              </View>
+
+              {personTags.length === 0 ? (
+                <Text variant="bodySmall" style={styles.noTagsText}>
+                  No tags yet. Add tags to organize and filter contacts.
+                </Text>
+              ) : (
+                <View style={styles.tagsContainer}>
+                  {personTags.map((tag) => (
+                    <Chip
+                      key={tag}
+                      icon="tag"
+                      onClose={() => handleRemoveTag(tag)}
+                      style={styles.tagChip}
+                      mode="outlined"
+                    >
+                      {tag}
+                    </Chip>
+                  ))}
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+
           {/* Quick Actions */}
           <Card style={styles.quickActionsCard}>
             <Card.Content>
@@ -405,6 +576,14 @@ export default function PersonProfileScreen() {
                   mode="outlined"
                 >
                   Special
+                </Chip>
+                <Chip
+                  icon="bell"
+                  onPress={handleSetReminder}
+                  style={styles.quickActionChip}
+                  mode="outlined"
+                >
+                  Remind
                 </Chip>
               </View>
             </Card.Content>
@@ -461,6 +640,80 @@ export default function PersonProfileScreen() {
               )}
             </Card.Content>
           </Card>
+
+          {/* Photos */}
+          {personPhotos.length > 0 && (
+            <Card style={styles.photosCard}>
+              <Card.Content>
+                <View style={styles.photosHeader}>
+                  <Text variant="titleMedium" style={styles.photosTitle}>
+                    Photos ({personPhotos.length})
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    compact
+                    icon="image-plus"
+                    onPress={() => {
+                      Alert.alert(
+                        'Add Photo',
+                        'Choose how to add a photo',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Take Photo',
+                            onPress: () => takePhoto.mutateAsync({ personId: id! }),
+                          },
+                          {
+                            text: 'Choose from Library',
+                            onPress: () => addPhotoToPerson.mutateAsync({ personId: id! }),
+                          },
+                        ]
+                      );
+                    }}
+                  >
+                    Add
+                  </Button>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {personPhotos.map((photo) => (
+                    <TouchableOpacity
+                      key={photo.id}
+                      onLongPress={() => {
+                        Alert.alert(
+                          'Photo Options',
+                          'What would you like to do?',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Set as Profile',
+                              onPress: () =>
+                                setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id }),
+                            },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => deletePhoto.mutateAsync(photo.id),
+                            },
+                          ]
+                        );
+                      }}
+                      style={styles.photoThumbnailContainer}
+                    >
+                      <Image source={{ uri: photo.filePath }} style={styles.photoThumbnail} />
+                      {person?.photoId === photo.id && (
+                        <View style={styles.profileBadge}>
+                          <IconButton icon="account-check" size={12} iconColor="#fff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Text variant="labelSmall" style={styles.photoHint}>
+                  Long press on a photo for options
+                </Text>
+              </Card.Content>
+            </Card>
+          )}
 
           {/* Gift Ideas */}
           <Card style={styles.giftIdeasCard}>
@@ -800,6 +1053,51 @@ export default function PersonProfileScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Add Tag Dialog */}
+      <Portal>
+        <Dialog visible={addTagDialogVisible} onDismiss={() => setAddTagDialogVisible(false)}>
+          <Dialog.Title>Add Tag</Dialog.Title>
+          <Dialog.Content>
+            <PaperInput
+              mode="outlined"
+              label="Tag Name"
+              placeholder="e.g., college, work, family"
+              value={newTagName}
+              onChangeText={setNewTagName}
+              style={{ marginBottom: 12 }}
+              autoCapitalize="none"
+            />
+
+            {availableTags.length > 0 && (
+              <>
+                <Text variant="labelMedium" style={{ marginBottom: 8 }}>
+                  Existing Tags
+                </Text>
+                <View style={styles.existingTagsContainer}>
+                  {availableTags.slice(0, 10).map((tag) => (
+                    <Chip
+                      key={tag}
+                      onPress={() => setNewTagName(tag)}
+                      style={styles.existingTagChip}
+                      mode="outlined"
+                      compact
+                    >
+                      {tag}
+                    </Chip>
+                  ))}
+                </View>
+              </>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setAddTagDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleAddTag} loading={isAddingTag} disabled={isAddingTag}>
+              Add
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -828,6 +1126,79 @@ const styles = StyleSheet.create({
     margin: 16,
     marginBottom: 8,
   },
+  tagsCard: {
+    margin: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  tagsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tagsTitle: {
+    fontWeight: 'bold',
+  },
+  noTagsText: {
+    opacity: 0.6,
+    fontStyle: 'italic',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagChip: {
+    marginBottom: 4,
+  },
+  existingTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  existingTagChip: {
+    marginBottom: 4,
+  },
+  photosCard: {
+    margin: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  photosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  photosTitle: {
+    fontWeight: 'bold',
+  },
+  photoThumbnailContainer: {
+    marginRight: 12,
+    position: 'relative',
+  },
+  photoThumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  profileBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#4caf50',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoHint: {
+    opacity: 0.6,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -844,6 +1215,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200ee',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarText: {
     color: 'white',

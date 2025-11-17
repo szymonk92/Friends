@@ -30,6 +30,20 @@ export default function TabLayout() {
         options={{
           title: 'People',
           tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+          headerRight: () => (
+            <Link href="/settings" asChild>
+              <Pressable>
+                {({ pressed }) => (
+                  <FontAwesome
+                    name="cog"
+                    size={25}
+                    color={Colors[colorScheme ?? 'light'].text}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
+            </Link>
+          ),
         }}
       />
       <Tabs.Screen

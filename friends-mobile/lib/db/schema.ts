@@ -127,6 +127,7 @@ export const people = sqliteTable(
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
     notes: text('notes'),
+    tags: text('tags'), // JSON array of tag strings, e.g., '["college", "work"]'
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -521,6 +522,45 @@ export const pendingExtractions = sqliteTable(
 );
 
 // ============================================================================
+// REMINDERS TABLE
+// ============================================================================
+
+export const reminders = sqliteTable(
+  'reminders',
+  {
+    id: text('id').primaryKey().notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id').references(() => people.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    message: text('message'),
+    reminderType: text('reminder_type', {
+      enum: ['contact', 'birthday', 'anniversary', 'custom'],
+    }).notNull(),
+    scheduledFor: integer('scheduled_for', { mode: 'timestamp' }).notNull(),
+    repeatInterval: text('repeat_interval', {
+      enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
+    }).default('none'),
+    notificationId: text('notification_id'), // Expo notification ID
+    status: text('status', { enum: ['pending', 'sent', 'cancelled'] }).default('pending'),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  },
+  (table) => ({
+    userIdIdx: index('reminders_user_id_idx').on(table.userId),
+    personIdIdx: index('reminders_person_id_idx').on(table.personId),
+    scheduledForIdx: index('reminders_scheduled_for_idx').on(table.scheduledFor),
+    statusIdx: index('reminders_status_idx').on(table.status),
+  })
+);
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
@@ -556,3 +596,6 @@ export type NewFile = typeof files.$inferInsert;
 
 export type PendingExtraction = typeof pendingExtractions.$inferSelect;
 export type NewPendingExtraction = typeof pendingExtractions.$inferInsert;
+
+export type Reminder = typeof reminders.$inferSelect;
+export type NewReminder = typeof reminders.$inferInsert;

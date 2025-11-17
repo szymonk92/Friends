@@ -1,17 +1,35 @@
-import { StyleSheet, View, FlatList } from 'react-native';
+import { StyleSheet, View, FlatList, ScrollView } from 'react-native';
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
+import { useAllTags, parseTags } from '@/hooks/useTags';
 
 export default function PeopleListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { data: people = [], isLoading, error, refetch } = usePeople();
+  const { data: allTags = [] } = useAllTags();
 
-  const filteredPeople = people.filter((person) =>
-    person.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPeople = people.filter((person) => {
+    // Filter by search query
+    const matchesSearch = person.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Filter by selected tags (person must have ALL selected tags)
+    const personTags = parseTags(person.tags);
+    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
+
+    return matchesSearch && matchesTags;
+  });
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  };
+
+  const clearTagFilters = () => {
+    setSelectedTags([]);
+  };
 
   if (isLoading) {
     return (
@@ -41,6 +59,36 @@ export default function PeopleListScreen() {
         value={searchQuery}
         style={styles.searchbar}
       />
+
+      {/* Tag Filters */}
+      {allTags.length > 0 && (
+        <View style={styles.tagFilterContainer}>
+          <View style={styles.tagFilterHeader}>
+            <Text variant="labelMedium" style={styles.tagFilterLabel}>
+              Filter by tags:
+            </Text>
+            {selectedTags.length > 0 && (
+              <Button compact mode="text" onPress={clearTagFilters}>
+                Clear
+              </Button>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagScroll}>
+            {allTags.map((tag) => (
+              <Chip
+                key={tag}
+                selected={selectedTags.includes(tag)}
+                onPress={() => toggleTag(tag)}
+                style={styles.filterChip}
+                mode={selectedTags.includes(tag) ? 'flat' : 'outlined'}
+                icon={selectedTags.includes(tag) ? 'check' : 'tag'}
+              >
+                {tag}
+              </Chip>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {filteredPeople && filteredPeople.length === 0 && (
         <View style={styles.emptyState}>
@@ -101,6 +149,11 @@ export default function PeopleListScreen() {
                     {item.importanceToUser.replace('_', ' ')}
                   </Chip>
                 )}
+                {parseTags(item.tags).map((tag) => (
+                  <Chip key={tag} icon="tag" style={styles.tagChip} compact>
+                    {tag}
+                  </Chip>
+                ))}
               </View>
             </Card.Content>
           </Card>
@@ -139,6 +192,28 @@ const styles = StyleSheet.create({
   searchbar: {
     margin: 16,
     marginBottom: 8,
+  },
+  tagFilterContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  tagFilterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tagFilterLabel: {
+    opacity: 0.7,
+  },
+  tagScroll: {
+    flexGrow: 0,
+  },
+  filterChip: {
+    marginRight: 8,
+  },
+  tagChip: {
+    backgroundColor: '#e0e0e0',
   },
   emptyState: {
     flex: 1,

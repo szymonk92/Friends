@@ -103,7 +103,7 @@ export function useUpdateContactEvent() {
     }: Partial<NewContactEvent> & { id: string }) => {
       const result = (await db
         .update(contactEvents)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...data })
         .where(eq(contactEvents.id, id))
         .returning()) as any[];
       return result[0];
