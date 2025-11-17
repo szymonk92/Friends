@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Animated, PanResponder, Dimensions, Alert } from 'react-native';
 import { Text, Button, Card, Chip, ProgressBar, IconButton } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
@@ -6,7 +6,11 @@ import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelation, useRelations } from '@/hooks/useRelations';
 import { getInitials } from '@/lib/utils/format';
 import { quizLogger, logPerformance } from '@/lib/logger';
-import * as SecureStore from 'expo-secure-store';
+import { db, getCurrentUserId } from '@/lib/db';
+import { quizDismissals } from '@/lib/db/schema';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { and, eq } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.25;
@@ -33,7 +37,10 @@ const FOOD_QUESTIONS = [
   { item: 'Eggs', category: 'protein' },
   { item: 'Dairy', category: 'food_group' },
   { item: 'Gluten', category: 'food_group' },
-];
+] as const;
+
+// Pre-compute food item names for efficient lookup
+const FOOD_ITEM_SET = new Set(FOOD_QUESTIONS.map((q) => q.item));
 
 interface Answer {
   personId: string;
@@ -43,9 +50,8 @@ interface Answer {
   preference: 'LIKES' | 'DISLIKES';
 }
 
-const SKIPPED_QUESTIONS_KEY = 'food_quiz_skipped';
-
 export default function FoodQuizScreen() {
+  const queryClient = useQueryClient();
   const { data: allPeople = [] } = usePeople();
   const { data: existingRelations = [] } = useRelations();
   const createRelation = useCreateRelation();
@@ -53,69 +59,77 @@ export default function FoodQuizScreen() {
   // Filter only primary people
   const primaryPeople = allPeople.filter((p) => p.personType === 'primary');
 
-  // Track skipped questions locally (not in database)
-  const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
-  const [skippedLoaded, setSkippedLoaded] = useState(false);
+  // Fetch dismissed questions from database
+  const { data: dismissedQuestions = [], isLoading: dismissalsLoading } = useQuery({
+    queryKey: ['quizDismissals', 'food'],
+    queryFn: async () => {
+      const userId = await getCurrentUserId();
+      return db
+        .select()
+        .from(quizDismissals)
+        .where(and(eq(quizDismissals.userId, userId), eq(quizDismissals.quizType, 'food')));
+    },
+  });
 
-  // Load skipped questions from local storage
-  useEffect(() => {
-    const loadSkipped = async () => {
-      try {
-        const stored = await SecureStore.getItemAsync(SKIPPED_QUESTIONS_KEY);
-        if (stored) {
-          setSkippedQuestions(new Set(JSON.parse(stored)));
-        }
-      } catch (error) {
-        quizLogger.warn('Failed to load skipped questions', { error });
-      }
-      setSkippedLoaded(true);
-    };
-    loadSkipped();
-  }, []);
-
-  // Save skipped questions to local storage
-  const saveSkippedQuestions = async (newSkipped: Set<string>) => {
-    try {
-      await SecureStore.setItemAsync(SKIPPED_QUESTIONS_KEY, JSON.stringify(Array.from(newSkipped)));
-    } catch (error) {
-      quizLogger.warn('Failed to save skipped questions', { error });
-    }
-  };
+  // Mutation to save a dismissal
+  const saveDismissal = useMutation({
+    mutationFn: async ({ personId, questionKey }: { personId: string; questionKey: string }) => {
+      const userId = await getCurrentUserId();
+      await db.insert(quizDismissals).values({
+        id: randomUUID(),
+        userId,
+        personId,
+        quizType: 'food',
+        questionKey,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizDismissals', 'food'] });
+    },
+  });
 
   // Build a set of already-answered questions (person+food combinations)
+  // Now checks for ANY relation type, not just LIKES/DISLIKES
   const answeredQuestions = useMemo(() => {
     const answered = new Set<string>();
     for (const relation of existingRelations) {
-      if (relation.relationType === 'LIKES' || relation.relationType === 'DISLIKES') {
-        // Check if this is a food preference
-        const foodItems = FOOD_QUESTIONS.map((q) => q.item);
-        if (foodItems.includes(relation.objectLabel || '')) {
-          answered.add(`${relation.subjectId}:${relation.objectLabel}`);
-        }
+      // Check if this is a food preference (any relation type) using O(1) Set lookup
+      if (FOOD_ITEM_SET.has(relation.objectLabel || '')) {
+        answered.add(`${relation.subjectId}:${relation.objectLabel}`);
       }
     }
     return answered;
   }, [existingRelations]);
 
+  // Build set of dismissed questions
+  const dismissedSet = useMemo(() => {
+    const dismissed = new Set<string>();
+    for (const d of dismissedQuestions) {
+      dismissed.add(`${d.personId}:${d.questionKey}`);
+    }
+    return dismissed;
+  }, [dismissedQuestions]);
+
   // Generate list of unanswered questions - MIXED across people
   const questionsToAsk = useMemo(() => {
-    if (!skippedLoaded) return [];
+    if (dismissalsLoading) return [];
 
-    const questions: Array<{ person: (typeof primaryPeople)[0]; food: (typeof FOOD_QUESTIONS)[0] }> = [];
+    const questions: Array<{ person: (typeof primaryPeople)[0]; food: (typeof FOOD_QUESTIONS)[0] }> =
+      [];
 
     // Create a mixed list: iterate through foods first, then people
     // This ensures we ask about food A for person 1, food A for person 2, etc.
     for (const food of FOOD_QUESTIONS) {
       for (const person of primaryPeople) {
         const key = `${person.id}:${food.item}`;
-        // Skip if already answered in DB OR skipped locally
-        if (!answeredQuestions.has(key) && !skippedQuestions.has(key)) {
+        // Skip if already answered in DB OR dismissed
+        if (!answeredQuestions.has(key) && !dismissedSet.has(key)) {
           questions.push({ person, food });
         }
       }
     }
     return questions;
-  }, [primaryPeople, answeredQuestions, skippedQuestions, skippedLoaded]);
+  }, [primaryPeople, answeredQuestions, dismissedSet, dismissalsLoading]);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -137,7 +151,11 @@ export default function FoodQuizScreen() {
 
   const recordAnswer = useCallback(
     (direction: 'left' | 'right' | 'down') => {
-      const { currentPerson: person, currentFood: food, currentQuestionIndex: qIndex } = stateRef.current;
+      const {
+        currentPerson: person,
+        currentFood: food,
+        currentQuestionIndex: qIndex,
+      } = stateRef.current;
       if (!person || !food) return;
 
       const isSkip = direction === 'down';
@@ -151,14 +169,8 @@ export default function FoodQuizScreen() {
       });
 
       if (isSkip) {
-        // Track skipped questions locally (not saved to DB)
-        const key = `${person.id}:${food.item}`;
-        setSkippedQuestions((prev) => {
-          const newSkipped = new Set(prev);
-          newSkipped.add(key);
-          saveSkippedQuestions(newSkipped);
-          return newSkipped;
-        });
+        // Save dismissal to database
+        saveDismissal.mutate({ personId: person.id, questionKey: food.item });
       } else {
         // Record LIKES or DISLIKES to save later
         setAnswers((prev) => [
@@ -182,7 +194,7 @@ export default function FoodQuizScreen() {
         setIsComplete(true);
       }
     },
-    [questionsToAsk.length, saveSkippedQuestions]
+    [questionsToAsk.length, saveDismissal]
   );
 
   const swipeCard = useCallback(

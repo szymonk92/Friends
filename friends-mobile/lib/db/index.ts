@@ -349,6 +349,27 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Create quiz_dismissals table
+    expoDb.execSync(`
+      CREATE TABLE IF NOT EXISTS quiz_dismissals (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        person_id TEXT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+        quiz_type TEXT NOT NULL,
+        question_key TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create index for quiz dismissals
+    try {
+      expoDb.execSync(
+        `CREATE INDEX IF NOT EXISTS quiz_dismissals_unique_idx ON quiz_dismissals(person_id, quiz_type, question_key);`
+      );
+    } catch {
+      // Index already exists
+    }
+
     dbLogger.info('Database schema initialized successfully');
     await initializeLocalUser();
   } catch (error) {

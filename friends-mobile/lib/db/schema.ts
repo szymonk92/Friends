@@ -523,6 +523,41 @@ export const pendingExtractions = sqliteTable(
 );
 
 // ============================================================================
+// QUIZ DISMISSALS TABLE
+// ============================================================================
+
+export const quizDismissals = sqliteTable(
+  'quiz_dismissals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    quizType: text('quiz_type', { enum: ['food', 'hobby', 'general'] }).notNull(),
+    questionKey: text('question_key').notNull(), // e.g., "Tomatoes", "Hiking"
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    userIdIdx: index('quiz_dismissals_user_id_idx').on(table.userId),
+    personIdIdx: index('quiz_dismissals_person_id_idx').on(table.personId),
+    quizTypeIdx: index('quiz_dismissals_quiz_type_idx').on(table.quizType),
+    // Unique constraint: one dismissal per person+quiz+question
+    uniqueDismissal: index('quiz_dismissals_unique_idx').on(
+      table.personId,
+      table.quizType,
+      table.questionKey
+    ),
+  })
+);
+
+// ============================================================================
 // REMINDERS TABLE
 // ============================================================================
 
@@ -597,6 +632,9 @@ export type NewFile = typeof files.$inferInsert;
 
 export type PendingExtraction = typeof pendingExtractions.$inferSelect;
 export type NewPendingExtraction = typeof pendingExtractions.$inferInsert;
+
+export type QuizDismissal = typeof quizDismissals.$inferSelect;
+export type NewQuizDismissal = typeof quizDismissals.$inferInsert;
 
 export type Reminder = typeof reminders.$inferSelect;
 export type NewReminder = typeof reminders.$inferInsert;
