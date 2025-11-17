@@ -214,6 +214,7 @@ export const relations = sqliteTable(
         'KNOWS',
         'LIKES',
         'DISLIKES',
+        'UNKNOWN',
         'ASSOCIATED_WITH',
         'EXPERIENCED',
         'HAS_SKILL',
@@ -237,7 +238,7 @@ export const relations = sqliteTable(
     objectType: text('object_type'),
     objectLabel: text('object_label').notNull(),
     metadata: text('metadata'),
-    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong'] }),
+    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong', 'unknown'] }),
     confidence: real('confidence').default(1.0),
     category: text('category'),
     source: text('source', {

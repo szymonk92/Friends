@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Animated, PanResponder, Dimensions, Alert } from 'react-native';
 import { Text, Button, Card, Chip, ProgressBar, IconButton } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
-import { useCreateRelation } from '@/hooks/useRelations';
+import { useCreateRelation, useRelations } from '@/hooks/useRelations';
 import { getInitials } from '@/lib/utils/format';
 
 const { width, height } = Dimensions.get('window');
@@ -38,17 +38,50 @@ interface Answer {
   personName: string;
   item: string;
   category: string;
-  preference: 'LIKES' | 'DISLIKES' | 'skip';
+  preference: 'LIKES' | 'DISLIKES' | 'UNKNOWN';
 }
 
 export default function FoodQuizScreen() {
   const { data: allPeople = [] } = usePeople();
+  const { data: existingRelations = [] } = useRelations();
   const createRelation = useCreateRelation();
 
   // Filter only primary people
   const primaryPeople = allPeople.filter((p) => p.personType === 'primary');
 
-  const [currentPersonIndex, setCurrentPersonIndex] = useState(0);
+  // Build a set of already-answered questions (person+food combinations)
+  const answeredQuestions = useMemo(() => {
+    const answered = new Set<string>();
+    for (const relation of existingRelations) {
+      if (
+        relation.relationType === 'LIKES' ||
+        relation.relationType === 'DISLIKES' ||
+        relation.relationType === 'UNKNOWN'
+      ) {
+        // Check if this is a food preference
+        const foodItems = FOOD_QUESTIONS.map((q) => q.item);
+        if (foodItems.includes(relation.objectLabel || '')) {
+          answered.add(`${relation.subjectId}:${relation.objectLabel}`);
+        }
+      }
+    }
+    return answered;
+  }, [existingRelations]);
+
+  // Generate list of unanswered questions for each person
+  const questionsToAsk = useMemo(() => {
+    const questions: Array<{ person: (typeof primaryPeople)[0]; food: (typeof FOOD_QUESTIONS)[0] }> = [];
+    for (const person of primaryPeople) {
+      for (const food of FOOD_QUESTIONS) {
+        const key = `${person.id}:${food.item}`;
+        if (!answeredQuestions.has(key)) {
+          questions.push({ person, food });
+        }
+      }
+    }
+    return questions;
+  }, [primaryPeople, answeredQuestions]);
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isComplete, setIsComplete] = useState(false);
@@ -56,85 +89,93 @@ export default function FoodQuizScreen() {
 
   const position = useRef(new Animated.ValueXY()).current;
 
-  const currentPerson = primaryPeople[currentPersonIndex];
-  const currentQuestion = FOOD_QUESTIONS[currentQuestionIndex];
+  const currentQuestion = questionsToAsk[currentQuestionIndex];
+  const currentPerson = currentQuestion?.person;
+  const currentFood = currentQuestion?.food;
 
-  const totalQuestions = primaryPeople.length * FOOD_QUESTIONS.length;
-  const completedQuestions = currentPersonIndex * FOOD_QUESTIONS.length + currentQuestionIndex;
-  const progress = totalQuestions > 0 ? completedQuestions / totalQuestions : 0;
+  const totalQuestions = questionsToAsk.length;
+  const progress = totalQuestions > 0 ? currentQuestionIndex / totalQuestions : 0;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gesture) => {
-        position.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dx > SWIPE_THRESHOLD) {
-          // Swipe right = LIKES
-          swipeCard('right');
-        } else if (gesture.dx < -SWIPE_THRESHOLD) {
-          // Swipe left = DISLIKES
-          swipeCard('left');
-        } else if (gesture.dy > SWIPE_THRESHOLD) {
-          // Swipe down = SKIP/IDK
-          swipeCard('down');
-        } else {
-          // Reset position
-          Animated.spring(position, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  // Use ref to avoid stale closure in panResponder
+  const stateRef = useRef({ currentQuestionIndex, currentPerson, currentFood });
+  stateRef.current = { currentQuestionIndex, currentPerson, currentFood };
 
-  const swipeCard = (direction: 'left' | 'right' | 'down') => {
-    const x = direction === 'right' ? width : direction === 'left' ? -width : 0;
-    const y = direction === 'down' ? height : 0;
+  const recordAnswer = useCallback(
+    (direction: 'left' | 'right' | 'down') => {
+      const { currentPerson: person, currentFood: food, currentQuestionIndex: qIndex } = stateRef.current;
+      if (!person || !food) return;
 
-    Animated.timing(position, {
-      toValue: { x, y },
-      duration: 200,
-      useNativeDriver: false,
-    }).start(() => {
-      recordAnswer(direction);
-      position.setValue({ x: 0, y: 0 });
-    });
-  };
+      const preference: 'LIKES' | 'DISLIKES' | 'UNKNOWN' =
+        direction === 'right' ? 'LIKES' : direction === 'left' ? 'DISLIKES' : 'UNKNOWN';
 
-  const recordAnswer = (direction: 'left' | 'right' | 'down') => {
-    if (!currentPerson || !currentQuestion) return;
-
-    const preference = direction === 'right' ? 'LIKES' : direction === 'left' ? 'DISLIKES' : 'skip';
-
-    // Only record if not skipped
-    if (preference !== 'skip') {
+      // Record ALL answers including UNKNOWN
       setAnswers((prev) => [
         ...prev,
         {
-          personId: currentPerson.id,
-          personName: currentPerson.name,
-          item: currentQuestion.item,
-          category: currentQuestion.category,
+          personId: person.id,
+          personName: person.name,
+          item: food.item,
+          category: food.category,
           preference,
         },
       ]);
-    }
 
-    // Move to next question
-    if (currentQuestionIndex < FOOD_QUESTIONS.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else if (currentPersonIndex < primaryPeople.length - 1) {
-      // Next person
-      setCurrentPersonIndex(currentPersonIndex + 1);
-      setCurrentQuestionIndex(0);
-    } else {
-      // Quiz complete
-      setIsComplete(true);
-    }
-  };
+      // Move to next question
+      if (qIndex < questionsToAsk.length - 1) {
+        setCurrentQuestionIndex(qIndex + 1);
+      } else {
+        // Quiz complete
+        setIsComplete(true);
+      }
+    },
+    [questionsToAsk.length]
+  );
+
+  const swipeCard = useCallback(
+    (direction: 'left' | 'right' | 'down') => {
+      const x = direction === 'right' ? width : direction === 'left' ? -width : 0;
+      const y = direction === 'down' ? height : 0;
+
+      Animated.timing(position, {
+        toValue: { x, y },
+        duration: 200,
+        useNativeDriver: false,
+      }).start(() => {
+        recordAnswer(direction);
+        position.setValue({ x: 0, y: 0 });
+      });
+    },
+    [position, recordAnswer]
+  );
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderMove: (_, gesture) => {
+          position.setValue({ x: gesture.dx, y: gesture.dy });
+        },
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx > SWIPE_THRESHOLD) {
+            // Swipe right = LIKES
+            swipeCard('right');
+          } else if (gesture.dx < -SWIPE_THRESHOLD) {
+            // Swipe left = DISLIKES
+            swipeCard('left');
+          } else if (gesture.dy > SWIPE_THRESHOLD) {
+            // Swipe down = SKIP/IDK
+            swipeCard('down');
+          } else {
+            // Reset position
+            Animated.spring(position, {
+              toValue: { x: 0, y: 0 },
+              useNativeDriver: false,
+            }).start();
+          }
+        },
+      }),
+    [position, swipeCard]
+  );
 
   const handleSaveAnswers = async () => {
     setIsSaving(true);
@@ -145,12 +186,12 @@ export default function FoodQuizScreen() {
       try {
         await createRelation.mutateAsync({
           subjectId: answer.personId,
-          relationType: answer.preference as 'LIKES' | 'DISLIKES',
+          relationType: answer.preference,
           objectLabel: answer.item,
           category: answer.category,
-          confidence: 0.7, // User-provided via quiz
+          confidence: answer.preference === 'UNKNOWN' ? 0.0 : 0.7, // User-provided via quiz
           source: 'question_mode',
-          intensity: 'medium',
+          intensity: answer.preference === 'UNKNOWN' ? 'unknown' : 'medium',
         });
         saved++;
       } catch (error) {
@@ -212,6 +253,24 @@ export default function FoodQuizScreen() {
     );
   }
 
+  if (questionsToAsk.length === 0 && !isComplete) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Food Quiz' }} />
+        <View style={styles.centered}>
+          <Text style={styles.completeIcon}>✅</Text>
+          <Text variant="titleLarge">All Questions Answered!</Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>
+            You've already answered all food preference questions for your people.
+          </Text>
+          <Button mode="contained" onPress={() => router.back()}>
+            Go Back
+          </Button>
+        </View>
+      </>
+    );
+  }
+
   if (isComplete) {
     return (
       <>
@@ -222,7 +281,7 @@ export default function FoodQuizScreen() {
             Quiz Complete!
           </Text>
           <Text variant="bodyLarge" style={styles.completeSummary}>
-            You answered questions for {primaryPeople.length} people.
+            You answered {answers.length} questions.
           </Text>
           <Text variant="titleMedium" style={styles.statsTitle}>
             Results:
@@ -233,6 +292,9 @@ export default function FoodQuizScreen() {
             </Chip>
             <Chip icon="thumb-down" style={styles.statChip}>
               {answers.filter((a) => a.preference === 'DISLIKES').length} Dislikes
+            </Chip>
+            <Chip icon="help-circle" style={styles.statChip}>
+              {answers.filter((a) => a.preference === 'UNKNOWN').length} Unknown
             </Chip>
           </View>
 
@@ -262,8 +324,7 @@ export default function FoodQuizScreen() {
         {/* Progress */}
         <View style={styles.progressContainer}>
           <Text variant="bodySmall" style={styles.progressText}>
-            Person {currentPersonIndex + 1} of {primaryPeople.length} • Question{' '}
-            {currentQuestionIndex + 1} of {FOOD_QUESTIONS.length}
+            Question {currentQuestionIndex + 1} of {totalQuestions}
           </Text>
           <ProgressBar progress={progress} style={styles.progressBar} />
         </View>
@@ -310,9 +371,9 @@ export default function FoodQuizScreen() {
                   Does {currentPerson?.name?.split(' ')[0]} like
                 </Text>
                 <Text variant="displaySmall" style={styles.foodItem}>
-                  {currentQuestion?.item}?
+                  {currentFood?.item}?
                 </Text>
-                <Chip style={styles.categoryChip}>{currentQuestion?.category}</Chip>
+                <Chip style={styles.categoryChip}>{currentFood?.category}</Chip>
               </Card.Content>
             </Card>
           </Animated.View>
