@@ -1,35 +1,17 @@
 import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
+import { usePeople } from '@/hooks/usePeople';
 
 export default function PeopleListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [people, setPeople] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Initialize with empty data for MVP
-    setTimeout(() => {
-      setIsLoading(false);
-      setPeople([]);
-    }, 500);
-  }, []);
+  const { data: people = [], isLoading, error, refetch } = usePeople();
 
   const filteredPeople = people.filter((person) =>
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const refetch = () => {
-    setIsLoading(true);
-    setError(null);
-    setTimeout(() => {
-      setIsLoading(false);
-      setPeople([]);
-    }, 500);
-  };
 
   if (isLoading) {
     return (

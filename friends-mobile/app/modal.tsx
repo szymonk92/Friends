@@ -21,6 +21,16 @@ export default function AddPersonModal() {
       return;
     }
 
+    if (name.trim().length > 255) {
+      Alert.alert('Name Too Long', 'Name must be 255 characters or less');
+      return;
+    }
+
+    if (nickname.trim().length > 255) {
+      Alert.alert('Nickname Too Long', 'Nickname must be 255 characters or less');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -67,6 +77,7 @@ export default function AddPersonModal() {
           onChangeText={setName}
           style={styles.input}
           autoFocus
+          maxLength={255}
         />
 
         <TextInput
@@ -76,6 +87,7 @@ export default function AddPersonModal() {
           value={nickname}
           onChangeText={setNickname}
           style={styles.input}
+          maxLength={255}
         />
 
         <Text variant="titleSmall" style={styles.label}>
