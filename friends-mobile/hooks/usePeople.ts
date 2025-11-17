@@ -37,40 +37,43 @@ export function usePeople() {
     queryKey: ['people'],
     queryFn: async () => {
       const userId = await getCurrentUserId();
-      const results = await db
-        .select({
-          id: people.id,
-          userId: people.userId,
-          name: people.name,
-          nickname: people.nickname,
-          photoId: people.photoId,
-          relationshipType: people.relationshipType,
-          metDate: people.metDate,
-          personType: people.personType,
-          status: people.status,
-          confidenceScore: people.confidenceScore,
-          importanceLevel: people.importanceLevel,
-          tags: people.tags,
-          notes: people.notes,
-          birthday: people.birthday,
-          email: people.email,
-          phone: people.phone,
-          address: people.address,
-          company: people.company,
-          jobTitle: people.jobTitle,
-          socialLinks: people.socialLinks,
-          createdAt: people.createdAt,
-          updatedAt: people.updatedAt,
-          deletedAt: people.deletedAt,
-          photoPath: files.filePath,
-        })
+
+      // First get all people
+      const peopleResults = await db
+        .select()
         .from(people)
-        .leftJoin(files, eq(people.photoId, files.id))
         .where(
           and(eq(people.userId, userId), ne(people.status, 'merged'), isNull(people.deletedAt))
         )
         .orderBy(desc(people.updatedAt));
-      return results;
+
+      // Then try to get photo paths for people with photoId
+      const photoIds = peopleResults
+        .filter((p) => p.photoId)
+        .map((p) => p.photoId as string);
+
+      let photoMap: Record<string, string> = {};
+      if (photoIds.length > 0) {
+        try {
+          const photosResults = await db
+            .select({ id: files.id, filePath: files.filePath })
+            .from(files)
+            .where(sql`${files.id} IN (${sql.join(photoIds.map((id) => sql`${id}`), sql`, `)})`);
+
+          for (const photo of photosResults) {
+            photoMap[photo.id] = photo.filePath;
+          }
+        } catch (error) {
+          // Files table might not exist yet, ignore
+          console.warn('Failed to fetch photo paths:', error);
+        }
+      }
+
+      // Combine results
+      return peopleResults.map((person) => ({
+        ...person,
+        photoPath: person.photoId ? photoMap[person.photoId] || null : null,
+      }));
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
