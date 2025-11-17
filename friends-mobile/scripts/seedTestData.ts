@@ -269,7 +269,8 @@ export async function seedTestData(count: number = 500) {
         userId,
         person1Id: person.id,
         person2Id: otherPerson.id,
-        connectionType: pickRandom(['friend', 'colleague', 'family', 'acquaintance', 'romantic_partner']),
+        relationshipType: pickRandom(['friend', 'colleague', 'family', 'acquaintance', 'partner']),
+        status: 'active' as const,
         strength: pickRandom(['strong', 'moderate', 'weak'] as const),
         source: 'test_seed' as const,
         notes: pickRandom([

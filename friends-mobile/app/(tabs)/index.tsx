@@ -1,6 +1,6 @@
-import { StyleSheet, View, FlatList, ScrollView } from 'react-native';
+import { StyleSheet, View, FlatList, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
@@ -9,7 +9,14 @@ import { useAllTags, parseTags } from '@/hooks/useTags';
 export default function PeopleListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: people = [], isLoading, error, refetch } = usePeople();
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
   const { data: allTags = [] } = useAllTags();
 
   const filteredPeople = people.filter((person) => {
@@ -111,6 +118,9 @@ export default function PeopleListScreen() {
       <FlatList
         data={filteredPeople}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#6200ee']} />
+        }
         renderItem={({ item }) => (
           <Card style={styles.card} onPress={() => router.push(`/person/${item.id}`)}>
             <Card.Content>
