@@ -2,6 +2,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { stories, type NewStory } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 /**
  * Hook to fetch all stories
