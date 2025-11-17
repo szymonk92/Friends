@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, View, FlatList, ScrollView, RefreshControl, Image } from 'react-native';
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button } from 'react-native-paper';
 import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
@@ -234,9 +234,13 @@ export default function PeopleListScreen() {
           <Card style={styles.card} onPress={() => router.push(`/person/${item.id}`)}>
             <Card.Content>
               <View style={styles.cardHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
-                </View>
+                {item.avatarUrl ? (
+                  <Image source={{ uri: item.avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+                  </View>
+                )}
                 <View style={styles.cardInfo}>
                   <Text variant="titleMedium" style={styles.name}>
                     {item.name}
@@ -401,6 +405,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
   },
   cardInfo: {
     flex: 1,
