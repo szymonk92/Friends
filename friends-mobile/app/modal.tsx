@@ -52,7 +52,18 @@ export default function AddPersonModal() {
         },
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add person. Please try again.');
+      // Handle specific error cases
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('already exists')) {
+        Alert.alert(
+          'Duplicate Name',
+          errorMessage,
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to add person. Please try again.');
+      }
       console.error('Create person error:', error);
     } finally {
       setIsSubmitting(false);
