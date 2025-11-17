@@ -11,6 +11,9 @@ import {
   initializeEncryptionKey,
   isSecretsSetup,
   checkBiometricStatus,
+  initializeWithPassword,
+  getEncryptionKeyWithPassword,
+  isPasswordBasedEncryption,
   type BiometricStatus,
 } from '@/lib/crypto/biometric-secrets';
 
@@ -262,5 +265,36 @@ export function useAuthenticateSecrets() {
       }
       return result;
     },
+  });
+}
+
+/**
+ * Hook to initialize secrets with password (for devices without biometrics)
+ */
+export function useInitializeWithPassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (password: string) => {
+      const success = await initializeWithPassword(password);
+      if (!success) {
+        throw new Error('Failed to initialize password-based encryption');
+      }
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['secretsSetup'] });
+      queryClient.invalidateQueries({ queryKey: ['passwordBasedEncryption'] });
+    },
+  });
+}
+
+/**
+ * Hook to check if using password-based encryption
+ */
+export function usePasswordBasedEncryption() {
+  return useQuery({
+    queryKey: ['passwordBasedEncryption'],
+    queryFn: isPasswordBasedEncryption,
   });
 }

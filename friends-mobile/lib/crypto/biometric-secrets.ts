@@ -255,9 +255,111 @@ export async function resetSecretsEncryption(): Promise<boolean> {
   try {
     await SecureStore.deleteItemAsync(ENCRYPTION_KEY_ALIAS);
     await SecureStore.deleteItemAsync(KEY_CHECK_ALIAS);
+    await SecureStore.deleteItemAsync(PASSWORD_HASH_ALIAS);
     return true;
   } catch (error) {
     console.error('Failed to reset secrets encryption:', error);
+    return false;
+  }
+}
+
+// ========== PASSWORD-BASED FALLBACK ==========
+
+const PASSWORD_HASH_ALIAS = 'secrets_password_hash';
+
+/**
+ * Derive encryption key from password using simple hash
+ * WARNING: This is a simplified implementation. For production, use PBKDF2 or Argon2.
+ */
+export async function deriveKeyFromPassword(password: string): Promise<string> {
+  // Hash password multiple times for basic key stretching
+  let hash = password;
+  for (let i = 0; i < 1000; i++) {
+    const hashBytes = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, hash);
+    hash = hashBytes;
+  }
+  return hash;
+}
+
+/**
+ * Initialize encryption with password (for devices without biometrics)
+ */
+export async function initializeWithPassword(password: string): Promise<boolean> {
+  try {
+    // Generate encryption key
+    const keyBytes = await Crypto.getRandomBytesAsync(32);
+    const key = Array.from(keyBytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Hash password for verification
+    const passwordHash = await deriveKeyFromPassword(password);
+
+    // Encrypt the key with password-derived key
+    const encryptedKey = await encryptContent(key, passwordHash);
+
+    // Store encrypted key and password hash
+    await SecureStore.setItemAsync(ENCRYPTION_KEY_ALIAS, encryptedKey);
+    await SecureStore.setItemAsync(PASSWORD_HASH_ALIAS, passwordHash);
+    await SecureStore.setItemAsync(KEY_CHECK_ALIAS, 'password');
+
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize with password:', error);
+    return false;
+  }
+}
+
+/**
+ * Verify password and get encryption key
+ */
+export async function getEncryptionKeyWithPassword(password: string): Promise<string | null> {
+  try {
+    const storedHash = await SecureStore.getItemAsync(PASSWORD_HASH_ALIAS);
+    const encryptedKey = await SecureStore.getItemAsync(ENCRYPTION_KEY_ALIAS);
+
+    if (!storedHash || !encryptedKey) {
+      throw new Error('Password-based encryption not initialized');
+    }
+
+    // Verify password
+    const passwordHash = await deriveKeyFromPassword(password);
+    if (passwordHash !== storedHash) {
+      throw new Error('Invalid password');
+    }
+
+    // Decrypt the encryption key
+    const key = await decryptContent(encryptedKey, passwordHash);
+    return key;
+  } catch (error) {
+    console.error('Failed to get encryption key with password:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if using password-based encryption
+ */
+export async function isPasswordBasedEncryption(): Promise<boolean> {
+  try {
+    const keyType = await SecureStore.getItemAsync(KEY_CHECK_ALIAS);
+    return keyType === 'password';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify if password is correct without returning key
+ */
+export async function verifyPassword(password: string): Promise<boolean> {
+  try {
+    const storedHash = await SecureStore.getItemAsync(PASSWORD_HASH_ALIAS);
+    if (!storedHash) return false;
+
+    const passwordHash = await deriveKeyFromPassword(password);
+    return passwordHash === storedHash;
+  } catch {
     return false;
   }
 }

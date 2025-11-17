@@ -21,6 +21,8 @@ import {
   useCreateSecret,
   useDecryptSecret,
   useDeleteSecret,
+  useInitializeWithPassword,
+  usePasswordBasedEncryption,
 } from '@/hooks/useSecrets';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { formatRelativeTime } from '@/lib/utils/format';
@@ -28,7 +30,9 @@ import { formatRelativeTime } from '@/lib/utils/format';
 export default function SecretsScreen() {
   const { data: biometricStatus, isLoading: loadingBiometric } = useBiometricStatus();
   const { data: isSetup, isLoading: loadingSetup } = useSecretsSetupStatus();
+  const { data: isPasswordBased } = usePasswordBasedEncryption();
   const initializeSecrets = useInitializeSecrets();
+  const initializeWithPassword = useInitializeWithPassword();
   const { data: secrets = [], isLoading: loadingSecrets } = useSecrets();
   const createSecret = useCreateSecret();
   const decryptSecret = useDecryptSecret();
@@ -36,8 +40,11 @@ export default function SecretsScreen() {
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showPasswordSetupDialog, setShowPasswordSetupDialog] = useState(false);
   const [newSecretTitle, setNewSecretTitle] = useState('');
   const [newSecretContent, setNewSecretContent] = useState('');
+  const [setupPassword, setSetupPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [viewedSecret, setViewedSecret] = useState<{
     id: string;
     title: string;
@@ -51,6 +58,44 @@ export default function SecretsScreen() {
     } catch (error) {
       Alert.alert('Setup Failed', error instanceof Error ? error.message : 'Unknown error');
     }
+  };
+
+  const handlePasswordSetup = async () => {
+    if (setupPassword.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (setupPassword !== confirmPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+      return;
+    }
+
+    Alert.alert(
+      'IMPORTANT WARNING',
+      'You are about to set a password for your secrets.\n\n' +
+        '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
+        'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
+        'Make sure you remember this password or write it down in a safe place.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'I Understand, Continue',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await initializeWithPassword.mutateAsync(setupPassword);
+              setShowPasswordSetupDialog(false);
+              setSetupPassword('');
+              setConfirmPassword('');
+              Alert.alert('Success', 'Password-based secrets protection has been set up!');
+            } catch (error) {
+              Alert.alert('Setup Failed', error instanceof Error ? error.message : 'Unknown error');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCreateSecret = async () => {
@@ -120,66 +165,150 @@ export default function SecretsScreen() {
     );
   }
 
-  // Check biometric availability
-  if (!biometricStatus?.isEnrolled) {
-    return (
-      <>
-        <Stack.Screen options={{ title: 'Secrets' }} />
-        <View style={styles.centered}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Biometric Required
-          </Text>
-          <Text variant="bodyMedium" style={styles.description}>
-            Secrets are protected by your device's biometric security (fingerprint or Face ID).
-          </Text>
-          <Text variant="bodyMedium" style={styles.warning}>
-            Please set up fingerprint or face recognition in your device settings to use this
-            feature.
-          </Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.button}>
-            Go Back
-          </Button>
-        </View>
-      </>
-    );
-  }
-
   // Setup screen if not initialized
   if (!isSetup) {
+    const hasBiometrics = biometricStatus?.isEnrolled;
+
     return (
       <>
         <Stack.Screen options={{ title: 'Setup Secrets' }} />
-        <View style={styles.centered}>
+        <ScrollView contentContainerStyle={styles.centered}>
           <Text variant="headlineSmall" style={styles.title}>
             Secure Your Secrets
           </Text>
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              <Text variant="bodyMedium" style={styles.infoText}>
-                Your secrets will be encrypted and protected by{' '}
-                <Text style={styles.bold}>
-                  {getBiometricTypeName(biometricStatus.biometricType)}
-                </Text>
-                .
-              </Text>
-              <Text variant="bodySmall" style={styles.infoSubtext}>
-                • Only you can access them with your biometrics{'\n'}• Data is encrypted on your
-                device{'\n'}• No one else can read your secrets
-              </Text>
-            </Card.Content>
-          </Card>
 
-          <Button
-            mode="contained"
-            icon="fingerprint"
-            onPress={handleSetup}
-            loading={initializeSecrets.isPending}
-            disabled={initializeSecrets.isPending}
-            style={styles.setupButton}
+          {hasBiometrics ? (
+            <Card style={styles.infoCard}>
+              <Card.Content>
+                <Text variant="bodyMedium" style={styles.infoText}>
+                  Your secrets will be encrypted and protected by{' '}
+                  <Text style={styles.bold}>
+                    {getBiometricTypeName(biometricStatus.biometricType)}
+                  </Text>
+                  .
+                </Text>
+                <Text variant="bodySmall" style={styles.infoSubtext}>
+                  • Only you can access them with your biometrics{'\n'}• Data is encrypted on your
+                  device{'\n'}• No one else can read your secrets
+                </Text>
+              </Card.Content>
+            </Card>
+          ) : (
+            <Card style={styles.infoCard}>
+              <Card.Content>
+                <Text variant="bodyMedium" style={styles.infoText}>
+                  Your device doesn't have biometrics enrolled. You can protect your secrets with a{' '}
+                  <Text style={styles.bold}>password</Text>.
+                </Text>
+                <Text variant="bodySmall" style={[styles.infoSubtext, styles.warningText]}>
+                  ⚠️ IMPORTANT: If you forget your password, your secrets CANNOT be recovered. There
+                  is NO password reset option.
+                </Text>
+              </Card.Content>
+            </Card>
+          )}
+
+          {hasBiometrics ? (
+            <Button
+              mode="contained"
+              icon="fingerprint"
+              onPress={handleSetup}
+              loading={initializeSecrets.isPending}
+              disabled={initializeSecrets.isPending}
+              style={styles.setupButton}
+            >
+              {initializeSecrets.isPending ? 'Setting up...' : 'Use Biometrics'}
+            </Button>
+          ) : (
+            <Button
+              mode="contained"
+              icon="lock"
+              onPress={() => setShowPasswordSetupDialog(true)}
+              style={styles.setupButton}
+            >
+              Set Up Password
+            </Button>
+          )}
+
+          {hasBiometrics && (
+            <Button
+              mode="outlined"
+              icon="lock"
+              onPress={() => setShowPasswordSetupDialog(true)}
+              style={styles.alternativeButton}
+            >
+              Use Password Instead
+            </Button>
+          )}
+        </ScrollView>
+
+        {/* Password Setup Dialog */}
+        <Portal>
+          <Dialog
+            visible={showPasswordSetupDialog}
+            onDismiss={() => {
+              setShowPasswordSetupDialog(false);
+              setSetupPassword('');
+              setConfirmPassword('');
+            }}
           >
-            {initializeSecrets.isPending ? 'Setting up...' : 'Enable Secrets Protection'}
-          </Button>
-        </View>
+            <Dialog.Title>Set Password</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodySmall" style={styles.warningBanner}>
+                ⚠️ WARNING: If you forget this password, your secrets CANNOT be recovered. Write it
+                down in a safe place!
+              </Text>
+              <TextInput
+                label="Password (min 8 characters)"
+                value={setupPassword}
+                onChangeText={setSetupPassword}
+                mode="outlined"
+                secureTextEntry
+                style={styles.input}
+              />
+              <TextInput
+                label="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                mode="outlined"
+                secureTextEntry
+                style={styles.input}
+              />
+              {setupPassword.length > 0 && setupPassword.length < 8 && (
+                <Text variant="bodySmall" style={styles.errorText}>
+                  Password must be at least 8 characters
+                </Text>
+              )}
+              {confirmPassword.length > 0 && setupPassword !== confirmPassword && (
+                <Text variant="bodySmall" style={styles.errorText}>
+                  Passwords do not match
+                </Text>
+              )}
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button
+                onPress={() => {
+                  setShowPasswordSetupDialog(false);
+                  setSetupPassword('');
+                  setConfirmPassword('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onPress={handlePasswordSetup}
+                loading={initializeWithPassword.isPending}
+                disabled={
+                  initializeWithPassword.isPending ||
+                  setupPassword.length < 8 ||
+                  setupPassword !== confirmPassword
+                }
+              >
+                Set Password
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </>
     );
   }
@@ -192,7 +321,7 @@ export default function SecretsScreen() {
         <Card style={styles.statusCard}>
           <Card.Content style={styles.statusContent}>
             <Chip icon="shield-lock" style={styles.statusChip}>
-              Protected by {getBiometricTypeName(biometricStatus.biometricType)}
+              Protected by {isPasswordBased ? 'Password' : getBiometricTypeName(biometricStatus?.biometricType || 'none')}
             </Chip>
             <Text variant="bodySmall" style={styles.statusText}>
               {secrets.length} secret(s) stored
@@ -431,5 +560,27 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontFamily: 'monospace',
+  },
+  alternativeButton: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+  },
+  warningText: {
+    color: '#f57c00',
+    fontWeight: '500',
+  },
+  warningBanner: {
+    backgroundColor: '#fff3e0',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    color: '#e65100',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  errorText: {
+    color: '#d32f2f',
+    marginTop: -8,
+    marginBottom: 8,
   },
 });
