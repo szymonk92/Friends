@@ -18,6 +18,7 @@ import {
   useContactEvents,
   useCreateContactEvent,
   useDeleteContactEvent,
+  useUpdateContactEvent,
 } from '@/hooks/useContactEvents';
 import { usePeople } from '@/hooks/usePeople';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
@@ -35,11 +36,13 @@ export default function TimelineScreen() {
   const { data: people = [] } = usePeople();
   const createEvent = useCreateContactEvent();
   const deleteEvent = useDeleteContactEvent();
+  const updateEvent = useUpdateContactEvent();
 
   const [addDialogVisible, setAddDialogVisible] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [eventType, setEventType] = useState('met');
-  const [eventDate, setEventDate] = useState(new Date());
+  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]); // Flexible: YYYY, YYYY-MM, or YYYY-MM-DD
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,48 +61,80 @@ export default function TimelineScreen() {
     return eventConfig?.label || type;
   };
 
+  const parseFlexibleDate = (input: string): Date | null => {
+    const trimmed = input.trim();
+    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
+
+    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
+      // Year only: YYYY -> Jan 1st of that year
+      return new Date(parts[0], 0, 1);
+    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
+      // Year-Month: YYYY-MM -> 1st of that month
+      return new Date(parts[0], parts[1] - 1, 1);
+    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
+      // Full date: YYYY-MM-DD
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return null;
+  };
+
   const handleAddEvent = async () => {
     if (!selectedPersonId) {
       Alert.alert('Select Person', 'Please select a person for this event');
       return;
     }
 
+    const parsedDate = parseFlexibleDate(dateInput);
+    if (!parsedDate) {
+      Alert.alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await createEvent.mutateAsync({
-        personId: selectedPersonId,
-        eventType: eventType as any,
-        notes: notes.trim() || undefined,
-        eventDate: eventDate,
-      });
+      if (editingEvent) {
+        await updateEvent.mutateAsync({
+          id: editingEvent.id,
+          personId: selectedPersonId,
+          eventType: eventType as any,
+          notes: notes.trim() || undefined,
+          eventDate: parsedDate,
+        });
+        Alert.alert('Success', 'Event updated!');
+      } else {
+        await createEvent.mutateAsync({
+          personId: selectedPersonId,
+          eventType: eventType as any,
+          notes: notes.trim() || undefined,
+          eventDate: parsedDate,
+        });
+        Alert.alert('Success', 'Event added to timeline!');
+      }
 
-      setAddDialogVisible(false);
-      setSelectedPersonId(null);
-      setEventType('met');
-      setEventDate(new Date());
-      setNotes('');
-      Alert.alert('Success', 'Event added to timeline!');
+      closeDialog();
     } catch (err) {
-      Alert.alert('Error', 'Failed to add event');
+      Alert.alert('Error', editingEvent ? 'Failed to update event' : 'Failed to add event');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatDateForInput = (date: Date) => {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const closeDialog = () => {
+    setAddDialogVisible(false);
+    setEditingEvent(null);
+    setSelectedPersonId(null);
+    setEventType('met');
+    setDateInput(new Date().toISOString().split('T')[0]);
+    setNotes('');
   };
 
-  const handleDateChange = (dateString: string) => {
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // months are 0-indexed
-      const day = parseInt(parts[2], 10);
-      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-        setEventDate(new Date(year, month, day));
-      }
-    }
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    setSelectedPersonId(event.personId);
+    setEventType(event.eventType);
+    setDateInput(new Date(event.eventDate).toISOString().split('T')[0]);
+    setNotes(event.notes || '');
+    setAddDialogVisible(true);
   };
 
   const handleDeleteEvent = (eventId: string) => {
@@ -159,11 +194,18 @@ export default function TimelineScreen() {
                   {formatRelativeTime(new Date(item.eventDate))}
                 </Text>
               </View>
-              <IconButton
-                icon="delete-outline"
-                size={20}
-                onPress={() => handleDeleteEvent(item.id)}
-              />
+              <View style={styles.eventActions}>
+                <IconButton
+                  icon="pencil-outline"
+                  size={20}
+                  onPress={() => handleEditEvent(item)}
+                />
+                <IconButton
+                  icon="delete-outline"
+                  size={20}
+                  onPress={() => handleDeleteEvent(item.id)}
+                />
+              </View>
             </View>
 
             <View style={styles.personRow}>
@@ -238,10 +280,10 @@ export default function TimelineScreen() {
 
       <FAB icon="plus" style={styles.fab} onPress={() => setAddDialogVisible(true)} />
 
-      {/* Add Event Dialog */}
+      {/* Add/Edit Event Dialog */}
       <Portal>
-        <Dialog visible={addDialogVisible} onDismiss={() => setAddDialogVisible(false)}>
-          <Dialog.Title>Add Timeline Event</Dialog.Title>
+        <Dialog visible={addDialogVisible} onDismiss={closeDialog}>
+          <Dialog.Title>{editingEvent ? 'Edit Timeline Event' : 'Add Timeline Event'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="titleSmall" style={styles.dialogLabel}>
               Person
@@ -288,16 +330,15 @@ export default function TimelineScreen() {
             />
 
             <Text variant="titleSmall" style={styles.dialogLabel}>
-              Event Date
+              Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)
             </Text>
             <TextInput
               mode="outlined"
               label="Date"
-              placeholder="YYYY-MM-DD"
-              value={formatDateForInput(eventDate)}
-              onChangeText={handleDateChange}
+              placeholder="2024 or 2024-03 or 2024-03-15"
+              value={dateInput}
+              onChangeText={setDateInput}
               style={styles.dateInput}
-              keyboardType="numeric"
             />
 
             <TextInput
@@ -312,9 +353,9 @@ export default function TimelineScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setAddDialogVisible(false)}>Cancel</Button>
+            <Button onPress={closeDialog}>Cancel</Button>
             <Button onPress={handleAddEvent} loading={isSubmitting} disabled={isSubmitting}>
-              Add
+              {editingEvent ? 'Save' : 'Add'}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -392,6 +433,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  eventActions: {
+    flexDirection: 'row',
   },
   eventDate: {
     opacity: 0.6,

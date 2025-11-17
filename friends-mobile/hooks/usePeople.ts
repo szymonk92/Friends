@@ -1,8 +1,33 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+
+/**
+ * Check if a person name already exists (case-insensitive)
+ */
+async function checkNameExists(
+  userId: string,
+  name: string,
+  excludeId?: string
+): Promise<boolean> {
+  const normalizedName = name.trim().toLowerCase();
+  const existingPeople = await db
+    .select()
+    .from(people)
+    .where(
+      and(
+        eq(people.userId, userId),
+        sql`lower(${people.name}) = ${normalizedName}`,
+        isNull(people.deletedAt),
+        ne(people.status, 'merged'),
+        excludeId ? ne(people.id, excludeId) : sql`1=1`
+      )
+    )
+    .limit(1);
+  return existingPeople.length > 0;
+}
 
 /**
  * Hook to fetch all people
@@ -46,6 +71,12 @@ export function useCreatePerson() {
   return useMutation({
     mutationFn: async (data: Omit<NewPerson, 'userId'>) => {
       const userId = await getCurrentUserId();
+
+      // Check for duplicate name
+      if (data.name && (await checkNameExists(userId, data.name))) {
+        throw new Error(`A person named "${data.name}" already exists`);
+      }
+
       const result = (await db
         .insert(people)
         .values({
@@ -70,6 +101,14 @@ export function useUpdatePerson() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Person> & { id: string }) => {
+      // Check for duplicate name if name is being updated
+      if (data.name) {
+        const userId = await getCurrentUserId();
+        if (await checkNameExists(userId, data.name, id)) {
+          throw new Error(`A person named "${data.name}" already exists`);
+        }
+      }
+
       const result = (await db
         .update(people)
         .set({ ...data, updatedAt: new Date() })

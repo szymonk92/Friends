@@ -89,3 +89,30 @@ export function useDeleteContactEvent() {
     },
   });
 }
+
+/**
+ * Hook to update a contact event
+ */
+export function useUpdateContactEvent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: Partial<NewContactEvent> & { id: string }) => {
+      const result = (await db
+        .update(contactEvents)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(contactEvents.id, id))
+        .returning()) as any[];
+      return result[0];
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['contactEvents'] });
+      if (data?.personId) {
+        queryClient.invalidateQueries({ queryKey: ['contactEvents', 'person', data.personId] });
+      }
+    },
+  });
+}
