@@ -17,7 +17,7 @@ import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { useState, useEffect } from 'react';
-import { useSettings } from '@/store/useSettings';
+import { useSettings, THEME_COLORS, type ThemeColor } from '@/store/useSettings';
 import {
   getBirthdayReminderSettings,
   saveBirthdayReminderSettings,
@@ -42,7 +42,7 @@ export default function SettingsScreen() {
   const [importLoading, setImportLoading] = useState(false);
 
   // API Key state
-  const { apiKey, setApiKey, clearApiKey, loadApiKey, hasApiKey } = useSettings();
+  const { apiKey, setApiKey, clearApiKey, loadApiKey, hasApiKey, themeColor, setThemeColor, loadThemeColor } = useSettings();
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
 
@@ -58,6 +58,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadApiKey();
+    loadThemeColor();
     loadBirthdaySettings();
     loadRelationshipColors();
   }, []);
@@ -206,6 +207,45 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen options={{ title: 'Settings' }} />
       <ScrollView style={styles.container}>
+        {/* Appearance */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Appearance
+            </Text>
+            <Divider style={styles.divider} />
+
+            <Text variant="bodySmall" style={styles.description}>
+              Customize the look and feel of the app by choosing your preferred theme color.
+            </Text>
+
+            <Text variant="labelMedium" style={styles.themeLabel}>
+              Theme Color
+            </Text>
+            <View style={styles.themeGrid}>
+              {(Object.keys(THEME_COLORS) as ThemeColor[]).map((color) => (
+                <Button
+                  key={color}
+                  mode={themeColor === color ? 'contained' : 'outlined'}
+                  onPress={() => setThemeColor(color)}
+                  style={[
+                    styles.themeButton,
+                    themeColor === color && { backgroundColor: THEME_COLORS[color] },
+                  ]}
+                  labelStyle={[
+                    styles.themeButtonLabel,
+                    themeColor !== color && { color: THEME_COLORS[color] },
+                  ]}
+                  contentStyle={styles.themeButtonContent}
+                >
+                  <View style={[styles.themeColorDot, { backgroundColor: THEME_COLORS[color] }]} />
+                  {color.charAt(0).toUpperCase() + color.slice(1)}
+                </Button>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
         {/* AI Configuration */}
         <Card style={styles.card}>
           <Card.Content>
@@ -755,5 +795,32 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
+  },
+  themeLabel: {
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  themeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  themeButton: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  themeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  themeButtonLabel: {
+    fontSize: 14,
+  },
+  themeColorDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 4,
   },
 });

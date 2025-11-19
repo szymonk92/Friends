@@ -23,7 +23,7 @@ module.exports = [
     ],
   },
   {
-    files: ['lib/**/*.{ts,tsx}'], // Only lint lib directory strictly
+    files: ['lib/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'], // Lint lib and scripts directories strictly
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -38,7 +38,7 @@ module.exports = [
       '@typescript-eslint': tsPlugin,
     },
     rules: {
-      'no-console': 'warn',
+      'no-console': ['warn', { allow: ['debug', 'info', 'warn', 'error', 'log'] }],
       '@typescript-eslint/no-unused-vars': [
         'error', // Error for lib code (strict)
         {

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { StyleSheet, View, Dimensions, Image } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -75,6 +76,7 @@ const steps: OnboardingStep[] = [
 
 export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -91,10 +93,10 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     try {
       await SecureStore.setItemAsync(ONBOARDING_COMPLETE_KEY, 'true');
-      router.replace('/(tabs)/');
+      router.replace('/');
     } catch (error) {
       console.error('Failed to save onboarding state:', error);
-      router.replace('/(tabs)/');
+      router.replace('/');
     }
   };
 
@@ -108,7 +110,7 @@ export default function OnboardingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
         {/* Skip button */}
         {!isLastStep && (
           <Button mode="text" onPress={handleSkip} style={styles.skipButton}>
@@ -130,13 +132,20 @@ export default function OnboardingScreen() {
         <View style={styles.content}>
           <Card style={styles.card}>
             <Card.Content style={styles.cardContent}>
-              <Text variant="displaySmall" style={styles.icon}>
-                {step.icon === 'account-group' && '👥'}
-                {step.icon === 'book-open-page-variant' && '📖'}
-                {step.icon === 'account-details' && '👤'}
-                {step.icon === 'shield-lock' && '🔒'}
-                {step.icon === 'rocket-launch' && '🚀'}
-              </Text>
+              {step.icon === 'account-group' ? (
+                <Image 
+                  source={require('@/assets/images/icon.png')} 
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text variant="displaySmall" style={styles.icon}>
+                  {step.icon === 'book-open-page-variant' && '📖'}
+                  {step.icon === 'account-details' && '👤'}
+                  {step.icon === 'shield-lock' && '🔒'}
+                  {step.icon === 'rocket-launch' && '🚀'}
+                </Text>
+              )}
 
               <Text variant="headlineMedium" style={styles.title}>
                 {step.title}
@@ -210,14 +219,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingTop: 60,
     paddingBottom: 40,
   },
   skipButton: {
     position: 'absolute',
-    top: 50,
+    top: 10,
     right: 16,
     zIndex: 10,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 16,
   },
   progressContainer: {
     flexDirection: 'row',

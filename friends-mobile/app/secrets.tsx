@@ -13,6 +13,7 @@ import {
   Portal,
   Menu,
 } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import {
   useBiometricStatus,
@@ -30,6 +31,7 @@ import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { formatRelativeTime } from '@/lib/utils/format';
 
 export default function SecretsScreen() {
+  const insets = useSafeAreaInsets();
   const { data: biometricStatus, isLoading: loadingBiometric } = useBiometricStatus();
   const { data: isSetup, isLoading: loadingSetup } = useSecretsSetupStatus();
   const { data: isPasswordBased } = usePasswordBasedEncryption();
@@ -485,7 +487,7 @@ export default function SecretsScreen() {
 
         <FAB
           icon="plus"
-          style={styles.fab}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => setShowCreateDialog(true)}
           label="Add Secret"
         />
@@ -750,7 +752,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     margin: 16,
     right: 0,
-    bottom: 0,
   },
   input: {
     marginBottom: 12,

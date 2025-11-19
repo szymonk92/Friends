@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
+import { Link, Tabs, router } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useSettings } from '@/store/useSettings';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -17,11 +18,18 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { loadThemeColor, getThemeColorValue } = useSettings();
+
+  useEffect(() => {
+    loadThemeColor();
+  }, []);
+
+  const themeColor = getThemeColorValue();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: themeColor,
         headerShown: useClientOnlyValue(false, true),
       }}
     >
@@ -30,27 +38,7 @@ export default function TabLayout() {
         options={{
           title: 'People',
           tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-          headerRight: () => (
-            <Link href="/settings" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="cog"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Add Story',
-          tabBarIcon: ({ color }) => <TabBarIcon name="plus-circle" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -58,6 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Stories',
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -65,6 +54,7 @@ export default function TabLayout() {
         options={{
           title: 'Timeline',
           tabBarIcon: ({ color }) => <TabBarIcon name="clock-o" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -72,6 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Network',
           tabBarIcon: ({ color }) => <TabBarIcon name="share-alt" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -79,6 +70,7 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
+          headerShown: false,
         }}
       />
     </Tabs>

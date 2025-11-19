@@ -6,6 +6,13 @@ import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
 
 /**
+ * Extended Person type that includes photoPath from file system
+ */
+export type PersonWithPhoto = Person & {
+  photoPath: string | null;
+};
+
+/**
  * Check if a person name already exists (case-insensitive)
  */
 async function checkNameExists(
@@ -34,9 +41,9 @@ async function checkNameExists(
  * Hook to fetch all people
  */
 export function usePeople() {
-  return useQuery({
+  return useQuery<PersonWithPhoto[]>({
     queryKey: ['people'],
-    queryFn: async () => {
+    queryFn: async (): Promise<PersonWithPhoto[]> => {
       const perf = logPerformance(peopleLogger, 'fetchAllPeople');
       const userId = await getCurrentUserId();
       peopleLogger.debug('Fetching people', { userId });
@@ -53,9 +60,20 @@ export function usePeople() {
             ne(people.personType, 'self')
           )
         )
-        .orderBy(desc(people.updatedAt));
+        .orderBy(desc(people.updatedAt)) as Person[];
 
       peopleLogger.info('People fetched', { count: peopleResults.length });
+      
+      console.log('[usePeople] Fetched people:', {
+        count: peopleResults.length,
+        sample: peopleResults.slice(0, 3).map(p => ({
+          id: p.id,
+          name: p.name,
+          relationshipType: p.relationshipType,
+          personType: p.personType,
+          hasPhotoId: !!p.photoId,
+        })),
+      });
 
       // Then try to get photo paths for people with photoId
       const photoIds = peopleResults
@@ -81,7 +99,7 @@ export function usePeople() {
       }
 
       // Combine results
-      const result = peopleResults.map((person) => ({
+      const result: PersonWithPhoto[] = peopleResults.map((person) => ({
         ...person,
         photoPath: person.photoId ? photoMap[person.photoId] || null : null,
       }));

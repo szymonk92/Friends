@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import {
   Text,
@@ -11,10 +11,10 @@ import {
   TextInput,
   SegmentedButtons,
 } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
-import { useCreateEvent } from '@/hooks/useEvents';
+import { useCreateEvent, useEvents } from '@/hooks/useEvents';
 import { getInitials, formatRelationType } from '@/lib/utils/format';
 
 interface Guest {
@@ -25,8 +25,13 @@ interface Guest {
 }
 
 export default function PartyPlannerScreen() {
+  const params = useLocalSearchParams();
+  const eventId = params.eventId as string | undefined;
+  const initialMode = (params.mode as string) === 'party';
+
   const { data: allPeople = [] } = usePeople();
   const { data: allRelations = [] } = useRelations();
+  const { data: allEvents = [] } = useEvents();
   const createEvent = useCreateEvent();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,15 +40,77 @@ export default function PartyPlannerScreen() {
   const [partyDate, setPartyDate] = useState('');
   const [partyLocation, setPartyLocation] = useState('');
   const [partyType, setPartyType] = useState<'dinner' | 'party' | 'gathering'>('dinner');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(initialMode);
+
+  // Load existing event if eventId provided
+  useEffect(() => {
+    if (eventId) {
+      const event = allEvents.find((e) => e.id === eventId);
+      if (event) {
+        setPartyName(event.name || '');
+        setPartyDate(event.eventDate || '');
+        setPartyLocation(event.location || '');
+        setPartyType((event.eventType as any) || 'party');
+        
+        // Load guests
+        if (event.guestIds) {
+          try {
+            const guestIds = JSON.parse(event.guestIds);
+            setSelectedGuests(guestIds);
+          } catch (e) {
+            console.error('Failed to parse guest IDs:', e);
+          }
+        }
+      }
+    }
+  }, [eventId, allEvents]);
 
   // Filter primary people
   const primaryPeople = allPeople.filter((p) => p.personType === 'primary');
 
-  // Filter by search
-  const filteredPeople = primaryPeople.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter by search with ranking
+  const filteredPeople = primaryPeople
+    .filter((p) => {
+      if (!searchQuery) return true;
+
+      const query = searchQuery.toLowerCase();
+      const name = p.name.toLowerCase();
+
+      if (name === query) return true; // Exact match
+      if (name.startsWith(query)) return true; // Starts with
+      if (name.includes(query)) return true; // Contains
+
+      return false;
+    })
+    .sort((a, b) => {
+      // Sort selected people to the end
+      const aSelected = selectedGuests.includes(a.id);
+      const bSelected = selectedGuests.includes(b.id);
+      
+      if (aSelected !== bSelected) {
+        return aSelected ? 1 : -1; // Selected go to end
+      }
+
+      // Then sort by search score
+      if (!searchQuery) return 0;
+
+      const query = searchQuery.toLowerCase();
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+
+      // Calculate scores
+      const getScore = (name: string) => {
+        if (name === query) return 3;
+        if (name.startsWith(query)) return 2;
+        if (name.includes(query)) return 1;
+        return 0;
+      };
+
+      const aScore = getScore(aName);
+      const bScore = getScore(bName);
+
+      return bScore - aScore; // Higher score first
+    });
 
   // Get guest data with their preferences
   const guestData: Guest[] = useMemo(() => {

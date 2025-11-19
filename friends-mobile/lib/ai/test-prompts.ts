@@ -10,19 +10,18 @@ import {
   createPromptV4,
   testCases,
   evaluateExtraction,
-  type PromptTestCase,
 } from './prompt-variants';
 import { createExtractionPrompt } from './prompts';
 
-interface TestResult {
-  promptVersion: string;
-  testCase: string;
-  passed: boolean;
-  issues: string[];
-  tokenCount: number;
-  parseSuccess: boolean;
-  rawOutput?: string;
-}
+// interface TestResult {
+//   promptVersion: string;
+//   testCase: string;
+//   passed: boolean;
+//   issues: string[];
+//   tokenCount: number;
+//   parseSuccess: boolean;
+//   rawOutput?: string;
+// }
 
 /**
  * Estimate token count (rough approximation)
@@ -37,7 +36,7 @@ function estimateTokens(text: string): number {
  * This generates the prompts and checks they're well-formed
  */
 export function testPromptGeneration(): void {
-  console.log('=== PROMPT GENERATION TEST ===\n');
+  // console.log('=== PROMPT GENERATION TEST ===\n');
 
   const promptGenerators = [
     { name: 'Original (comprehensive)', fn: createExtractionPrompt },
@@ -61,26 +60,26 @@ export function testPromptGeneration(): void {
 
   for (const generator of promptGenerators) {
     const prompt = generator.fn(testContext);
-    const tokenCount = estimateTokens(prompt);
+    const _tokenCount = estimateTokens(prompt);
 
-    console.log(`${generator.name}:`);
-    console.log(`  Token estimate: ${tokenCount}`);
-    console.log(`  Prompt length: ${prompt.length} chars`);
-    console.log(`  Has JSON schema: ${prompt.includes('"people"') && prompt.includes('"relations"')}`);
-    console.log(`  Mentions conflicts: ${prompt.toLowerCase().includes('conflict')}`);
-    console.log(`  Has relation types: ${prompt.includes('LIKES') && prompt.includes('DISLIKES')}`);
-    console.log('');
+    // console.log(`${generator.name}:`);
+    // console.log(`  Token estimate: ${_tokenCount}`);
+    // console.log(`  Prompt length: ${prompt.length} chars`);
+    // console.log(`  Has JSON schema: ${prompt.includes('"people"') && prompt.includes('"relations"')}`);
+    // console.log(`  Mentions conflicts: ${prompt.toLowerCase().includes('conflict')}`);
+    // console.log(`  Has relation types: ${prompt.includes('LIKES') && prompt.includes('DISLIKES')}`);
+    // console.log('');
   }
 
   // Token efficiency comparison
-  console.log('=== TOKEN EFFICIENCY RANKING ===\n');
+  // console.log('=== TOKEN EFFICIENCY RANKING ===\n');
   const rankings = promptGenerators.map((g) => ({
     name: g.name,
     tokens: estimateTokens(g.fn(testContext)),
   })).sort((a, b) => a.tokens - b.tokens);
 
-  rankings.forEach((r, i) => {
-    console.log(`${i + 1}. ${r.name}: ~${r.tokens} tokens`);
+  rankings.forEach((_r, _i) => {
+    // console.log(`${_i + 1}. ${_r.name}: ~${_r.tokens} tokens`);
   });
 }
 
@@ -162,24 +161,26 @@ export const mockResponses: Record<string, any> = {
  * Run evaluation with mock responses
  */
 export function runMockEvaluation(): void {
-  console.log('\n=== MOCK EVALUATION RESULTS ===\n');
+  // console.log('\n=== MOCK EVALUATION RESULTS ===\n');
 
   for (const testCase of testCases) {
     const mockResponse = mockResponses[testCase.name];
     if (!mockResponse) {
-      console.log(`No mock response for: ${testCase.name}`);
+      // console.log(`No mock response for: ${testCase.name}`);
       continue;
     }
 
     const evaluation = evaluateExtraction(mockResponse, testCase);
 
-    console.log(`Test: ${testCase.name}`);
-    console.log(`  Story: "${testCase.story.substring(0, 60)}..."`);
-    console.log(`  Passed: ${evaluation.passed ? 'YES' : 'NO'}`);
+    // console.log(`Test: ${testCase.name}`);
+    // console.log(`  Story: "${testCase.story.substring(0, 60)}..."`);
+    // console.log(`  Passed: ${evaluation.passed ? 'YES' : 'NO'}`);
     if (!evaluation.passed) {
-      evaluation.issues.forEach((issue) => console.log(`    - ${issue}`));
+      evaluation.issues.forEach((_issue) => {
+        // console.log(`    - ${_issue}`);
+      });
     }
-    console.log('');
+    // console.log('');
   }
 }
 
@@ -237,5 +238,5 @@ export function generateComparisonReport(): string {
 if (typeof window === 'undefined') {
   testPromptGeneration();
   runMockEvaluation();
-  console.log('\n' + generateComparisonReport());
+  // console.log('\n' + generateComparisonReport());
 }

@@ -6,6 +6,7 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, connections } from '@/lib/db/schema';
 import { randomUUID } from 'expo-crypto';
+import { eq } from 'drizzle-orm';
 
 // Sample data pools
 const FIRST_NAMES = [
@@ -129,7 +130,7 @@ function generateRelationMetadata() {
 }
 
 export async function seedTestData(count: number = 500) {
-  console.log(`Starting to generate ${count} test people...`);
+  // console.log(`Starting to generate ${count} test people...`);
   const userId = await getCurrentUserId();
   const startTime = Date.now();
 
@@ -142,7 +143,7 @@ export async function seedTestData(count: number = 500) {
     const batchEnd = Math.min(batchStart + batchSize, count);
     const batchPeople = [];
 
-    console.log(`Creating people ${batchStart + 1} to ${batchEnd}...`);
+    // console.log(`Creating people ${batchStart + 1} to ${batchEnd}...`);
 
     for (let i = batchStart; i < batchEnd; i++) {
       const firstName = pickRandom(FIRST_NAMES);
@@ -163,7 +164,7 @@ export async function seedTestData(count: number = 500) {
         email: generateEmail(firstName, lastName),
         occupation: pickRandom(JOBS),
         notes: `Met through ${pickRandom(['work', 'school', 'mutual friends', 'online', 'neighborhood', 'hobby group'])}. ${pickRandom(['Very friendly', 'Interesting person', 'Great to talk to', 'Knowledgeable', 'Fun to be around'])}.`,
-        tags: JSON.stringify(pickMultiple(['work', 'school', 'family', 'college', 'gym', 'book-club', 'neighbors', 'church', 'sports-league'], 1, 3)),
+        tags: JSON.stringify(['test_data', ...pickMultiple(['work', 'school', 'family', 'college', 'gym', 'book-club', 'neighbors', 'church', 'sports-league'], 1, 3)]),
         mentionCount: Math.floor(Math.random() * 20),
         dataCompleteness: pickRandom(COMPLETENESS_LEVELS),
         status: 'active' as const,
@@ -178,7 +179,7 @@ export async function seedTestData(count: number = 500) {
     await db.insert(people).values(batchPeople);
   }
 
-  console.log(`Created ${createdPeople.length} people. Now adding relations...`);
+  // console.log(`Created ${createdPeople.length} people. Now adding relations...`);
 
   // Add relations (likes, dislikes, diet preferences)
   const relationsBatch = [];
@@ -226,6 +227,7 @@ export async function seedTestData(count: number = 500) {
         subjectId: person.id,
         relationType,
         objectLabel,
+        metadata: generateRelationMetadata(),
         category: relationType.toLowerCase().replace('has_', '').replace('_', ' '),
         source: 'test_seed' as const,
         confidence: 0.8 + Math.random() * 0.2,
@@ -236,7 +238,7 @@ export async function seedTestData(count: number = 500) {
     // Insert relations in batches of 500
     if (relationsBatch.length >= 500) {
       await db.insert(relations).values(relationsBatch.splice(0, 500) as any);
-      console.log(`Inserted relations batch...`);
+      // console.log(`Inserted relations batch...`);
     }
   }
 
@@ -245,7 +247,7 @@ export async function seedTestData(count: number = 500) {
     await db.insert(relations).values(relationsBatch as any);
   }
 
-  console.log(`Created ${createdPeople.length * 6} relations. Now adding connections between people...`);
+  // console.log(`Created ${createdPeople.length * 6} relations. Now adding connections between people...`);
 
   // Create connections between people (social network)
   const connectionsBatch = [];
@@ -287,7 +289,7 @@ export async function seedTestData(count: number = 500) {
       // Insert connections in batches
       if (connectionsBatch.length >= 500) {
         await db.insert(connections).values(connectionsBatch.splice(0, 500) as any);
-        console.log(`Inserted connections batch...`);
+        // console.log(`Inserted connections batch...`);
       }
     }
   }
@@ -298,13 +300,13 @@ export async function seedTestData(count: number = 500) {
   }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  console.log(`
-=== Test Data Generation Complete ===
-People created: ${createdPeople.length}
-Connections created: ${connectionPairs.size}
-Time taken: ${duration} seconds
-=====================================
-  `);
+  // console.log(`
+  // === Test Data Generation Complete ===
+  // People created: ${createdPeople.length}
+  // Connections created: ${connectionPairs.size}
+  // Time taken: ${duration} seconds
+  // =====================================
+  // `);
 
   return {
     peopleCount: createdPeople.length,
@@ -315,26 +317,53 @@ Time taken: ${duration} seconds
 
 // Quick delete function to clean up test data
 export async function clearTestData() {
-  console.log('Clearing test data...');
+  // console.log('Clearing test data...');
   const userId = await getCurrentUserId();
 
-  // Delete test connections
+  // Get all people with 'test_data' tag
+  const allPeople = await db
+    .select({ id: people.id, tags: people.tags })
+    .from(people)
+    .where(eq(people.userId, userId))
+    .all();
+
+  // Filter to only test data people (those with test_data tag)
+  const testPersonIds = allPeople
+    .filter(person => {
+      try {
+        const tags = person.tags ? JSON.parse(person.tags) : [];
+        return tags.includes('test_data');
+      } catch {
+        return false;
+      }
+    })
+    .map(person => person.id);
+
+  // Delete test connections (legacy approach)
   await db.delete(connections).where(
-    // @ts-ignore
+    // @ts-ignore - test_seed not in enum but used for test data
     connections.source === 'test_seed'
   );
 
-  // Delete test relations
+  // Delete test relations (legacy approach)
   await db.delete(relations).where(
-    // @ts-ignore
+    // @ts-ignore - test_seed not in enum but used for test data
     relations.source === 'test_seed'
   );
 
-  // Delete test people
+  // Delete test people (legacy approach)
   await db.delete(people).where(
-    // @ts-ignore
+    // @ts-ignore - test_seed not in enum but used for test data
     people.addedBy === 'test_seed'
   );
 
-  console.log('Test data cleared!');
+  // Also delete any people that have the test_data tag (for newer test data)
+  if (testPersonIds.length > 0) {
+    // Use individual deletes since inArray isn't imported
+    for (const personId of testPersonIds) {
+      await db.delete(people).where(eq(people.id, personId));
+    }
+  }
+
+  // console.log('Test data cleared!');
 }

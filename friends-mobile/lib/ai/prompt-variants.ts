@@ -12,7 +12,7 @@ import type { ExtractionContext } from './prompts';
  * Cons: May miss edge cases
  */
 export function createPromptV1(context: ExtractionContext): string {
-  const { existingPeople, existingRelations, storyText } = context;
+  const { existingPeople, existingRelations: _existingRelations, storyText } = context;
 
   const peopleList = existingPeople.length > 0
     ? existingPeople.map(p => `${p.name} (${p.id})`).join(', ')
@@ -133,7 +133,7 @@ RESPOND WITH JSON:
  * Cons: Long prompt, highest token usage
  */
 export function createPromptV3(context: ExtractionContext): string {
-  const { existingPeople, existingRelations, storyText } = context;
+  const { existingPeople, existingRelations: _existingRelations, storyText } = context;
 
   const peopleList = existingPeople.length > 0
     ? existingPeople.map(p => `- ${p.name} (${p.id})`).join('\n')

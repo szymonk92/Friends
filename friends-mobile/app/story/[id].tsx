@@ -148,9 +148,11 @@ export default function StoryDetailScreen() {
         options={{
           title: story.title || 'Story Details',
           headerRight: () => (
-            <Button mode="text" onPress={handleDelete} textColor="#d32f2f" compact>
-              Delete
-            </Button>
+            <View style={{ marginRight: 16 }}>
+              <Button mode="text" onPress={handleDelete} textColor="#d32f2f" compact>
+                Delete
+              </Button>
+            </View>
           ),
         }}
       />

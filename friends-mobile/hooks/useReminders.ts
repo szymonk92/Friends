@@ -7,20 +7,29 @@ import { Platform } from 'react-native';
 
 // Lazy load notifications to avoid crash if not configured
 let Notifications: any = null;
-try {
-  Notifications = require('expo-notifications');
-  // Configure notification handler
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch {
-  console.warn('expo-notifications not available - reminders will be stored but notifications disabled');
+let notificationsInitialized = false;
+
+function getNotifications() {
+  if (!notificationsInitialized) {
+    try {
+      Notifications = require('expo-notifications');
+      // Configure notification handler
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+      notificationsInitialized = true;
+    } catch {
+      // Silently fail - notifications not available in Expo Go
+      notificationsInitialized = true;
+    }
+  }
+  return Notifications;
 }
 
 export interface ReminderData {
@@ -40,6 +49,7 @@ export interface ReminderData {
  * Request notification permissions
  */
 export async function requestNotificationPermissions() {
+  const Notifications = getNotifications();
   if (!Notifications) return false;
 
   try {
@@ -194,6 +204,7 @@ export function useCreateReminder() {
       let notificationId: string | null = null;
       try {
         const hasPermission = await requestNotificationPermissions();
+        const Notifications = getNotifications();
         if (Notifications && hasPermission && data.scheduledFor > new Date()) {
           notificationId = await Notifications.scheduleNotificationAsync({
             content: {
@@ -251,6 +262,7 @@ export function useCancelReminder() {
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
+          const Notifications = getNotifications();
           if (Notifications) {
             await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
           }
@@ -288,6 +300,7 @@ export function useDeleteReminder() {
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
+          const Notifications = getNotifications();
           if (Notifications) {
             await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
           }

@@ -1,35 +1,61 @@
-import { StyleSheet, View, Dimensions, ScrollView } from 'react-native';
-import { Text, Card, ActivityIndicator, Button, Chip } from 'react-native-paper';
+import { StyleSheet, View, Dimensions, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
+import { Text, Card, ActivityIndicator, Button, Chip, IconButton, useTheme, Searchbar } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
+import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router } from 'expo-router';
-import { getInitials } from '@/lib/utils/format';
-import Svg, { Circle, Line, Text as SvgText, G } from 'react-native-svg';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
+import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import ForceDirectedGraph from '@/components/ForceDirectedGraph';
+import NetworkPersonDetails from '@/components/NetworkPersonDetails';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const GRAPH_SIZE = SCREEN_WIDTH - 32;
-const CENTER_X = GRAPH_SIZE / 2;
-const CENTER_Y = GRAPH_SIZE / 2;
-const RADIUS = GRAPH_SIZE / 2 - 50;
 
 export default function NetworkScreen() {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { data: people = [], isLoading: loadingPeople, refetch } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
+  
+  console.log('[Network] Data loaded:', {
+    peopleCount: people.length,
+    connectionsCount: connections.length,
+    loadingPeople,
+    loadingConnections,
+    peopleSample: people.slice(0, 3).map(p => ({ id: p.id, name: p.name, relationshipType: p.relationshipType })),
+    connectionsSample: connections.slice(0, 3).map(c => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
+  });
   const { data: allTags = [] } = useAllTags();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get relations for selected person
+  const { data: selectedPersonRelations = [] } = usePersonRelations(selectedPersonId || '');
+
+  useEffect(() => {
+    getRelationshipColors().then(setRelationshipColors);
+  }, []);
 
   // Get unique relationship types
   const relationshipTypes = useMemo(() => {
-    return Array.from(new Set(people.map((p) => p.relationshipType).filter(Boolean))).sort();
+    return Array.from(new Set(people.map((p) => p.relationshipType).filter((type) => type !== null))) as string[];
   }, [people]);
 
-  // Filter people based on selected tags and relationship types
+  // Filter people based on search, tags and relationship types
   const filteredPeople = useMemo(() => {
     return people.filter((person) => {
+      // Filter by search query
+      const matchesSearch = searchQuery === '' || 
+        person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (person.nickname && person.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
+
       // Filter by tags
       const personTags = parseTags(person.tags);
       const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
@@ -39,28 +65,15 @@ export default function NetworkScreen() {
         selectedRelationTypes.length === 0 ||
         (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
 
-      return matchesTags && matchesRelationType;
+      return matchesSearch && matchesTags && matchesRelationType;
     });
-  }, [people, selectedTags, selectedRelationTypes]);
+  }, [people, searchQuery, selectedTags, selectedRelationTypes]);
 
   // Filter connections to only show those between filtered people
   const filteredConnections = useMemo(() => {
     const filteredIds = new Set(filteredPeople.map((p) => p.id));
     return connections.filter((c) => filteredIds.has(c.person1Id) && filteredIds.has(c.person2Id));
   }, [connections, filteredPeople]);
-
-  // Calculate node positions in a circle
-  const nodePositions = useMemo(() => {
-    const positions: Record<string, { x: number; y: number }> = {};
-    filteredPeople.forEach((person, index) => {
-      const angle = (2 * Math.PI * index) / filteredPeople.length - Math.PI / 2;
-      positions[person.id] = {
-        x: CENTER_X + RADIUS * Math.cos(angle),
-        y: CENTER_Y + RADIUS * Math.sin(angle),
-      };
-    });
-    return positions;
-  }, [filteredPeople]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -77,21 +90,7 @@ export default function NetworkScreen() {
     setSelectedRelationTypes([]);
   };
 
-  // Calculate connection statistics
-  const connectionStats = useMemo(() => {
-    const stats: Record<string, number> = {};
-    filteredConnections.forEach((conn) => {
-      stats[conn.person1Id] = (stats[conn.person1Id] || 0) + 1;
-      stats[conn.person2Id] = (stats[conn.person2Id] || 0) + 1;
-    });
-    return stats;
-  }, [filteredConnections]);
-
-  // Get node size based on connections
-  const getNodeSize = (personId: string) => {
-    const count = connectionStats[personId] || 0;
-    return Math.min(30, 15 + count * 5);
-  };
+  const hasActiveFilters = selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
   // Get connections for selected person
   const selectedConnections = useMemo(() => {
@@ -121,7 +120,7 @@ export default function NetworkScreen() {
         <Text variant="bodyMedium" style={styles.emptyDescription}>
           Add people and connections to see your social network graph.
         </Text>
-        <Button mode="contained" onPress={() => router.push('/(tabs)/')}>
+        <Button mode="contained" onPress={() => router.push('/')}>
           Add People
         </Button>
       </View>
@@ -131,33 +130,50 @@ export default function NetworkScreen() {
   const selectedPerson = people.find((p) => p.id === selectedPersonId);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Network Graph
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Visualize connections between people
-        </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      
+      {/* Custom Header - Android Contacts Style */}
+      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
+        <View style={headerStyles.headerContent}>
+          <Text variant="headlineMedium" style={headerStyles.headerTitle}>
+            Network
+          </Text>
+          <View style={headerStyles.headerActions}>
+            {(allTags.length > 0 || relationshipTypes.length > 0) && (
+              <IconButton
+                icon={filtersVisible ? 'filter-variant' : 'filter-variant-remove'}
+                size={HEADER_ICON_SIZE}
+                style={headerStyles.headerIcon}
+                onPress={() => setFiltersVisible(!filtersVisible)}
+                iconColor={hasActiveFilters ? '#6200ee' : undefined}
+              />
+            )}
+          </View>
+        </View>
       </View>
 
-      {/* Filters */}
-      {(allTags.length > 0 || relationshipTypes.length > 0) && (
-        <Card style={styles.filterCard}>
-          <Card.Content>
-            <View style={styles.filterHeader}>
-              <Text variant="titleMedium">Filter Graph</Text>
-              {(selectedTags.length > 0 || selectedRelationTypes.length > 0) && (
-                <Button compact mode="text" onPress={clearFilters}>
-                  Clear All
-                </Button>
-              )}
-            </View>
+      <ScrollView style={styles.scrollContent}>
 
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Search people..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            icon="magnify"
+            clearIcon="close"
+          />
+        </View>
+
+        {/* Filters */}
+        {filtersVisible && (allTags.length > 0 || relationshipTypes.length > 0) && (
+          <View style={styles.filterSection}>
             {relationshipTypes.length > 0 && (
-              <View style={styles.filterSection}>
-                <Text variant="labelMedium" style={styles.filterLabel}>
-                  Relationship Type:
+              <View style={styles.filterGroup}>
+                <Text variant="labelSmall" style={styles.filterLabel}>
+                  Relationship Type
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipRow}>
@@ -178,9 +194,9 @@ export default function NetworkScreen() {
             )}
 
             {allTags.length > 0 && (
-              <View style={styles.filterSection}>
-                <Text variant="labelMedium" style={styles.filterLabel}>
-                  Tags:
+              <View style={styles.filterGroup}>
+                <Text variant="labelSmall" style={styles.filterLabel}>
+                  Tags
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipRow}>
@@ -199,198 +215,89 @@ export default function NetworkScreen() {
                 </ScrollView>
               </View>
             )}
-          </Card.Content>
-        </Card>
-      )}
+          </View>
+        )}
 
-      {/* Stats */}
-      <Card style={styles.statsCard}>
-        <Card.Content>
+        {/* Stats */}
+        <View style={styles.statsSection}>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text variant="headlineMedium">{filteredPeople.length}</Text>
-              <Text variant="labelSmall">
+              <Text variant="titleLarge" style={styles.statNumber}>{filteredPeople.length}</Text>
+              <Text variant="labelSmall" style={styles.statLabel}>
                 People{filteredPeople.length !== people.length && ` / ${people.length}`}
               </Text>
             </View>
             <View style={styles.stat}>
-              <Text variant="headlineMedium">{filteredConnections.length}</Text>
-              <Text variant="labelSmall">
+              <Text variant="titleLarge" style={styles.statNumber}>{filteredConnections.length}</Text>
+              <Text variant="labelSmall" style={styles.statLabel}>
                 Connections
                 {filteredConnections.length !== connections.length && ` / ${connections.length}`}
               </Text>
             </View>
             <View style={styles.stat}>
-              <Text variant="headlineMedium">
+              <Text variant="titleLarge" style={styles.statNumber}>
                 {filteredPeople.length > 0
                   ? ((filteredConnections.length * 2) / filteredPeople.length).toFixed(1)
                   : '0'}
               </Text>
-              <Text variant="labelSmall">Avg Links</Text>
+              <Text variant="labelSmall" style={styles.statLabel}>Avg Links</Text>
             </View>
           </View>
-        </Card.Content>
-      </Card>
+        </View>
 
-      {/* Graph */}
-      <Card style={styles.graphCard}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.graphTitle}>
-            Connection Map
-          </Text>
-          <Text variant="bodySmall" style={styles.graphHint}>
-            Tap a person to see their connections
-          </Text>
+        {/* Force-Directed Graph */}
+        <View style={styles.graphSection}>
+          {(() => {
+            console.log('[Network] Rendering ForceDirectedGraph with:', {
+              filteredPeopleCount: filteredPeople.length,
+              filteredConnectionsCount: filteredConnections.length,
+              selectedPersonId,
+              relationshipColorsKeys: Object.keys(relationshipColors),
+              peopleSample: filteredPeople.slice(0, 3).map(p => ({ id: p.id, name: p.name })),
+              connectionsSample: filteredConnections.slice(0, 3).map(c => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
+            });
+            return (
+              <ForceDirectedGraph
+                people={filteredPeople}
+                connections={filteredConnections}
+                relationshipColors={relationshipColors}
+                selectedPersonId={selectedPersonId}
+                onSelectPerson={setSelectedPersonId}
+              />
+            );
+          })()}
+        </View>
 
-          <View style={styles.graphContainer}>
-            <Svg width={GRAPH_SIZE} height={GRAPH_SIZE}>
-              {/* Draw connections */}
-              {filteredConnections.map((conn) => {
-                const pos1 = nodePositions[conn.person1Id];
-                const pos2 = nodePositions[conn.person2Id];
-                if (!pos1 || !pos2) return null;
+        {/* Selected person details */}
+        {selectedPerson && (
+          <NetworkPersonDetails
+            person={selectedPerson}
+            relations={selectedPersonRelations}
+            relationshipColor={
+              selectedPerson.relationshipType
+                ? relationshipColors[selectedPerson.relationshipType] || theme.colors.primary
+                : theme.colors.primary
+            }
+            connectionCount={selectedConnections.length}
+          />
+        )}
 
-                const isHighlighted =
-                  selectedPersonId === conn.person1Id || selectedPersonId === conn.person2Id;
-
-                return (
-                  <Line
-                    key={conn.id}
-                    x1={pos1.x}
-                    y1={pos1.y}
-                    x2={pos2.x}
-                    y2={pos2.y}
-                    stroke={isHighlighted ? '#6200ee' : '#ccc'}
-                    strokeWidth={isHighlighted ? 3 : 1}
-                    opacity={selectedPersonId && !isHighlighted ? 0.2 : 1}
-                  />
-                );
-              })}
-
-              {/* Draw nodes */}
-              {filteredPeople.map((person) => {
-                const pos = nodePositions[person.id];
-                if (!pos) return null;
-
-                const nodeSize = getNodeSize(person.id);
-                const isSelected = selectedPersonId === person.id;
-                const isConnected = selectedConnections.some(
-                  (c) => c.person1Id === person.id || c.person2Id === person.id
-                );
-                const shouldHighlight = !selectedPersonId || isSelected || isConnected;
-
-                return (
-                  <G
-                    key={person.id}
-                    onPress={() =>
-                      setSelectedPersonId(isSelected ? null : person.id)
-                    }
-                  >
-                    <Circle
-                      cx={pos.x}
-                      cy={pos.y}
-                      r={nodeSize}
-                      fill={isSelected ? '#6200ee' : '#03dac6'}
-                      opacity={shouldHighlight ? 1 : 0.3}
-                      stroke={isSelected ? '#fff' : 'transparent'}
-                      strokeWidth={isSelected ? 3 : 0}
-                    />
-                    <SvgText
-                      x={pos.x}
-                      y={pos.y + 4}
-                      fontSize={nodeSize > 20 ? 12 : 10}
-                      fill="white"
-                      textAnchor="middle"
-                      fontWeight="bold"
-                    >
-                      {getInitials(person.name).substring(0, 2)}
-                    </SvgText>
-                  </G>
-                );
-              })}
-            </Svg>
-          </View>
-
-          {/* Legend */}
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#03dac6' }]} />
-              <Text variant="labelSmall">Person</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#6200ee' }]} />
-              <Text variant="labelSmall">Selected</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={styles.legendLine} />
-              <Text variant="labelSmall">Connection</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
-
-      {/* Selected person info */}
-      {selectedPerson && (
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.infoTitle}>
-              {selectedPerson.name}
-            </Text>
-            <View style={styles.infoChips}>
-              {selectedPerson.relationshipType && (
-                <Chip icon="heart" compact>
-                  {selectedPerson.relationshipType}
-                </Chip>
-              )}
-              <Chip icon="link" compact>
-                {connectionStats[selectedPerson.id] || 0} connections
-              </Chip>
-            </View>
-
-            {selectedConnections.length > 0 && (
-              <View style={styles.connectionsList}>
-                <Text variant="titleSmall" style={styles.connectionsTitle}>
-                  Connected to:
-                </Text>
-                {selectedConnections.map((conn) => {
-                  const otherId =
-                    conn.person1Id === selectedPersonId ? conn.person2Id : conn.person1Id;
-                  const otherPerson = people.find((p) => p.id === otherId);
-                  if (!otherPerson) return null;
-
-                  return (
-                    <Chip
-                      key={conn.id}
-                      onPress={() => router.push(`/person/${otherPerson.id}`)}
-                      style={styles.connectionChip}
-                    >
-                      {otherPerson.name} ({conn.relationshipType})
-                    </Chip>
-                  );
-                })}
-              </View>
-            )}
-
-            <Button
-              mode="outlined"
-              onPress={() => router.push(`/person/${selectedPerson.id}`)}
-              style={styles.viewButton}
-            >
-              View Profile
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
-
-      <View style={styles.spacer} />
-    </ScrollView>
+        <View style={styles.spacer} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+  },
+  statusBarSpacer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  scrollContent: {
+    flex: 1,
   },
   centered: {
     flex: 1,
@@ -410,33 +317,58 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 22,
   },
-  header: {
-    padding: 16,
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: '#fff',
-    elevation: 2,
   },
-  title: {
-    marginBottom: 4,
+  searchBar: {
+    elevation: 0,
+    backgroundColor: '#f5f5f5',
   },
-  subtitle: {
-    opacity: 0.7,
-  },
-  filterCard: {
-    margin: 16,
+  filterToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
     marginBottom: 8,
   },
-  filterHeader: {
+  filterToggleButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    flex: 1,
+  },
+  filterIcon: {
+    margin: 0,
+  },
+  filterToggleText: {
+    marginLeft: 4,
+  },
+  filterActiveText: {
+    color: '#6200ee',
+    fontWeight: '600',
   },
   filterSection: {
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  filterGroup: {
     marginBottom: 12,
   },
   filterLabel: {
     marginBottom: 8,
-    opacity: 0.7,
+    opacity: 0.6,
+    textTransform: 'uppercase',
+    fontSize: 11,
+    fontWeight: '600',
   },
   chipRow: {
     flexDirection: 'row',
@@ -445,8 +377,9 @@ const styles = StyleSheet.create({
   filterChip: {
     marginRight: 4,
   },
-  statsCard: {
-    margin: 16,
+  statsSection: {
+    backgroundColor: '#fff',
+    padding: 16,
     marginBottom: 8,
   },
   statsRow: {
@@ -456,21 +389,30 @@ const styles = StyleSheet.create({
   stat: {
     alignItems: 'center',
   },
-  graphCard: {
-    margin: 16,
-    marginTop: 8,
+  statNumber: {
+    fontWeight: '700',
+  },
+  statLabel: {
+    opacity: 0.6,
+    marginTop: 4,
+  },
+  graphSection: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 8,
   },
   graphTitle: {
+    fontWeight: '600',
     marginBottom: 4,
   },
   graphHint: {
-    opacity: 0.6,
+    opacity: 0.5,
     marginBottom: 16,
   },
   graphContainer: {
     alignItems: 'center',
-    backgroundColor: '#fafafa',
-    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
     padding: 8,
   },
   legend: {
@@ -478,6 +420,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   legendItem: {
     flexDirection: 'row',
@@ -494,13 +439,14 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#ccc',
   },
-  infoCard: {
-    margin: 16,
-    marginTop: 8,
+  infoSection: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginBottom: 8,
   },
   infoTitle: {
     marginBottom: 8,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   infoChips: {
     flexDirection: 'row',

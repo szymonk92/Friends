@@ -15,6 +15,8 @@ export default function EditPersonScreen() {
   const [relationshipType, setRelationshipType] = useState<string>('friend');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [notes, setNotes] = useState('');
+  const [personType, setPersonType] = useState<string>('primary');
+  const [importanceToUser, setImportanceToUser] = useState<string>('unknown');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill form when person data loads
@@ -27,6 +29,8 @@ export default function EditPersonScreen() {
         person.dateOfBirth ? new Date(person.dateOfBirth).toISOString().split('T')[0] : ''
       );
       setNotes(person.notes || '');
+      setPersonType(person.personType || 'primary');
+      setImportanceToUser(person.importanceToUser || 'unknown');
     }
   }, [person]);
 
@@ -64,6 +68,8 @@ export default function EditPersonScreen() {
         relationshipType: relationshipType as any,
         dateOfBirth: parsedBirthday || undefined,
         notes: notes.trim() || null,
+        personType: personType as any,
+        importanceToUser: importanceToUser as any,
       });
 
       Alert.alert('Success', `${name} has been updated!`, [
@@ -179,6 +185,47 @@ export default function EditPersonScreen() {
           Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
         </Text>
 
+        <Text variant="titleSmall" style={styles.label}>
+          Person Type
+        </Text>
+        <Text variant="bodySmall" style={styles.hint}>
+          Primary people appear in party mode and food quiz. Mentioned people are tracked but less prominent.
+        </Text>
+        <SegmentedButtons
+          value={personType}
+          onValueChange={setPersonType}
+          buttons={[
+            { value: 'primary', label: 'Primary', icon: 'star' },
+            { value: 'mentioned', label: 'Mentioned', icon: 'account-outline' },
+          ]}
+          style={styles.segmented}
+        />
+
+        <Text variant="titleSmall" style={styles.label}>
+          Importance to You
+        </Text>
+        <Text variant="bodySmall" style={styles.hint}>
+          Used for sorting people by importance. Very important people appear first.
+        </Text>
+        <SegmentedButtons
+          value={importanceToUser}
+          onValueChange={setImportanceToUser}
+          buttons={[
+            { value: 'very_important', label: 'Very Important', icon: 'star' },
+            { value: 'important', label: 'Important', icon: 'star-half-full' },
+          ]}
+          style={styles.segmented}
+        />
+        <SegmentedButtons
+          value={importanceToUser}
+          onValueChange={setImportanceToUser}
+          buttons={[
+            { value: 'peripheral', label: 'Peripheral', icon: 'star-outline' },
+            { value: 'unknown', label: 'Unknown' },
+          ]}
+          style={styles.segmented}
+        />
+
         <TextInput
           mode="outlined"
           label="Notes"
@@ -283,5 +330,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: -12,
     marginBottom: 16,
+  },
+  hint: {
+    opacity: 0.7,
+    marginBottom: 8,
+    marginTop: -4,
   },
 });

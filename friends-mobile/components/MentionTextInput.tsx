@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Keyboard } from 'react-native';
-import { TextInput, Text, Card, Chip } from 'react-native-paper';
+import { TextInput, Text, Card, Chip, useTheme } from 'react-native-paper';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { and, eq, or, like } from 'drizzle-orm';
@@ -35,6 +35,7 @@ export default function MentionTextInput({
   numberOfLines = 12,
   style,
 }: MentionTextInputProps) {
+  const theme = useTheme();
   const [suggestions, setSuggestions] = useState<Person[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [currentMentionQuery, setCurrentMentionQuery] = useState('');
@@ -167,16 +168,10 @@ export default function MentionTextInput({
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputHeader}>
-        <Text variant="labelMedium" style={styles.inputLabel}>{label}</Text>
-        <TouchableOpacity style={styles.atButton} onPress={insertAtSymbol}>
-          <Text style={styles.atButtonText}>@</Text>
-        </TouchableOpacity>
-      </View>
       <TextInput
         mode="outlined"
-        label="" // Label moved to header
-        placeholder={placeholder || "Example: Had dinner with @Sarah. @Sarah mentioned she's now vegan..."}
+        label={label}
+        placeholder={placeholder || "Example: Had dinner with Sarah. She mentioned she's now vegan..."}
         value={value}
         onChangeText={handleTextChange}
         onSelectionChange={handleSelectionChange}
@@ -185,14 +180,22 @@ export default function MentionTextInput({
         style={[styles.input, style]}
       />
 
-      {/* Mention count indicator */}
-      {mentions.length > 0 && (
-        <View style={styles.mentionIndicator}>
+      {/* @ Button below text field */}
+      <View style={styles.bottomActions}>
+        <TouchableOpacity 
+          style={[styles.atButton, { backgroundColor: theme.colors.primary }]} 
+          onPress={insertAtSymbol}
+        >
+          <Text style={styles.atButtonText}>@ Mention</Text>
+        </TouchableOpacity>
+        
+        {/* Mention count indicator */}
+        {mentions.length > 0 && (
           <Chip icon="account" compact style={styles.chip}>
-            {getMentionedPeopleCount()} {getMentionedPeopleCount() === 1 ? 'person' : 'people'} mentioned
+            {getMentionedPeopleCount()} {getMentionedPeopleCount() === 1 ? 'person' : 'people'}
           </Chip>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
@@ -226,13 +229,6 @@ export default function MentionTextInput({
           </Card.Content>
         </Card>
       )}
-
-      {/* Helper text */}
-      <View style={styles.helperContainer}>
-        <Text variant="bodySmall" style={styles.helperText}>
-          💡 Tap the @ button to mention someone, or type manually
-        </Text>
-      </View>
     </View>
   );
 }
@@ -241,38 +237,34 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
   },
-  inputHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  inputLabel: {
-    color: '#666',
-  },
-  atButton: {
-    backgroundColor: '#6200ee',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 2,
-  },
-  atButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   input: {
     minHeight: 200,
     textAlignVertical: 'top',
+    paddingTop: 12,
   },
-  mentionIndicator: {
+  bottomActions: {
     flexDirection: 'row',
-    marginTop: 8,
-    marginBottom: 4,
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 12,
+  },
+  atButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  atButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   chip: {
-    height: 24,
+    height: 32,
   },
   suggestionsCard: {
     position: 'absolute',
@@ -306,12 +298,5 @@ const styles = StyleSheet.create({
   nickname: {
     opacity: 0.6,
     marginTop: 2,
-  },
-  helperContainer: {
-    marginTop: 8,
-  },
-  helperText: {
-    opacity: 0.7,
-    fontStyle: 'italic',
   },
 });

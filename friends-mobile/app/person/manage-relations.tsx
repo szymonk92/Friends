@@ -81,10 +81,12 @@ export default function ManageRelationsScreen() {
         options={{
           title: `${person?.name || 'Person'} - Relations`,
           headerRight: () => (
-            <IconButton
-              icon="plus"
-              onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-            />
+            <View style={{ marginRight: 16 }}>
+              <IconButton
+                icon="plus"
+                onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+              />
+            </View>
           ),
         }}
       />

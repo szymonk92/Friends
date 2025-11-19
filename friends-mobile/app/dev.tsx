@@ -24,7 +24,7 @@ export default function DevScreen() {
       Alert.alert(
         'Success!',
         'Sample data has been added:\n\n• 3 people (Emma, Mike, Sarah)\n• 8 relations\n• 1 story',
-        [{ text: 'View People', onPress: () => router.push('/(tabs)/') }]
+        [{ text: 'View People', onPress: () => router.push('/') }]
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to seed data. Check console for details.');
@@ -85,7 +85,7 @@ export default function DevScreen() {
               Alert.alert(
                 'High Load Test Data Created!',
                 `Successfully generated:\n\n• ${result.peopleCount} people\n• ~${result.peopleCount * 6} relations\n• ${result.connectionsCount} connections\n\nTime taken: ${result.duration} seconds`,
-                [{ text: 'View People', onPress: () => router.push('/(tabs)/') }]
+                [{ text: 'View People', onPress: () => router.push('/') }]
               );
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to generate test data');
@@ -265,7 +265,7 @@ export default function DevScreen() {
 
               <Button
                 mode="outlined"
-                onPress={() => router.push('/(tabs)/')}
+                onPress={() => router.push('/')}
                 style={styles.button}
                 icon="account-group"
               >
@@ -274,11 +274,11 @@ export default function DevScreen() {
 
               <Button
                 mode="outlined"
-                onPress={() => router.push('/(tabs)/two')}
+                onPress={() => router.push('/story/addStory')}
                 style={styles.button}
                 icon="text-box-plus"
               >
-                Add Story
+                Tell a Story
               </Button>
 
               <Button

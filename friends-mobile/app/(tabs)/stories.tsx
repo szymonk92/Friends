@@ -1,12 +1,16 @@
-import { StyleSheet, View, FlatList, Alert } from 'react-native';
-import { Text, Card, FAB, Searchbar, ActivityIndicator, Button, Chip } from 'react-native-paper';
+import { StyleSheet, View, FlatList, Alert, StatusBar } from 'react-native';
+import { Text, Card, FAB, Searchbar, ActivityIndicator, Button, Chip, IconButton } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useStories, useDeleteStory } from '@/hooks/useStories';
 import { formatRelativeTime } from '@/lib/utils/format';
+import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 
 export default function StoriesListScreen() {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchVisible, setSearchVisible] = useState(false);
   const { data: stories = [], isLoading, error, refetch } = useStories();
   const deleteStory = useDeleteStory();
 
@@ -75,11 +79,11 @@ export default function StoriesListScreen() {
             </Text>
             <View style={styles.chips}>
               {item.aiProcessed && (
-                <Chip icon="robot" compact style={styles.chip}>
+                <Chip icon="robot" compact style={styles.aiChip}>
                   AI Processed
                 </Chip>
               )}
-              <Chip icon="text" compact style={styles.chip}>
+              <Chip compact style={styles.wordChip}>
                 {wordCount} words
               </Chip>
             </View>
@@ -111,16 +115,47 @@ export default function StoriesListScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Your Stories
-        </Text>
-        <Searchbar
-          placeholder="Search stories..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
+      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      
+      {/* Custom Header - Android Contacts Style */}
+      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
+        <View style={headerStyles.headerContent}>
+          {!searchVisible ? (
+            <>
+              <Text variant="headlineMedium" style={headerStyles.headerTitle}>
+                Stories
+              </Text>
+              <View style={headerStyles.headerActions}>
+                <IconButton
+                  icon="plus"
+                  size={HEADER_ICON_SIZE}
+                  style={headerStyles.headerIcon}
+                  onPress={() => router.push('/story/addStory')}
+                />
+                <IconButton
+                  icon="magnify"
+                  size={HEADER_ICON_SIZE}
+                  onPress={() => setSearchVisible(true)}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={styles.searchContainer}>
+              <Searchbar
+                placeholder="Search stories..."
+                onChangeText={setSearchQuery}
+                value={searchQuery}
+                style={styles.searchbar}
+                autoFocus
+                icon="arrow-left"
+                onIconPress={() => {
+                  setSearchVisible(false);
+                  setSearchQuery('');
+                }}
+              />
+            </View>
+          )}
+        </View>
       </View>
 
       {stories.length === 0 ? (
@@ -132,7 +167,7 @@ export default function StoriesListScreen() {
             Start capturing memories by adding your first story. Tell us about your friends,
             family, and the moments you share together.
           </Text>
-          <Button mode="contained" onPress={() => router.push('/(tabs)/two')} style={styles.addButton}>
+          <Button mode="contained" onPress={() => router.push('/story/addStory')} style={styles.addButton}>
             Add Your First Story
           </Button>
         </View>
@@ -149,10 +184,6 @@ export default function StoriesListScreen() {
           }
         />
       )}
-
-      {stories.length > 0 && (
-        <FAB icon="plus" style={styles.fab} onPress={() => router.push('/(tabs)/two')} />
-      )}
     </View>
   );
 }
@@ -160,7 +191,10 @@ export default function StoriesListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+  },
+  statusBarSpacer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   centered: {
     flex: 1,
@@ -178,18 +212,12 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 8,
   },
-  header: {
-    padding: 16,
-    paddingBottom: 8,
-    backgroundColor: '#fff',
-    elevation: 2,
-  },
-  title: {
-    marginBottom: 12,
+  searchContainer: {
+    flex: 1,
   },
   searchbar: {
     elevation: 0,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   list: {
     padding: 16,
@@ -197,6 +225,7 @@ const styles = StyleSheet.create({
   },
   storyCard: {
     marginBottom: 16,
+    backgroundColor: '#f9f9f9',
   },
   storyHeader: {
     flexDirection: 'row',
@@ -211,8 +240,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
   },
-  chip: {
-    height: 24,
+  aiChip: {
+    height: 28,
+    backgroundColor: '#e8f5e9',
+  },
+  wordChip: {
+    height: 32,
+    backgroundColor: '#f5f5f5',
   },
   storyTitle: {
     marginBottom: 8,
@@ -253,11 +287,5 @@ const styles = StyleSheet.create({
   noResults: {
     padding: 32,
     alignItems: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 });

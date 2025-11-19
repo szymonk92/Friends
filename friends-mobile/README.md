@@ -1,4 +1,4 @@
-# Friends Mobile App
+# FriendZ
 
 AI-powered relationship tracker - Remember everything about everyone you care about.
 

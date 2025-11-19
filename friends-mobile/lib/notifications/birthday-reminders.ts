@@ -161,7 +161,7 @@ export async function scheduleBirthdayReminders(): Promise<number> {
             body: `${person.name}'s birthday is in ${settings.daysBefore} days (turning ${age})!`,
             data: { personId: person.id, type: 'birthday_reminder' },
           },
-          trigger: reminderDate,
+          trigger: reminderDate as any,
           identifier: `birthday-before-${person.id}`,
         });
         scheduledCount++;
@@ -180,7 +180,7 @@ export async function scheduleBirthdayReminders(): Promise<number> {
             body: `Today is ${person.name}'s birthday! They're turning ${age}.`,
             data: { personId: person.id, type: 'birthday_today' },
           },
-          trigger: onDayDate,
+          trigger: onDayDate as any,
           identifier: `birthday-day-${person.id}`,
         });
         scheduledCount++;

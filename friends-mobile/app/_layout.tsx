@@ -7,11 +7,15 @@ import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FloatingDevTools } from '@react-buoy/core';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { runMigrations } from '@/lib/db/migrate';
 import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
+import { useSettings } from '@/store/useSettings';
+import { createTheme } from '@/lib/theme';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -92,20 +96,30 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const { themeColor, loadThemeColor } = useSettings();
+
+  useEffect(() => {
+    loadThemeColor();
+  }, []);
+
+  const paperTheme = createTheme(themeColor, colorScheme === 'dark');
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="person" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
-          </Stack>
-        </ThemeProvider>
-      </PaperProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={paperTheme}>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="person" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Add a Person' }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
+            </Stack>
+            <FloatingDevTools environment="local" userRole="admin" />
+          </ThemeProvider>
+        </PaperProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,10 +1,11 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, StatusBar, BackHandler } from 'react-native';
 import { Text, TextInput, Button, Card, HelperText, Dialog, Portal } from 'react-native-paper';
-import { useState, useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
-import { router } from 'expo-router';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { createExtractionPrompt } from '@/lib/ai/prompts';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
@@ -13,12 +14,16 @@ import * as Clipboard from 'expo-clipboard';
 import MentionTextInput from '@/components/MentionTextInput';
 
 export default function StoryInputScreen() {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [promptPreviewDialogVisible, setPromptPreviewDialogVisible] = useState(false);
   const [promptPreviewText, setPromptPreviewText] = useState('');
+  const [unsavedDialogVisible, setUnsavedDialogVisible] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
@@ -28,6 +33,46 @@ export default function StoryInputScreen() {
   useEffect(() => {
     loadApiKey();
   }, []);
+
+  // Set navigation options
+  useEffect(() => {
+    navigation.setOptions({
+      title: 'Tell a Story',
+    });
+  }, [navigation]);
+
+  // Handle back button and unsaved changes
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (storyText.trim().length > 0 && !isProcessing) {
+          setUnsavedDialogVisible(true);
+          return true; // Prevent default back action
+        }
+        return false; // Allow default back action
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => subscription.remove();
+    }, [storyText, isProcessing])
+  );
+
+  const handleDiscard = () => {
+    setStoryText('');
+    setUnsavedDialogVisible(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation as any);
+      setPendingNavigation(null);
+    } else {
+      router.back();
+    }
+  };
+
+  const handleCancelDiscard = () => {
+    setUnsavedDialogVisible(false);
+    setPendingNavigation(null);
+  };
 
   const handleSubmit = async () => {
     if (storyText.trim().length < 10) {
@@ -65,7 +110,7 @@ export default function StoryInputScreen() {
       });
 
       Alert.alert('Story Saved!', 'Your story has been saved (without AI extraction).', [
-        { text: 'View People', onPress: () => router.push('/(tabs)/') },
+        { text: 'View People', onPress: () => router.push('/') },
         { text: 'Add Another', onPress: () => setStoryText('') },
       ]);
     } catch (error) {
@@ -103,7 +148,7 @@ ${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts det
 
 Tokens used: ${result.tokensUsed || 'N/A'}`;
 
-      const buttons = [{ text: 'View People', onPress: () => router.push('/(tabs)/') }];
+      const buttons = [{ text: 'View People', onPress: () => router.push('/stories') }];
 
       if (result.pendingReview > 0) {
         buttons.unshift({
@@ -181,85 +226,74 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
   const estimatedCost = wordCount > 0 ? '$0.02' : '$0.00';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="headlineSmall" style={styles.title}>
-            Tell a Story
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Share something about your friends, family, or anyone you know. Use @mentions to reference people clearly. Our AI will extract important details automatically.
-          </Text>
-          {!hasApiKey() && (
-            <Button
-              mode="outlined"
-              onPress={() => setApiKeyDialogVisible(true)}
-              style={styles.apiKeyButton}
-              icon="key"
-            >
-              Set API Key
-            </Button>
-          )}
-        </Card.Content>
-      </Card>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      <View style={[styles.statusBarSpacer, { height: insets.top }]} />
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <MentionTextInput
-            label="Your Story"
-            placeholder="Example: Had dinner with @Sarah last night. @Sarah mentioned she's now vegan and really into yoga..."
-            value={storyText}
-            onChangeText={setStoryText}
-            numberOfLines={12}
-            style={styles.input}
-          />
-          <HelperText type="info">
-            {wordCount} words • Est. cost: {estimatedCost} • API key:{' '}
-            {hasApiKey() ? '✓ Set' : '✗ Not set'}
-          </HelperText>
-        </Card.Content>
-      </Card>
+      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.content}>
+        {/* Main Input */}
+        <MentionTextInput
+          placeholder="Had dinner with @Sarah last night. She's now vegan and really into yoga..."
+          value={storyText}
+          onChangeText={setStoryText}
+          numberOfLines={16}
+          style={styles.input}
+        />
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.exampleTitle}>
-            Example Stories (with @mentions)
+        {/* Stats Bar */}
+        <View style={styles.statsBar}>
+          <Text variant="bodySmall" style={styles.statsText}>
+            {wordCount} words
+          </Text>
+          <Text variant="bodySmall" style={styles.statsDivider}>
+            •
+          </Text>
+          <Text variant="bodySmall" style={styles.statsText}>
+            ~{estimatedCost}
+          </Text>
+        </View>
+
+        {/* Examples Hint */}
+        <View style={styles.examplesSection}>
+          <Text variant="labelMedium" style={styles.examplesTitle}>
+            Quick examples
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            • "Met @Emma for coffee. @Emma is training for a marathon and loves oat milk lattes."
+            "Met @Emma for coffee. She's training for a marathon"
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            • "@Mike mentioned his mother has dementia. He's been taking care of her part-time."
+            "@Mike's mother has dementia, he's caring for her"
           </Text>
-          <Text variant="bodySmall" style={styles.example}>
-            • "@Sarah and @Tom broke up last month. @Sarah is uncomfortable talking about it."
-          </Text>
-        </Card.Content>
-      </Card>
+        </View>
 
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        loading={isProcessing}
-        disabled={isProcessing || storyText.trim().length < 10}
-        style={styles.button}
-        contentStyle={styles.buttonContent}
-      >
-        {isProcessing ? 'Processing...' : hasApiKey() ? 'Save & Extract' : 'Save Story'}
-      </Button>
+        <View style={styles.spacer} />
+      </ScrollView>
 
-      {/* DEV: Show Prompt Button */}
-      <Button
-        mode="outlined"
-        onPress={handleShowPrompt}
-        disabled={storyText.trim().length < 10}
-        style={styles.devButton}
-        icon="code-tags"
-      >
-        DEV: Show Prompt
-      </Button>
+      {/* Fixed Bottom Action */}
+      <View style={styles.bottomAction}>
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          loading={isProcessing}
+          disabled={isProcessing || storyText.trim().length < 10}
+          style={styles.submitButton}
+          contentStyle={styles.submitButtonContent}
+        >
+          {isProcessing ? 'Processing...' : hasApiKey() ? 'Save & Extract' : 'Save Story'}
+        </Button>
 
-      <View style={styles.spacer} />
+        {/* DEV Button */}
+        <Button
+          mode="text"
+          onPress={handleShowPrompt}
+          disabled={storyText.trim().length < 10}
+          style={styles.devButton}
+          icon="code-tags"
+          compact
+        >
+          Show Prompt
+        </Button>
+      </View>
 
       {/* API Key Dialog */}
       <Portal>
@@ -312,55 +346,110 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </ScrollView>
+
+      {/* Unsaved Changes Dialog */}
+      <Portal>
+        <Dialog visible={unsavedDialogVisible} onDismiss={handleCancelDiscard}>
+          <Dialog.Title>Unsaved Story</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              You have unsaved text. If you leave now, your story will be lost.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleCancelDiscard}>Cancel</Button>
+            <Button onPress={handleDiscard} textColor="#d32f2f">
+              Discard
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fafafa',
+  },
+  statusBarSpacer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  scrollContent: {
+    flex: 1,
   },
   content: {
     padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-  },
-  title: {
-    marginBottom: 8,
-  },
-  subtitle: {
-    opacity: 0.7,
-    lineHeight: 20,
-  },
-  apiKeyButton: {
-    marginTop: 12,
+    paddingTop: 12,
+    paddingBottom: 140,
   },
   input: {
-    minHeight: 200,
+    minHeight: 280,
     textAlignVertical: 'top',
+    backgroundColor: '#fff',
+    fontSize: 16,
+    lineHeight: 24,
   },
-  exampleTitle: {
-    marginBottom: 12,
+  statsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 4,
   },
-  example: {
+  statsText: {
+    opacity: 0.5,
+    fontSize: 12,
+  },
+  statsDivider: {
+    opacity: 0.3,
+    marginHorizontal: 8,
+  },
+  examplesSection: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+  },
+  examplesTitle: {
     marginBottom: 8,
     opacity: 0.7,
-    lineHeight: 18,
+    fontWeight: '600',
   },
-  button: {
-    marginTop: 8,
+  example: {
+    marginBottom: 6,
+    opacity: 0.6,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
-  buttonContent: {
-    paddingVertical: 8,
+  bottomAction: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  submitButton: {
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  submitButtonContent: {
+    paddingVertical: 12,
   },
   devButton: {
-    marginTop: 12,
-    borderColor: '#ff9800',
+    opacity: 0.5,
   },
   spacer: {
-    height: 40,
+    height: 20,
   },
   dialogText: {
     marginBottom: 8,

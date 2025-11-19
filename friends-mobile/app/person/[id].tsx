@@ -1,18 +1,18 @@
 import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
 import {
   Text,
-  Card,
   Chip,
   ActivityIndicator,
   Button,
   Divider,
   List,
   IconButton,
-  FAB,
   Portal,
   Dialog,
   TextInput as PaperInput,
   SegmentedButtons,
+  Menu,
+  useTheme,
 } from 'react-native-paper';
 import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -68,6 +68,7 @@ const RELATION_TYPE_PRIORITY: Record<string, number> = {
 };
 
 export default function PersonProfileScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(id!);
@@ -111,6 +112,9 @@ export default function PersonProfileScreen() {
   const [giftPriority, setGiftPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [giftOccasion, setGiftOccasion] = useState('');
   const [isAddingGift, setIsAddingGift] = useState(false);
+
+  // Menu state
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const handleDelete = () => {
     Alert.alert(
@@ -458,13 +462,54 @@ export default function PersonProfileScreen() {
         options={{
           title: person.name,
           headerRight: () => (
-            <View style={{ flexDirection: 'row' }}>
-              <IconButton
-                icon="pencil"
-                onPress={() => router.push(`/person/edit?personId=${id}`)}
-                iconColor="#6200ee"
-              />
-              <IconButton icon="delete" onPress={handleDelete} iconColor="#d32f2f" />
+            <View style={{ marginRight: 16 }}>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <IconButton
+                    icon="dots-vertical"
+                    onPress={() => setMenuVisible(true)}
+                    iconColor={theme.colors.primary}
+                  />
+                }
+              >
+                {profilePhoto && (
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
+                      handleAvatarPress();
+                    }}
+                    title="Change Photo"
+                    leadingIcon="camera"
+                  />
+                )}
+                <Menu.Item
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push(`/person/add-relation?personId=${id}`);
+                  }}
+                  title="Add Relation"
+                  leadingIcon="plus"
+                />
+                <Menu.Item
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push(`/person/edit?personId=${id}`);
+                  }}
+                  title="Edit"
+                  leadingIcon="pencil"
+                />
+                <Menu.Item
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleDelete();
+                  }}
+                  title="Delete"
+                  leadingIcon="delete"
+                  titleStyle={{ color: '#d32f2f' }}
+                />
+              </Menu>
             </View>
           ),
         }}
@@ -472,579 +517,554 @@ export default function PersonProfileScreen() {
       <View style={styles.wrapper}>
         <ScrollView style={styles.container}>
           {/* Profile Header */}
-          <Card style={styles.headerCard}>
-            <Card.Content>
-              <View style={styles.header}>
-                <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
-                  {profilePhoto ? (
-                    <Image
-                      source={{ uri: profilePhoto.filePath }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                    </View>
-                  )}
-                  <View style={styles.avatarBadge}>
-                    <IconButton
-                      icon="camera"
-                      size={16}
-                      iconColor="#fff"
-                      style={styles.cameraIcon}
-                    />
-                  </View>
-                </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                  <Text variant="headlineSmall" style={styles.name}>
-                    {person.name}
-                  </Text>
-                  {person.nickname && (
-                    <Text variant="bodyLarge" style={styles.nickname}>
-                      "{person.nickname}"
-                    </Text>
-                  )}
+          <View style={styles.headerSection}>
+            <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
+              {profilePhoto ? (
+                <Image
+                  source={{ uri: profilePhoto.filePath }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
                 </View>
-              </View>
-
-              <View style={styles.chips}>
-                {person.relationshipType && (
-                  <Chip icon="heart" style={styles.chip}>
-                    {person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
-                  </Chip>
-                )}
-                {person.personType && (
-                  <Chip icon="account" style={styles.chip}>
-                    {person.personType.charAt(0).toUpperCase() + person.personType.slice(1)}
-                  </Chip>
-                )}
-                {person.importanceToUser && person.importanceToUser !== 'unknown' && (
-                  <Chip icon="star" style={styles.chip}>
-                    {person.importanceToUser.replace('_', ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                  </Chip>
-                )}
-              </View>
-
-              {person.metDate && (
-                <Text variant="bodySmall" style={styles.metDate}>
-                  Met on {formatShortDate(new Date(person.metDate))}
-                </Text>
               )}
+              {!profilePhoto && (
+                <View style={styles.avatarBadge}>
+                  <IconButton
+                    icon="camera"
+                    size={16}
+                    iconColor="#fff"
+                    style={styles.cameraIcon}
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            <Text variant="headlineMedium" style={styles.name}>
+              {person.name}
+            </Text>
+            
+            {person.nickname && (
+              <Text variant="bodyLarge" style={styles.nickname}>
+                "{person.nickname}"
+              </Text>
+            )}
 
-              {person.notes && (
+            <View style={styles.chips}>
+              {person.relationshipType && (
+                <Chip icon="heart" style={styles.chip} compact>
+                  {person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
+                </Chip>
+              )}
+              {person.personType && (
+                <Chip icon="account" style={styles.chip} compact>
+                  {person.personType.charAt(0).toUpperCase() + person.personType.slice(1)}
+                </Chip>
+              )}
+              {person.importanceToUser && person.importanceToUser !== 'unknown' && (
+                <Chip icon="star" style={styles.chip} compact>
+                  {person.importanceToUser.replace('_', ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </Chip>
+              )}
+            </View>
+
+            {person.metDate && (
+              <Text variant="bodySmall" style={styles.metDate}>
+                Met on {formatShortDate(new Date(person.metDate))}
+              </Text>
+            )}
+
+            {person.notes && (
+              <View style={styles.notesSection}>
                 <Text variant="bodyMedium" style={styles.notes}>
                   {person.notes}
                 </Text>
-              )}
+              </View>
+            )}
 
-              <Text variant="bodySmall" style={styles.meta}>
-                Last updated {formatRelativeTime(new Date(person.updatedAt))}
-              </Text>
-            </Card.Content>
-          </Card>
+            <Text variant="bodySmall" style={styles.meta}>
+              Last updated {formatRelativeTime(new Date(person.updatedAt))}
+            </Text>
+          </View>
+          
+          <Divider style={styles.mainDivider} />
 
           {/* Tags */}
-          <Card style={styles.tagsCard}>
-            <Card.Content>
-              <View style={styles.tagsHeader}>
-                <Text variant="titleMedium" style={styles.tagsTitle}>
-                  Tags
-                </Text>
-                <Button
-                  mode="outlined"
-                  compact
-                  icon="tag-plus"
-                  onPress={() => setAddTagDialogVisible(true)}
-                >
-                  Add
-                </Button>
-              </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Tags
+              </Text>
+              <Button
+                mode="text"
+                compact
+                icon="tag-plus"
+                onPress={() => setAddTagDialogVisible(true)}
+              >
+                Add
+              </Button>
+            </View>
 
-              {personTags.length === 0 ? (
-                <Text variant="bodySmall" style={styles.noTagsText}>
-                  No tags yet. Add tags to organize and filter contacts.
-                </Text>
-              ) : (
-                <View style={styles.tagsContainer}>
-                  {personTags.map((tag) => (
-                    <Chip
-                      key={tag}
-                      icon="tag"
-                      onClose={() => handleRemoveTag(tag)}
-                      style={styles.tagChip}
-                      mode="outlined"
-                    >
-                      {tag}
-                    </Chip>
-                  ))}
-                </View>
-              )}
-            </Card.Content>
-          </Card>
+            {personTags.length === 0 ? (
+              <Text variant="bodySmall" style={styles.emptyStateText}>
+                No tags yet. Add tags to organize and filter contacts.
+              </Text>
+            ) : (
+              <View style={styles.tagsContainer}>
+                {personTags.map((tag) => (
+                  <Chip
+                    key={tag}
+                    icon="tag"
+                    onClose={() => handleRemoveTag(tag)}
+                    style={styles.tagChip}
+                    mode="outlined"
+                    compact
+                  >
+                    {tag}
+                  </Chip>
+                ))}
+              </View>
+            )}
+          </View>
 
           {/* Quick Actions */}
-          <Card style={styles.quickActionsCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.quickActionsTitle}>
-                Quick Actions
-              </Text>
-              <Text variant="bodySmall" style={styles.quickActionsSubtitle}>
-                One-tap logging for today
-              </Text>
-              <View style={styles.quickActionsRow}>
-                <Chip
-                  icon="account-check"
-                  onPress={() => handleQuickAction('met', 'Met')}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Met
-                </Chip>
-                <Chip
-                  icon="phone"
-                  onPress={() => handleQuickAction('called', 'Called')}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Called
-                </Chip>
-                <Chip
-                  icon="message"
-                  onPress={() => handleQuickAction('messaged', 'Messaged')}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Messaged
-                </Chip>
-              </View>
-              <View style={styles.quickActionsRow}>
-                <Chip
-                  icon="coffee"
-                  onPress={() => handleQuickAction('hung_out', 'Hung out')}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Hung Out
-                </Chip>
-                <Chip
-                  icon="star"
-                  onPress={() => handleQuickAction('special', 'Special event')}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Special
-                </Chip>
-                <Chip
-                  icon="bell"
-                  onPress={handleSetReminder}
-                  style={styles.quickActionChip}
-                  mode="outlined"
-                >
-                  Remind
-                </Chip>
-              </View>
-            </Card.Content>
-          </Card>
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Quick Actions
+            </Text>
+            <Text variant="bodySmall" style={styles.sectionSubtitle}>
+              One-tap logging for today
+            </Text>
+            <View style={styles.quickActionsRow}>
+              <Chip
+                icon="account-check"
+                onPress={() => handleQuickAction('met', 'Met')}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Met
+              </Chip>
+              <Chip
+                icon="phone"
+                onPress={() => handleQuickAction('called', 'Called')}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Called
+              </Chip>
+              <Chip
+                icon="message"
+                onPress={() => handleQuickAction('messaged', 'Messaged')}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Messaged
+              </Chip>
+            </View>
+            <View style={styles.quickActionsRow}>
+              <Chip
+                icon="coffee"
+                onPress={() => handleQuickAction('hung_out', 'Hung out')}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Hung Out
+              </Chip>
+              <Chip
+                icon="star"
+                onPress={() => handleQuickAction('special', 'Special event')}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Special
+              </Chip>
+              <Chip
+                icon="bell"
+                onPress={handleSetReminder}
+                style={styles.quickActionChip}
+                mode="outlined"
+                compact
+              >
+                Remind
+              </Chip>
+            </View>
+          </View>
 
           {/* Important Dates */}
-          <Card style={styles.importantDatesCard}>
-            <Card.Content>
-              <View style={styles.importantDatesHeader}>
-                <Text variant="titleMedium" style={styles.importantDatesTitle}>
-                  Important Dates
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Important Dates
+              </Text>
+              <Button
+                mode="text"
+                compact
+                icon="plus"
+                onPress={() => setAddDateDialogVisible(true)}
+              >
+                Add
+              </Button>
+            </View>
+
+            {person.dateOfBirth && (
+              <View style={styles.importantDateItem}>
+                <Chip icon="cake-variant" compact style={styles.dateChip}>
+                  Birthday
+                </Chip>
+                <Text variant="bodyMedium">
+                  {formatShortDate(new Date(person.dateOfBirth))}
                 </Text>
-                <Button
-                  mode="outlined"
-                  compact
-                  icon="plus"
-                  onPress={() => setAddDateDialogVisible(true)}
-                >
-                  Add
-                </Button>
               </View>
+            )}
 
-              {person.dateOfBirth && (
-                <View style={styles.importantDateItem}>
-                  <Chip icon="cake-variant" compact style={styles.dateChip}>
-                    Birthday
-                  </Chip>
-                  <Text variant="bodyMedium">
-                    {formatShortDate(new Date(person.dateOfBirth))}
-                  </Text>
-                </View>
-              )}
-
-              {importantDates.map((date) => (
-                <View key={date.id} style={styles.importantDateItem}>
-                  <Chip icon="calendar-star" compact style={styles.dateChip}>
-                    {date.objectLabel}
-                  </Chip>
-                  <Text variant="bodyMedium">
-                    {date.validFrom ? formatShortDate(new Date(date.validFrom)) : 'No date'}
-                  </Text>
-                  <IconButton
-                    icon="delete-outline"
-                    size={18}
-                    onPress={() => deleteRelation.mutateAsync(date.id)}
-                  />
-                </View>
-              ))}
-
-              {!person.dateOfBirth && importantDates.length === 0 && (
-                <Text variant="bodySmall" style={styles.noDateText}>
-                  No important dates added yet
+            {importantDates.map((date) => (
+              <View key={date.id} style={styles.importantDateItem}>
+                <Chip icon="calendar-star" compact style={styles.dateChip}>
+                  {date.objectLabel}
+                </Chip>
+                <Text variant="bodyMedium">
+                  {date.validFrom ? formatShortDate(new Date(date.validFrom)) : 'No date'}
                 </Text>
-              )}
-            </Card.Content>
-          </Card>
+                <IconButton
+                  icon="delete-outline"
+                  size={18}
+                  onPress={() => deleteRelation.mutateAsync(date.id)}
+                />
+              </View>
+            ))}
+
+            {!person.dateOfBirth && importantDates.length === 0 && (
+              <Text variant="bodySmall" style={styles.emptyStateText}>
+                No important dates added yet
+              </Text>
+            )}
+          </View>
 
           {/* Photos */}
           {personPhotos.length > 0 && (
-            <Card style={styles.photosCard}>
-              <Card.Content>
-                <View style={styles.photosHeader}>
-                  <Text variant="titleMedium" style={styles.photosTitle}>
-                    Photos ({personPhotos.length})
-                  </Text>
-                  <Button
-                    mode="outlined"
-                    compact
-                    icon="image-plus"
-                    onPress={() => {
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  Photos ({personPhotos.length})
+                </Text>
+                <Button
+                  mode="text"
+                  compact
+                  icon="image-plus"
+                  onPress={() => {
+                    Alert.alert(
+                      'Add Photo',
+                      'Choose how to add a photo',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Take Photo',
+                          onPress: () => takePhoto.mutateAsync({ personId: id! }),
+                        },
+                        {
+                          text: 'Choose from Library',
+                          onPress: () => addPhotoToPerson.mutateAsync({ personId: id! }),
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  Add
+                </Button>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {personPhotos.map((photo) => (
+                  <TouchableOpacity
+                    key={photo.id}
+                    onLongPress={() => {
                       Alert.alert(
-                        'Add Photo',
-                        'Choose how to add a photo',
+                        'Photo Options',
+                        'What would you like to do?',
                         [
                           { text: 'Cancel', style: 'cancel' },
                           {
-                            text: 'Take Photo',
-                            onPress: () => takePhoto.mutateAsync({ personId: id! }),
+                            text: 'Set as Profile',
+                            onPress: () =>
+                              setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id }),
                           },
                           {
-                            text: 'Choose from Library',
-                            onPress: () => addPhotoToPerson.mutateAsync({ personId: id! }),
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => deletePhoto.mutateAsync(photo.id),
                           },
                         ]
                       );
                     }}
+                    style={styles.photoThumbnailContainer}
                   >
-                    Add
-                  </Button>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {personPhotos.map((photo) => (
-                    <TouchableOpacity
-                      key={photo.id}
-                      onLongPress={() => {
-                        Alert.alert(
-                          'Photo Options',
-                          'What would you like to do?',
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                              text: 'Set as Profile',
-                              onPress: () =>
-                                setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id }),
-                            },
-                            {
-                              text: 'Delete',
-                              style: 'destructive',
-                              onPress: () => deletePhoto.mutateAsync(photo.id),
-                            },
-                          ]
-                        );
-                      }}
-                      style={styles.photoThumbnailContainer}
-                    >
-                      <Image source={{ uri: photo.filePath }} style={styles.photoThumbnail} />
-                      {person?.photoId === photo.id && (
-                        <View style={styles.profileBadge}>
-                          <IconButton icon="account-check" size={12} iconColor="#fff" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <Text variant="labelSmall" style={styles.photoHint}>
-                  Long press on a photo for options
-                </Text>
-              </Card.Content>
-            </Card>
+                    <Image source={{ uri: photo.filePath }} style={styles.photoThumbnail} />
+                    {person?.photoId === photo.id && (
+                      <View style={styles.profileBadge}>
+                        <IconButton icon="account-check" size={12} iconColor="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Text variant="labelSmall" style={styles.photoHint}>
+                Long press on a photo for options
+              </Text>
+            </View>
           )}
 
           {/* Gift Ideas */}
-          <Card style={styles.giftIdeasCard}>
-            <Card.Content>
-              <View style={styles.giftIdeasHeader}>
-                <Text variant="titleMedium" style={styles.giftIdeasTitle}>
-                  Gift Ideas
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Gift Ideas
+              </Text>
+              <Button
+                mode="text"
+                compact
+                icon="gift"
+                onPress={() => setAddGiftDialogVisible(true)}
+              >
+                Add
+              </Button>
+            </View>
+
+            {giftIdeas.length === 0 ? (
+              <Text variant="bodySmall" style={styles.emptyStateText}>
+                No gift ideas yet. Add ideas for {person.name}!
+              </Text>
+            ) : (
+              giftIdeas.map((gift) => (
+                <View key={gift.id} style={styles.giftItem}>
+                  <View style={styles.giftInfo}>
+                    <View style={styles.giftHeader}>
+                      <Text
+                        variant="bodyMedium"
+                        style={[
+                          styles.giftItemText,
+                          gift.status === 'given' && styles.giftGiven,
+                        ]}
+                      >
+                        {gift.item}
+                      </Text>
+                      <Chip
+                        compact
+                        style={[
+                          styles.priorityChip,
+                          { backgroundColor: getPriorityColor(gift.priority) + '20' },
+                        ]}
+                        textStyle={{ color: getPriorityColor(gift.priority), fontSize: 10 }}
+                      >
+                        {gift.priority}
+                      </Chip>
+                    </View>
+                    {gift.occasion && (
+                      <Text variant="labelSmall" style={styles.giftOccasion}>
+                        For: {gift.occasion}
+                      </Text>
+                    )}
+                    {gift.notes && (
+                      <Text variant="labelSmall" style={styles.giftNotes}>
+                        {gift.notes}
+                      </Text>
+                    )}
+                    {gift.status === 'given' && gift.givenDate && (
+                      <Text variant="labelSmall" style={styles.giftGivenDate}>
+                        Given on {formatShortDate(gift.givenDate)}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.giftActions}>
+                    {gift.status !== 'given' && (
+                      <IconButton
+                        icon="check-circle-outline"
+                        size={20}
+                        iconColor="#4caf50"
+                        onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
+                      />
+                    )}
+                    <IconButton
+                      icon="delete-outline"
+                      size={20}
+                      onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
+                    />
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
+          {/* Relations */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Relations ({personRelations?.length || 0})
+              </Text>
+              {personRelations && personRelations.length > 0 && (
+                <IconButton
+                  icon="dots-vertical"
+                  size={20}
+                  onPress={() => router.push(`/person/manage-relations?personId=${id}`)}
+                />
+              )}
+            </View>
+
+            {relationsLoading && (
+              <View style={styles.centered}>
+                <ActivityIndicator />
+              </View>
+            )}
+
+            {!relationsLoading && personRelations && personRelations.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text variant="bodyMedium" style={styles.emptyStateText}>
+                  No relations yet. Add preferences, facts, or information about {person.name}.
                 </Text>
                 <Button
                   mode="outlined"
-                  compact
-                  icon="gift"
-                  onPress={() => setAddGiftDialogVisible(true)}
-                >
-                  Add
-                </Button>
-              </View>
-
-              {giftIdeas.length === 0 ? (
-                <Text variant="bodySmall" style={styles.noGiftText}>
-                  No gift ideas yet. Add ideas for {person.name}!
-                </Text>
-              ) : (
-                giftIdeas.map((gift) => (
-                  <View key={gift.id} style={styles.giftItem}>
-                    <View style={styles.giftInfo}>
-                      <View style={styles.giftHeader}>
-                        <Text
-                          variant="bodyMedium"
-                          style={[
-                            styles.giftItemText,
-                            gift.status === 'given' && styles.giftGiven,
-                          ]}
-                        >
-                          {gift.item}
-                        </Text>
-                        <Chip
-                          compact
-                          style={[
-                            styles.priorityChip,
-                            { backgroundColor: getPriorityColor(gift.priority) + '20' },
-                          ]}
-                          textStyle={{ color: getPriorityColor(gift.priority), fontSize: 10 }}
-                        >
-                          {gift.priority}
-                        </Chip>
-                      </View>
-                      {gift.occasion && (
-                        <Text variant="labelSmall" style={styles.giftOccasion}>
-                          For: {gift.occasion}
-                        </Text>
-                      )}
-                      {gift.notes && (
-                        <Text variant="labelSmall" style={styles.giftNotes}>
-                          {gift.notes}
-                        </Text>
-                      )}
-                      {gift.status === 'given' && gift.givenDate && (
-                        <Text variant="labelSmall" style={styles.giftGivenDate}>
-                          Given on {formatShortDate(gift.givenDate)}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.giftActions}>
-                      {gift.status !== 'given' && (
-                        <IconButton
-                          icon="check-circle-outline"
-                          size={20}
-                          iconColor="#4caf50"
-                          onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
-                        />
-                      )}
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
-                      />
-                    </View>
-                  </View>
-                ))
-              )}
-            </Card.Content>
-          </Card>
-
-          {/* Relations */}
-          <Card style={styles.relationsCard}>
-            <Card.Content>
-              <View style={styles.relationsTitleRow}>
-                <Text variant="titleLarge" style={styles.sectionTitle}>
-                  Relations ({personRelations?.length || 0})
-                </Text>
-                {personRelations && personRelations.length > 0 && (
-                  <IconButton
-                    icon="dots-vertical"
-                    size={20}
-                    onPress={() => router.push(`/person/manage-relations?personId=${id}`)}
-                  />
-                )}
-              </View>
-              <Divider style={styles.divider} />
-
-              {relationsLoading && (
-                <View style={styles.centered}>
-                  <ActivityIndicator />
-                </View>
-              )}
-
-              {!relationsLoading && personRelations && personRelations.length === 0 && (
-                <View style={styles.emptyRelations}>
-                  <Text variant="bodyMedium" style={styles.emptyText}>
-                    No relations yet. Add preferences, facts, or information about {person.name}.
-                  </Text>
-                  <Button
-                    mode="outlined"
-                    icon="plus"
-                    onPress={() => router.push(`/person/add-relation?personId=${id}`)}
-                  >
-                    Add Relation
-                  </Button>
-                </View>
-              )}
-
-              {!relationsLoading && personRelations && personRelations.length > 0 && (
-                <Button
-                  mode="text"
                   icon="plus"
                   onPress={() => router.push(`/person/add-relation?personId=${id}`)}
-                  style={styles.addRelationButton}
-                  compact
+                  style={styles.emptyStateButton}
                 >
                   Add Relation
                 </Button>
-              )}
+              </View>
+            )}
 
-              {/* Compact relations list sorted by priority */}
-              {sortedRelationTypes.map((type) => {
-                const rels = relationsByType![type];
-                return (
-                  <View key={type} style={styles.relationTypeSection}>
-                    <Text variant="labelLarge" style={styles.relationTypeLabel}>
-                      {getRelationEmoji(type)} {formatRelationType(type)}
-                    </Text>
-                    <View style={styles.relationChipsContainer}>
-                      {rels.map((relation) => (
-                        <Chip
-                          key={relation.id}
-                          compact
-                          style={styles.relationChip}
-                          textStyle={styles.relationChipText}
-                        >
-                          {relation.objectLabel}
-                          {relation.intensity && relation.intensity !== 'medium' && (
-                            <Text style={styles.intensityIndicator}>
-                              {' '}
-                              {relation.intensity === 'very_strong'
-                                ? '💪'
-                                : relation.intensity === 'strong'
-                                  ? '+'
-                                  : relation.intensity === 'weak'
-                                    ? '-'
-                                    : ''}
-                            </Text>
-                          )}
-                        </Chip>
-                      ))}
-                    </View>
+            {/* Compact relations list sorted by priority */}
+            {sortedRelationTypes.map((type) => {
+              const rels = relationsByType![type];
+              return (
+                <View key={type} style={styles.relationTypeSection}>
+                  <Text variant="labelLarge" style={styles.relationTypeLabel}>
+                    {getRelationEmoji(type)} {formatRelationType(type)}
+                  </Text>
+                  <View style={styles.relationChipsContainer}>
+                    {rels.map((relation) => (
+                      <Chip
+                        key={relation.id}
+                        compact
+                        style={styles.relationChip}
+                        textStyle={styles.relationChipText}
+                      >
+                        {relation.objectLabel}
+                        {relation.intensity && relation.intensity !== 'medium' && (
+                          <Text style={styles.intensityIndicator}>
+                            {' '}
+                            {relation.intensity === 'very_strong'
+                              ? '💪'
+                              : relation.intensity === 'strong'
+                                ? '+'
+                                : relation.intensity === 'weak'
+                                  ? '-'
+                                  : ''}
+                          </Text>
+                        )}
+                      </Chip>
+                    ))}
                   </View>
-                );
-              })}
-            </Card.Content>
-          </Card>
+                </View>
+              );
+            })}
+
+            </View>
 
           {/* Connections (Person-to-Person) */}
-          <Card style={styles.relationsCard}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.sectionTitle}>
-                Connections ({personConnections?.length || 0})
-              </Text>
-              <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Connections ({personConnections?.length || 0})
+            </Text>
 
-              {connectionsLoading && (
-                <View style={styles.centered}>
-                  <ActivityIndicator />
-                </View>
-              )}
+            {connectionsLoading && (
+              <View style={styles.centered}>
+                <ActivityIndicator />
+              </View>
+            )}
 
-              {!connectionsLoading && personConnections && personConnections.length === 0 && (
-                <View style={styles.emptyRelations}>
-                  <Text variant="bodyMedium" style={styles.emptyText}>
-                    No connections yet. Add connections to show how {person.name} relates to other
-                    people.
-                  </Text>
-                  <Button
-                    mode="outlined"
-                    onPress={() => router.push(`/person/add-connection?personId=${id}`)}
-                  >
-                    Add Connection
-                  </Button>
-                </View>
-              )}
-
-              {personConnections &&
-                personConnections.map((connection) => {
-                  const connectedPerson = getConnectedPerson(connection);
-                  if (!connectedPerson) return null;
-
-                  return (
-                    <List.Item
-                      key={connection.id}
-                      title={connectedPerson.name}
-                      description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`}
-                      left={() =>
-                        connectedPerson.photoPath ? (
-                          <Image
-                            source={{ uri: connectedPerson.photoPath }}
-                            style={styles.connectionPhoto}
-                          />
-                        ) : (
-                          <View style={styles.connectionAvatar}>
-                            <Text style={styles.connectionAvatarText}>
-                              {getInitials(connectedPerson.name)}
-                            </Text>
-                          </View>
-                        )
-                      }
-                      right={() => (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Chip compact style={{ marginRight: 4 }}>
-                            {connection.status}
-                          </Chip>
-                          <IconButton
-                            icon="open-in-new"
-                            size={20}
-                            onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                          />
-                          <IconButton
-                            icon="delete-outline"
-                            size={20}
-                            onPress={() =>
-                              handleDeleteConnection(connection.id, connectedPerson.name)
-                            }
-                          />
-                        </View>
-                      )}
-                      onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                      style={styles.relationItem}
-                    />
-                  );
-                })}
-
-              {/* Always show Add Connection button */}
-              {personConnections && personConnections.length > 0 && (
+            {!connectionsLoading && personConnections && personConnections.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text variant="bodyMedium" style={styles.emptyStateText}>
+                  No connections yet. Add connections to show how {person.name} relates to other
+                  people.
+                </Text>
                 <Button
-                  mode="text"
-                  icon="plus"
+                  mode="outlined"
                   onPress={() => router.push(`/person/add-connection?personId=${id}`)}
-                  style={styles.addRelationButton}
-                  compact
+                  style={styles.emptyStateButton}
                 >
                   Add Connection
                 </Button>
-              )}
-            </Card.Content>
-          </Card>
+              </View>
+            )}
+
+            {personConnections &&
+              personConnections.map((connection) => {
+                const connectedPerson = getConnectedPerson(connection);
+                if (!connectedPerson) return null;
+
+                return (
+                  <List.Item
+                    key={connection.id}
+                    title={connectedPerson.name}
+                    description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`}
+                    left={() =>
+                      connectedPerson.photoPath ? (
+                        <Image
+                          source={{ uri: connectedPerson.photoPath }}
+                          style={styles.connectionPhoto}
+                        />
+                      ) : (
+                        <View style={styles.connectionAvatar}>
+                          <Text style={styles.connectionAvatarText}>
+                            {getInitials(connectedPerson.name)}
+                          </Text>
+                        </View>
+                      )
+                    }
+                    right={() => (
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Chip compact style={{ marginRight: 4 }}>
+                          {connection.status}
+                        </Chip>
+                        <IconButton
+                          icon="open-in-new"
+                          size={20}
+                          onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                        />
+                        <IconButton
+                          icon="delete-outline"
+                          size={20}
+                          onPress={() =>
+                            handleDeleteConnection(connection.id, connectedPerson.name)
+                          }
+                        />
+                      </View>
+                    )}
+                    onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                    style={styles.connectionItem}
+                  />
+                );
+              })}
+
+            {personConnections && personConnections.length > 0 && (
+              <Button
+                mode="contained"
+                icon="plus"
+                onPress={() => router.push(`/person/add-connection?personId=${id}`)}
+                style={styles.addButton}
+              >
+                Add Connection
+              </Button>
+            )}
+          </View>
 
           <View style={styles.spacer} />
         </ScrollView>
-
-        <FAB
-          icon="plus"
-          label="Add Relation"
-          style={styles.fab}
-          onPress={() => router.push(`/person/add-relation?personId=${id}`)}
-        />
       </View>
 
       {/* Add Important Date Dialog */}
@@ -1190,7 +1210,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   centered: {
     flex: 1,
@@ -1204,27 +1224,60 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: 16,
   },
-  headerCard: {
-    margin: 16,
-    marginBottom: 8,
+  // Modern header section
+  headerSection: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
   },
-  tagsCard: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8,
+  mainDivider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 8,
   },
-  tagsHeader: {
+  // Section styling
+  section: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  sectionSubtitle: {
+    opacity: 0.6,
+    marginTop: 4,
     marginBottom: 12,
   },
-  tagsTitle: {
-    fontWeight: 'bold',
+  emptyState: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
-  noTagsText: {
+  emptyStateText: {
     opacity: 0.6,
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyStateButton: {
+    marginTop: 8,
+  },
+  addButton: {
+    marginTop: 16,
+  },
+  notesSection: {
+    marginTop: 16,
+    paddingHorizontal: 4,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -1241,20 +1294,6 @@ const styles = StyleSheet.create({
   },
   existingTagChip: {
     marginBottom: 4,
-  },
-  photosCard: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  photosHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  photosTitle: {
-    fontWeight: 'bold',
   },
   photoThumbnailContainer: {
     marginRight: 12,
@@ -1281,64 +1320,62 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginBottom: 20,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#6200ee',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   avatarText: {
     color: 'white',
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: 'bold',
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
+    bottom: 0,
+    right: 0,
     backgroundColor: '#03dac6',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
+    borderRadius: 18,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#fff',
   },
   cameraIcon: {
     margin: 0,
     padding: 0,
   },
-  headerInfo: {
-    flex: 1,
-  },
   name: {
-    fontWeight: 'bold',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
   },
   nickname: {
     opacity: 0.7,
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'center',
+    marginTop: 12,
     marginBottom: 12,
   },
   chip: {
@@ -1347,29 +1384,16 @@ const styles = StyleSheet.create({
   metDate: {
     marginTop: 8,
     opacity: 0.7,
+    textAlign: 'center',
   },
   notes: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    lineHeight: 22,
   },
   meta: {
     marginTop: 12,
-    opacity: 0.6,
-  },
-  quickActionsCard: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  quickActionsTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  quickActionsSubtitle: {
-    opacity: 0.7,
-    marginBottom: 12,
+    opacity: 0.5,
+    fontSize: 12,
+    textAlign: 'center',
   },
   quickActionsRow: {
     flexDirection: 'row',
@@ -1380,20 +1404,6 @@ const styles = StyleSheet.create({
   quickActionChip: {
     marginRight: 4,
   },
-  importantDatesCard: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  importantDatesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  importantDatesTitle: {
-    fontWeight: 'bold',
-  },
   importantDateItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1401,28 +1411,6 @@ const styles = StyleSheet.create({
   },
   dateChip: {
     marginRight: 8,
-  },
-  noDateText: {
-    opacity: 0.6,
-    fontStyle: 'italic',
-  },
-  giftIdeasCard: {
-    margin: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  giftIdeasHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  giftIdeasTitle: {
-    fontWeight: 'bold',
-  },
-  noGiftText: {
-    opacity: 0.6,
-    fontStyle: 'italic',
   },
   giftItem: {
     flexDirection: 'row',
@@ -1467,37 +1455,6 @@ const styles = StyleSheet.create({
   giftActions: {
     flexDirection: 'row',
   },
-  relationsCard: {
-    margin: 16,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  emptyRelations: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.7,
-  },
-  addRelationButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 8,
-  },
-  relationItem: {
-    paddingVertical: 8,
-  },
-  relationsTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   relationTypeSection: {
     marginBottom: 12,
   },
@@ -1519,6 +1476,9 @@ const styles = StyleSheet.create({
   intensityIndicator: {
     fontSize: 10,
     opacity: 0.8,
+  },
+  connectionItem: {
+    paddingVertical: 8,
   },
   connectionAvatar: {
     width: 40,
@@ -1542,11 +1502,5 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 40,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 });

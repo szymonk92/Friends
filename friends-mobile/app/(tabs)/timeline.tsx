@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, Alert, ScrollView, Image } from 'react-native';
+import { StyleSheet, View, FlatList, Alert, ScrollView, Image, StatusBar } from 'react-native';
 import {
   Text,
   Card,
@@ -12,7 +12,9 @@ import {
   TextInput,
   SegmentedButtons,
   Menu,
+  useTheme,
 } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import {
@@ -26,6 +28,8 @@ import { useRelations } from '@/hooks/useRelations';
 import { useEvents } from '@/hooks/useEvents';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import SectionDivider from '@/components/SectionDivider';
+import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -41,6 +45,8 @@ const EVENT_TYPES = [
 ];
 
 export default function TimelineScreen() {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { data: events = [], isLoading, error, refetch } = useContactEvents();
   const { data: people = [] } = usePeople();
   const { data: allRelations = [] } = useRelations();
@@ -62,6 +68,7 @@ export default function TimelineScreen() {
   const [filterEventType, setFilterEventType] = useState<string | null>(null);
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
   const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
+  const [filtersVisible, setFiltersVisible] = useState(false);
 
   // Relationship colors
   const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
@@ -73,12 +80,12 @@ export default function TimelineScreen() {
   // Generate birthday events from people with birthday
   const birthdayEvents = useMemo(() => {
     return people
-      .filter((p) => p.birthday)
+      .filter((p) => p.dateOfBirth)
       .map((p) => ({
         id: `birthday-${p.id}`,
         personId: p.id,
         eventType: 'birthday',
-        eventDate: p.birthday,
+        eventDate: p.dateOfBirth!,
         notes: `${p.name}'s birthday`,
         isBirthday: true,
       }));
@@ -102,7 +109,7 @@ export default function TimelineScreen() {
   const partyTimelineEvents = useMemo(() => {
     return partyEvents
       .filter((event) => event.eventDate)
-      .flatMap((event) => {
+      .map((event) => {
         // Parse guest IDs from JSON
         const guestIds: string[] = event.guestIds ? JSON.parse(event.guestIds) : [];
         const guestNames = guestIds.map((gid) => {
@@ -110,35 +117,18 @@ export default function TimelineScreen() {
           return person?.name || 'Unknown';
         });
 
-        // Create an event entry for each guest (so it shows up for each person)
-        if (guestIds.length === 0) {
-          return [
-            {
-              id: `party-${event.id}`,
-              personId: null as any,
-              eventType: event.eventType || 'party',
-              eventDate: event.eventDate,
-              notes: `${event.name}${event.location ? ` at ${event.location}` : ''}`,
-              isPartyEvent: true,
-              partyDetails: event,
-              guestCount: 0,
-              guestNames: [],
-            },
-          ];
-        }
-
-        // Return one timeline event per guest
-        return guestIds.map((guestId) => ({
-          id: `party-${event.id}-${guestId}`,
-          personId: guestId,
+        // Create ONE event for the entire party
+        return {
+          id: `party-${event.id}`,
+          personId: null as any, // No specific person - it's a group event
           eventType: event.eventType || 'party',
           eventDate: event.eventDate,
-          notes: `${event.name} with ${guestNames.filter((n) => n !== people.find((p) => p.id === guestId)?.name).slice(0, 3).join(', ')}${guestNames.length > 4 ? '...' : ''}${event.location ? ` at ${event.location}` : ''}`,
+          notes: `${event.name || 'Party'}${guestIds.length > 0 ? ` with ${guestNames.slice(0, 3).join(', ')}${guestNames.length > 3 ? ` and ${guestNames.length - 3} more` : ''}` : ''}${event.location ? ` at ${event.location}` : ''}`,
           isPartyEvent: true,
           partyDetails: event,
           guestCount: guestIds.length,
           guestNames,
-        }));
+        };
       });
   }, [partyEvents, people]);
 
@@ -280,49 +270,82 @@ export default function TimelineScreen() {
   }
 
   const renderEventItem = ({ item, index }: { item: any; index: number }) => {
-    const personName = getPersonName(item.personId);
+    const personName = item.isPartyEvent ? (item.partyDetails?.name || 'Party') : getPersonName(item.personId);
     const person = people.find((p) => p.id === item.personId);
     const isBirthday = item.isBirthday || item.eventType === 'birthday';
     const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';
     const isSpecialEvent = isBirthday || isImportantDate;
     const personColor = person?.relationshipType
-      ? relationshipColors[person.relationshipType] || '#6200ee'
-      : '#6200ee';
+      ? relationshipColors[person.relationshipType] || theme.colors.primary
+      : theme.colors.primary;
+
+    // Check if we need to show year header
+    const currentYear = new Date(item.eventDate).getFullYear();
+    const previousYear = index > 0 ? new Date(filteredEvents[index - 1].eventDate).getFullYear() : null;
+    const nextYear = index < filteredEvents.length - 1 ? new Date(filteredEvents[index + 1].eventDate).getFullYear() : null;
+    const showYearHeader = index === 0 || currentYear !== previousYear;
+    const isLastInYear = nextYear !== null && currentYear !== nextYear;
 
     return (
-      <View style={styles.timelineItem}>
-        {/* Timeline line */}
-        <View style={styles.timelineLine}>
-          <View
-            style={[
-              styles.timelineDot,
-              { backgroundColor: personColor },
-              isBirthday && styles.birthdayDot,
-              isImportantDate && styles.anniversaryDot,
-            ]}
-          />
-          {index < filteredEvents.length - 1 && <View style={styles.timelineConnector} />}
-        </View>
+      <>
+        {/* Year header */}
+        {showYearHeader && (
+          <SectionDivider label={String(currentYear)} variant="labelLarge" marginVertical={24} />
+        )}
 
-        {/* Event card */}
-        <Card
-          style={[
-            styles.eventCard,
-            { borderLeftWidth: 3, borderLeftColor: personColor },
-            isBirthday && styles.birthdayCard,
-            isImportantDate && styles.anniversaryCard,
-          ]}
-        >
-          <Card.Content>
-            <View style={styles.eventHeader}>
-              <View style={styles.eventInfo}>
-                <Chip icon={getEventIcon(item.eventType)} compact>
-                  {getEventLabel(item.eventType)}
-                </Chip>
-                <Text variant="labelSmall" style={styles.eventDate}>
-                  {formatRelativeTime(new Date(item.eventDate))}
-                </Text>
+        <View style={styles.timelineItem}>
+          {/* Timeline line */}
+          <View style={styles.timelineLine}>
+            <View
+              style={[
+                styles.timelineDot,
+                { backgroundColor: personColor },
+                isBirthday && styles.birthdayDot,
+                isImportantDate && styles.anniversaryDot,
+              ]}
+            />
+            {index < filteredEvents.length - 1 && (
+              <View style={[styles.timelineConnector, { backgroundColor: theme.colors.primary }]} />
+            )}
+          </View>
+
+          {/* Event content - No card */}
+          <View style={styles.eventContent}>
+            {/* Person & Event Type */}
+            <View style={styles.headerRow}>
+              <View style={styles.personRow}>
+                {item.isPartyEvent ? (
+                  // Party event - show party icon
+                  <View style={[styles.personAvatar, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={styles.personAvatarText}>🎉</Text>
+                  </View>
+                ) : person ? (
+                  // Regular person event
+                  person.photoPath ? (
+                    <View style={styles.avatarWithBorder}>
+                      <Image source={{ uri: person.photoPath }} style={styles.personAvatarImage} />
+                      <View style={[styles.avatarIndicator, { backgroundColor: personColor }]} />
+                    </View>
+                  ) : (
+                    <View style={[styles.personAvatar, { backgroundColor: personColor }]}>
+                      <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
+                    </View>
+                  )
+                ) : null}
+                <View style={styles.personInfo}>
+                  <Text
+                    variant="titleSmall"
+                    style={styles.personName}
+                    onPress={() => !item.isPartyEvent && person && router.push(`/person/${person.id}`)}
+                  >
+                    {personName}
+                  </Text>
+                  <Text variant="labelSmall" style={styles.eventMeta}>
+                    {getEventLabel(item.eventType)} · {formatRelativeTime(new Date(item.eventDate))}
+                  </Text>
+                </View>
               </View>
+              
               {!isSpecialEvent && (
                 <Menu
                   visible={eventMenuVisible === item.id}
@@ -332,6 +355,7 @@ export default function TimelineScreen() {
                       icon="dots-vertical"
                       size={20}
                       onPress={() => setEventMenuVisible(item.id)}
+                      style={styles.menuButton}
                     />
                   }
                 >
@@ -355,53 +379,92 @@ export default function TimelineScreen() {
               )}
             </View>
 
-            <View style={styles.personRow}>
-              {person && (
-                person.photoPath ? (
-                  <Image source={{ uri: person.photoPath }} style={styles.personAvatarImage} />
-                ) : (
-                  <View style={[styles.personAvatar, { backgroundColor: personColor }]}>
-                    <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
-                  </View>
-                )
-              )}
-              <Text
-                variant="titleMedium"
-                style={styles.personName}
-                onPress={() => person && router.push(`/person/${person.id}`)}
-              >
-                {personName}
-              </Text>
-            </View>
-
+            {/* Event Notes */}
             {item.notes && (
               <Text variant="bodyMedium" style={styles.eventNotes}>
                 {item.notes}
               </Text>
             )}
 
-            {item.location && (
-              <Text variant="labelSmall" style={styles.eventLocation}>
-                📍 {item.location}
-              </Text>
+            {/* Party Management Buttons */}
+            {item.isPartyEvent && item.partyDetails && (
+              <View style={styles.partyActions}>
+                <Text variant="labelSmall" style={styles.guestCount}>
+                  👥 {item.guestCount} {item.guestCount === 1 ? 'guest' : 'guests'}
+                </Text>
+                <View style={styles.partyButtons}>
+                  <Button
+                    mode="outlined"
+                    icon="account-plus"
+                    onPress={() => router.push(`/party-planner?eventId=${item.partyDetails.id}`)}
+                    style={styles.partyButton}
+                    compact
+                  >
+                    Manage Guests
+                  </Button>
+                </View>
+              </View>
             )}
 
-            {item.duration && (
-              <Text variant="labelSmall" style={styles.eventDuration}>
-                ⏱️ {item.duration} minutes
-              </Text>
+            {/* Meta Info */}
+            {(item.location || item.duration) && (
+              <View style={styles.metaRow}>
+                {item.location && (
+                  <Text variant="labelSmall" style={styles.metaText}>
+                    📍 {item.location}
+                  </Text>
+                )}
+                {item.duration && (
+                  <Text variant="labelSmall" style={styles.metaText}>
+                    ⏱️ {item.duration} min
+                  </Text>
+                )}
+              </View>
             )}
-          </Card.Content>
-        </Card>
-      </View>
+
+            {/* Divider - hide if last event or last in year */}
+            {index < filteredEvents.length - 1 && !isLastInYear && (
+              <View style={styles.eventDivider} />
+            )}
+          </View>
+        </View>
+      </>
     );
   };
 
+  const hasActiveFilters = filterPersonId || filterEventType;
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        {/* Filters */}
-        <View style={styles.filtersContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      
+      {/* Custom Header - Android Contacts Style */}
+      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
+        <View style={headerStyles.headerContent}>
+          <Text variant="headlineMedium" style={headerStyles.headerTitle}>
+            Timeline
+          </Text>
+          <View style={headerStyles.headerActions}>
+            <IconButton
+              icon="plus"
+              size={HEADER_ICON_SIZE}
+              style={headerStyles.headerIcon}
+              onPress={() => setAddDialogVisible(true)}
+            />
+            <IconButton
+              icon={filtersVisible ? 'filter-variant' : 'filter-variant-remove'}
+              size={HEADER_ICON_SIZE}
+              onPress={() => setFiltersVisible(!filtersVisible)}
+              iconColor={hasActiveFilters ? '#6200ee' : undefined}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Filters Section */}
+      {filtersVisible && (
+        <View style={styles.filtersSection}>
+          <View style={styles.filtersContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             {/* Person filter */}
             <Menu
@@ -459,7 +522,8 @@ export default function TimelineScreen() {
             ))}
           </ScrollView>
         </View>
-      </View>
+        </View>
+      )}
 
       {filteredEvents.length === 0 ? (
         <View style={styles.emptyState}>
@@ -496,8 +560,6 @@ export default function TimelineScreen() {
           contentContainerStyle={styles.list}
         />
       )}
-
-      <FAB icon="plus" style={styles.fab} onPress={() => setAddDialogVisible(true)} />
 
       {/* Add/Edit Event Dialog */}
       <Portal>
@@ -586,7 +648,10 @@ export default function TimelineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+  },
+  statusBarSpacer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   centered: {
     flex: 1,
@@ -601,11 +666,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#d32f2f',
   },
-  header: {
+  filtersSection: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    elevation: 2,
   },
   filtersContainer: {
     marginTop: 0,
@@ -620,20 +686,27 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 80,
   },
+
   timelineItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   timelineLine: {
     width: 30,
     alignItems: 'center',
   },
   timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#6200ee',
-    marginTop: 16,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginTop: 20,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   birthdayDot: {
     backgroundColor: '#ff9800',
@@ -644,79 +717,110 @@ const styles = StyleSheet.create({
   timelineConnector: {
     width: 2,
     flex: 1,
-    backgroundColor: '#6200ee',
-    opacity: 0.3,
-    marginTop: 4,
+    opacity: 0.2,
+    marginTop: 6,
   },
-  eventCard: {
+  eventContent: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 12,
+    paddingBottom: 20,
   },
-  birthdayCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#ff9800',
+  eventDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginTop: 16,
+    marginBottom: 4,
   },
-  anniversaryCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#e91e63',
-  },
-  eventHeader: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  eventInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  eventActions: {
-    flexDirection: 'row',
-  },
-  eventDate: {
-    opacity: 0.6,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    flex: 1,
+  },
+  personInfo: {
+    flex: 1,
   },
   personAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#6200ee',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 12,
   },
   personAvatarText: {
     color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  avatarWithBorder: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  avatarIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   personAvatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   personName: {
     fontWeight: '600',
-    color: '#6200ee',
+    fontSize: 15,
+    marginBottom: 3,
+    color: '#1a1a1a',
+  },
+  eventMeta: {
+    opacity: 0.5,
+    fontSize: 12,
+  },
+  menuButton: {
+    margin: 0,
+    marginTop: -8,
+    marginRight: -8,
   },
   eventNotes: {
-    marginTop: 4,
-    lineHeight: 20,
+    lineHeight: 21,
+    color: '#4a4a4a',
+    fontSize: 14,
+    marginBottom: 8,
   },
-  eventLocation: {
+  metaRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
-    opacity: 0.7,
   },
-  eventDuration: {
-    marginTop: 4,
+  metaText: {
+    opacity: 0.55,
+    fontSize: 12,
+  },
+  partyActions: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  guestCount: {
     opacity: 0.7,
+    marginBottom: 8,
+  },
+  partyButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  partyButton: {
+    flex: 1,
   },
   emptyState: {
     flex: 1,
@@ -732,12 +836,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: 24,
     lineHeight: 22,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
   dialogLabel: {
     marginBottom: 8,

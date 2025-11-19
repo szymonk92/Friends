@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { openDatabaseSync } from 'expo-sqlite';
 import * as schema from './schema';
-import { dbLogger, logPerformance } from '@/lib/logger';
+import { dbLogger } from '@/lib/logger';
 
 // Open the database
 const expoDb = openDatabaseSync('friends.db');

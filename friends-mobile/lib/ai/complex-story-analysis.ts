@@ -3,18 +3,18 @@
  * This tests: duplicate names, cross-references, conflicting info, temporal changes
  */
 
-import { createPromptV2 } from './prompt-variants';
-import { createExtractionPrompt } from './prompts';
+import { createPromptV2 as _createPromptV2 } from './prompt-variants';
+import { createExtractionPrompt as _createExtractionPrompt } from './prompts';
 
 // Existing database state
-const existingPeople = [
+const _existingPeople = [
   { id: 'sarah-001', name: 'Sarah Miller' },
   { id: 'mike-002', name: 'Mike Thompson' },
   { id: 'sarah-003', name: 'Sarah Chen' },
   { id: 'tom-004', name: 'Tom Wilson' },
 ];
 
-const existingRelations = [
+const _existingRelations = [
   { relationType: 'LIKES', objectLabel: 'sushi', subjectId: 'sarah-001', subjectName: 'Sarah Miller' },
   { relationType: 'IS', objectLabel: 'vegetarian', subjectId: 'sarah-003', subjectName: 'Sarah Chen' },
   { relationType: 'LIKES', objectLabel: 'hiking', subjectId: 'mike-002', subjectName: 'Mike Thompson' },
@@ -23,7 +23,7 @@ const existingRelations = [
 ];
 
 // The complex story
-const complexStory = `
+const _complexStory = `
 Last weekend was wild. Sarah (Mike's girlfriend) organized a surprise party for Tom at the new Thai place downtown.
 She knows Tom loves Thai food. Mike brought his sister Sarah who just flew in from Boston - she's the one studying
 medicine at Harvard.
@@ -49,10 +49,10 @@ Oh, and Mike Thompson finally admitted he's terrified of dogs, which is awkward 
 adopted a golden retriever last week.
 `;
 
-console.log('=== COMPLEX STORY ANALYSIS ===\n');
-console.log('STORY:');
-console.log(complexStory);
-console.log('\n=== CHALLENGES IDENTIFIED ===\n');
+// console.log('=== COMPLEX STORY ANALYSIS ===\n');
+// console.log('STORY:');
+// console.log(complexStory);
+// console.log('\n=== CHALLENGES IDENTIFIED ===\n');
 
 const challenges = [
   {
@@ -133,36 +133,44 @@ const challenges = [
 ];
 
 challenges.forEach((challenge) => {
-  console.log(`### ${challenge.type} ###`);
+  // console.log(`### ${challenge.type} ###`);
   if (challenge.instances) {
-    console.log('Instances:');
-    challenge.instances.forEach((i) => console.log(`  - ${i}`));
+    // console.log('Instances:');
+    challenge.instances.forEach((_i) => {
+      // console.log(`  - ${_i}`);
+    });
   }
   if (challenge.cases) {
     challenge.cases.forEach((c) => {
-      console.log(`\nConflict: ${c.conflict}`);
-      if (c.existing) console.log(`  Existing: ${c.existing}`);
-      console.log(`  New Info: ${c.newInfo}`);
-      console.log(`  Confidence: ${c.confidence}`);
-      console.log(`  Recommendation: ${c.recommendation}`);
+      // console.log(`\nConflict: ${c.conflict}`);
+      if (c.existing) {
+        // console.log(`  Existing: ${c.existing}`);
+      }
+      // console.log(`  New Info: ${c.newInfo}`);
+      // console.log(`  Confidence: ${c.confidence}`);
+      // console.log(`  Recommendation: ${c.recommendation}`);
     });
   }
   if (challenge.inferences) {
-    console.log('Inferences:');
-    challenge.inferences.forEach((inf) => {
-      console.log(`  - ${inf.relation}`);
-      console.log(`    Evidence: ${inf.evidence}`);
-      console.log(`    Confidence: ${inf.confidence}`);
+    // console.log('Inferences:');
+    challenge.inferences.forEach((_inf) => {
+      // console.log(`  - ${_inf.relation}`);
+      // console.log(`    Evidence: ${_inf.evidence}`);
+      // console.log(`    Confidence: ${_inf.confidence}`);
     });
   }
-  if (challenge.problem) console.log(`Problem: ${challenge.problem}`);
-  if (challenge.solution) console.log(`Solution: ${challenge.solution}`);
-  console.log('');
+  if (challenge.problem) {
+    // console.log(`Problem: ${challenge.problem}`);
+  }
+  if (challenge.solution) {
+    // console.log(`Solution: ${challenge.solution}`);
+  }
+  // console.log('');
 });
 
-console.log('=== EXPECTED EXTRACTION OUTPUT ===\n');
+// console.log('=== EXPECTED EXTRACTION OUTPUT ===\n');
 
-const expectedOutput = {
+const _expectedOutput = {
   people: [
     // Existing people (matched)
     { id: 'sarah-001', name: 'Sarah Miller', isNew: false, personType: 'primary', confidence: 0.95, context: 'Mike Thompson\'s girlfriend, party organizer' },
@@ -245,11 +253,11 @@ const expectedOutput = {
   ],
 };
 
-console.log(JSON.stringify(expectedOutput, null, 2));
+// console.log(JSON.stringify(expectedOutput, null, 2));
 
-console.log('\n=== RECOMMENDED ACTIONS ===\n');
+// console.log('\n=== RECOMMENDED ACTIONS ===\n');
 
-const actions = [
+const _actions = [
   {
     priority: 'HIGH',
     action: 'Review peanut allergy conflict',
@@ -276,17 +284,21 @@ const actions = [
   },
 ];
 
-actions.forEach((action) => {
-  console.log(`[${action.priority}] ${action.action}`);
-  console.log(`  Reason: ${action.reason}`);
-  if (action.userPrompt) console.log(`  Ask User: "${action.userPrompt}"`);
-  if (action.implementation) console.log(`  Implementation: ${action.implementation}`);
-  console.log('');
+_actions.forEach((_action) => {
+  // console.log(`[${_action.priority}] ${_action.action}`);
+  // console.log(`  Reason: ${_action.reason}`);
+  if (_action.userPrompt) {
+    // console.log(`  Ask User: "${_action.userPrompt}"`);
+  }
+  if (_action.implementation) {
+    // console.log(`  Implementation: ${_action.implementation}`);
+  }
+  // console.log('');
 });
 
-console.log('=== KEY INSIGHTS FOR SYSTEM DESIGN ===\n');
+// console.log('=== KEY INSIGHTS FOR SYSTEM DESIGN ===\n');
 
-const insights = [
+const _insights = [
   '1. CONTEXT IS KING: "Sarah" alone is ambiguous. Need relationship context (whose girlfriend/sister/ex)',
   '2. CONTRADICTIONS HAPPEN: Real conversations correct previous assumptions. System must handle gracefully.',
   '3. TEMPORAL TRACKING: Preferences change. "Used to like" vs "currently likes" must be distinguished.',
@@ -296,29 +308,31 @@ const insights = [
   '7. RELATIONSHIP MAPPING: Person-to-person connections help disambiguate (Mike\'s sister ≠ Mike\'s girlfriend)',
 ];
 
-insights.forEach((insight) => console.log(insight));
+_insights.forEach((_insight) => {
+  // console.log(_insight);
+});
 
-console.log('\n=== SYSTEM RECOMMENDATIONS ===\n');
+// console.log('\n=== SYSTEM RECOMMENDATIONS ===\n');
 
-console.log('1. ADD "DISAMBIGUATION CONTEXT" FIELD');
-console.log('   Store: "Mike Thompson\'s sister" with the person record');
-console.log('   Helps future extraction match the right person\n');
+// console.log('1. ADD "DISAMBIGUATION CONTEXT" FIELD');
+// console.log('   Store: "Mike Thompson\'s sister" with the person record');
+// console.log('   Helps future extraction match the right person\n');
 
-console.log('2. IMPLEMENT CONFLICT RESOLUTION QUEUE');
-console.log('   High-severity conflicts (medical info) → Require user approval');
-console.log('   Medium-severity (preference changes) → Auto-accept with notification');
-console.log('   Low-severity (lifestyle observations) → Auto-accept silently\n');
+// console.log('2. IMPLEMENT CONFLICT RESOLUTION QUEUE');
+// console.log('   High-severity conflicts (medical info) → Require user approval');
+// console.log('   Medium-severity (preference changes) → Auto-accept with notification');
+// console.log('   Low-severity (lifestyle observations) → Auto-accept silently\n');
 
-console.log('3. ADD RELATIONSHIP HISTORY');
-console.log('   Track: "Tom dated Sarah (Google)" as past relationship');
-console.log('   Helps contextualize future mentions\n');
+// console.log('3. ADD RELATIONSHIP HISTORY');
+// console.log('   Track: "Tom dated Sarah (Google)" as past relationship');
+// console.log('   Helps contextualize future mentions\n');
 
-console.log('4. USE COMPOUND IDENTIFIERS');
-console.log('   Instead of just "Sarah", store "Sarah Miller (Mike Thompson\'s girlfriend)"');
-console.log('   Makes disambiguation explicit\n');
+// console.log('4. USE COMPOUND IDENTIFIERS');
+// console.log('   Instead of just "Sarah", store "Sarah Miller (Mike Thompson\'s girlfriend)"');
+// console.log('   Makes disambiguation explicit\n');
 
-console.log('5. CONFIDENCE THRESHOLDS');
-console.log('   0.95+ → Auto-accept');
-console.log('   0.85-0.95 → Auto-accept with audit log');
-console.log('   0.70-0.85 → Queue for review');
-console.log('   <0.70 → Reject or require immediate clarification\n');
+// console.log('5. CONFIDENCE THRESHOLDS');
+// console.log('   0.95+ → Auto-accept');
+// console.log('   0.85-0.95 → Auto-accept with audit log');
+// console.log('   0.70-0.85 → Queue for review');
+// console.log('   <0.70 → Reject or require immediate clarification\n');

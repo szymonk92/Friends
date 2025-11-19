@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, StatusBar } from 'react-native';
 import {
   Text,
   Searchbar,
@@ -8,6 +8,7 @@ import {
   SegmentedButtons,
   List,
 } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
@@ -28,6 +29,7 @@ interface SearchResult {
 }
 
 export default function SearchScreen() {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<SearchCategory>('all');
 
@@ -159,7 +161,7 @@ export default function SearchScreen() {
       router.push(`/person/${result.personId}`);
     } else if (result.type === 'story') {
       // Navigate to stories tab for now
-      router.push('/(tabs)/stories');
+      router.push('/stories');
     }
   };
 
@@ -167,17 +169,18 @@ export default function SearchScreen() {
     <Card style={styles.resultCard} onPress={() => handleResultPress(item)}>
       <Card.Content>
         <View style={styles.resultHeader}>
-          <Chip
-            compact
-            style={[
-              styles.typeChip,
-              item.type === 'person' && styles.personChip,
-              item.type === 'relation' && styles.relationChip,
-              item.type === 'story' && styles.storyChip,
-            ]}
-          >
-            {item.type}
-          </Chip>
+          {category === 'all' && (
+            <Chip
+              style={[
+                styles.typeChip,
+                item.type === 'person' && styles.personChip,
+                item.type === 'relation' && styles.relationChip,
+                item.type === 'story' && styles.storyChip,
+              ]}
+            >
+              {item.type}
+            </Chip>
+          )}
           {item.metadata && (
             <Text variant="labelSmall" style={styles.metadata}>
               {item.metadata}
@@ -196,10 +199,9 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      <View style={[styles.statusBarSpacer, { height: insets.top }]} />
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Search
-        </Text>
         <Searchbar
           placeholder="Search people, preferences, stories..."
           onChangeText={setSearchQuery}
@@ -340,6 +342,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  statusBarSpacer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -347,11 +352,10 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     backgroundColor: '#fff',
     elevation: 2,
-  },
-  title: {
-    marginBottom: 12,
   },
   searchbar: {
     marginBottom: 12,
@@ -440,7 +444,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   typeChip: {
-    height: 24,
+    height: 32,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
   },
   personChip: {
     backgroundColor: '#e3f2fd',
