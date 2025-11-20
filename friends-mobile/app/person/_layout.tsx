@@ -8,6 +8,9 @@ export default function PersonLayout() {
       <Stack.Screen name="add-relation" options={{ title: 'Add Relation' }} />
       <Stack.Screen name="add-connection" options={{ title: 'Add Connection' }} />
       <Stack.Screen name="edit-relation" options={{ title: 'Edit Relation' }} />
+      <Stack.Screen name="edit-connection" options={{ title: 'Edit Connection' }} />
+      <Stack.Screen name="manage-relations" options={{ title: 'Manage Relations' }} />
+      <Stack.Screen name="manage-connections" options={{ title: 'Manage Connections' }} />
     </Stack>
   );
 }

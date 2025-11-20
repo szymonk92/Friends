@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { eq, and, isNull, ne, isNotNull } from 'drizzle-orm';
@@ -27,7 +27,7 @@ const IMPORTANCE_ORDER = ['minimal', 'low', 'moderate', 'important', 'very_impor
 
 export async function getBirthdayReminderSettings(): Promise<BirthdayReminderSettings> {
   try {
-    const stored = await SecureStore.getItemAsync(BIRTHDAY_SETTINGS_KEY);
+    const stored = await AsyncStorage.getItem(BIRTHDAY_SETTINGS_KEY);
     if (stored) {
       return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
     }
@@ -39,7 +39,7 @@ export async function getBirthdayReminderSettings(): Promise<BirthdayReminderSet
 
 export async function saveBirthdayReminderSettings(settings: BirthdayReminderSettings): Promise<void> {
   try {
-    await SecureStore.setItemAsync(BIRTHDAY_SETTINGS_KEY, JSON.stringify(settings));
+    await AsyncStorage.setItem(BIRTHDAY_SETTINGS_KEY, JSON.stringify(settings));
 
     // Reschedule notifications based on new settings
     if (settings.enabled) {

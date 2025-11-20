@@ -4,6 +4,13 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
 import { usePerson } from '@/hooks/usePeople';
 import { formatRelationType, getRelationEmoji, formatRelativeTime } from '@/lib/utils/format';
+import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
+
+// Helper function to get intensity label
+const getIntensityLabel = (intensity: string) => {
+  const option = INTENSITY_OPTIONS.find(opt => opt.value === intensity);
+  return option ? option.label : intensity;
+};
 
 // Priority order for relation types (higher priority = shown first)
 const RELATION_TYPE_PRIORITY: Record<string, number> = {
@@ -116,13 +123,13 @@ export default function ManageRelationsScreen() {
                   description={
                     <View style={styles.descriptionRow}>
                       {relation.category && (
-                        <Chip compact style={styles.categoryChip}>
+                        <Chip compact style={styles.categoryChip} textStyle={styles.categoryChipText}>
                           {relation.category}
                         </Chip>
                       )}
                       {relation.intensity && (
-                        <Chip compact style={styles.intensityChip}>
-                          {relation.intensity}
+                        <Chip compact style={styles.intensityChip} textStyle={styles.intensityChipText}>
+                          {getIntensityLabel(relation.intensity)}
                         </Chip>
                       )}
                       <Text variant="bodySmall" style={styles.dateText}>
@@ -140,7 +147,7 @@ export default function ManageRelationsScreen() {
                         }
                       />
                       <IconButton
-                        icon="delete"
+                        icon="delete-outline"
                         size={20}
                         iconColor="#d32f2f"
                         onPress={() => handleDelete(relation.id, relation.objectLabel)}
@@ -184,7 +191,7 @@ const styles = StyleSheet.create({
   },
   listItem: {
     backgroundColor: 'white',
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   descriptionRow: {
     flexDirection: 'row',
@@ -195,8 +202,15 @@ const styles = StyleSheet.create({
   categoryChip: {
     height: 24,
   },
+  categoryChipText: {
+    fontSize: 10,
+  },
   intensityChip: {
-    height: 24,
+    height: 28,
+    paddingHorizontal: 6,
+  },
+  intensityChipText: {
+    fontSize: 10,
   },
   dateText: {
     opacity: 0.6,

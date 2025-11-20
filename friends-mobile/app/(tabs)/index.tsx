@@ -2,7 +2,7 @@ import { StyleSheet, View, FlatList, ScrollView, RefreshControl, Image, Touchabl
 import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button, IconButton, Menu, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
@@ -24,9 +24,11 @@ export default function PeopleListScreen() {
   const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
   const { data: people = [], isLoading, error, refetch } = usePeople();
 
-  useEffect(() => {
-    getRelationshipColors().then(setRelationshipColors);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getRelationshipColors().then(setRelationshipColors);
+    }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -100,25 +102,26 @@ export default function PeopleListScreen() {
           };
           
           const importanceOrder = ['very_important', 'important', 'peripheral', 'unknown'];
-          const aImportance = a.importanceToUser || 'unknown';
-          const bImportance = b.importanceToUser || 'unknown';
-          const aImportanceIndex = importanceOrder.indexOf(aImportance);
-          const bImportanceIndex = importanceOrder.indexOf(bImportance);
           
-          console.log('[People] Importance sort:', a.name, aImportance, `(${aImportanceIndex})`, 'vs', b.name, bImportance, `(${bImportanceIndex})`);
-          
-          // First sort by explicit importance
-          if (aImportanceIndex !== bImportanceIndex) {
-            return aImportanceIndex - bImportanceIndex;
-          }
-          
-          // If importance is same, use relationship type
+          // First sort by relationship type (primary criteria)
           const aRelWeight = relationshipWeights[a.relationshipType || ''] || 0;
           const bRelWeight = relationshipWeights[b.relationshipType || ''] || 0;
           
           if (aRelWeight !== bRelWeight) {
             console.log('[People] Using relationship weight:', a.name, a.relationshipType, aRelWeight, 'vs', b.name, b.relationshipType, bRelWeight);
             return bRelWeight - aRelWeight; // Higher weight first
+          }
+          
+          // If relationship types are same, use explicit importance as tiebreaker
+          const aImportance = a.importanceToUser || 'unknown';
+          const bImportance = b.importanceToUser || 'unknown';
+          const aImportanceIndex = importanceOrder.indexOf(aImportance);
+          const bImportanceIndex = importanceOrder.indexOf(bImportance);
+          
+          console.log('[People] Importance tiebreaker:', a.name, aImportance, `(${aImportanceIndex})`, 'vs', b.name, bImportance, `(${bImportanceIndex})`);
+          
+          if (aImportanceIndex !== bImportanceIndex) {
+            return aImportanceIndex - bImportanceIndex; // Lower index (higher importance) first
           }
           
           // Finally sort by name
@@ -376,7 +379,9 @@ export default function PeopleListScreen() {
           // Check if we need to show category divider
           const currentCategory = item.relationshipType || 'Other';
           const previousCategory = index > 0 ? (filteredPeople[index - 1].relationshipType || 'Other') : null;
+          const nextCategory = index < filteredPeople.length - 1 ? (filteredPeople[index + 1].relationshipType || 'Other') : null;
           const showCategoryHeader = showCategoryDividers && (index === 0 || currentCategory !== previousCategory);
+          const isLastInCategory = nextCategory !== currentCategory;
 
           return (
             <>
@@ -424,11 +429,11 @@ export default function PeopleListScreen() {
                   )}
                 </View>
               </TouchableOpacity>
+              {!isLastInCategory && <View style={styles.separator} />}
             </>
           );
         }}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );

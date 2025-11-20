@@ -121,3 +121,49 @@ export function getImportanceColor(importance: string): string {
   };
   return colors[importance] || '#9E9E9E';
 }
+
+/**
+ * Generate a consistent color for person avatars based on name
+ */
+export function getAvatarColor(name: string): string {
+  const colors = [
+    '#6200ee', // Purple
+    '#03dac6', // Teal
+    '#ff5722', // Deep Orange
+    '#2196f3', // Blue
+    '#4caf50', // Green
+    '#ff9800', // Orange
+    '#9c27b0', // Purple
+    '#00bcd4', // Cyan
+    '#8bc34a', // Light Green
+    '#f44336', // Red
+    '#3f51b5', // Indigo
+    '#009688', // Teal
+    '#795548', // Brown
+    '#607d8b', // Blue Grey
+    '#e91e63', // Pink
+  ];
+
+  // Simple hash function to get consistent color for same name
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return colors[Math.abs(hash) % colors.length];
+}
+
+/**
+ * Get color for relationship type (used for connection avatars)
+ */
+export function getRelationshipColor(relationshipType: string): string {
+  const defaultColors: Record<string, string> = {
+    friend: '#4CAF50',
+    family: '#E91E63',
+    colleague: '#2196F3',
+    acquaintance: '#9E9E9E',
+    partner: '#F44336',
+  };
+
+  return defaultColors[relationshipType] || '#6200ee'; // Default to purple if unknown
+}

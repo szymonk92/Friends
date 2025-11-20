@@ -1,9 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { createExtractionPrompt, type ExtractionContext } from './prompts';
+import { callAI, parseExtractionResponse, type AIServiceConfig } from './ai-service';
 
 /**
  * AI Extraction Service
  * Implements lightweight context strategy from AI_EXTRACTION_STRATEGY.md
+ * Supports multiple AI models: Anthropic Claude and Google Gemini
  */
 
 interface ExtractedPerson {
@@ -46,12 +47,13 @@ export interface ExtractionResult {
 }
 
 /**
- * Extract relations from a story using Claude 3.5 Sonnet
+ * Extract relations from a story using configured AI model
+ * Supports both Anthropic Claude and Google Gemini
  */
 export async function extractRelationsFromStory(
   storyText: string,
   existingPeople: Array<{ id: string; name: string }>,
-  apiKey: string,
+  config: AIServiceConfig,
   existingRelations?: Array<{
     relationType: string;
     objectLabel: string;
@@ -60,11 +62,6 @@ export async function extractRelationsFromStory(
   }>
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
-
-  // Initialize Anthropic client
-  const anthropic = new Anthropic({
-    apiKey,
-  });
 
   // Create extraction context (lightweight - only names, not full profiles)
   const context: ExtractionContext = {
@@ -77,36 +74,11 @@ export async function extractRelationsFromStory(
   const prompt = createExtractionPrompt(context);
 
   try {
-    // Call Claude API
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
-      temperature: 0.3, // Low temperature for consistent structured output
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+    // Call AI API (Anthropic or Gemini)
+    const { response: rawResponse, tokensUsed } = await callAI(config, prompt);
 
-    // Extract text content
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    const rawResponse = content.text;
-
-    // Parse JSON response
-    // Claude might wrap JSON in markdown code blocks
-    const jsonMatch = rawResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || [
-      null,
-      rawResponse,
-    ];
-    const jsonText = jsonMatch[1] || rawResponse;
-
-    const parsed = JSON.parse(jsonText.trim());
+    // Parse JSON response (both models might wrap JSON in markdown code blocks)
+    const parsed = parseExtractionResponse(rawResponse);
 
     const processingTime = Date.now() - startTime;
 
@@ -115,7 +87,7 @@ export async function extractRelationsFromStory(
       relations: parsed.relations || [],
       conflicts: parsed.conflicts || [],
       rawResponse,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+      tokensUsed,
       processingTime,
     };
   } catch (error) {

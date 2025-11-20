@@ -1,7 +1,7 @@
-import React from 'react';
 import { View, StyleSheet, Image, ScrollView } from 'react-native';
 import { Text, Card, Chip, Divider } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';
+import { LIKES, DISLIKES, HAS_SKILL, REGULARLY_DOES, PREFERS_OVER, FEARS, WANTS_TO_ACHIEVE, VERY_STRONG, STRONG } from '@/lib/constants/relations';
 
 interface Relation {
   id: string;
@@ -30,13 +30,13 @@ export default function NetworkPersonDetails({
   connectionCount,
 }: NetworkPersonDetailsProps) {
   // Group relations by category
-  const likes = relations.filter((r) => r.relationType === 'LIKES');
-  const dislikes = relations.filter((r) => r.relationType === 'DISLIKES');
-  const skills = relations.filter((r) => r.relationType === 'HAS_SKILL');
-  const activities = relations.filter((r) => r.relationType === 'REGULARLY_DOES');
-  const preferences = relations.filter((r) => r.relationType === 'PREFERS_OVER');
-  const fears = relations.filter((r) => r.relationType === 'FEARS');
-  const goals = relations.filter((r) => r.relationType === 'WANTS_TO_ACHIEVE');
+  const likes = relations.filter((r) => r.relationType === LIKES);
+  const dislikes = relations.filter((r) => r.relationType === DISLIKES);
+  const skills = relations.filter((r) => r.relationType === HAS_SKILL);
+  const activities = relations.filter((r) => r.relationType === REGULARLY_DOES);
+  const preferences = relations.filter((r) => r.relationType === PREFERS_OVER);
+  const fears = relations.filter((r) => r.relationType === FEARS);
+  const goals = relations.filter((r) => r.relationType === WANTS_TO_ACHIEVE);
 
   const renderSection = (title: string, icon: string, items: Relation[], color: string) => {
     if (items.length === 0) return null;
@@ -57,8 +57,8 @@ export default function NetworkPersonDetails({
               textStyle={{ color }}
             >
               {item.objectLabel}
-              {item.intensity === 'very_strong' && ' 💪'}
-              {item.intensity === 'strong' && ' +'}
+              {item.intensity === VERY_STRONG && ' 💪'}
+              {item.intensity === STRONG && ' +'}
             </Chip>
           ))}
         </View>

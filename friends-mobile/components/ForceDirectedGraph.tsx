@@ -1,44 +1,37 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Image } from 'react-native';
 import { Text, useTheme, IconButton } from 'react-native-paper';
-import Svg, { Circle, Line, G, ClipPath, Defs, Image as SvgImage, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, G, ClipPath, Defs, Image as SvgImage, Text as SvgText, Rect } from 'react-native-svg';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as d3 from 'd3-force';
 import { getInitials } from '@/lib/utils/format';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface Node {
+// --- CONFIGURATION ---
+const NODE_RADIUS = 32;
+const CLICK_TOLERANCE = 40;
+const SIM_WIDTH = SCREEN_WIDTH * 2; 
+const SIM_HEIGHT = SCREEN_HEIGHT * 2;
+// Bounds: Keep nodes within 90% of the simulation area
+const BOUNDS_PADDING = 100;
+
+interface Node extends d3.SimulationNodeDatum {
   id: string;
   name: string;
   photoPath?: string | null;
   relationshipType?: string | null;
-  x?: number;
-  y?: number;
-  vx?: number;
-  vy?: number;
-  fx?: number | null;
-  fy?: number | null;
 }
 
-interface Link {
+interface Link extends d3.SimulationLinkDatum<Node> {
+  id: string;
   source: string | Node;
   target: string | Node;
-  id: string;
 }
 
 interface ForceDirectedGraphProps {
-  people: Array<{
-    id: string;
-    name: string;
-    photoPath?: string | null;
-    relationshipType?: string | null;
-  }>;
-  connections: Array<{
-    id: string;
-    person1Id: string;
-    person2Id: string;
-  }>;
+  people: Array<{ id: string; name: string; photoPath?: string | null; relationshipType?: string | null }>;
+  connections: Array<{ id: string; person1Id: string; person2Id: string }>;
   relationshipColors: Record<string, string>;
   selectedPersonId: string | null;
   onSelectPerson: (personId: string | null) => void;
@@ -51,422 +44,391 @@ export default React.memo(function ForceDirectedGraph({
   selectedPersonId,
   onSelectPerson,
 }: ForceDirectedGraphProps) {
-  try {
-    const theme = useTheme();
-  
-  // Virtual canvas for force simulation - smaller for tighter clustering
-  const SIMULATION_WIDTH = SCREEN_WIDTH * 1.5;
-  const SIMULATION_HEIGHT = SCREEN_HEIGHT;
-  
-  // Actual viewport dimensions
-  const VIEWPORT_WIDTH = SCREEN_WIDTH;
-  const VIEWPORT_HEIGHT = SCREEN_HEIGHT * 0.7;
-  const NODE_RADIUS = 32; // Larger nodes for better visibility
+  const theme = useTheme();
 
+  // --- STATE ---
   const [nodes, setNodes] = useState<Node[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
-  const simulationRef = useRef<d3.Simulation<Node, Link> | null>(null);
   
-  // ViewBox state for pan and zoom (instead of transform)
-  const [viewBox, setViewBox] = useState({
-    x: 0,
-    y: 0,
-    width: SIMULATION_WIDTH,
-    height: SIMULATION_HEIGHT,
+  // Refs
+  const simulationRef = useRef<d3.Simulation<Node, Link> | null>(null);
+  const nodesRef = useRef<Node[]>([]); 
+  const mountedRef = useRef(true); // To prevent setting state on unmounted component
+
+  // ViewBox Management
+  const viewBoxRef = useRef({ x: -SIM_WIDTH/4, y: -SIM_HEIGHT/4, w: SIM_WIDTH, h: SIM_HEIGHT });
+  const [viewBox, setViewBoxState] = useState(viewBoxRef.current);
+
+  const updateViewBox = (newBox: {x: number, y: number, w: number, h: number}) => {
+    viewBoxRef.current = newBox;
+    setViewBoxState(newBox);
+  };
+
+  // Gesture Context
+  const ctx = useRef({
+    startX: 0, startY: 0,
+    startViewX: 0, startViewY: 0, startViewW: 0, startViewH: 0,
   });
 
-  // Initialize force simulation
-  useEffect(() => {
-    if (people.length === 0) {
-      return;
+  // --- CUSTOM FORCE: BOUNDING BOX ---
+  // This prevents nodes from flying off into infinity
+  const forceBoundingBox = (alpha: number) => {
+    for (let node of nodesRef.current) {
+      if (!node.x || !node.y) continue;
+      // Left/Right Walls
+      if (node.x < BOUNDS_PADDING) node.vx! += (BOUNDS_PADDING - node.x) * alpha;
+      if (node.x > SIM_WIDTH - BOUNDS_PADDING) node.vx! += (SIM_WIDTH - BOUNDS_PADDING - node.x) * alpha;
+      // Top/Bottom Walls
+      if (node.y < BOUNDS_PADDING) node.vy! += (BOUNDS_PADDING - node.y) * alpha;
+      if (node.y > SIM_HEIGHT - BOUNDS_PADDING) node.vy! += (SIM_HEIGHT - BOUNDS_PADDING - node.y) * alpha;
     }
+  };
 
-    try {
-      // Create nodes
-      const nodeMap = new Map<string, Node>();
-      people.forEach((person) => {
-        
-        nodeMap.set(person.id, {
-          id: person.id,
-          name: person.name,
-          photoPath: person.photoPath,
-          relationshipType: person.relationshipType,
-        });
-      });
-      
-      // Create links
-      const linkList: Link[] = connections
-        .filter((conn) => nodeMap.has(conn.person1Id) && nodeMap.has(conn.person2Id))
-        .map((conn) => ({
-          id: conn.id,
-          source: conn.person1Id,
-          target: conn.person2Id,
-        }));
-      
-      const nodeList = Array.from(nodeMap.values());
-
-      // Create force simulation optimized for small networks
-      const simulation = d3
-        .forceSimulation<Node>(nodeList)
-        .force(
-          'link',
-          d3
-            .forceLink<Node, Link>(linkList)
-            .id((d) => d.id)
-            .distance(80) // Closer together
-            .strength(0.5) // Stronger links = tighter clusters
-        )
-        .force('charge', d3.forceManyBody().strength(-200)) // Less repulsion = tighter
-        .force('center', d3.forceCenter(SIMULATION_WIDTH / 2, SIMULATION_HEIGHT / 2))
-        .force('collision', d3.forceCollide().radius(NODE_RADIUS + 8)) // Less padding
-        .alphaDecay(0.02) // Faster settling
-        .velocityDecay(0.4);
-
-      console.log('[ForceDirectedGraph] Force simulation created successfully');
-
-      // Update state on each tick
-      simulation.on('tick', () => {
-        try {
-          setNodes([...nodeList]);
-          setLinks([...linkList]);
-        } catch (error) {
-          console.error('[ForceDirectedGraph] Error in simulation tick:', error);
+  // --- CLICK HANDLER ---
+  const processNodeClick = (nodeId: string | null) => {
+    // If nodeId is null, we are resetting/deselecting.
+    if (!nodeId) {
+        onSelectPerson(null);
+        const sim = simulationRef.current;
+        if (sim) {
+            sim.nodes().forEach(n => { n.fx = null; n.fy = null; });
+            sim.alpha(0.3).restart();
         }
-      });
-
-      simulationRef.current = simulation;
-
-    } catch (error) {
-      console.error('[ForceDirectedGraph] Error initializing force simulation:', error);
-      console.error('[ForceDirectedGraph] Error details:', {
-        people: people.map(p => ({ id: p.id, name: p.name })),
-        connections: connections.map(c => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return;
+        return;
     }
 
-    return () => {
-      if (simulationRef.current) {
-        simulationRef.current.stop();
+    const isSelecting = selectedPersonId !== nodeId;
+    onSelectPerson(isSelecting ? nodeId : null);
+
+    const sim = simulationRef.current;
+    if (!sim) return;
+    const allNodes = sim.nodes();
+
+    if (isSelecting) {
+        // 1. Pin Selection
+        const centerNode = allNodes.find(n => n.id === nodeId);
+        if (centerNode) {
+            centerNode.fx = SIM_WIDTH / 2;
+            centerNode.fy = SIM_HEIGHT / 2;
+        }
+        // 2. Release others
+        allNodes.forEach(n => {
+            if (n.id !== nodeId) { n.fx = null; n.fy = null; }
+        });
+        sim.alpha(0.3).restart();
+
+        // 3. Smooth Zoom to Selection
+        const targetW = SCREEN_WIDTH; // Closer zoom
+        const targetH = SCREEN_HEIGHT;
+        updateViewBox({
+            x: (SIM_WIDTH / 2) - (targetW / 2),
+            y: (SIM_HEIGHT / 2) - (targetH / 2),
+            w: targetW,
+            h: targetH
+        });
+    } else {
+        // Reset (Deselecting the same node)
+        allNodes.forEach(n => { n.fx = null; n.fy = null; });
+        sim.alpha(0.3).restart();
+    }
+  };
+
+  // --- GESTURES ---
+  const gestures = useMemo(() => {
+    const tap = Gesture.Tap()
+      .runOnJS(true)
+      .maxDuration(10000) // Allow slow taps
+      .onEnd((e) => {
+          const vb = viewBoxRef.current;
+          const scale = vb.w / SCREEN_WIDTH;
+          const clickX = vb.x + (e.x * scale);
+          const clickY = vb.y + (e.y * scale);
+
+          const clickedNode = nodesRef.current.find(node => {
+              if (!node.x || !node.y) return false;
+              const dx = node.x - clickX;
+              const dy = node.y - clickY;
+              return Math.sqrt(dx * dx + dy * dy) < CLICK_TOLERANCE;
+          });
+
+          if (clickedNode) {
+              // FIX: If clicked on the currently selected node, deselect it.
+              // If clicked on a new node, select it.
+              processNodeClick(clickedNode.id);
+          } else if (selectedPersonId) {
+              // FIX: If clicked on empty space while a node is selected, deselect the current node.
+              processNodeClick(null); 
+          }
+      });
+
+    const pan = Gesture.Pan()
+      .runOnJS(true)
+      .averageTouches(true)
+      .activeOffsetX([-10, 10]) .activeOffsetY([-10, 10])
+      .onStart(() => {
+        const vb = viewBoxRef.current;
+        ctx.current.startViewX = vb.x;
+        ctx.current.startViewY = vb.y;
+        ctx.current.startViewW = vb.w;
+      })
+      .onUpdate((e) => {
+        const zoomRatio = ctx.current.startViewW / SCREEN_WIDTH;
+        const newX = ctx.current.startViewX - (e.translationX * zoomRatio);
+        const newY = ctx.current.startViewY - (e.translationY * zoomRatio);
+        if (!isNaN(newX) && !isNaN(newY)) updateViewBox({ ...viewBoxRef.current, x: newX, y: newY });
+      });
+
+    const pinch = Gesture.Pinch()
+      .runOnJS(true)
+      .onStart(() => {
+        const vb = viewBoxRef.current;
+        ctx.current.startViewX = vb.x;
+        ctx.current.startViewY = vb.y;
+        ctx.current.startViewW = vb.w;
+        ctx.current.startViewH = vb.h;
+      })
+      .onUpdate((e) => {
+        const scale = e.scale;
+        if (isNaN(scale) || scale === 0) return;
+        const safeScale = Math.max(0.2, Math.min(scale, 5));
+        const newW = ctx.current.startViewW / safeScale;
+        const newH = ctx.current.startViewH / safeScale;
+        const dW = ctx.current.startViewW - newW;
+        const dH = ctx.current.startViewH - newH;
+        const newX = ctx.current.startViewX + dW / 2;
+        const newY = ctx.current.startViewY + dH / 2;
+        if (!isNaN(newX) && !isNaN(newW) && newW > 10) updateViewBox({ x: newX, y: newY, w: newW, h: newH });
+      });
+
+    return Gesture.Race(tap, Gesture.Simultaneous(pan, pinch));
+  }, [selectedPersonId, onSelectPerson]);
+
+  // --- SIMULATION SETUP ---
+  useEffect(() => {
+    mountedRef.current = true;
+    if (!people.length) return;
+
+    // 1. Merge new data with existing positions
+    const newNodes: Node[] = people.map(p => {
+      const existing = nodes.find(n => n.id === p.id);
+      return {
+        ...p,
+        // If it's a new node, spawn it near the center but randomized
+        x: existing ? existing.x : (SIM_WIDTH/2) + (Math.random() - 0.5) * 100, 
+        y: existing ? existing.y : (SIM_HEIGHT/2) + (Math.random() - 0.5) * 100,
+      };
+    });
+
+    nodesRef.current = newNodes; 
+
+    const nodeMap = new Map(newNodes.map(n => [n.id, n]));
+    const newLinks: Link[] = connections
+      .filter(c => nodeMap.has(c.person1Id) && nodeMap.has(c.person2Id))
+      .map(c => ({
+        id: c.id,
+        source: c.person1Id,
+        target: c.person2Id,
+      }));
+
+    if (simulationRef.current) simulationRef.current.stop();
+
+    // 2. Configure D3
+    simulationRef.current = d3.forceSimulation<Node, Link>(newNodes)
+      .force('link', d3.forceLink<Node, Link>(newLinks).id(d => d.id).distance(120))
+      .force('charge', d3.forceManyBody().strength(-400))
+      .force('center', d3.forceCenter(SIM_WIDTH / 2, SIM_HEIGHT / 2))
+      .force('collide', d3.forceCollide(NODE_RADIUS + 10))
+      .force('bounds', forceBoundingBox); // <--- Add custom wall force
+
+    // 3. Optimization: Throttle updates to 30fps for large graphs
+    let lastTick = 0;
+    simulationRef.current.on('tick', () => {
+      if (!mountedRef.current) return;
+      
+      const now = Date.now();
+      if (now - lastTick > 32) { // ~30ms throttling
+        setNodes([...newNodes]);
+        nodesRef.current = newNodes;
+        setLinks([...newLinks]);
+        lastTick = now;
       }
+    });
+
+    simulationRef.current.restart();
+
+    return () => { 
+      mountedRef.current = false;
+      simulationRef.current?.stop(); 
     };
   }, [people, connections]);
 
-  // Pinch gesture for zoom (updates viewBox)
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((e) => {
-      const newScale = Math.max(0.3, Math.min(3, e.scale));
-      const centerX = viewBox.x + viewBox.width / 2;
-      const centerY = viewBox.y + viewBox.height / 2;
-      
-      const newWidth = SIMULATION_WIDTH / newScale;
-      const newHeight = SIMULATION_HEIGHT / newScale;
-      
-      setViewBox({
-        x: centerX - newWidth / 2,
-        y: centerY - newHeight / 2,
-        width: newWidth,
-        height: newHeight,
-      });
-    });
+  // --- RENDER ---
+  const viewBoxString = useMemo(() => {
+    const safeX = isNaN(viewBox.x) ? 0 : viewBox.x;
+    const safeY = isNaN(viewBox.y) ? 0 : viewBox.y;
+    const safeW = isNaN(viewBox.w) || viewBox.w <= 0 ? SCREEN_WIDTH : viewBox.w;
+    const safeH = isNaN(viewBox.h) || viewBox.h <= 0 ? SCREEN_HEIGHT : viewBox.h;
+    return `${safeX} ${safeY} ${safeW} ${safeH}`;
+  }, [viewBox]);
 
-  // Pan gesture (updates viewBox)
-  const panGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      const panScale = viewBox.width / VIEWPORT_WIDTH;
-      setViewBox(prev => ({
-        ...prev,
-        x: prev.x - e.translationX * panScale,
-        y: prev.y - e.translationY * panScale,
-      }));
-    });
-
-  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
-
-  // Auto-center when nodes are ready (after simulation settles a bit)
-  useEffect(() => {
-    if (nodes.length > 0) {
-      const timer = setTimeout(() => {
-        centerView();
-      }, 1500); // Longer delay to let simulation settle
-      return () => clearTimeout(timer);
-    }
-  }, [nodes.length]);
-
-  const handleNodePress = (nodeId: string) => {
-    try {
-      if (selectedPersonId === nodeId) {
-        // Deselect and restore original layout
-        onSelectPerson(null);
-        restoreLayout();
-      } else {
-        // Select and reorganize around this person
-        onSelectPerson(nodeId);
-        reorganizeAroundNode(nodeId);
-      }
-    } catch (error) {
-      console.error('[ForceDirectedGraph] Error in handleNodePress:', error);
-    }
-  };
-
-  const reorganizeAroundNode = (nodeId: string) => {
-    try {
-      const selectedNode = nodes.find(n => n.id === nodeId);
-      if (!selectedNode) {
-        console.error('[ForceDirectedGraph] Selected node not found:', nodeId);
-        return;
-      }
-      
-      if (!simulationRef.current) {
-        console.error('[ForceDirectedGraph] Simulation ref is null');
-        return;
-      }
-
-      // Find connected nodes
-      const connectedNodeIds = new Set<string>();
-      links.forEach(link => {
-        const source = typeof link.source === 'string' ? link.source : link.source.id;
-        const target = typeof link.target === 'string' ? link.target : link.target.id;
-        
-        if (source === nodeId) connectedNodeIds.add(target);
-        if (target === nodeId) connectedNodeIds.add(source);
-      });
-
-      // Radial layout: center node in middle, connected nodes in circle around it
-      const centerX = SIMULATION_WIDTH / 2;
-      const centerY = SIMULATION_HEIGHT / 2;
-      const radius = 150; // Distance from center
-
-      nodes.forEach((node, index) => {
-        if (node.id === nodeId) {
-          // Center node
-          node.fx = centerX;
-          node.fy = centerY;
-        } else if (connectedNodeIds.has(node.id)) {
-          // Connected nodes in a circle
-          const angle = (2 * Math.PI * Array.from(connectedNodeIds).indexOf(node.id)) / connectedNodeIds.size;
-          node.fx = centerX + radius * Math.cos(angle);
-          node.fy = centerY + radius * Math.sin(angle);
-        } else {
-          // Other nodes further out
-          const angle = (2 * Math.PI * index) / nodes.length;
-          node.fx = centerX + radius * 2 * Math.cos(angle);
-          node.fy = centerY + radius * 2 * Math.sin(angle);
-        }
-      });
-
-      // Restart simulation with fixed positions
-      simulationRef.current.alpha(0.3).restart();
-
-      // Zoom to show the reorganized cluster
-      setTimeout(() => {
-        const padding = 100;
-        const newViewBox = {
-          x: centerX - radius * 2.5 - padding,
-          y: centerY - radius * 2.5 - padding,
-          width: radius * 5 + padding * 2,
-          height: radius * 5 + padding * 2,
-        };
-        setViewBox(newViewBox);
-      }, 100);
-    } catch (error) {
-      console.error('[ForceDirectedGraph] Error in reorganizeAroundNode:', error);
-    }
-  };
-
-  const restoreLayout = () => {
-    try {
-      console.log('[ForceDirectedGraph] Restoring layout');
-      
-      if (!simulationRef.current) {
-        console.error('[ForceDirectedGraph] Simulation ref is null in restoreLayout');
-        return;
-      }
-
-      // Release all fixed positions
-      nodes.forEach(node => {
-        node.fx = null;
-        node.fy = null;
-      });
-
-      console.log('[ForceDirectedGraph] Released fixed positions, restarting simulation');
-      // Restart simulation to return to natural layout
-      simulationRef.current.alpha(0.5).restart();
-
-      // Zoom out to show all
-      setTimeout(() => {
-        console.log('[ForceDirectedGraph] Centering view after restore');
-        centerView();
-      }, 500);
-    } catch (error) {
-      console.error('[ForceDirectedGraph] Error in restoreLayout:', error);
-    }
-  };
-
-  const centerView = () => {
-    // Calculate the bounding box of all nodes
-    if (nodes.length === 0) return;
-
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-
-    nodes.forEach(node => {
-      if (node.x !== undefined && node.y !== undefined) {
-        minX = Math.min(minX, node.x);
-        maxX = Math.max(maxX, node.x);
-        minY = Math.min(minY, node.y);
-        maxY = Math.max(maxY, node.y);
-      }
-    });
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    // Add padding - less for small networks
-    const padding = Math.min(150, width * 0.3);
-    const paddedWidth = Math.max(width + padding * 2, SIMULATION_WIDTH * 0.6);
-    const paddedHeight = Math.max(height + padding * 2, SIMULATION_HEIGHT * 0.6);
-
-    // Set viewBox to show all nodes with padding
-    setViewBox({
-      x: centerX - paddedWidth / 2,
-      y: centerY - paddedHeight / 2,
-      width: paddedWidth,
-      height: paddedHeight,
-    });
-  };
-
-  const darkenColor = (color: string, amount: number): string => {
-    const hex = color.replace('#', '');
-    const r = Math.max(0, parseInt(hex.substring(0, 2), 16) * (1 - amount));
-    const g = Math.max(0, parseInt(hex.substring(2, 4), 16) * (1 - amount));
-    const b = Math.max(0, parseInt(hex.substring(4, 6), 16) * (1 - amount));
-    return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
-  };
-
-  if (nodes.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <Text>No network data available</Text>
-      </View>
-    );
-  }
-
-  console.log('[ForceDirectedGraph] Rendering with:', {
-    nodesCount: nodes.length,
-    linksCount: links.length,
-    selectedPersonId,
-    viewBox,
-    hasSimulation: !!simulationRef.current,
-  });
+  // Find selected node details for the Info Bar
+  const selectedNode = useMemo(() => 
+    people.find(p => p.id === selectedPersonId), 
+  [selectedPersonId, people]);
+  
+  // Mapping of ID to Name for connection labels
+  const personNameMap = useMemo(() => 
+    new Map(people.map(p => [p.id, p.name])), 
+  [people]);
 
   return (
     <View style={styles.container}>
-      <GestureDetector gesture={composedGesture}>
-        <View style={styles.svgContainer}>
-          <Svg 
-            width={VIEWPORT_WIDTH} 
-            height={VIEWPORT_HEIGHT}
-            viewBox={`${viewBox.x || 0} ${viewBox.y || 0} ${viewBox.width || SIMULATION_WIDTH} ${viewBox.height || SIMULATION_HEIGHT}`}
-            preserveAspectRatio="xMidYMid meet"
-          >
+      <GestureDetector gesture={gestures}>
+        <View style={styles.svgWrapper} collapsable={false}>
+          <Svg width={SCREEN_WIDTH} height={SCREEN_HEIGHT * 0.7} viewBox={viewBoxString} preserveAspectRatio="xMidYMid meet">
             <Defs>
-              {/* Define clip paths for circular avatars */}
-              {nodes.map((node) => {
-                if (!node.x || !node.y) return null;
-                return (
-                  <ClipPath key={`clip-${node.id}`} id={`clip-${node.id}`}>
-                    <Circle cx={node.x} cy={node.y} r={NODE_RADIUS} />
-                  </ClipPath>
-                );
-              })}
+              {nodes.map(n => (
+                <ClipPath key={n.id} id={`clip-${n.id}`}>
+                   <Circle cx={n.x || 0} cy={n.y || 0} r={NODE_RADIUS} />
+                </ClipPath>
+              ))}
             </Defs>
 
-            {/* Draw links */}
+            {/* Links */}
             {links.map((link) => {
-              const source = link.source as Node;
-              const target = link.target as Node;
-              if (!source.x || !source.y || !target.x || !target.y) return null;
+               const s = link.source as Node;
+               const t = link.target as Node;
+               if(isNaN(s.x!) || isNaN(s.y!) || isNaN(t.x!) || isNaN(t.y!)) return null;
+               
+               const isConnected = selectedPersonId && (s.id === selectedPersonId || t.id === selectedPersonId);
+               const opacity = selectedPersonId ? (isConnected ? 1 : 0.1) : 0.5;
+               
+               // Calculate midpoint for the label
+               const midX = (s.x! + t.x!) / 2;
+               const midY = (s.y! + t.y!) / 2;
+               
+               // Calculate rotation angle (atan2 gives angle in radians from -PI to PI)
+               const angleRad = Math.atan2(t.y! - s.y!, t.x! - s.x!);
+               let angleDeg = angleRad * (180 / Math.PI);
+               
+               // Ensure text is right-side up for readability
+               if (angleDeg > 90 || angleDeg < -90) {
+                 angleDeg += 180;
+               }
+               
+               const sourceName = personNameMap.get(s.id) || 'Unknown';
+               const targetName = personNameMap.get(t.id) || 'Unknown';
+               const linkLabel = `${sourceName} - ${targetName}`;
 
-              const isHighlighted =
-                selectedPersonId === source.id || selectedPersonId === target.id;
-
-              return (
-                <Line
-                  key={link.id}
-                  x1={source.x}
-                  y1={source.y}
-                  x2={target.x}
-                  y2={target.y}
-                  stroke={isHighlighted ? theme.colors.primary : '#ccc'}
-                  strokeWidth={isHighlighted ? 2 : 1}
-                  opacity={selectedPersonId && !isHighlighted ? 0.2 : 0.6}
-                />
-              );
+               return (
+                 <G key={link.id}>
+                    <Line
+                      x1={s.x} y1={s.y}
+                      x2={t.x} y2={t.y}
+                      stroke={isConnected ? theme.colors.primary : "#ccc"}
+                      strokeWidth={isConnected ? 3 : 1}
+                      opacity={opacity}
+                    />
+                    
+                    {/* Connection Label */}
+                    {isConnected && (
+                        <G 
+                            // Translate to the midpoint and rotate
+                            transform={`translate(${midX}, ${midY}) rotate(${angleDeg})`}
+                        >
+                            <Rect
+                                // Position background rect centered under the text
+                                x={-(linkLabel.length * 4)} 
+                                y={-10}
+                                width={linkLabel.length * 8}
+                                height={20}
+                                rx={5}
+                                fill={theme.colors.background} // Use a contrasting background color
+                                opacity={0.9}
+                            />
+                            <SvgText
+                                x={0}
+                                y={5} // Vertical alignment correction
+                                fill={theme.colors.onBackground}
+                                fontSize={10}
+                                fontWeight="bold"
+                                textAnchor="middle"
+                            >
+                                {linkLabel}
+                            </SvgText>
+                        </G>
+                    )}
+                 </G>
+               );
             })}
 
-            {/* Draw nodes */}
+            {/* Nodes */}
             {nodes.map((node) => {
-              if (!node.x || !node.y) {
-                return null;
-              }
-
+              if(isNaN(node.x!) || isNaN(node.y!)) return null;
               const isSelected = selectedPersonId === node.id;
-              const personColor = node.relationshipType
-                ? relationshipColors[node.relationshipType] || theme.colors.primary
-                : theme.colors.primary;
-              const nodeColor = isSelected ? darkenColor(personColor, 0.3) : personColor;
-                
+              const isNeighbor = selectedPersonId && links.some(l => 
+                (l.source as Node).id === selectedPersonId && (l.target as Node).id === node.id ||
+                (l.target as Node).id === selectedPersonId && (l.source as Node).id === node.id
+              );
+              const opacity = selectedPersonId ? (isSelected || isNeighbor ? 1 : 0.3) : 1;
+
               return (
-                <G
-                  key={node.id}
-                  onPress={() => handleNodePress(node.id)}
-                  opacity={
-                    !selectedPersonId || isSelected || links.some(
-                      (l) => 
-                        ((l.source as Node).id === node.id && (l.target as Node).id === selectedPersonId) ||
-                        ((l.target as Node).id === node.id && (l.source as Node).id === selectedPersonId)
-                    )
-                      ? 1
-                      : 0.3
-                  }
-                >
-                  {/* Avatar background circle */}
+                <G key={node.id} opacity={opacity}>
                   <Circle
                     cx={node.x}
                     cy={node.y}
                     r={NODE_RADIUS}
-                    fill={nodeColor}
-                    stroke={isSelected ? '#fff' : 'transparent'}
-                    strokeWidth={isSelected ? 3 : 0}
+                    fill={isSelected ? theme.colors.primary : "#fff"}
+                    stroke={theme.colors.primary}
+                    strokeWidth={isSelected ? 4 : 2}
                   />
-
-                  {/* Avatar image or initials */}
                   {node.photoPath ? (
-                    <G clipPath={`url(#clip-${node.id})`}>
-                      <SvgImage
-                        x={node.x - NODE_RADIUS}
-                        y={node.y - NODE_RADIUS}
-                        width={NODE_RADIUS * 2}
-                        height={NODE_RADIUS * 2}
-                        href={node.photoPath}
-                        preserveAspectRatio="xMidYMid slice"
-                      />
-                    </G>
+                    <SvgImage
+                      x={node.x! - NODE_RADIUS}
+                      y={node.y! - NODE_RADIUS}
+                      width={NODE_RADIUS * 2}
+                      height={NODE_RADIUS * 2}
+                      href={{ uri: node.photoPath }}
+                      clipPath={`url(#clip-${node.id})`}
+                      preserveAspectRatio="xMidYMid slice"
+                    />
                   ) : (
                     <SvgText
                       x={node.x}
-                      y={node.y + 6}
-                      fontSize={16}
-                      fill="white"
-                      textAnchor="middle"
+                      y={node.y! + 5}
+                      fill={isSelected ? "white" : theme.colors.primary}
+                      fontSize={14}
                       fontWeight="bold"
+                      textAnchor="middle"
                     >
                       {getInitials(node.name)}
                     </SvgText>
+                  )}
+                  
+                  {/* NAME LABEL (Only shown when selected) */}
+                  {isSelected && (
+                    <G>
+                        {/* Background for text readability */}
+                        <Rect 
+                            x={(node.x || 0) - 60}
+                            y={(node.y || 0) - NODE_RADIUS - 35}
+                            width={120}
+                            height={30}
+                            rx={15}
+                            fill={theme.colors.inverseSurface}
+                            opacity={0.8}
+                        />
+                        <SvgText
+                            x={node.x}
+                            y={(node.y || 0) - NODE_RADIUS - 14}
+                            fill={theme.colors.inverseOnSurface}
+                            fontSize={14}
+                            fontWeight="bold"
+                            textAnchor="middle"
+                        >
+                            {node.name}
+                        </SvgText>
+                    </G>
                   )}
                 </G>
               );
@@ -475,199 +437,53 @@ export default React.memo(function ForceDirectedGraph({
         </View>
       </GestureDetector>
       
-      {/* Floating recenter button */}
-      <View style={styles.controls}>
-        <IconButton
-          icon="image-filter-center-focus"
-          mode="contained"
-          size={24}
-          onPress={centerView}
-          style={styles.centerButton}
-          containerColor={theme.colors.primary}
-          iconColor="#fff"
-        />
-      </View>
-
-      {/* Selected person info bar */}
-      {selectedPersonId && (() => {
-        const selectedNode = people.find(p => p.id === selectedPersonId);
-        if (!selectedNode) return null;
-        
-        const personColor = selectedNode.relationshipType
-          ? relationshipColors[selectedNode.relationshipType] || theme.colors.primary
-          : theme.colors.primary;
-        
-        const connectionCount = connections.filter(c => 
-          c.person1Id === selectedPersonId || c.person2Id === selectedPersonId
-        ).length;
-
-        return (
+      {/* Info Bar - Restored from your original code */}
+      {selectedNode && (
           <View style={styles.infoBar}>
             <View style={styles.infoContent}>
               {selectedNode.photoPath ? (
-                <Image 
-                  source={{ uri: selectedNode.photoPath }} 
-                  style={[styles.infoAvatar, { backgroundColor: personColor }]}
-                />
+                <Image source={{ uri: selectedNode.photoPath }} style={styles.infoAvatar} />
               ) : (
-                <View style={[styles.infoAvatar, { backgroundColor: personColor }]}>
-                  <Text style={styles.infoAvatarText}>
-                    {getInitials(selectedNode.name)}
-                  </Text>
+                <View style={[styles.infoAvatar, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={{ color: 'white' }}>{getInitials(selectedNode.name)}</Text>
                 </View>
               )}
-              <View style={styles.infoText}>
-                <Text variant="titleMedium" style={styles.infoName}>
-                  {selectedNode.name}
-                </Text>
-                <View style={styles.infoMeta}>
-                  {selectedNode.relationshipType && (
-                    <Text variant="bodySmall" style={styles.infoType}>
-                      {selectedNode.relationshipType}
-                    </Text>
-                  )}
-                  <Text variant="bodySmall" style={styles.infoConnections}>
-                    • {connectionCount} connection{connectionCount !== 1 ? 's' : ''}
-                  </Text>
-                </View>
+              <View style={{ marginLeft: 12 }}>
+                <Text variant="titleMedium">{selectedNode.name}</Text>
+                <Text variant="bodySmall">{selectedNode.relationshipType || 'Contact'}</Text>
               </View>
             </View>
-            <IconButton
-              icon="close"
-              size={20}
-              onPress={() => {
-                onSelectPerson(null);
-                restoreLayout();
-              }}
-            />
+            <IconButton icon="close" size={20} onPress={() => processNodeClick(selectedNode.id)} />
           </View>
-        );
-      })()}
+      )}
 
-      <View style={styles.instructions}>
-        <Text variant="labelSmall" style={styles.instructionText}>
-          Pinch to zoom • Drag to pan • Tap person to see details
-        </Text>
+      {/* Center Button */}
+      <View style={styles.controls}>
+         <IconButton 
+            icon="crosshairs-gps" 
+            mode="contained" 
+            containerColor={theme.colors.primaryContainer}
+            iconColor={theme.colors.onPrimaryContainer}
+            onPress={() => {
+                // Simple reset logic
+                updateViewBox({ x: 0, y: 0, w: SIM_WIDTH, h: SIM_HEIGHT });
+            }} 
+         />
       </View>
     </View>
   );
-  } catch (error) {
-    console.error('[ForceDirectedGraph] CRASH: Component threw an error:', error);
-    console.error('[ForceDirectedGraph] CRASH: Props received:', {
-      peopleCount: people?.length,
-      connectionsCount: connections?.length,
-      selectedPersonId,
-      relationshipColorsKeys: relationshipColors ? Object.keys(relationshipColors) : [],
-    });
-    
-    // Return error UI
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text variant="headlineSmall" style={{ marginBottom: 10 }}>
-          Graph Error
-        </Text>
-        <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 20 }}>
-          Something went wrong rendering the network graph. Check console for details.
-        </Text>
-        <Text variant="bodySmall" style={{ color: 'red' }}>
-          {error instanceof Error ? error.message : 'Unknown error'}
-        </Text>
-      </View>
-    );
-  }
 });
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: 'relative',
-  },
-  svgContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.7,
-    overflow: 'hidden',
-    backgroundColor: '#fafafa',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 80,
-    right: 16,
-    zIndex: 10,
-  },
-  centerButton: {
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  instructions: {
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginTop: 8,
-  },
-  instructionText: {
-    textAlign: 'center',
-    opacity: 0.7,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  svgWrapper: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.7, backgroundColor: '#fff' },
+  controls: { position: 'absolute', right: 16, bottom: 100 }, // Moved up slightly to avoid InfoBar
   infoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    position: 'absolute', bottom: 20, left: 16, right: 16,
+    backgroundColor: 'white', borderRadius: 12, padding: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
   },
-  infoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  infoAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  infoAvatarText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  infoText: {
-    flex: 1,
-  },
-  infoName: {
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  infoMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  infoType: {
-    opacity: 0.7,
-  },
-  infoConnections: {
-    opacity: 0.6,
-  },
+  infoContent: { flexDirection: 'row', alignItems: 'center' },
+  infoAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
 });

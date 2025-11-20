@@ -1,8 +1,9 @@
-import { StyleSheet, View, FlatList, Alert, StatusBar } from 'react-native';
-import { Text, Card, FAB, Searchbar, ActivityIndicator, Button, Chip, IconButton } from 'react-native-paper';
+import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, StyleSheet, View, ActivityIndicator, StatusBar, FlatList } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { Text, Card, Button, Chip, IconButton, Searchbar } from 'react-native-paper';
 import { useStories, useDeleteStory } from '@/hooks/useStories';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
@@ -42,23 +43,23 @@ export default function StoriesListScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading stories...</Text>
-      </View>
+      </CenteredContainer>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <Text variant="bodyLarge" style={styles.errorText}>
           Failed to load stories
         </Text>
         <Button mode="contained" onPress={() => refetch()} style={styles.retryButton}>
           Retry
         </Button>
-      </View>
+      </CenteredContainer>
     );
   }
 
@@ -159,7 +160,7 @@ export default function StoriesListScreen() {
       </View>
 
       {stories.length === 0 ? (
-        <View style={styles.emptyState}>
+        <CenteredContainer style={styles.emptyState}>
           <Text variant="titleLarge" style={styles.emptyTitle}>
             No stories yet
           </Text>
@@ -170,7 +171,7 @@ export default function StoriesListScreen() {
           <Button mode="contained" onPress={() => router.push('/story/addStory')} style={styles.addButton}>
             Add Your First Story
           </Button>
-        </View>
+        </CenteredContainer>
       ) : (
         <FlatList
           data={filteredStories}
@@ -197,9 +198,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   loadingText: {
@@ -266,9 +264,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 32,
   },
   emptyTitle: {

@@ -4,7 +4,6 @@ import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
-import { relationshipTypeEnum } from '@/lib/validation/schemas';
 
 export default function AddPersonModal() {
   const [name, setName] = useState('');

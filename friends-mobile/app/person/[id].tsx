@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson, usePeople, useUpdatePerson } from '@/hooks/usePeople';
 import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';
-import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
+import { usePersonConnections } from '@/hooks/useConnections';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
 import {
   usePersonGiftIdeas,
@@ -42,6 +42,7 @@ import {
   getRelationEmoji,
   formatShortDate,
 } from '@/lib/utils/format';
+import { RELATION_TYPE_OPTIONS, INTENSITY_OPTIONS, HAS_IMPORTANT_DATE, WEAK, MEDIUM, STRONG, VERY_STRONG } from '@/lib/constants/relations';
 
 // Priority order for relation types (higher priority = shown first)
 const RELATION_TYPE_PRIORITY: Record<string, number> = {
@@ -77,7 +78,6 @@ export default function PersonProfileScreen() {
   const deletePerson = useDeletePerson();
   const updatePerson = useUpdatePerson();
   const deleteRelation = useDeleteRelation();
-  const deleteConnection = useDeleteConnection();
   const createContactEvent = useCreateContactEvent();
   const createRelation = useCreateRelation();
   const { data: giftIdeas = [] } = usePersonGiftIdeas(id!);
@@ -145,23 +145,6 @@ export default function PersonProfileScreen() {
         },
       },
     ]);
-  };
-
-  const handleDeleteConnection = (connectionId: string, personName: string) => {
-    Alert.alert(
-      'Delete Connection',
-      `Are you sure you want to remove the connection with ${personName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteConnection.mutateAsync(connectionId);
-          },
-        },
-      ]
-    );
   };
 
   const getConnectedPerson = (connection: any) => {
@@ -302,7 +285,7 @@ export default function PersonProfileScreen() {
   };
 
   // Get important dates from relations
-  const importantDates = personRelations?.filter((r) => r.relationType === 'HAS_IMPORTANT_DATE') || [];
+  const importantDates = personRelations?.filter((r) => r.relationType === HAS_IMPORTANT_DATE) || [];
 
   const handleAddGiftIdea = async () => {
     if (!giftItem.trim()) {
@@ -905,13 +888,18 @@ export default function PersonProfileScreen() {
               <Text variant="titleLarge" style={styles.sectionTitle}>
                 Relations ({personRelations?.length || 0})
               </Text>
-              {personRelations && personRelations.length > 0 && (
+              <View style={styles.sectionHeaderButtons}>
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  onPress={() => router.push(`/person/add-relation?personId=${id}`)}
+                />
                 <IconButton
                   icon="dots-vertical"
                   size={20}
                   onPress={() => router.push(`/person/manage-relations?personId=${id}`)}
                 />
-              )}
+              </View>
             </View>
 
             {relationsLoading && (
@@ -956,11 +944,11 @@ export default function PersonProfileScreen() {
                         {relation.intensity && relation.intensity !== 'medium' && (
                           <Text style={styles.intensityIndicator}>
                             {' '}
-                            {relation.intensity === 'very_strong'
+                            {relation.intensity === VERY_STRONG
                               ? '💪'
-                              : relation.intensity === 'strong'
+                              : relation.intensity === STRONG
                                 ? '+'
-                                : relation.intensity === 'weak'
+                                : relation.intensity === WEAK
                                   ? '-'
                                   : ''}
                           </Text>
@@ -976,9 +964,23 @@ export default function PersonProfileScreen() {
 
           {/* Connections (Person-to-Person) */}
           <View style={styles.section}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Connections ({personConnections?.length || 0})
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleLarge" style={styles.sectionTitle}>
+                Connections ({personConnections?.length || 0})
+              </Text>
+              <View style={styles.sectionHeaderButtons}>
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  onPress={() => router.push(`/person/add-connection?personId=${id}`)}
+                />
+                <IconButton
+                  icon="dots-vertical"
+                  size={20}
+                  onPress={() => router.push(`/person/manage-connections?personId=${id}`)}
+                />
+              </View>
+            </View>
 
             {connectionsLoading && (
               <View style={styles.centered}>
@@ -1027,23 +1029,9 @@ export default function PersonProfileScreen() {
                       )
                     }
                     right={() => (
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Chip compact style={{ marginRight: 4 }}>
-                          {connection.status}
-                        </Chip>
-                        <IconButton
-                          icon="open-in-new"
-                          size={20}
-                          onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                        />
-                        <IconButton
-                          icon="delete-outline"
-                          size={20}
-                          onPress={() =>
-                            handleDeleteConnection(connection.id, connectedPerson.name)
-                          }
-                        />
-                      </View>
+                      <Chip compact style={{ marginRight: 4 }}>
+                        {connection.status}
+                      </Chip>
                     )}
                     onPress={() => router.push(`/person/${connectedPerson.id}`)}
                     style={styles.connectionItem}
@@ -1249,6 +1237,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  sectionHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontWeight: '600',

@@ -17,7 +17,7 @@ import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { useState, useEffect } from 'react';
-import { useSettings, THEME_COLORS, type ThemeColor } from '@/store/useSettings';
+import { useSettings, THEME_COLORS, AI_MODELS, type ThemeColor, type AIModel } from '@/store/useSettings';
 import {
   getBirthdayReminderSettings,
   saveBirthdayReminderSettings,
@@ -42,9 +42,29 @@ export default function SettingsScreen() {
   const [importLoading, setImportLoading] = useState(false);
 
   // API Key state
-  const { apiKey, setApiKey, clearApiKey, loadApiKey, hasApiKey, themeColor, setThemeColor, loadThemeColor } = useSettings();
+  const {
+    apiKey,
+    geminiApiKey,
+    selectedModel,
+    setApiKey,
+    setGeminiApiKey,
+    clearApiKey,
+    clearGeminiApiKey,
+    loadApiKey,
+    loadGeminiApiKey,
+    hasApiKey,
+    hasGeminiApiKey,
+    setSelectedModel,
+    loadSelectedModel,
+    hasActiveApiKey,
+    themeColor,
+    setThemeColor,
+    loadThemeColor,
+  } = useSettings();
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
+  const [geminiApiKeyDialogVisible, setGeminiApiKeyDialogVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
+  const [tempGeminiApiKey, setTempGeminiApiKey] = useState('');
 
   // Birthday reminder settings
   const [birthdaySettings, setBirthdaySettings] = useState<BirthdayReminderSettings | null>(null);
@@ -58,6 +78,8 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadApiKey();
+    loadGeminiApiKey();
+    loadSelectedModel();
     loadThemeColor();
     loadBirthdaySettings();
     loadRelationshipColors();
@@ -125,7 +147,23 @@ export default function SettingsScreen() {
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert('Success', 'API key saved successfully!');
+      Alert.alert('Success', 'Anthropic API key saved successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save API key. Please try again.');
+    }
+  };
+
+  const handleSaveGeminiApiKey = async () => {
+    if (tempGeminiApiKey.trim().length === 0) {
+      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      return;
+    }
+
+    try {
+      await setGeminiApiKey(tempGeminiApiKey.trim());
+      setGeminiApiKeyDialogVisible(false);
+      setTempGeminiApiKey('');
+      Alert.alert('Success', 'Gemini API key saved successfully!');
     } catch (error) {
       Alert.alert('Error', 'Failed to save API key. Please try again.');
     }
@@ -133,8 +171,8 @@ export default function SettingsScreen() {
 
   const handleClearApiKey = () => {
     Alert.alert(
-      'Clear API Key',
-      'Are you sure you want to remove your API key? You will need to re-enter it to use AI extraction.',
+      'Clear Anthropic API Key',
+      'Are you sure you want to remove your Anthropic API key?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -142,7 +180,25 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             await clearApiKey();
-            Alert.alert('Success', 'API key cleared.');
+            Alert.alert('Success', 'Anthropic API key cleared.');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearGeminiApiKey = () => {
+    Alert.alert(
+      'Clear Gemini API Key',
+      'Are you sure you want to remove your Gemini API key?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearGeminiApiKey();
+            Alert.alert('Success', 'Gemini API key cleared.');
           },
         },
       ]
@@ -230,15 +286,16 @@ export default function SettingsScreen() {
                   onPress={() => setThemeColor(color)}
                   style={[
                     styles.themeButton,
-                    themeColor === color && { backgroundColor: THEME_COLORS[color] },
+                    { backgroundColor: themeColor === color 
+                      ? THEME_COLORS[color] 
+                      : THEME_COLORS[color] + '20' }, // 20 = 12.5% opacity
                   ]}
                   labelStyle={[
                     styles.themeButtonLabel,
-                    themeColor !== color && { color: THEME_COLORS[color] },
+                    { color: '#FFFFFF' }, // White text for all buttons
                   ]}
                   contentStyle={styles.themeButtonContent}
                 >
-                  <View style={[styles.themeColorDot, { backgroundColor: THEME_COLORS[color] }]} />
                   {color.charAt(0).toUpperCase() + color.slice(1)}
                 </Button>
               ))}
@@ -255,11 +312,39 @@ export default function SettingsScreen() {
             <Divider style={styles.divider} />
 
             <Text variant="bodySmall" style={styles.description}>
-              Configure your Anthropic API key to enable AI-powered story extraction.
+              Choose your AI model and configure API keys for AI-powered story extraction.
             </Text>
 
+            <Text variant="labelMedium" style={styles.modelLabel}>
+              Selected AI Model
+            </Text>
+            <SegmentedButtons
+              value={selectedModel}
+              onValueChange={(value) => setSelectedModel(value as AIModel)}
+              buttons={[
+                {
+                  value: 'anthropic',
+                  label: 'Claude',
+                  icon: hasApiKey() ? 'check' : 'close',
+                },
+                {
+                  value: 'gemini',
+                  label: 'Gemini',
+                  icon: hasGeminiApiKey() ? 'check' : 'close',
+                },
+              ]}
+              style={styles.segmentedButtons}
+            />
+
+            <Text variant="bodySmall" style={styles.modelDescription}>
+              {AI_MODELS[selectedModel].name}: {AI_MODELS[selectedModel].description}
+            </Text>
+
+            <Divider style={styles.divider} />
+
+            {/* Anthropic API Key */}
             <List.Item
-              title="API Key Status"
+              title="Anthropic (Claude) API Key"
               description={hasApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
               left={(props) => (
                 <List.Icon
@@ -278,7 +363,7 @@ export default function SettingsScreen() {
                   icon="key-change"
                   style={styles.button}
                 >
-                  Change API Key
+                  Change Claude Key
                 </Button>
                 <Button
                   mode="outlined"
@@ -287,7 +372,7 @@ export default function SettingsScreen() {
                   textColor="#d32f2f"
                   style={styles.button}
                 >
-                  Clear API Key
+                  Clear Claude Key
                 </Button>
               </View>
             ) : (
@@ -297,13 +382,69 @@ export default function SettingsScreen() {
                 icon="key-plus"
                 style={styles.button}
               >
-                Set API Key
+                Set Claude API Key
               </Button>
             )}
 
             <Text variant="labelSmall" style={styles.apiKeyHelp}>
               Get your key from: https://console.anthropic.com
             </Text>
+
+            <Divider style={styles.divider} />
+
+            {/* Gemini API Key */}
+            <List.Item
+              title="Google Gemini API Key"
+              description={hasGeminiApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
+              left={(props) => (
+                <List.Icon
+                  {...props}
+                  icon={hasGeminiApiKey() ? 'check-circle' : 'alert-circle'}
+                  color={hasGeminiApiKey() ? '#4caf50' : '#ff9800'}
+                />
+              )}
+            />
+
+            {hasGeminiApiKey() ? (
+              <View style={styles.apiKeyButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={() => setGeminiApiKeyDialogVisible(true)}
+                  icon="key-change"
+                  style={styles.button}
+                >
+                  Change Gemini Key
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleClearGeminiApiKey}
+                  icon="delete"
+                  textColor="#d32f2f"
+                  style={styles.button}
+                >
+                  Clear Gemini Key
+                </Button>
+              </View>
+            ) : (
+              <Button
+                mode="contained"
+                onPress={() => setGeminiApiKeyDialogVisible(true)}
+                icon="key-plus"
+                style={styles.button}
+              >
+                Set Gemini API Key
+              </Button>
+            )}
+
+            <Text variant="labelSmall" style={styles.apiKeyHelp}>
+              Get your key from: https://aistudio.google.com/apikey
+            </Text>
+
+            {!hasActiveApiKey() && (
+              <Text variant="bodySmall" style={styles.warningText}>
+                ⚠️ You need to configure an API key for the selected model to use AI extraction.
+              </Text>
+            )}
           </Card.Content>
         </Card>
 
@@ -642,13 +783,13 @@ export default function SettingsScreen() {
         <View style={styles.spacer} />
       </ScrollView>
 
-      {/* API Key Dialog */}
+      {/* Anthropic API Key Dialog */}
       <Portal>
         <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
-          <Dialog.Title>{hasApiKey() ? 'Change API Key' : 'Set API Key'}</Dialog.Title>
+          <Dialog.Title>{hasApiKey() ? 'Change Claude API Key' : 'Set Claude API Key'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogText}>
-              Enter your Anthropic API key to enable AI extraction features.
+              Enter your Anthropic API key to enable Claude AI extraction.
             </Text>
             <TextInput
               mode="outlined"
@@ -660,12 +801,40 @@ export default function SettingsScreen() {
               style={styles.apiKeyInput}
             />
             <Text variant="labelSmall" style={styles.dialogHelper}>
-              Your key is stored securely on your device and never sent to any server except Anthropic.
+              Your key is stored securely on your device and only sent to Anthropic.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleSaveApiKey}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Gemini API Key Dialog */}
+      <Portal>
+        <Dialog visible={geminiApiKeyDialogVisible} onDismiss={() => setGeminiApiKeyDialogVisible(false)}>
+          <Dialog.Title>{hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Enter your Google Gemini API key to enable Gemini AI extraction.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="API Key"
+              placeholder="AIza..."
+              value={tempGeminiApiKey}
+              onChangeText={setTempGeminiApiKey}
+              secureTextEntry
+              style={styles.apiKeyInput}
+            />
+            <Text variant="labelSmall" style={styles.dialogHelper}>
+              Your key is stored securely on your device and only sent to Google.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setGeminiApiKeyDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleSaveGeminiApiKey}>Save</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -817,10 +986,20 @@ const styles = StyleSheet.create({
   themeButtonLabel: {
     fontSize: 14,
   },
-  themeColorDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 4,
+  modelLabel: {
+    marginTop: 16,
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  modelDescription: {
+    marginTop: 12,
+    marginBottom: 8,
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  warningText: {
+    marginTop: 16,
+    color: '#ff9800',
+    fontWeight: '600',
   },
 });

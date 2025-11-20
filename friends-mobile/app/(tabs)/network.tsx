@@ -1,14 +1,16 @@
-import { StyleSheet, View, Dimensions, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator, Button, Chip, IconButton, useTheme, Searchbar } from 'react-native-paper';
+import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions, StyleSheet, View, ActivityIndicator, StatusBar, ScrollView } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import { router } from 'expo-router';
-import { useState, useMemo, useEffect } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import { Text, Button, IconButton, Chip, Searchbar } from 'react-native-paper';
+import { useTheme } from 'react-native-paper';
 import ForceDirectedGraph from '@/components/ForceDirectedGraph';
 import NetworkPersonDetails from '@/components/NetworkPersonDetails';
 
@@ -39,9 +41,14 @@ export default function NetworkScreen() {
   // Get relations for selected person
   const { data: selectedPersonRelations = [] } = usePersonRelations(selectedPersonId || '');
 
-  useEffect(() => {
-    getRelationshipColors().then(setRelationshipColors);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getRelationshipColors().then((colors) => {
+        console.log('[Network] Loaded relationship colors:', colors);
+        setRelationshipColors(colors);
+      });
+    }, [])
+  );
 
   // Get unique relationship types
   const relationshipTypes = useMemo(() => {
@@ -104,16 +111,16 @@ export default function NetworkScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading network...</Text>
-      </View>
+      </CenteredContainer>
     );
   }
 
   if (people.length === 0) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <Text variant="titleLarge" style={styles.emptyTitle}>
           No network yet
         </Text>
@@ -123,7 +130,7 @@ export default function NetworkScreen() {
         <Button mode="contained" onPress={() => router.push('/')}>
           Add People
         </Button>
-      </View>
+      </CenteredContainer>
     );
   }
 
@@ -258,6 +265,7 @@ export default function NetworkScreen() {
             });
             return (
               <ForceDirectedGraph
+                key={`graph-${Object.keys(relationshipColors).length}-${JSON.stringify(relationshipColors)}`}
                 people={filteredPeople}
                 connections={filteredConnections}
                 relationshipColors={relationshipColors}
@@ -300,9 +308,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   loadingText: {

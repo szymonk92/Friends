@@ -1,18 +1,4 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import {
-  Text,
-  Card,
-  Button,
-  ActivityIndicator,
-  Chip,
-  IconButton,
-  Dialog,
-  Portal,
-  TextInput,
-  SegmentedButtons,
-} from 'react-native-paper';
-import { useState } from 'react';
-import { router, Stack } from 'expo-router';
+import CenteredContainer from '@/components/CenteredContainer';
 import {
   usePendingExtractions,
   useApprovePendingExtraction,
@@ -20,6 +6,20 @@ import {
   useEditAndApprovePendingExtraction,
 } from '@/hooks/usePendingExtractions';
 import { formatRelationType, getRelationEmoji } from '@/lib/utils/format';
+import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
+import { Alert, ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Stack, router } from 'expo-router';
+import {
+  Card,
+  Text,
+  Button,
+  Chip,
+  Dialog,
+  Portal,
+  TextInput,
+  SegmentedButtons,
+} from 'react-native-paper';
 
 export default function ReviewExtractionsScreen() {
   const { data: pending, isLoading } = usePendingExtractions();
@@ -103,10 +103,10 @@ export default function ReviewExtractionsScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading extractions...</Text>
-      </View>
+      </CenteredContainer>
     );
   }
 
@@ -118,7 +118,7 @@ export default function ReviewExtractionsScreen() {
             title: 'Review Extractions',
           }}
         />
-        <View style={styles.centered}>
+        <CenteredContainer style={styles.centered}>
           <Text variant="headlineSmall" style={styles.emptyTitle}>
             All Caught Up! ✅
           </Text>
@@ -128,7 +128,7 @@ export default function ReviewExtractionsScreen() {
           <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
             Go Back
           </Button>
-        </View>
+        </CenteredContainer>
       </>
     );
   }
@@ -252,12 +252,10 @@ export default function ReviewExtractionsScreen() {
             <SegmentedButtons
               value={editedIntensity}
               onValueChange={setEditedIntensity}
-              buttons={[
-                { value: 'weak', label: 'Weak' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'strong', label: 'Strong' },
-                { value: 'very_strong', label: 'Very Strong' },
-              ]}
+              buttons={INTENSITY_OPTIONS.map(option => ({
+                value: option.value,
+                label: option.label,
+              }))}
               style={styles.dialogSegmented}
             />
           </Dialog.Content>
@@ -283,9 +281,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   loadingText: {

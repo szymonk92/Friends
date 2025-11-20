@@ -1,7 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
-import { StyleSheet, View, Animated, PanResponder, Dimensions, LogBox } from 'react-native';
-import { Text, Button, Card, Chip, ProgressBar, IconButton } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
+import CenteredContainer from '@/components/CenteredContainer';
 import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelation, useRelations } from '@/hooks/useRelations';
 import { getInitials } from '@/lib/utils/format';
@@ -11,6 +8,27 @@ import { quizDismissals } from '@/lib/db/schema';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { router } from 'expo-router';
+import { Stack } from 'expo-router';
+import {
+  Dimensions,
+  LogBox,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  PanResponder,
+} from 'react-native';
+import {
+  Card,
+  Text,
+  Button,
+  ProgressBar,
+  Chip,
+  IconButton,
+} from 'react-native-paper';
+import { RELATION_TYPE_OPTIONS, INTENSITY_OPTIONS, LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
 
 // Suppress reanimated warnings from react-native-paper
 LogBox.ignoreLogs(['It looks like you might be using shared value']);
@@ -153,7 +171,7 @@ export default function FoodQuizScreen() {
       if (!person || !food) return;
 
       const isSkip = direction === 'down';
-      const preference: 'LIKES' | 'DISLIKES' = direction === 'right' ? 'LIKES' : 'DISLIKES';
+      const preference = direction === 'right' ? LIKES : DISLIKES;
 
       quizLogger.debug('Answer recorded', {
         person: person.name,
@@ -176,12 +194,12 @@ export default function FoodQuizScreen() {
             category: food.category,
             confidence: 0.7,
             source: 'question_mode',
-            intensity: 'medium',
+            intensity: MEDIUM,
           });
           setSavedCount((prev) => ({
             ...prev,
-            likes: preference === 'LIKES' ? prev.likes + 1 : prev.likes,
-            dislikes: preference === 'DISLIKES' ? prev.dislikes + 1 : prev.dislikes,
+            likes: preference === LIKES ? prev.likes + 1 : prev.likes,
+            dislikes: preference === DISLIKES ? prev.dislikes + 1 : prev.dislikes,
           }));
           quizLogger.info('Saved relation immediately', {
             person: person.name,
@@ -292,7 +310,7 @@ export default function FoodQuizScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Food Quiz' }} />
-        <View style={styles.centered}>
+        <CenteredContainer style={styles.centered}>
           <Text variant="titleLarge">No Primary People</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
             Add some primary people first to use the food quiz.
@@ -300,7 +318,7 @@ export default function FoodQuizScreen() {
           <Button mode="contained" onPress={() => router.back()}>
             Go Back
           </Button>
-        </View>
+        </CenteredContainer>
       </>
     );
   }
@@ -309,7 +327,7 @@ export default function FoodQuizScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Food Quiz' }} />
-        <View style={styles.centered}>
+        <CenteredContainer style={styles.centered}>
           <Text style={styles.completeIcon}>✅</Text>
           <Text variant="titleLarge">All Questions Answered!</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
@@ -318,7 +336,7 @@ export default function FoodQuizScreen() {
           <Button mode="contained" onPress={() => router.back()}>
             Go Back
           </Button>
-        </View>
+        </CenteredContainer>
       </>
     );
   }
@@ -328,7 +346,7 @@ export default function FoodQuizScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Quiz Complete' }} />
-        <View style={styles.centered}>
+        <CenteredContainer style={styles.centered}>
           <Text style={styles.completeIcon}>🎉</Text>
           <Text variant="headlineMedium" style={styles.completeTitle}>
             Quiz Complete!
@@ -354,7 +372,7 @@ export default function FoodQuizScreen() {
           <Button mode="contained" onPress={() => router.back()} style={styles.saveButton}>
             Done
           </Button>
-        </View>
+        </CenteredContainer>
       </>
     );
   }
@@ -380,7 +398,7 @@ export default function FoodQuizScreen() {
         </View>
 
         {/* Swipeable card */}
-        <View style={styles.cardContainer}>
+        <CenteredContainer style={styles.cardContainer}>
           <Animated.View
             style={[
               styles.swipeCard,
@@ -419,7 +437,7 @@ export default function FoodQuizScreen() {
               </Card.Content>
             </Card>
           </Animated.View>
-        </View>
+        </CenteredContainer>
 
         {/* Button controls */}
         <View style={styles.controls}>
@@ -461,9 +479,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 24,
   },
   emptyText: {
@@ -493,7 +508,6 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     backgroundColor: '#6200ee',
-    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
@@ -503,9 +517,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cardContainer: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   swipeCard: {
     width: width - 48,
@@ -514,7 +526,6 @@ const styles = StyleSheet.create({
   },
   questionCard: {
     flex: 1,
-    justifyContent: 'center',
   },
   questionContent: {
     alignItems: 'center',
@@ -567,7 +578,6 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     gap: 24,
     marginBottom: 16,

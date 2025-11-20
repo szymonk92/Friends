@@ -6,11 +6,12 @@ import { useMarkStoryProcessed } from './useStories';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, pendingExtractions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import type { AIServiceConfig } from '@/lib/ai/ai-service';
 
 interface ExtractionInput {
   storyId: string;
   storyText: string;
-  apiKey: string;
+  config: AIServiceConfig;
 }
 
 interface ExtractionOutput {
@@ -41,7 +42,7 @@ export function useExtractStory() {
     mutationFn: async ({
       storyId,
       storyText,
-      apiKey,
+      config,
     }: ExtractionInput): Promise<ExtractionOutput> => {
       // Step 1: Get existing people (for lightweight context)
       const userId = await getCurrentUserId();
@@ -51,7 +52,7 @@ export function useExtractStory() {
         .where(eq(people.userId, userId));
 
       // Step 2: Call AI extraction
-      const extractionResult = await extractRelationsFromStory(storyText, existingPeople, apiKey);
+      const extractionResult = await extractRelationsFromStory(storyText, existingPeople, config);
 
       // Step 3: Process extracted people
       const personIdMap = new Map<string, string>(); // Map temp IDs to real IDs

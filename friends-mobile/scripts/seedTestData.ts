@@ -74,7 +74,7 @@ const JOBS = [
 ];
 
 const RELATIONSHIP_TYPES = [
-  'friend', 'family', 'colleague', 'acquaintance', 'professional',
+  'friend', 'family', 'colleague', 'acquaintance', 'partner',
 ];
 
 const IMPORTANCE_LEVELS = ['critical', 'high', 'medium', 'low', 'minimal'];

@@ -1,21 +1,15 @@
-import { StyleSheet, View, FlatList, TouchableOpacity, StatusBar } from 'react-native';
-import {
-  Text,
-  Searchbar,
-  Card,
-  Chip,
-  ActivityIndicator,
-  SegmentedButtons,
-  List,
-} from 'react-native-paper';
+import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
+import { View, ActivityIndicator, StatusBar, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { Card, Chip, Text, Searchbar, SegmentedButtons, List } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
 import { useConnections } from '@/hooks/useConnections';
 import { getInitials, formatRelativeTime, getRelationEmoji } from '@/lib/utils/format';
+import { LIKES, DISLIKES } from '@/lib/constants/relations';
 
 type SearchCategory = 'all' | 'people' | 'relations' | 'stories';
 
@@ -125,14 +119,14 @@ export default function SearchScreen() {
     // Find all people who LIKE this thing
     const likes = relations.filter(
       (r) =>
-        r.relationType === 'LIKES' &&
+        r.relationType === LIKES &&
         r.objectLabel.toLowerCase().includes(query)
     );
 
     // Find all people who DISLIKE this thing
     const dislikes = relations.filter(
       (r) =>
-        r.relationType === 'DISLIKES' &&
+        r.relationType === DISLIKES &&
         r.objectLabel.toLowerCase().includes(query)
     );
 
@@ -223,13 +217,13 @@ export default function SearchScreen() {
       </View>
 
       {isLoading && (
-        <View style={styles.centered}>
+        <CenteredContainer style={styles.centered}>
           <ActivityIndicator size="large" />
-        </View>
+        </CenteredContainer>
       )}
 
       {!isLoading && searchQuery.length < 2 && (
-        <View style={styles.emptyState}>
+        <CenteredContainer style={styles.emptyState}>
           <Text variant="titleMedium" style={styles.emptyTitle}>
             Start searching
           </Text>
@@ -239,7 +233,7 @@ export default function SearchScreen() {
           <Text variant="bodySmall" style={styles.exampleText}>
             Examples: "carrot", "vegan", "hiking", "Sarah"
           </Text>
-        </View>
+        </CenteredContainer>
       )}
 
       {!isLoading && searchQuery.length >= 2 && (
@@ -345,11 +339,7 @@ const styles = StyleSheet.create({
   statusBarSpacer: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  centered: {},
   header: {
     padding: 16,
     paddingTop: 12,
@@ -366,9 +356,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 32,
   },
   emptyTitle: {

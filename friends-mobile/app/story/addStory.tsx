@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
+import type { AIServiceConfig } from '@/lib/ai/ai-service';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { createExtractionPrompt } from '@/lib/ai/prompts';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -27,11 +28,13 @@ export default function StoryInputScreen() {
 
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
-  const { apiKey, setApiKey, loadApiKey, hasApiKey } = useSettings();
+  const { selectedModel, getActiveApiKey, setApiKey, loadApiKey, loadGeminiApiKey, loadSelectedModel, hasActiveApiKey } = useSettings();
 
-  // Load API key on mount
+  // Load API keys and model on mount
   useEffect(() => {
     loadApiKey();
+    loadGeminiApiKey();
+    loadSelectedModel();
   }, []);
 
   // Set navigation options
@@ -80,13 +83,13 @@ export default function StoryInputScreen() {
       return;
     }
 
-    // Check if API key is set
-    if (!hasApiKey()) {
+    // Check if API key is set for selected model
+    if (!hasActiveApiKey()) {
       Alert.alert(
         'API Key Required',
-        'To use AI extraction, you need to set your Anthropic API key first.',
+        'To use AI extraction, you need to set an API key for the selected model in Settings.',
         [
-          { text: 'Set API Key', onPress: () => setApiKeyDialogVisible(true) },
+          { text: 'Go to Settings', onPress: () => router.push('/settings') },
           {
             text: 'Save Without AI',
             onPress: () => saveStoryOnly(),
@@ -132,10 +135,20 @@ export default function StoryInputScreen() {
       });
 
       // Step 2: Extract with AI
+      const apiKey = getActiveApiKey();
+      if (!apiKey) {
+        throw new Error('No API key available for selected model');
+      }
+      
+      const config: AIServiceConfig = {
+        model: selectedModel,
+        apiKey,
+      };
+
       const result = await extractStory.mutateAsync({
         storyId: story.id,
         storyText: storyText,
-        apiKey: apiKey!,
+        config,
       });
 
       // Step 3: Show results
@@ -279,7 +292,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
         >
-          {isProcessing ? 'Processing...' : hasApiKey() ? 'Save & Extract' : 'Save Story'}
+          {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
         </Button>
 
         {/* DEV Button */}

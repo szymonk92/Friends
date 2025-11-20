@@ -14,8 +14,9 @@ import {
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
-import { useCreateEvent, useEvents } from '@/hooks/useEvents';
+import { useCreateEvent, useEvents, useUpdateEvent } from '@/hooks/useEvents';
 import { getInitials, formatRelationType } from '@/lib/utils/format';
+import { LIKES, DISLIKES } from '@/lib/constants/relations';
 
 interface Guest {
   id: string;
@@ -33,6 +34,7 @@ export default function PartyPlannerScreen() {
   const { data: allRelations = [] } = useRelations();
   const { data: allEvents = [] } = useEvents();
   const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
@@ -48,7 +50,7 @@ export default function PartyPlannerScreen() {
       const event = allEvents.find((e) => e.id === eventId);
       if (event) {
         setPartyName(event.name || '');
-        setPartyDate(event.eventDate || '');
+        setPartyDate(event.eventDate ? event.eventDate.toISOString().split('T')[0] : '');
         setPartyLocation(event.location || '');
         setPartyType((event.eventType as any) || 'party');
         
@@ -119,11 +121,11 @@ export default function PartyPlannerScreen() {
       const personRelations = allRelations.filter((r) => r.subjectId === guestId);
 
       const likes = personRelations
-        .filter((r) => r.relationType === 'LIKES')
+        .filter((r) => r.relationType === LIKES)
         .map((r) => r.objectLabel);
 
       const dislikes = personRelations
-        .filter((r) => r.relationType === 'DISLIKES')
+        .filter((r) => r.relationType === DISLIKES)
         .map((r) => r.objectLabel);
 
       return {
@@ -221,32 +223,47 @@ export default function PartyPlannerScreen() {
       return;
     }
 
-    try {
-      await createEvent.mutateAsync({
-        name: partyName,
-        eventType: partyType,
-        eventDate: partyDate ? new Date(partyDate) : new Date(),
-        location: partyLocation || undefined,
-        guestIds: JSON.stringify(selectedGuests),
-        menuSuggestions: JSON.stringify(foodSuggestions),
-        seatingArrangement: JSON.stringify(seatingArrangement),
-        warnings: JSON.stringify(
-          foodSuggestions.avoid.map((item) => `${item.count} guest(s) dislike ${item.food}`)
-        ),
-        status: 'planned',
-      });
+    const eventData = {
+      name: partyName,
+      eventType: partyType,
+      eventDate: partyDate ? new Date(partyDate) : new Date(),
+      location: partyLocation || undefined,
+      guestIds: JSON.stringify(selectedGuests),
+      menuSuggestions: JSON.stringify(foodSuggestions),
+      seatingArrangement: JSON.stringify(seatingArrangement),
+      warnings: JSON.stringify(
+        foodSuggestions.avoid.map((item) => `${item.count} guest(s) dislike ${item.food}`)
+      ),
+      status: 'planned' as const,
+    };
 
-      Alert.alert('Party Created!', `${partyName} has been saved with ${selectedGuests.length} guests.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+    try {
+      if (eventId) {
+        // Update existing event
+        await updateEvent.mutateAsync({
+          id: eventId,
+          ...eventData,
+        });
+
+        Alert.alert('Party Updated!', `${partyName} has been updated.`, [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        // Create new event
+        await createEvent.mutateAsync(eventData);
+
+        Alert.alert('Party Created!', `${partyName} has been saved with ${selectedGuests.length} guests.`, [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to create party. Please try again.');
+      Alert.alert('Error', `Failed to ${eventId ? 'update' : 'create'} party. Please try again.`);
     }
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Plan a Party' }} />
+      <Stack.Screen options={{ title: eventId ? 'Update Party' : 'Plan a Party' }} />
       <ScrollView style={styles.container}>
         {/* Party Details */}
         <Card style={styles.card}>
@@ -457,11 +474,11 @@ export default function PartyPlannerScreen() {
           mode="contained"
           onPress={handleCreateParty}
           style={styles.createButton}
-          loading={createEvent.isPending}
-          disabled={createEvent.isPending || !partyName.trim() || selectedGuests.length === 0}
+          loading={createEvent.isPending || updateEvent.isPending}
+          disabled={(createEvent.isPending || updateEvent.isPending) || !partyName.trim() || selectedGuests.length === 0}
           icon="party-popper"
         >
-          Create Party
+          {eventId ? 'Update Party' : 'Create Party'}
         </Button>
 
         <View style={styles.spacer} />

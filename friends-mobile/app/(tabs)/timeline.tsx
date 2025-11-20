@@ -1,22 +1,29 @@
-import { StyleSheet, View, FlatList, Alert, ScrollView, Image, StatusBar } from 'react-native';
+import CenteredContainer from '@/components/CenteredContainer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  StatusBar,
+  Alert,
+  ActivityIndicator,
+  FlatList,
+  Image,
+} from 'react-native';
 import {
   Text,
-  Card,
-  ActivityIndicator,
   Button,
   Chip,
-  IconButton,
-  FAB,
   Dialog,
   Portal,
   TextInput,
-  SegmentedButtons,
-  Menu,
+  IconButton,
   useTheme,
+  Menu,
+  SegmentedButtons,
 } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useMemo, useEffect } from 'react';
-import { router } from 'expo-router';
 import {
   useContactEvents,
   useCreateContactEvent,
@@ -25,11 +32,12 @@ import {
 } from '@/hooks/useContactEvents';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
-import { useEvents } from '@/hooks/useEvents';
+import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 import SectionDivider from '@/components/SectionDivider';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
+import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -53,6 +61,7 @@ export default function TimelineScreen() {
   const { data: partyEvents = [] } = useEvents();
   const createEvent = useCreateContactEvent();
   const deleteEvent = useDeleteContactEvent();
+  const deletePartyEvent = useDeleteEvent();
   const updateEvent = useUpdateContactEvent();
 
   const [addDialogVisible, setAddDialogVisible] = useState(false);
@@ -73,9 +82,11 @@ export default function TimelineScreen() {
   // Relationship colors
   const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
 
-  useEffect(() => {
-    getRelationshipColors().then(setRelationshipColors);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getRelationshipColors().then(setRelationshipColors);
+    }, [])
+  );
 
   // Generate birthday events from people with birthday
   const birthdayEvents = useMemo(() => {
@@ -94,7 +105,7 @@ export default function TimelineScreen() {
   // Generate important date events from relations
   const importantDateEvents = useMemo(() => {
     return allRelations
-      .filter((r) => r.relationType === 'HAS_IMPORTANT_DATE' && r.validFrom)
+      .filter((r) => r.relationType === HAS_IMPORTANT_DATE && r.validFrom)
       .map((r) => ({
         id: `important-${r.id}`,
         personId: r.subjectId,
@@ -140,9 +151,11 @@ export default function TimelineScreen() {
       .filter((event) => {
         if (filterPersonId && event.personId !== filterPersonId) return false;
         if (filterEventType && event.eventType !== filterEventType) return false;
+        // Ensure event has a valid date
+        if (!event.eventDate) return false;
         return true;
       })
-      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+      .sort((a, b) => new Date(b.eventDate!).getTime() - new Date(a.eventDate!).getTime());
   }, [events, birthdayEvents, importantDateEvents, partyTimelineEvents, filterPersonId, filterEventType]);
 
   const getPersonName = (personId: string) => {
@@ -231,41 +244,52 @@ export default function TimelineScreen() {
     setEditingEvent(event);
     setSelectedPersonId(event.personId);
     setEventType(event.eventType);
-    setDateInput(new Date(event.eventDate).toISOString().split('T')[0]);
+    setDateInput(event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     setNotes(event.notes || '');
     setAddDialogVisible(true);
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    Alert.alert('Delete Event', 'Are you sure you want to remove this event?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteEvent.mutateAsync(eventId),
-      },
-    ]);
+    // Check if this is a party event (starts with "party-")
+    const isPartyEvent = eventId.startsWith('party-');
+    
+    const eventType = isPartyEvent ? 'party' : 'event';
+    const deleteFunction = isPartyEvent ? deletePartyEvent : deleteEvent;
+    const actualEventId = isPartyEvent ? eventId.replace('party-', '') : eventId;
+
+    Alert.alert(
+      `Delete ${eventType === 'party' ? 'Party' : 'Event'}`, 
+      `Are you sure you want to remove this ${eventType}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteFunction.mutateAsync(actualEventId),
+        },
+      ]
+    );
   };
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" />
         <Text style={styles.loadingText}>Loading timeline...</Text>
-      </View>
+      </CenteredContainer>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
+      <CenteredContainer style={styles.centered}>
         <Text variant="bodyLarge" style={styles.errorText}>
           Failed to load timeline
         </Text>
         <Button mode="contained" onPress={() => refetch()}>
           Retry
         </Button>
-      </View>
+      </CenteredContainer>
     );
   }
 
@@ -280,9 +304,9 @@ export default function TimelineScreen() {
       : theme.colors.primary;
 
     // Check if we need to show year header
-    const currentYear = new Date(item.eventDate).getFullYear();
-    const previousYear = index > 0 ? new Date(filteredEvents[index - 1].eventDate).getFullYear() : null;
-    const nextYear = index < filteredEvents.length - 1 ? new Date(filteredEvents[index + 1].eventDate).getFullYear() : null;
+    const currentYear = new Date(item.eventDate!).getFullYear();
+    const previousYear = index > 0 ? new Date(filteredEvents[index - 1].eventDate!).getFullYear() : null;
+    const nextYear = index < filteredEvents.length - 1 ? new Date(filteredEvents[index + 1].eventDate!).getFullYear() : null;
     const showYearHeader = index === 0 || currentYear !== previousYear;
     const isLastInYear = nextYear !== null && currentYear !== nextYear;
 
@@ -341,7 +365,7 @@ export default function TimelineScreen() {
                     {personName}
                   </Text>
                   <Text variant="labelSmall" style={styles.eventMeta}>
-                    {getEventLabel(item.eventType)} · {formatRelativeTime(new Date(item.eventDate))}
+                    {getEventLabel(item.eventType)} · {formatRelativeTime(new Date(item.eventDate!))}
                   </Text>
                 </View>
               </View>
@@ -526,7 +550,7 @@ export default function TimelineScreen() {
       )}
 
       {filteredEvents.length === 0 ? (
-        <View style={styles.emptyState}>
+        <CenteredContainer style={styles.emptyState}>
           <Text variant="titleLarge" style={styles.emptyTitle}>
             {filterPersonId || filterEventType ? 'No matching events' : 'No events yet'}
           </Text>
@@ -551,7 +575,7 @@ export default function TimelineScreen() {
               Clear Filters
             </Button>
           )}
-        </View>
+        </CenteredContainer>
       ) : (
         <FlatList
           data={filteredEvents}
@@ -654,9 +678,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   loadingText: {
@@ -823,9 +844,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 32,
   },
   emptyTitle: {

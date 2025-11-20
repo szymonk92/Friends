@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface RelationshipColorMap {
   [key: string]: string;
@@ -10,7 +10,6 @@ export const DEFAULT_COLORS: RelationshipColorMap = {
   colleague: '#2196F3',
   acquaintance: '#9E9E9E',
   partner: '#F44336',
-  professional: '#FF9800',
 };
 
 export const AVAILABLE_COLORS = [
@@ -39,7 +38,7 @@ const STORAGE_KEY = 'relationship_colors';
 
 export async function getRelationshipColors(): Promise<RelationshipColorMap> {
   try {
-    const stored = await SecureStore.getItemAsync(STORAGE_KEY);
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
       return { ...DEFAULT_COLORS, ...JSON.parse(stored) };
     }
@@ -53,7 +52,7 @@ export async function setRelationshipColor(relationshipType: string, color: stri
   try {
     const current = await getRelationshipColors();
     current[relationshipType] = color;
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(current));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(current));
   } catch (error) {
     console.error('Failed to save relationship color:', error);
     throw error;
@@ -62,7 +61,7 @@ export async function setRelationshipColor(relationshipType: string, color: stri
 
 export async function resetRelationshipColors(): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    await AsyncStorage.removeItem(STORAGE_KEY);
   } catch (error) {
     console.error('Failed to reset relationship colors:', error);
     throw error;

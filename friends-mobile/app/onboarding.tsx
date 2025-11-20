@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { StyleSheet, View, Dimensions, Image } from 'react-native';
-import { Text, Button, Card } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { router } from 'expo-router';
+import { Stack } from 'expo-router';
+import { Dimensions, View, Image, StyleSheet } from 'react-native';
+import { Card, Text, Button } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -92,7 +94,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     try {
-      await SecureStore.setItemAsync(ONBOARDING_COMPLETE_KEY, 'true');
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
       router.replace('/');
     } catch (error) {
       console.error('Failed to save onboarding state:', error);
@@ -129,7 +131,7 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Content */}
-        <View style={styles.content}>
+        <CenteredContainer style={styles.content}>
           <Card style={styles.card}>
             <Card.Content style={styles.cardContent}>
               {step.icon === 'account-group' ? (
@@ -167,7 +169,7 @@ export default function OnboardingScreen() {
               </View>
             </Card.Content>
           </Card>
-        </View>
+        </CenteredContainer>
 
         {/* Navigation */}
         <View style={styles.navigation}>
@@ -200,7 +202,7 @@ export default function OnboardingScreen() {
 
 export async function checkOnboardingComplete(): Promise<boolean> {
   try {
-    const completed = await SecureStore.getItemAsync(ONBOARDING_COMPLETE_KEY);
+    const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
     return completed === 'true';
   } catch {
     return false;
@@ -209,7 +211,7 @@ export async function checkOnboardingComplete(): Promise<boolean> {
 
 export async function resetOnboarding(): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(ONBOARDING_COMPLETE_KEY);
+    await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
   } catch (error) {
     console.error('Failed to reset onboarding:', error);
   }
@@ -249,8 +251,6 @@ const styles = StyleSheet.create({
     width: 24,
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
   },
   card: {

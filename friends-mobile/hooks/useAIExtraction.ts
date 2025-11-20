@@ -9,6 +9,7 @@ import {
   type ExtractionResult,
 } from '@/lib/ai/extraction';
 import { useSettings } from '@/store/useSettings';
+import type { AIServiceConfig } from '@/lib/ai/ai-service';
 
 /**
  * Hook to extract relations from a story using AI
@@ -16,13 +17,19 @@ import { useSettings } from '@/store/useSettings';
  */
 export function useExtractRelations() {
   const queryClient = useQueryClient();
-  const { apiKey } = useSettings();
+  const { selectedModel, getActiveApiKey } = useSettings();
 
   return useMutation({
     mutationFn: async (storyId: string) => {
+      const apiKey = getActiveApiKey();
       if (!apiKey) {
         throw new Error('AI API key not configured. Please set it in Settings.');
       }
+
+      const config: AIServiceConfig = {
+        model: selectedModel,
+        apiKey,
+      };
 
       const userId = await getCurrentUserId();
 
@@ -67,7 +74,7 @@ export function useExtractRelations() {
       const result = await extractRelationsFromStory(
         story.content,
         existingPeople,
-        apiKey,
+        config,
         relationsWithNames
       );
 
