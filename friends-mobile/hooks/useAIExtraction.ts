@@ -4,7 +4,7 @@ import { people, relations, stories, pendingExtractions } from '@/lib/db/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
-  extractRelationsFromStory,
+  extractRelationsFromStorySession,
   shouldAutoAccept,
   type ExtractionResult,
 } from '@/lib/ai/extraction';
@@ -70,8 +70,8 @@ export function useExtractRelations() {
         };
       });
 
-      // 4. Call AI extraction service
-      const result = await extractRelationsFromStory(
+      // 4. Call AI extraction service (session-based)
+      const result = await extractRelationsFromStorySession(
         story.content,
         existingPeople,
         config,
@@ -79,7 +79,7 @@ export function useExtractRelations() {
       );
 
       // 5. Process results
-      const processedResults = await processExtractionResults(userId, storyId, result);
+      const processedResults = await processExtractionResults(userId, storyId, result, result.rawResponse);
 
       // 6. Mark story as processed
       await db
@@ -110,6 +110,7 @@ interface ProcessedResults {
   conflicts: number;
   tokensUsed: number;
   processingTime: number;
+  rawResponse?: string;
 }
 
 /**
@@ -118,7 +119,8 @@ interface ProcessedResults {
 async function processExtractionResults(
   userId: string,
   storyId: string,
-  result: ExtractionResult
+  result: ExtractionResult,
+  rawResponse?: string
 ): Promise<ProcessedResults> {
   let newPeopleCount = 0;
   let autoAcceptedCount = 0;
@@ -208,6 +210,7 @@ async function processExtractionResults(
     conflicts: result.conflicts.length,
     tokensUsed: result.tokensUsed || 0,
     processingTime: result.processingTime || 0,
+    rawResponse,
   };
 }
 

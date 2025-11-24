@@ -1,28 +1,20 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useState, useMemo, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
-  ScrollView,
   StyleSheet,
   StatusBar,
   Alert,
   ActivityIndicator,
   FlatList,
-  Image,
 } from 'react-native';
 import {
   Text,
   Button,
-  Chip,
-  Dialog,
-  Portal,
-  TextInput,
   IconButton,
   useTheme,
-  Menu,
-  SegmentedButtons,
 } from 'react-native-paper';
 import {
   useContactEvents,
@@ -33,11 +25,13 @@ import {
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
-import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
-import SectionDivider from '@/components/SectionDivider';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
+
+import TimelineEventItem from '@/components/timeline/TimelineEventItem';
+import TimelineFilters from '@/components/timeline/TimelineFilters';
+import AddEventDialog from '@/components/timeline/AddEventDialog';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -163,11 +157,6 @@ export default function TimelineScreen() {
     return person?.name || 'Unknown';
   };
 
-  const getEventIcon = (type: string) => {
-    const eventConfig = EVENT_TYPES.find((e) => e.value === type);
-    return eventConfig?.icon || 'calendar';
-  };
-
   const getEventLabel = (type: string) => {
     const eventConfig = EVENT_TYPES.find((e) => e.value === type);
     return eventConfig?.label || type;
@@ -252,13 +241,13 @@ export default function TimelineScreen() {
   const handleDeleteEvent = (eventId: string) => {
     // Check if this is a party event (starts with "party-")
     const isPartyEvent = eventId.startsWith('party-');
-    
+
     const eventType = isPartyEvent ? 'party' : 'event';
     const deleteFunction = isPartyEvent ? deletePartyEvent : deleteEvent;
     const actualEventId = isPartyEvent ? eventId.replace('party-', '') : eventId;
 
     Alert.alert(
-      `Delete ${eventType === 'party' ? 'Party' : 'Event'}`, 
+      `Delete ${eventType === 'party' ? 'Party' : 'Event'}`,
       `Are you sure you want to remove this ${eventType}?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -293,175 +282,12 @@ export default function TimelineScreen() {
     );
   }
 
-  const renderEventItem = ({ item, index }: { item: any; index: number }) => {
-    const personName = item.isPartyEvent ? (item.partyDetails?.name || 'Party') : getPersonName(item.personId);
-    const person = people.find((p) => p.id === item.personId);
-    const isBirthday = item.isBirthday || item.eventType === 'birthday';
-    const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';
-    const isSpecialEvent = isBirthday || isImportantDate;
-    const personColor = person?.relationshipType
-      ? relationshipColors[person.relationshipType] || theme.colors.primary
-      : theme.colors.primary;
-
-    // Check if we need to show year header
-    const currentYear = new Date(item.eventDate!).getFullYear();
-    const previousYear = index > 0 ? new Date(filteredEvents[index - 1].eventDate!).getFullYear() : null;
-    const nextYear = index < filteredEvents.length - 1 ? new Date(filteredEvents[index + 1].eventDate!).getFullYear() : null;
-    const showYearHeader = index === 0 || currentYear !== previousYear;
-    const isLastInYear = nextYear !== null && currentYear !== nextYear;
-
-    return (
-      <>
-        {/* Year header */}
-        {showYearHeader && (
-          <SectionDivider label={String(currentYear)} variant="labelLarge" marginVertical={24} />
-        )}
-
-        <View style={styles.timelineItem}>
-          {/* Timeline line */}
-          <View style={styles.timelineLine}>
-            <View
-              style={[
-                styles.timelineDot,
-                { backgroundColor: personColor },
-                isBirthday && styles.birthdayDot,
-                isImportantDate && styles.anniversaryDot,
-              ]}
-            />
-            {index < filteredEvents.length - 1 && (
-              <View style={[styles.timelineConnector, { backgroundColor: theme.colors.primary }]} />
-            )}
-          </View>
-
-          {/* Event content - No card */}
-          <View style={styles.eventContent}>
-            {/* Person & Event Type */}
-            <View style={styles.headerRow}>
-              <View style={styles.personRow}>
-                {item.isPartyEvent ? (
-                  // Party event - show party icon
-                  <View style={[styles.personAvatar, { backgroundColor: theme.colors.primary }]}>
-                    <Text style={styles.personAvatarText}>🎉</Text>
-                  </View>
-                ) : person ? (
-                  // Regular person event
-                  person.photoPath ? (
-                    <View style={styles.avatarWithBorder}>
-                      <Image source={{ uri: person.photoPath }} style={styles.personAvatarImage} />
-                      <View style={[styles.avatarIndicator, { backgroundColor: personColor }]} />
-                    </View>
-                  ) : (
-                    <View style={[styles.personAvatar, { backgroundColor: personColor }]}>
-                      <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
-                    </View>
-                  )
-                ) : null}
-                <View style={styles.personInfo}>
-                  <Text
-                    variant="titleSmall"
-                    style={styles.personName}
-                    onPress={() => !item.isPartyEvent && person && router.push(`/person/${person.id}`)}
-                  >
-                    {personName}
-                  </Text>
-                  <Text variant="labelSmall" style={styles.eventMeta}>
-                    {getEventLabel(item.eventType)} · {formatRelativeTime(new Date(item.eventDate!))}
-                  </Text>
-                </View>
-              </View>
-              
-              {!isSpecialEvent && (
-                <Menu
-                  visible={eventMenuVisible === item.id}
-                  onDismiss={() => setEventMenuVisible(null)}
-                  anchor={
-                    <IconButton
-                      icon="dots-vertical"
-                      size={20}
-                      onPress={() => setEventMenuVisible(item.id)}
-                      style={styles.menuButton}
-                    />
-                  }
-                >
-                  <Menu.Item
-                    onPress={() => {
-                      setEventMenuVisible(null);
-                      handleEditEvent(item);
-                    }}
-                    title="Edit"
-                    leadingIcon="pencil-outline"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setEventMenuVisible(null);
-                      handleDeleteEvent(item.id);
-                    }}
-                    title="Delete"
-                    leadingIcon="delete-outline"
-                  />
-                </Menu>
-              )}
-            </View>
-
-            {/* Event Notes */}
-            {item.notes && (
-              <Text variant="bodyMedium" style={styles.eventNotes}>
-                {item.notes}
-              </Text>
-            )}
-
-            {/* Party Management Buttons */}
-            {item.isPartyEvent && item.partyDetails && (
-              <View style={styles.partyActions}>
-                <Text variant="labelSmall" style={styles.guestCount}>
-                  👥 {item.guestCount} {item.guestCount === 1 ? 'guest' : 'guests'}
-                </Text>
-                <View style={styles.partyButtons}>
-                  <Button
-                    mode="outlined"
-                    icon="account-plus"
-                    onPress={() => router.push(`/party-planner?eventId=${item.partyDetails.id}`)}
-                    style={styles.partyButton}
-                    compact
-                  >
-                    Manage Guests
-                  </Button>
-                </View>
-              </View>
-            )}
-
-            {/* Meta Info */}
-            {(item.location || item.duration) && (
-              <View style={styles.metaRow}>
-                {item.location && (
-                  <Text variant="labelSmall" style={styles.metaText}>
-                    📍 {item.location}
-                  </Text>
-                )}
-                {item.duration && (
-                  <Text variant="labelSmall" style={styles.metaText}>
-                    ⏱️ {item.duration} min
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {/* Divider - hide if last event or last in year */}
-            {index < filteredEvents.length - 1 && !isLastInYear && (
-              <View style={styles.eventDivider} />
-            )}
-          </View>
-        </View>
-      </>
-    );
-  };
-
   const hasActiveFilters = filterPersonId || filterEventType;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      
+
       {/* Custom Header - Android Contacts Style */}
       <View style={[headerStyles.header, { paddingTop: insets.top }]}>
         <View style={headerStyles.headerContent}>
@@ -485,69 +311,18 @@ export default function TimelineScreen() {
         </View>
       </View>
 
-      {/* Filters Section */}
-      {filtersVisible && (
-        <View style={styles.filtersSection}>
-          <View style={styles.filtersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            {/* Person filter */}
-            <Menu
-              visible={personMenuVisible}
-              onDismiss={() => setPersonMenuVisible(false)}
-              anchor={
-                <Chip
-                  icon="account"
-                  onPress={() => setPersonMenuVisible(true)}
-                  onClose={filterPersonId ? () => setFilterPersonId(null) : undefined}
-                  style={styles.filterChip}
-                >
-                  {filterPersonId ? getPersonName(filterPersonId) : 'All People'}
-                </Chip>
-              }
-            >
-              <Menu.Item
-                onPress={() => {
-                  setFilterPersonId(null);
-                  setPersonMenuVisible(false);
-                }}
-                title="All People"
-              />
-              {people.map((person) => (
-                <Menu.Item
-                  key={person.id}
-                  onPress={() => {
-                    setFilterPersonId(person.id);
-                    setPersonMenuVisible(false);
-                  }}
-                  title={person.name}
-                />
-              ))}
-            </Menu>
-
-            {/* Event type filters */}
-            <Chip
-              icon="filter-variant"
-              onPress={() => setFilterEventType(null)}
-              selected={!filterEventType}
-              style={styles.filterChip}
-            >
-              All Types
-            </Chip>
-            {EVENT_TYPES.map((type) => (
-              <Chip
-                key={type.value}
-                icon={type.icon}
-                onPress={() => setFilterEventType(type.value)}
-                selected={filterEventType === type.value}
-                style={styles.filterChip}
-              >
-                {type.label}
-              </Chip>
-            ))}
-          </ScrollView>
-        </View>
-        </View>
-      )}
+      <TimelineFilters
+        filtersVisible={filtersVisible}
+        filterPersonId={filterPersonId}
+        setFilterPersonId={setFilterPersonId}
+        filterEventType={filterEventType}
+        setFilterEventType={setFilterEventType}
+        personMenuVisible={personMenuVisible}
+        setPersonMenuVisible={setPersonMenuVisible}
+        people={people}
+        eventTypes={EVENT_TYPES}
+        getPersonName={getPersonName}
+      />
 
       {filteredEvents.length === 0 ? (
         <CenteredContainer style={styles.emptyState}>
@@ -579,92 +354,45 @@ export default function TimelineScreen() {
       ) : (
         <FlatList
           data={filteredEvents}
-          renderItem={renderEventItem}
+          renderItem={({ item, index }) => (
+            <TimelineEventItem
+              item={item}
+              index={index}
+              filteredEvents={filteredEvents}
+              people={people}
+              relationshipColors={relationshipColors}
+              theme={theme}
+              eventMenuVisible={eventMenuVisible}
+              setEventMenuVisible={setEventMenuVisible}
+              handleEditEvent={handleEditEvent}
+              handleDeleteEvent={handleDeleteEvent}
+              getPersonName={getPersonName}
+              getEventLabel={getEventLabel}
+            />
+          )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
         />
       )}
 
-      {/* Add/Edit Event Dialog */}
-      <Portal>
-        <Dialog visible={addDialogVisible} onDismiss={closeDialog}>
-          <Dialog.Title>{editingEvent ? 'Edit Timeline Event' : 'Add Timeline Event'}</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="titleSmall" style={styles.dialogLabel}>
-              Person
-            </Text>
-            {selectedPersonId ? (
-              <View style={styles.selectedPerson}>
-                <Chip onClose={() => setSelectedPersonId(null)}>
-                  {getPersonName(selectedPersonId)}
-                </Chip>
-              </View>
-            ) : (
-              <View style={styles.personList}>
-                {people.slice(0, 5).map((person) => (
-                  <Chip
-                    key={person.id}
-                    onPress={() => setSelectedPersonId(person.id)}
-                    style={styles.personChip}
-                  >
-                    {person.name}
-                  </Chip>
-                ))}
-                {people.length > 5 && (
-                  <Text variant="labelSmall" style={styles.moreText}>
-                    + {people.length - 5} more
-                  </Text>
-                )}
-              </View>
-            )}
-
-            <Text variant="titleSmall" style={styles.dialogLabel}>
-              Event Type
-            </Text>
-            <SegmentedButtons
-              value={eventType}
-              onValueChange={setEventType}
-              buttons={EVENT_TYPES.slice(0, 3)}
-              style={styles.segmented}
-            />
-            <SegmentedButtons
-              value={eventType}
-              onValueChange={setEventType}
-              buttons={EVENT_TYPES.slice(3)}
-              style={styles.segmented}
-            />
-
-            <Text variant="titleSmall" style={styles.dialogLabel}>
-              Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)
-            </Text>
-            <TextInput
-              mode="outlined"
-              label="Date"
-              placeholder="2024 or 2024-03 or 2024-03-15"
-              value={dateInput}
-              onChangeText={setDateInput}
-              style={styles.dateInput}
-            />
-
-            <TextInput
-              mode="outlined"
-              label="Notes (optional)"
-              placeholder="What happened?"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-              style={styles.notesInput}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={closeDialog}>Cancel</Button>
-            <Button onPress={handleAddEvent} loading={isSubmitting} disabled={isSubmitting}>
-              {editingEvent ? 'Save' : 'Add'}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <AddEventDialog
+        visible={addDialogVisible}
+        onDismiss={closeDialog}
+        editingEvent={editingEvent}
+        selectedPersonId={selectedPersonId}
+        setSelectedPersonId={setSelectedPersonId}
+        people={people}
+        getPersonName={getPersonName}
+        eventType={eventType}
+        setEventType={setEventType}
+        eventTypes={EVENT_TYPES}
+        dateInput={dateInput}
+        setDateInput={setDateInput}
+        notes={notes}
+        setNotes={setNotes}
+        isSubmitting={isSubmitting}
+        handleAddEvent={handleAddEvent}
+      />
     </View>
   );
 }
@@ -673,9 +401,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  statusBarSpacer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   centered: {
     padding: 20,
@@ -687,201 +412,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#d32f2f',
   },
-  filtersSection: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filtersContainer: {
-    marginTop: 0,
-  },
-  filterScroll: {
-    flexGrow: 0,
-  },
-  filterChip: {
-    marginRight: 8,
-  },
   list: {
     padding: 16,
     paddingBottom: 80,
   },
-
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 0,
-  },
-  timelineLine: {
-    width: 30,
-    alignItems: 'center',
-  },
-  timelineDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginTop: 20,
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  birthdayDot: {
-    backgroundColor: '#ff9800',
-  },
-  anniversaryDot: {
-    backgroundColor: '#e91e63',
-  },
-  timelineConnector: {
-    width: 2,
-    flex: 1,
-    opacity: 0.2,
-    marginTop: 6,
-  },
-  eventContent: {
-    flex: 1,
-    marginLeft: 12,
-    paddingBottom: 20,
-  },
-  eventDivider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  personRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  personInfo: {
-    flex: 1,
-  },
-  personAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  personAvatarText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  avatarWithBorder: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatarIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  personAvatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  personName: {
-    fontWeight: '600',
-    fontSize: 15,
-    marginBottom: 3,
-    color: '#1a1a1a',
-  },
-  eventMeta: {
-    opacity: 0.5,
-    fontSize: 12,
-  },
-  menuButton: {
-    margin: 0,
-    marginTop: -8,
-    marginRight: -8,
-  },
-  eventNotes: {
-    lineHeight: 21,
-    color: '#4a4a4a',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  metaText: {
-    opacity: 0.55,
-    fontSize: 12,
-  },
-  partyActions: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  guestCount: {
-    opacity: 0.7,
-    marginBottom: 8,
-  },
-  partyButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  partyButton: {
-    flex: 1,
-  },
   emptyState: {
-    padding: 32,
+    padding: 24,
   },
   emptyTitle: {
-    marginBottom: 12,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptyDescription: {
     textAlign: 'center',
     opacity: 0.7,
     marginBottom: 24,
-    lineHeight: 22,
-  },
-  dialogLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  selectedPerson: {
-    marginBottom: 8,
-  },
-  personList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  personChip: {
-    marginBottom: 4,
-  },
-  moreText: {
-    opacity: 0.6,
-    alignSelf: 'center',
-  },
-  segmented: {
-    marginBottom: 8,
-  },
-  notesInput: {
-    marginTop: 8,
-  },
-  dateInput: {
-    marginBottom: 8,
   },
 });

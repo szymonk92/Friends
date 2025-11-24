@@ -9,6 +9,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { useDeleteStory } from '@/hooks/useStories';
 import { useExtractRelations } from '@/hooks/useAIExtraction';
 import { useApprovePendingExtraction, useRejectPendingExtraction, usePendingExtractionsCount } from '@/hooks/usePendingExtractions';
+import { createSystemPrompt } from '@/lib/ai/prompts';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { useSettings, AI_MODELS } from '@/store/useSettings';
 
@@ -23,6 +24,14 @@ export default function StoryDetailScreen() {
   const [selectedExtraction, setSelectedExtraction] = useState<any>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [debugData, setDebugData] = useState<{
+    systemPrompt?: string;
+    sentText?: string;
+    reply?: string;
+    tokenUsage?: {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+    };
     sentData?: any;
     receivedData?: any;
     conflictsCount?: number;
@@ -83,7 +92,8 @@ export default function StoryDetailScreen() {
           text: 'Extract',
           onPress: async () => {
             try {
-              // Save what we're sending to AI for debugging
+              // Prepare all debug data upfront
+              const systemPrompt = createSystemPrompt();
               const userId = await getCurrentUserId();
               const existingPeople = await db
                 .select({ id: people.id, name: people.name })
@@ -99,30 +109,49 @@ export default function StoryDetailScreen() {
                 .from(relations)
                 .where(and(eq(relations.userId, userId), isNull(relations.deletedAt)));
 
-              const sentData = {
-                storyContent: story?.content,
-                existingPeople,
-                existingRelations,
-                timestamp: new Date().toISOString(),
-              };
+              // Create the extraction message that will be sent
+              const contextUpdate = `CURRENT DATABASE STATE:\n\nEXISTING PEOPLE:\n${
+                existingPeople.length > 0
+                  ? existingPeople.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
+                  : 'None yet'
+              }\n\nEXISTING RELATIONS:\n${
+                existingRelations.length > 0
+                  ? existingRelations.map(r => `- ${existingPeople.find(p => p.id === r.subjectId)?.name || 'Unknown'}: ${r.relationType} "${r.objectLabel}"`).join('\n')
+                  : 'None yet'
+              }`;
 
-              setDebugData(prev => ({ ...prev, sentData }));
+              const sentText = `EXTRACT RELATIONS FROM THIS STORY:\n\n"${story?.content}"\n\nPlease analyze this story and extract people, their relationships, and any conflicts with existing data. Respond with JSON only.`;
 
+              // Run the extraction
               const result = await extractRelations.mutateAsync(id!);
               setExtractionResult(result);
 
-              // Save received data for debugging
-              const receivedData = {
-                result,
-                extractedData: story?.extractedData ? JSON.parse(story.extractedData) : null,
-                timestamp: new Date().toISOString(),
+              // Capture ALL debug data in a single update to avoid race conditions
+              const debugInfo = {
+                systemPrompt,
+                sentText,
+                reply: result.rawResponse,
+                tokenUsage: {
+                  totalTokens: result.tokensUsed,
+                  inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+                  outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+                },
+                sentData: {
+                  storyId: id,
+                  existingPeopleCount: existingPeople.length,
+                  existingRelationsCount: existingRelations.length,
+                  contextUpdate,
+                  timestamp: new Date().toISOString(),
+                },
+                receivedData: {
+                  result,
+                  extractedData: story?.extractedData ? JSON.parse(story.extractedData) : null,
+                  timestamp: new Date().toISOString(),
+                },
+                conflictsCount: result.conflicts || 0,
               };
-              setDebugData(prev => ({ ...prev, receivedData }));
 
-              // Save conflicts count for debugging if any
-              if (result.conflicts && result.conflicts > 0) {
-                setDebugData(prev => ({ ...prev, conflictsCount: result.conflicts }));
-              }
+              setDebugData(debugInfo);
 
               refetch();
               Alert.alert(
@@ -275,6 +304,18 @@ export default function StoryDetailScreen() {
                 </Chip>
               )}
             </View>
+
+            {/* Temporarily show debug button for testing */}
+            {true && (
+              <Button
+                mode="outlined"
+                icon="bug"
+                onPress={() => setShowDebugInfo(!showDebugInfo)}
+                style={styles.debugButton}
+              >
+                {showDebugInfo ? 'Hide' : 'Show'} Debug Info
+              </Button>
+            )}
           </Card.Content>
         </Card>
 
@@ -444,7 +485,7 @@ export default function StoryDetailScreen() {
         )}
 
         {/* Debug Information */}
-        {debugData && (
+        {showDebugInfo && (
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.debugHeader}>
@@ -464,40 +505,73 @@ export default function StoryDetailScreen() {
 
               {showDebugInfo && (
                 <View>
-                  {debugData.sentData && (
-                    <View style={styles.debugSection}>
-                      <Text variant="labelMedium" style={styles.debugTitle}>
-                        Data Sent to AI:
-                      </Text>
-                      <ScrollView horizontal style={styles.debugScroll}>
-                        <Text variant="bodySmall" style={styles.debugText}>
-                          {JSON.stringify(debugData.sentData, null, 2)}
-                        </Text>
-                      </ScrollView>
-                    </View>
-                  )}
 
-                  {debugData.receivedData && (
+                  {!debugData ? (
                     <View style={styles.debugSection}>
                       <Text variant="labelMedium" style={styles.debugTitle}>
-                        Data Received from AI:
-                      </Text>
-                      <ScrollView horizontal style={styles.debugScroll}>
-                        <Text variant="bodySmall" style={styles.debugText}>
-                          {JSON.stringify(debugData.receivedData, null, 2)}
-                        </Text>
-                      </ScrollView>
-                    </View>
-                  )}
-
-                  {debugData.conflictsCount && debugData.conflictsCount > 0 && (
-                    <View style={styles.debugSection}>
-                      <Text variant="labelMedium" style={styles.debugTitle}>
-                        Conflicts Detected: {debugData.conflictsCount}
+                        No Debug Data Available
                       </Text>
                       <Text variant="bodySmall" style={styles.debugText}>
-                        {debugData.conflictsCount} conflict{debugData.conflictsCount !== 1 ? 's' : ''} were detected during extraction.
+                        Debug information is captured during AI extraction. Process this story with AI to see the debug details.
                       </Text>
+                      <Text variant="bodySmall" style={styles.debugText}>
+                        This story's AI processed status: {story.aiProcessed ? 'Yes' : 'No'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View>
+                    {debugData.systemPrompt && (
+                        <View style={styles.debugSection}>
+                          <Text variant="labelMedium" style={styles.debugTitle}>
+                            System Prompt:
+                          </Text>
+                          <ScrollView horizontal style={styles.debugScroll}>
+                            <Text variant="bodySmall" style={styles.debugText}>
+                              {debugData.systemPrompt}
+                            </Text>
+                          </ScrollView>
+                        </View>
+                      )}
+
+                      {debugData.sentText && (
+                        <View style={styles.debugSection}>
+                          <Text variant="labelMedium" style={styles.debugTitle}>
+                            Text Sent to AI:
+                          </Text>
+                          <ScrollView horizontal style={styles.debugScroll}>
+                            <Text variant="bodySmall" style={styles.debugText}>
+                              {debugData.sentText}
+                            </Text>
+                          </ScrollView>
+                        </View>
+                      )}
+
+                      {debugData.reply && (
+                        <View style={styles.debugSection}>
+                          <Text variant="labelMedium" style={styles.debugTitle}>
+                            AI Reply:
+                          </Text>
+                          <ScrollView horizontal style={styles.debugScroll}>
+                            <Text variant="bodySmall" style={styles.debugText}>
+                              {debugData.reply}
+                            </Text>
+                          </ScrollView>
+                        </View>
+                      )}
+
+                      {debugData.tokenUsage && (
+                        <View style={styles.debugSection}>
+                          <Text variant="labelMedium" style={styles.debugTitle}>
+                            Token Usage:
+                          </Text>
+                          <Text variant="bodySmall" style={styles.debugText}>
+                            Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
+                            {debugData.tokenUsage.inputTokens && debugData.tokenUsage.outputTokens && (
+                              <> (Input: {debugData.tokenUsage.inputTokens.toLocaleString()}, Output: {debugData.tokenUsage.outputTokens.toLocaleString()})</>
+                            )}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
@@ -775,5 +849,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#333',
     lineHeight: 16,
+  },
+  debugButton: {
+    marginTop: 12,
+    marginBottom: 8,
   },
 });

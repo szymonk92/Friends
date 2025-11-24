@@ -3,7 +3,7 @@
  * Multiple versions to test for optimal extraction quality
  */
 
-import type { ExtractionContext } from './prompts';
+import type { ExtractionContext } from '../prompts';
 
 /**
  * Version 1: Concise & Direct

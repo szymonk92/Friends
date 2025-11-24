@@ -287,7 +287,6 @@ export async function clearTestData() {
 /**
  * Clear all data from the database (for testing)
  * WARNING: This will delete ALL data!
- * @deprecated Use clearTestData() for safer test data removal
  */
 export async function clearAllData() {
   try {

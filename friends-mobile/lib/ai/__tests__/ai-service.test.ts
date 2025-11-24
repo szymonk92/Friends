@@ -77,7 +77,7 @@ describe('AI Service', () => {
 
       const result = await callAI(config, 'test prompt');
 
-      expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'test-key' });
+      expect(Anthropic).toHaveBeenCalledWith({ apiKey: 'test-key', timeout: 60000 });
       expect(mockCreate).toHaveBeenCalledWith({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
@@ -119,13 +119,16 @@ describe('AI Service', () => {
       const result = await callAI(config, 'test prompt');
 
       expect(GoogleGenerativeAI).toHaveBeenCalledWith('test-gemini-key');
-      expect(mockGetGenerativeModel).toHaveBeenCalledWith({ model: 'gemini-2.0-flash-lite' });
-      expect(mockGenerateContent).toHaveBeenCalledWith({
-        contents: [{ role: 'user', parts: [{ text: 'test prompt' }] }],
+      expect(mockGetGenerativeModel).toHaveBeenCalledWith({
+        model: 'gemini-2.0-flash-lite',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 4000,
+          responseMimeType: 'application/json',
         },
+      });
+      expect(mockGenerateContent).toHaveBeenCalledWith({
+        contents: [{ role: 'user', parts: [{ text: 'test prompt' }] }],
       });
       expect(result.response).toBe('{"test": "gemini"}');
       expect(result.tokensUsed).toBe(120);

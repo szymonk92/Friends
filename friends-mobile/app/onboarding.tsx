@@ -3,11 +3,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Stack } from 'expo-router';
-import { Dimensions, View, Image, StyleSheet } from 'react-native';
+import { Dimensions, View, Image, StyleSheet, ScrollView } from 'react-native';
 import { Card, Text, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const ONBOARDING_COMPLETE_KEY = 'onboarding_completed';
 
@@ -131,45 +131,47 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Content */}
-        <CenteredContainer style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content style={styles.cardContent}>
-              {step.icon === 'account-group' ? (
-                <Image 
-                  source={require('@/assets/images/icon.png')} 
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text variant="displaySmall" style={styles.icon}>
-                  {step.icon === 'book-open-page-variant' && '📖'}
-                  {step.icon === 'account-details' && '👤'}
-                  {step.icon === 'shield-lock' && '🔒'}
-                  {step.icon === 'rocket-launch' && '🚀'}
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <CenteredContainer style={styles.content}>
+            <Card style={styles.card}>
+              <Card.Content style={styles.cardContent}>
+                {step.icon === 'account-group' ? (
+                  <Image
+                    source={require('@/assets/images/icon.png')}
+                    style={styles.logoImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text variant="displaySmall" style={styles.icon}>
+                    {step.icon === 'book-open-page-variant' && '📖'}
+                    {step.icon === 'account-details' && '👤'}
+                    {step.icon === 'shield-lock' && '🔒'}
+                    {step.icon === 'rocket-launch' && '🚀'}
+                  </Text>
+                )}
+
+                <Text variant="headlineMedium" style={styles.title}>
+                  {step.title}
                 </Text>
-              )}
 
-              <Text variant="headlineMedium" style={styles.title}>
-                {step.title}
-              </Text>
+                <Text variant="bodyLarge" style={styles.description}>
+                  {step.description}
+                </Text>
 
-              <Text variant="bodyLarge" style={styles.description}>
-                {step.description}
-              </Text>
-
-              <View style={styles.featureList}>
-                {step.features.map((feature, index) => (
-                  <View key={index} style={styles.featureItem}>
-                    <Text style={styles.featureBullet}>•</Text>
-                    <Text variant="bodyMedium" style={styles.featureText}>
-                      {feature}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </Card.Content>
-          </Card>
-        </CenteredContainer>
+                <View style={styles.featureList}>
+                  {step.features.map((feature, index) => (
+                    <View key={index} style={styles.featureItem}>
+                      <Text style={styles.featureBullet}>•</Text>
+                      <Text variant="bodyMedium" style={styles.featureText}>
+                        {feature}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Card.Content>
+            </Card>
+          </CenteredContainer>
+        </ScrollView>
 
         {/* Navigation */}
         <View style={styles.navigation}>
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   skipButton: {
     position: 'absolute',
@@ -230,15 +232,15 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   logoImage: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     marginBottom: 16,
   },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   progressDot: {
     width: 10,
@@ -250,32 +252,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200ee',
     width: 24,
   },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   content: {
     paddingHorizontal: 24,
+    paddingBottom: 16,
   },
   card: {
     padding: 16,
+    maxHeight: height * 0.65,
   },
   cardContent: {
     alignItems: 'center',
   },
   icon: {
-    fontSize: 64,
+    fontSize: 56,
     marginBottom: 16,
   },
   title: {
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: 'bold',
+    fontSize: 24,
   },
   description: {
     textAlign: 'center',
     opacity: 0.8,
-    marginBottom: 24,
+    marginBottom: 20,
+    fontSize: 16,
   },
   featureList: {
     width: '100%',
-    gap: 12,
+    gap: 10,
   },
   featureItem: {
     flexDirection: 'row',
@@ -289,20 +299,21 @@ const styles = StyleSheet.create({
   },
   featureText: {
     flex: 1,
-    lineHeight: 22,
+    lineHeight: 20,
+    fontSize: 14,
   },
   navigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    marginTop: 24,
+    marginTop: 16,
   },
   navButton: {
     minWidth: 120,
   },
   stepIndicator: {
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 12,
     opacity: 0.6,
   },
 });

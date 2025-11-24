@@ -11,7 +11,7 @@ import {
   testCases,
   evaluateExtraction,
 } from './prompt-variants';
-import { createExtractionPrompt } from './prompts';
+import { createExtractionPrompt } from '../prompts';
 
 // interface TestResult {
 //   promptVersion: string;

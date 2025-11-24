@@ -6,6 +6,11 @@ import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { resetOnboarding } from './onboarding';
 import { useMePerson } from '@/hooks/usePeople';
 import { useState } from 'react';
+import {
+  testPromptGeneration,
+  runMockEvaluation,
+  generateComparisonReport,
+} from '@/lib/ai/dev-tools/test-prompts';
 
 /**
  * Development utilities screen
@@ -124,6 +129,63 @@ export default function DevScreen() {
         },
       ]
     );
+  };
+
+  const handleTestPromptGeneration = async () => {
+    setIsLoading(true);
+    try {
+      // Run the test (outputs are commented out in the function)
+      testPromptGeneration();
+
+      Alert.alert(
+        'Prompt Generation Test Complete',
+        'All prompt variants have been generated successfully!\n\nCheck the console for detailed token estimates and comparison data.'
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to run prompt generation test');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRunMockEvaluation = async () => {
+    setIsLoading(true);
+    try {
+      // Run the mock evaluation
+      runMockEvaluation();
+
+      Alert.alert(
+        'Mock Evaluation Complete',
+        'All test cases have been evaluated with mock responses!\n\nCheck the console for detailed results.'
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to run mock evaluation');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    setIsLoading(true);
+    try {
+      const report = generateComparisonReport();
+
+      // Show a summary alert
+      Alert.alert(
+        'Comparison Report Generated',
+        'A detailed prompt variant comparison report has been generated.\n\nCheck the console to see the full markdown report with recommendations.'
+      );
+
+      // Log the full report to console
+      console.log('\n' + report);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to generate comparison report');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -252,6 +314,58 @@ export default function DevScreen() {
 
               <Text variant="bodySmall" style={styles.warningNote}>
                 ⚠️ Warning: This action cannot be undone!
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                AI Prompt Testing
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                Test and evaluate different AI prompt strategies for extracting relationship data from
+                stories. Compare token usage and accuracy across multiple prompt variants.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={handleTestPromptGeneration}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="flask"
+              >
+                Test Prompt Generation
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleRunMockEvaluation}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="check-circle"
+              >
+                Run Mock Evaluation
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleGenerateReport}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="file-document"
+              >
+                Generate Comparison Report
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Tests prompt variants (V1-V4) for token efficiency, accuracy, and conflict detection.
+                Results are logged to console.
               </Text>
             </Card.Content>
           </Card>

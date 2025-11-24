@@ -1,7 +1,11 @@
-import { View, StyleSheet, Image, ScrollView } from 'react-native';
-import { Text, Card, Chip, Divider } from 'react-native-paper';
+import React from 'react';
+import { View, StyleSheet, Image } from 'react-native';
+import { Text, Card, Chip, Divider, useTheme } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';
-import { LIKES, DISLIKES, HAS_SKILL, REGULARLY_DOES, PREFERS_OVER, FEARS, WANTS_TO_ACHIEVE, VERY_STRONG, STRONG } from '@/lib/constants/relations';
+import { 
+  LIKES, DISLIKES, HAS_SKILL, REGULARLY_DOES, 
+  PREFERS_OVER, FEARS, WANTS_TO_ACHIEVE, VERY_STRONG, STRONG 
+} from '@/lib/constants/relations';
 
 interface Relation {
   id: string;
@@ -29,22 +33,26 @@ export default function NetworkPersonDetails({
   relationshipColor,
   connectionCount,
 }: NetworkPersonDetailsProps) {
+  const theme = useTheme();
+
   // Group relations by category
-  const likes = relations.filter((r) => r.relationType === LIKES);
-  const dislikes = relations.filter((r) => r.relationType === DISLIKES);
-  const skills = relations.filter((r) => r.relationType === HAS_SKILL);
-  const activities = relations.filter((r) => r.relationType === REGULARLY_DOES);
-  const preferences = relations.filter((r) => r.relationType === PREFERS_OVER);
-  const fears = relations.filter((r) => r.relationType === FEARS);
-  const goals = relations.filter((r) => r.relationType === WANTS_TO_ACHIEVE);
+  const groupedRelations = {
+    likes: relations.filter((r) => r.relationType === LIKES),
+    dislikes: relations.filter((r) => r.relationType === DISLIKES),
+    skills: relations.filter((r) => r.relationType === HAS_SKILL),
+    activities: relations.filter((r) => r.relationType === REGULARLY_DOES),
+    preferences: relations.filter((r) => r.relationType === PREFERS_OVER),
+    fears: relations.filter((r) => r.relationType === FEARS),
+    goals: relations.filter((r) => r.relationType === WANTS_TO_ACHIEVE),
+  };
 
   const renderSection = (title: string, icon: string, items: Relation[], color: string) => {
-    if (items.length === 0) return null;
+    if (!items || items.length === 0) return null;
 
     return (
-      <View style={styles.section}>
+      <View style={styles.section} key={title}>
         <View style={styles.sectionHeader}>
-          <Text variant="labelLarge" style={styles.sectionTitle}>
+          <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
             {icon} {title}
           </Text>
         </View>
@@ -54,7 +62,7 @@ export default function NetworkPersonDetails({
               key={item.id}
               compact
               style={[styles.chip, { backgroundColor: `${color}15` }]}
-              textStyle={{ color }}
+              textStyle={{ color: color, fontSize: 12 }}
             >
               {item.objectLabel}
               {item.intensity === VERY_STRONG && ' 💪'}
@@ -67,7 +75,7 @@ export default function NetworkPersonDetails({
   };
 
   return (
-    <Card style={styles.container}>
+    <Card style={styles.container} mode="elevated">
       <Card.Content>
         {/* Header with avatar */}
         <View style={styles.header}>
@@ -97,7 +105,7 @@ export default function NetworkPersonDetails({
                   {person.relationshipType}
                 </Chip>
               )}
-              <Chip compact icon="link-variant" style={styles.connectionChip}>
+              <Chip compact icon="account-network" style={styles.connectionChip}>
                 {connectionCount} connection{connectionCount !== 1 ? 's' : ''}
               </Chip>
             </View>
@@ -106,15 +114,15 @@ export default function NetworkPersonDetails({
 
         <Divider style={styles.divider} />
 
-        {/* Scrollable content */}
-        <ScrollView style={styles.scrollContent} nestedScrollEnabled>
-          {renderSection('Likes', '❤️', likes, '#4caf50')}
-          {renderSection('Dislikes', '👎', dislikes, '#f44336')}
-          {renderSection('Skills', '🎯', skills, '#2196f3')}
-          {renderSection('Activities', '🏃', activities, '#ff9800')}
-          {renderSection('Prefers', '⭐', preferences, '#9c27b0')}
-          {renderSection('Fears', '😰', fears, '#ff5722')}
-          {renderSection('Goals', '🎯', goals, '#009688')}
+        {/* Content - Just Views, relying on Parent ScrollView */}
+        <View style={styles.contentWrapper}>
+          {renderSection('Likes', '❤️', groupedRelations.likes, '#4caf50')}
+          {renderSection('Dislikes', '👎', groupedRelations.dislikes, '#f44336')}
+          {renderSection('Skills', '🎯', groupedRelations.skills, '#2196f3')}
+          {renderSection('Activities', '🏃', groupedRelations.activities, '#ff9800')}
+          {renderSection('Prefers', '⭐', groupedRelations.preferences, '#9c27b0')}
+          {renderSection('Fears', '😰', groupedRelations.fears, '#ff5722')}
+          {renderSection('Goals', '🏆', groupedRelations.goals, '#009688')}
 
           {relations.length === 0 && (
             <View style={styles.emptyState}>
@@ -123,7 +131,7 @@ export default function NetworkPersonDetails({
               </Text>
             </View>
           )}
-        </ScrollView>
+        </View>
       </Card.Content>
     </Card>
   );
@@ -133,7 +141,8 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginTop: 16,
-    maxHeight: 400,
+    marginBottom: 32, // Extra space at bottom for scrolling
+    backgroundColor: 'white',
   },
   header: {
     flexDirection: 'row',
@@ -145,6 +154,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     marginRight: 16,
+    backgroundColor: '#eee',
   },
   avatarPlaceholder: {
     width: 64,
@@ -163,12 +173,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   nickname: {
-    opacity: 0.7,
+    opacity: 0.6,
     marginBottom: 8,
+    fontStyle: 'italic',
   },
   metaRow: {
     flexDirection: 'row',
@@ -176,17 +187,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   typeChip: {
-    height: 28,
+    height: 26,
   },
   connectionChip: {
-    height: 28,
+    height: 26,
     backgroundColor: '#f5f5f5',
   },
   divider: {
     marginVertical: 12,
   },
-  scrollContent: {
-    maxHeight: 250,
+  contentWrapper: {
+    // No fixed height, let it grow
   },
   section: {
     marginBottom: 16,
@@ -196,22 +207,24 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
+    textTransform: 'uppercase',
+    opacity: 0.8,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   chip: {
     height: 28,
   },
   emptyState: {
-    paddingVertical: 32,
+    paddingVertical: 24,
     alignItems: 'center',
   },
   emptyText: {
-    opacity: 0.6,
-    textAlign: 'center',
+    opacity: 0.5,
+    fontStyle: 'italic',
   },
 });

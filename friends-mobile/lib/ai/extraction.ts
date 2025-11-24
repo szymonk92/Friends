@@ -1,5 +1,12 @@
-import { createExtractionPrompt, type ExtractionContext } from './prompts';
-import { callAI, parseExtractionResponse, type AIServiceConfig } from './ai-service';
+import { createSystemPrompt } from './prompts';
+import { 
+  createAISession, 
+  updateSessionContext, 
+  callAISession,
+  parseExtractionResponse,
+  type AIServiceConfig,
+  type AISession
+} from './ai-service';
 
 /**
  * AI Extraction Service
@@ -47,10 +54,10 @@ export interface ExtractionResult {
 }
 
 /**
- * Extract relations from a story using configured AI model
- * Supports both Anthropic Claude and Google Gemini
+ * Extract relations from a story using AI with session-based approach
+ * This creates/maintains a session for more efficient context management
  */
-export async function extractRelationsFromStory(
+export async function extractRelationsFromStorySession(
   storyText: string,
   existingPeople: Array<{ id: string; name: string }>,
   config: AIServiceConfig,
@@ -59,25 +66,37 @@ export async function extractRelationsFromStory(
     objectLabel: string;
     subjectId: string;
     subjectName: string;
-  }>
+  }>,
+  sessionId?: string
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
 
-  // Create extraction context (lightweight - only names, not full profiles)
-  const context: ExtractionContext = {
-    existingPeople,
-    existingRelations,
-    storyText,
-  };
+  // Create or get session
+  let session: AISession;
+  if (sessionId) {
+    // For now, we'll create a new session each time since we don't persist them
+    // In a production system, you'd load the session from storage
+    session = createAISession(config, { systemPrompt: createSystemPrompt() });
+  } else {
+    session = createAISession(config, { systemPrompt: createSystemPrompt() });
+  }
 
-  // Generate prompt
-  const prompt = createExtractionPrompt(context);
+  // Update context with current people and relations
+  const contextUpdate = createContextUpdate(existingPeople, existingRelations);
+  updateSessionContext(session.id, contextUpdate);
+
+  // Create the extraction message
+  const extractionMessage = `EXTRACT RELATIONS FROM THIS STORY:
+
+"${storyText}"
+
+Please analyze this story and extract people, their relationships, and any conflicts with existing data. Respond with JSON only.`;
 
   try {
-    // Call AI API (Anthropic or Gemini)
-    const { response: rawResponse, tokensUsed } = await callAI(config, prompt);
+    // Call AI with session
+    const { response: rawResponse, tokensUsed } = await callAISession(session.id, extractionMessage, config);
 
-    // Parse JSON response (both models might wrap JSON in markdown code blocks)
+    // Parse JSON response
     const parsed = parseExtractionResponse(rawResponse);
 
     const processingTime = Date.now() - startTime;
@@ -96,6 +115,41 @@ export async function extractRelationsFromStory(
       `Failed to extract relations: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+/**
+ * Create context update message for session
+ */
+function createContextUpdate(
+  existingPeople: Array<{ id: string; name: string }>,
+  existingRelations?: Array<{
+    relationType: string;
+    objectLabel: string;
+    subjectId: string;
+    subjectName: string;
+  }>
+): string {
+  let update = 'CURRENT DATABASE STATE:\n\n';
+
+  update += 'EXISTING PEOPLE:\n';
+  if (existingPeople.length > 0) {
+    existingPeople.forEach(person => {
+      update += `- ${person.name} (ID: ${person.id})\n`;
+    });
+  } else {
+    update += 'None yet\n';
+  }
+
+  update += '\nEXISTING RELATIONS:\n';
+  if (existingRelations && existingRelations.length > 0) {
+    existingRelations.forEach(relation => {
+      update += `- ${relation.subjectName}: ${relation.relationType} "${relation.objectLabel}"\n`;
+    });
+  } else {
+    update += 'None yet\n';
+  }
+
+  return update;
 }
 
 /**

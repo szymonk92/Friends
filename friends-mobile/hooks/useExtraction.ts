@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { extractRelationsFromStory, shouldAutoAccept } from '@/lib/ai/extraction';
+import { extractRelationsFromStorySession, shouldAutoAccept } from '@/lib/ai/extraction';
 import { useCreatePerson, useUpdatePerson } from './usePeople';
 import { useCreateRelations } from './useRelations';
 import { useMarkStoryProcessed } from './useStories';
@@ -52,7 +52,7 @@ export function useExtractStory() {
         .where(eq(people.userId, userId));
 
       // Step 2: Call AI extraction
-      const extractionResult = await extractRelationsFromStory(storyText, existingPeople, config);
+      const extractionResult = await extractRelationsFromStorySession(storyText, existingPeople, config);
 
       // Step 3: Process extracted people
       const personIdMap = new Map<string, string>(); // Map temp IDs to real IDs

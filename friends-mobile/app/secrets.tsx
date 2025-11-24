@@ -1,20 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, ScrollView, Alert, FlatList } from 'react-native';
+import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
 import {
   Text,
-  Card,
-  Button,
-  FAB,
-  TextInput,
-  ActivityIndicator,
-  Chip,
-  IconButton,
-  Dialog,
   Portal,
-  Menu,
 } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import {
   useBiometricStatus,
   useSecretsSetupStatus,
@@ -27,8 +18,12 @@ import {
   usePasswordBasedEncryption,
 } from '@/hooks/useSecrets';
 import { usePeople } from '@/hooks/usePeople';
-import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
-import { formatRelativeTime } from '@/lib/utils/format';
+
+import SecretsSetup from '@/components/secrets/SecretsSetup';
+import SecretList from '@/components/secrets/SecretList';
+import CreateSecretDialog from '@/components/secrets/CreateSecretDialog';
+import ViewSecretDialog from '@/components/secrets/ViewSecretDialog';
+import PasswordPromptDialog from '@/components/secrets/PasswordPromptDialog';
 
 export default function SecretsScreen() {
   const insets = useSafeAreaInsets();
@@ -108,13 +103,6 @@ export default function SecretsScreen() {
     };
   }, [showViewDialog, viewedSecret]);
 
-  // Clear password from memory immediately after use
-  const clearSensitiveData = () => {
-    setAccessPassword('');
-    setSetupPassword('');
-    setConfirmPassword('');
-  };
-
   const handleSetup = async () => {
     try {
       await initializeSecrets.mutateAsync();
@@ -138,9 +126,9 @@ export default function SecretsScreen() {
     Alert.alert(
       'IMPORTANT WARNING',
       'You are about to set a password for your secrets.\n\n' +
-        '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
-        'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
-        'Make sure you remember this password or write it down in a safe place.',
+      '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
+      'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
+      'Make sure you remember this password or write it down in a safe place.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -275,148 +263,22 @@ export default function SecretsScreen() {
 
   // Setup screen if not initialized
   if (!isSetup) {
-    const hasBiometrics = biometricStatus?.isEnrolled;
-
     return (
       <>
         <Stack.Screen options={{ title: 'Setup Secrets' }} />
-        <ScrollView contentContainerStyle={styles.centered}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Secure Your Secrets
-          </Text>
-
-          {hasBiometrics ? (
-            <Card style={styles.infoCard}>
-              <Card.Content>
-                <Text variant="bodyMedium" style={styles.infoText}>
-                  Your secrets will be encrypted and protected by{' '}
-                  <Text style={styles.bold}>
-                    {getBiometricTypeName(biometricStatus.biometricType)}
-                  </Text>
-                  .
-                </Text>
-                <Text variant="bodySmall" style={styles.infoSubtext}>
-                  • Only you can access them with your biometrics{'\n'}• Data is encrypted on your
-                  device{'\n'}• No one else can read your secrets
-                </Text>
-              </Card.Content>
-            </Card>
-          ) : (
-            <Card style={styles.infoCard}>
-              <Card.Content>
-                <Text variant="bodyMedium" style={styles.infoText}>
-                  Your device doesn't have biometrics enrolled. You can protect your secrets with a{' '}
-                  <Text style={styles.bold}>password</Text>.
-                </Text>
-                <Text variant="bodySmall" style={[styles.infoSubtext, styles.warningText]}>
-                  ⚠️ IMPORTANT: If you forget your password, your secrets CANNOT be recovered. There
-                  is NO password reset option.
-                </Text>
-              </Card.Content>
-            </Card>
-          )}
-
-          {hasBiometrics ? (
-            <Button
-              mode="contained"
-              icon="fingerprint"
-              onPress={handleSetup}
-              loading={initializeSecrets.isPending}
-              disabled={initializeSecrets.isPending}
-              style={styles.setupButton}
-            >
-              {initializeSecrets.isPending ? 'Setting up...' : 'Use Biometrics'}
-            </Button>
-          ) : (
-            <Button
-              mode="contained"
-              icon="lock"
-              onPress={() => setShowPasswordSetupDialog(true)}
-              style={styles.setupButton}
-            >
-              Set Up Password
-            </Button>
-          )}
-
-          {hasBiometrics && (
-            <Button
-              mode="outlined"
-              icon="lock"
-              onPress={() => setShowPasswordSetupDialog(true)}
-              style={styles.alternativeButton}
-            >
-              Use Password Instead
-            </Button>
-          )}
-        </ScrollView>
-
-        {/* Password Setup Dialog */}
-        <Portal>
-          <Dialog
-            visible={showPasswordSetupDialog}
-            onDismiss={() => {
-              setShowPasswordSetupDialog(false);
-              setSetupPassword('');
-              setConfirmPassword('');
-            }}
-          >
-            <Dialog.Title>Set Password</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodySmall" style={styles.warningBanner}>
-                ⚠️ WARNING: If you forget this password, your secrets CANNOT be recovered. Write it
-                down in a safe place!
-              </Text>
-              <TextInput
-                label="Password (min 8 characters)"
-                value={setupPassword}
-                onChangeText={setSetupPassword}
-                mode="outlined"
-                secureTextEntry
-                style={styles.input}
-              />
-              <TextInput
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                mode="outlined"
-                secureTextEntry
-                style={styles.input}
-              />
-              {setupPassword.length > 0 && setupPassword.length < 8 && (
-                <Text variant="bodySmall" style={styles.errorText}>
-                  Password must be at least 8 characters
-                </Text>
-              )}
-              {confirmPassword.length > 0 && setupPassword !== confirmPassword && (
-                <Text variant="bodySmall" style={styles.errorText}>
-                  Passwords do not match
-                </Text>
-              )}
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button
-                onPress={() => {
-                  setShowPasswordSetupDialog(false);
-                  setSetupPassword('');
-                  setConfirmPassword('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onPress={handlePasswordSetup}
-                loading={initializeWithPassword.isPending}
-                disabled={
-                  initializeWithPassword.isPending ||
-                  setupPassword.length < 8 ||
-                  setupPassword !== confirmPassword
-                }
-              >
-                Set Password
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+        <SecretsSetup
+          biometricStatus={biometricStatus}
+          initializeSecrets={initializeSecrets}
+          initializeWithPassword={initializeWithPassword}
+          showPasswordSetupDialog={showPasswordSetupDialog}
+          setShowPasswordSetupDialog={setShowPasswordSetupDialog}
+          setupPassword={setupPassword}
+          setSetupPassword={setSetupPassword}
+          confirmPassword={confirmPassword}
+          setConfirmPassword={setConfirmPassword}
+          handleSetup={handleSetup}
+          handlePasswordSetup={handlePasswordSetup}
+        />
       </>
     );
   }
@@ -425,230 +287,66 @@ export default function SecretsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Secrets' }} />
-      <View style={styles.container}>
-        <Card style={styles.statusCard}>
-          <Card.Content style={styles.statusContent}>
-            <Chip icon="shield-lock" style={styles.statusChip}>
-              Protected by {isPasswordBased ? 'Password' : getBiometricTypeName(biometricStatus?.biometricType || 'none')}
-            </Chip>
-            <Text variant="bodySmall" style={styles.statusText}>
-              {secrets.length} secret(s) stored
-            </Text>
-          </Card.Content>
-        </Card>
+      <SecretList
+        secrets={secrets}
+        loadingSecrets={loadingSecrets}
+        isPasswordBased={!!isPasswordBased}
+        biometricStatus={biometricStatus}
+        people={people}
+        handleViewSecret={(id) => handleViewSecret(id)}
+        handleDeleteSecret={handleDeleteSecret}
+        setShowCreateDialog={setShowCreateDialog}
+        insets={insets}
+      />
 
-        {loadingSecrets ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="small" />
-          </View>
-        ) : secrets.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text variant="titleMedium" style={styles.emptyTitle}>
-              No Secrets Yet
-            </Text>
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              Tap the + button to add your first secret
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={secrets}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => {
-              const associatedPerson = item.personId
-                ? people.find((p) => p.id === item.personId)
-                : null;
-              return (
-                <Card style={styles.secretCard} onPress={() => handleViewSecret(item.id)}>
-                  <Card.Content style={styles.secretCardContent}>
-                    <View style={styles.secretInfo}>
-                      <Text variant="titleMedium">{item.title}</Text>
-                      {associatedPerson && (
-                        <Text variant="bodySmall" style={styles.personTag}>
-                          {associatedPerson.name}
-                        </Text>
-                      )}
-                      <Text variant="bodySmall" style={styles.secretDate}>
-                        {formatRelativeTime(new Date(item.createdAt))}
-                      </Text>
-                    </View>
-                    <IconButton
-                      icon="delete"
-                      size={20}
-                      onPress={() => handleDeleteSecret(item.id, item.title)}
-                    />
-                  </Card.Content>
-                </Card>
-              );
-            }}
-          />
-        )}
+      <CreateSecretDialog
+        visible={showCreateDialog}
+        onDismiss={() => setShowCreateDialog(false)}
+        newSecretTitle={newSecretTitle}
+        setNewSecretTitle={setNewSecretTitle}
+        newSecretContent={newSecretContent}
+        setNewSecretContent={setNewSecretContent}
+        showPersonMenu={showPersonMenu}
+        setShowPersonMenu={setShowPersonMenu}
+        selectedPersonId={selectedPersonId}
+        setSelectedPersonId={setSelectedPersonId}
+        people={people}
+        isPasswordBased={!!isPasswordBased}
+        handleCreateSecret={() => handleCreateSecret()}
+        createSecretPending={createSecret.isPending}
+      />
 
-        <FAB
-          icon="plus"
-          style={[styles.fab, { bottom: insets.bottom + 16 }]}
-          onPress={() => setShowCreateDialog(true)}
-          label="Add Secret"
+      <Portal>
+        <ViewSecretDialog
+          visible={showViewDialog}
+          onDismiss={() => {
+            setShowViewDialog(false);
+            setViewedSecret(null);
+          }}
+          viewedSecret={viewedSecret}
+          remainingTime={remainingTime}
         />
 
-        {/* Create Secret Dialog */}
-        <Portal>
-          <Dialog visible={showCreateDialog} onDismiss={() => setShowCreateDialog(false)}>
-            <Dialog.Title>New Secret</Dialog.Title>
-            <Dialog.Content>
-              <TextInput
-                label="Title"
-                value={newSecretTitle}
-                onChangeText={setNewSecretTitle}
-                mode="outlined"
-                style={styles.input}
-              />
-              <TextInput
-                label="Secret Content"
-                value={newSecretContent}
-                onChangeText={setNewSecretContent}
-                mode="outlined"
-                multiline
-                numberOfLines={4}
-                style={styles.input}
-                secureTextEntry
-              />
-              <Menu
-                visible={showPersonMenu}
-                onDismiss={() => setShowPersonMenu(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    onPress={() => setShowPersonMenu(true)}
-                    style={styles.personSelector}
-                    icon="account"
-                  >
-                    {selectedPersonId
-                      ? people.find((p) => p.id === selectedPersonId)?.name || 'Select Person'
-                      : 'Associate with Person (Optional)'}
-                  </Button>
-                }
-              >
-                <Menu.Item
-                  onPress={() => {
-                    setSelectedPersonId(undefined);
-                    setShowPersonMenu(false);
-                  }}
-                  title="No Association"
-                />
-                {people.map((person) => (
-                  <Menu.Item
-                    key={person.id}
-                    onPress={() => {
-                      setSelectedPersonId(person.id);
-                      setShowPersonMenu(false);
-                    }}
-                    title={person.name}
-                  />
-                ))}
-              </Menu>
-              <Text variant="bodySmall" style={styles.dialogHint}>
-                Content will be encrypted with your {isPasswordBased ? 'password' : 'biometric key'}
-              </Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setShowCreateDialog(false)}>Cancel</Button>
-              <Button
-                onPress={() => handleCreateSecret()}
-                loading={createSecret.isPending}
-                disabled={createSecret.isPending}
-              >
-                Save
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-
-          {/* View Secret Dialog */}
-          <Dialog
-            visible={showViewDialog}
-            onDismiss={() => {
-              setShowViewDialog(false);
-              setViewedSecret(null);
-            }}
-          >
-            <Dialog.Title>{viewedSecret?.title || 'Secret'}</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodySmall" style={styles.securityTimer}>
-                Auto-closing in {remainingTime}s for security
-              </Text>
-              <Text variant="bodyMedium" style={styles.secretContent}>
-                {viewedSecret?.content}
-              </Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button
-                onPress={() => {
-                  setShowViewDialog(false);
-                  setViewedSecret(null);
-                }}
-              >
-                Close
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-
-          {/* Password Prompt Dialog */}
-          <Dialog
-            visible={showPasswordPrompt}
-            onDismiss={() => {
-              setShowPasswordPrompt(false);
-              setAccessPassword('');
-              setPendingAction(null);
-              setPendingSecretId(null);
-            }}
-          >
-            <Dialog.Title>Enter Password</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodySmall" style={styles.passwordPromptText}>
-                Enter your password to {pendingAction === 'create' ? 'save' : 'decrypt'} the secret
-              </Text>
-              <TextInput
-                label="Password"
-                value={accessPassword}
-                onChangeText={setAccessPassword}
-                mode="outlined"
-                secureTextEntry
-                style={styles.input}
-                autoFocus
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button
-                onPress={() => {
-                  setShowPasswordPrompt(false);
-                  setAccessPassword('');
-                  setPendingAction(null);
-                  setPendingSecretId(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onPress={handlePasswordSubmit}
-                loading={createSecret.isPending || decryptSecret.isPending}
-                disabled={!accessPassword || createSecret.isPending || decryptSecret.isPending}
-              >
-                Submit
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      </View>
+        <PasswordPromptDialog
+          visible={showPasswordPrompt}
+          onDismiss={() => {
+            setShowPasswordPrompt(false);
+            setAccessPassword('');
+            setPendingAction(null);
+            setPendingSecretId(null);
+          }}
+          accessPassword={accessPassword}
+          setAccessPassword={setAccessPassword}
+          pendingAction={pendingAction}
+          handlePasswordSubmit={handlePasswordSubmit}
+          loading={createSecret.isPending || decryptSecret.isPending}
+        />
+      </Portal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -658,147 +356,5 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     opacity: 0.7,
-  },
-  title: {
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    textAlign: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 20,
-  },
-  warning: {
-    textAlign: 'center',
-    color: '#ff9800',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  button: {
-    marginTop: 16,
-  },
-  infoCard: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-  },
-  infoText: {
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-  infoSubtext: {
-    opacity: 0.7,
-    lineHeight: 20,
-  },
-  bold: {
-    fontWeight: 'bold',
-  },
-  setupButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-  },
-  statusCard: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  statusContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusChip: {
-    backgroundColor: '#e8f5e9',
-  },
-  statusText: {
-    opacity: 0.7,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-  },
-  emptyText: {
-    opacity: 0.6,
-    textAlign: 'center',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  secretCard: {
-    marginBottom: 12,
-  },
-  secretCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  secretInfo: {
-    flex: 1,
-  },
-  secretDate: {
-    opacity: 0.6,
-    marginTop: 4,
-  },
-  personTag: {
-    color: '#6200ee',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-  },
-  input: {
-    marginBottom: 12,
-  },
-  dialogHint: {
-    opacity: 0.6,
-    fontStyle: 'italic',
-  },
-  secretContent: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    fontFamily: 'monospace',
-  },
-  alternativeButton: {
-    marginTop: 12,
-    paddingHorizontal: 24,
-  },
-  warningText: {
-    color: '#f57c00',
-    fontWeight: '500',
-  },
-  warningBanner: {
-    backgroundColor: '#fff3e0',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    color: '#e65100',
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  errorText: {
-    color: '#d32f2f',
-    marginTop: -8,
-    marginBottom: 8,
-  },
-  personSelector: {
-    marginBottom: 12,
-  },
-  passwordPromptText: {
-    marginBottom: 16,
-    opacity: 0.7,
-  },
-  securityTimer: {
-    color: '#ff5722',
-    marginBottom: 12,
-    fontWeight: '500',
-    textAlign: 'center',
   },
 });

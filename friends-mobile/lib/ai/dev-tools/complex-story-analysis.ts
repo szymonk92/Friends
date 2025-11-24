@@ -4,7 +4,7 @@
  */
 
 import { createPromptV2 as _createPromptV2 } from './prompt-variants';
-import { createExtractionPrompt as _createExtractionPrompt } from './prompts';
+import { createExtractionPrompt as _createExtractionPrompt } from '../prompts';
 
 // Existing database state
 const _existingPeople = [

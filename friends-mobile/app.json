@@ -42,7 +42,8 @@
         {
           "faceIDPermission": "Allow Friends to use Face ID to protect your secrets."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

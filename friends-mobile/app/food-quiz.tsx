@@ -1,7 +1,6 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelation, useRelations } from '@/hooks/useRelations';
-import { getInitials } from '@/lib/utils/format';
 import { quizLogger } from '@/lib/logger';
 import { db, getCurrentUserId } from '@/lib/db';
 import { quizDismissals } from '@/lib/db/schema';
@@ -16,19 +15,19 @@ import {
   LogBox,
   View,
   StyleSheet,
-  TouchableOpacity,
   Animated,
   PanResponder,
 } from 'react-native';
 import {
-  Card,
   Text,
   Button,
-  ProgressBar,
-  Chip,
-  IconButton,
 } from 'react-native-paper';
-import { RELATION_TYPE_OPTIONS, INTENSITY_OPTIONS, LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
+import { LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
+
+import QuizCard from '@/components/food-quiz/QuizCard';
+import QuizControls from '@/components/food-quiz/QuizControls';
+import QuizProgress from '@/components/food-quiz/QuizProgress';
+import QuizComplete from '@/components/food-quiz/QuizComplete';
 
 // Suppress reanimated warnings from react-native-paper
 LogBox.ignoreLogs(['It looks like you might be using shared value']);
@@ -342,131 +341,35 @@ export default function FoodQuizScreen() {
   }
 
   if (isComplete) {
-    const totalSaved = savedCount.likes + savedCount.dislikes;
-    return (
-      <>
-        <Stack.Screen options={{ title: 'Quiz Complete' }} />
-        <CenteredContainer style={styles.centered}>
-          <Text style={styles.completeIcon}>🎉</Text>
-          <Text variant="headlineMedium" style={styles.completeTitle}>
-            Quiz Complete!
-          </Text>
-          <Text variant="bodyLarge" style={styles.completeSummary}>
-            Saved {totalSaved} preferences automatically.
-          </Text>
-          <Text variant="titleMedium" style={styles.statsTitle}>
-            Results:
-          </Text>
-          <View style={styles.statsContainer}>
-            <Chip icon="thumb-up" style={styles.statChip}>
-              {savedCount.likes} Likes
-            </Chip>
-            <Chip icon="thumb-down" style={styles.statChip}>
-              {savedCount.dislikes} Dislikes
-            </Chip>
-            <Chip icon="help-circle" style={styles.statChip}>
-              {savedCount.skipped} Skipped
-            </Chip>
-          </View>
-
-          <Button mode="contained" onPress={() => router.back()} style={styles.saveButton}>
-            Done
-          </Button>
-        </CenteredContainer>
-      </>
-    );
+    return <QuizComplete savedCount={savedCount} />;
   }
 
   return (
     <>
       <Stack.Screen options={{ title: 'Food Quiz' }} />
       <View style={styles.container}>
-        {/* Progress */}
-        <View style={styles.progressContainer}>
-          <Text variant="bodySmall" style={styles.progressText}>
-            Question {currentQuestionIndex + 1} of {totalQuestions}
-          </Text>
-          <ProgressBar progress={progress} style={styles.progressBar} />
-        </View>
+        <QuizProgress
+          currentQuestionIndex={currentQuestionIndex}
+          totalQuestions={totalQuestions}
+          progress={progress}
+          currentPerson={currentPerson}
+        />
 
-        {/* Person info */}
-        <View style={styles.personInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(currentPerson?.name || '')}</Text>
-          </View>
-          <Text variant="titleLarge">{currentPerson?.name}</Text>
-        </View>
-
-        {/* Swipeable card */}
         <CenteredContainer style={styles.cardContainer}>
-          <Animated.View
-            style={[
-              styles.swipeCard,
-              {
-                transform: [{ translateX: position.x }, { translateY: position.y }, { rotate: cardRotate }],
-                opacity: cardOpacity,
-              },
-            ]}
-            {...panResponder.panHandlers}
-          >
-            {/* Overlay indicators */}
-            <Animated.View style={[styles.likeOverlay, { opacity: likeOpacity }]}>
-              <Text style={styles.overlayText}>LIKES ❤️</Text>
-            </Animated.View>
-
-            <Animated.View style={[styles.dislikeOverlay, { opacity: dislikeOpacity }]}>
-              <Text style={styles.overlayText}>DISLIKES 👎</Text>
-            </Animated.View>
-
-            <Animated.View style={[styles.skipOverlay, { opacity: skipOpacity }]}>
-              <Text style={styles.overlayText}>IDK 🤷</Text>
-            </Animated.View>
-
-            <Card style={styles.questionCard}>
-              <Card.Content style={styles.questionContent}>
-                <Text variant="displaySmall" style={styles.foodEmoji}>
-                  🍽️
-                </Text>
-                <Text variant="headlineMedium" style={styles.questionText}>
-                  Does {currentPerson?.name?.split(' ')[0]} like
-                </Text>
-                <Text variant="displaySmall" style={styles.foodItem}>
-                  {currentFood?.item}?
-                </Text>
-                <Chip style={styles.categoryChip}>{currentFood?.category}</Chip>
-              </Card.Content>
-            </Card>
-          </Animated.View>
+          <QuizCard
+            currentPerson={currentPerson}
+            currentFood={currentFood}
+            position={position}
+            panHandlers={panResponder.panHandlers}
+            cardRotate={cardRotate}
+            cardOpacity={cardOpacity}
+            likeOpacity={likeOpacity}
+            dislikeOpacity={dislikeOpacity}
+            skipOpacity={skipOpacity}
+          />
         </CenteredContainer>
 
-        {/* Button controls */}
-        <View style={styles.controls}>
-          <IconButton
-            icon="thumb-down"
-            size={40}
-            iconColor="#f44336"
-            style={[styles.controlButton, styles.dislikeButton]}
-            onPress={() => swipeCard('left')}
-          />
-          <IconButton
-            icon="help-circle"
-            size={32}
-            iconColor="#9e9e9e"
-            style={[styles.controlButton, styles.skipButton]}
-            onPress={() => swipeCard('down')}
-          />
-          <IconButton
-            icon="thumb-up"
-            size={40}
-            iconColor="#4caf50"
-            style={[styles.controlButton, styles.likeButton]}
-            onPress={() => swipeCard('right')}
-          />
-        </View>
-
-        <Text variant="bodySmall" style={styles.instructions}>
-          Swipe right = Likes • Swipe left = Dislikes • Swipe down = IDK
-        </Text>
+        <QuizControls onSwipe={swipeCard} />
       </View>
     </>
   );
@@ -486,148 +389,11 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     opacity: 0.7,
   },
-  progressContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  progressText: {
-    textAlign: 'center',
-    marginBottom: 8,
-    opacity: 0.7,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-  },
-  personInfo: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#6200ee',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   cardContainer: {
     alignItems: 'center',
-  },
-  swipeCard: {
-    width: width - 48,
-    height: height * 0.4,
-    position: 'absolute',
-  },
-  questionCard: {
-    flex: 1,
-  },
-  questionContent: {
-    alignItems: 'center',
-    padding: 24,
-  },
-  foodEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  questionText: {
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  foodItem: {
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#6200ee',
-    marginBottom: 16,
-  },
-  categoryChip: {
-    marginTop: 8,
-  },
-  likeOverlay: {
-    position: 'absolute',
-    top: 50,
-    right: 40,
-    zIndex: 10,
-    transform: [{ rotate: '30deg' }],
-  },
-  dislikeOverlay: {
-    position: 'absolute',
-    top: 50,
-    left: 40,
-    zIndex: 10,
-    transform: [{ rotate: '-30deg' }],
-  },
-  skipOverlay: {
-    position: 'absolute',
-    bottom: 50,
-    alignSelf: 'center',
-    zIndex: 10,
-  },
-  overlayText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    borderWidth: 4,
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: 'white',
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-    marginBottom: 16,
-  },
-  controlButton: {
-    borderWidth: 2,
-  },
-  dislikeButton: {
-    borderColor: '#f44336',
-    backgroundColor: '#ffebee',
-  },
-  skipButton: {
-    borderColor: '#9e9e9e',
-    backgroundColor: '#f5f5f5',
-  },
-  likeButton: {
-    borderColor: '#4caf50',
-    backgroundColor: '#e8f5e9',
-  },
-  instructions: {
-    textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.6,
   },
   completeIcon: {
     fontSize: 64,
     marginBottom: 16,
-  },
-  completeTitle: {
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  completeSummary: {
-    textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.8,
-  },
-  statsTitle: {
-    marginBottom: 12,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32,
-  },
-  statChip: {
-    paddingHorizontal: 8,
-  },
-  saveButton: {
-    marginBottom: 12,
-    minWidth: 250,
   },
 });

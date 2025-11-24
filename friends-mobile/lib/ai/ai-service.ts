@@ -7,10 +7,369 @@ export interface AIServiceConfig {
   apiKey: string;
 }
 
+// Session management interfaces
+export interface AISession {
+  id: string;
+  model: AIModel;
+  messages: AIMessage[];
+  createdAt: Date;
+  lastUsedAt: Date;
+  contextTokens: number;
+  maxContextTokens: number;
+}
+
+export interface AIMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  tokens?: number;
+}
+
+export interface SessionConfig {
+  maxContextTokens?: number;
+  systemPrompt?: string;
+}
+
 // Retry configuration
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
 const MAX_RETRY_DELAY = 10000; // 10 seconds
+
+// Session storage (in-memory for now, could be persisted to database later)
+const activeSessions = new Map<string, AISession>();
+
+// Session analytics
+interface SessionAnalytics {
+  sessionId: string;
+  model: AIModel;
+  createdAt: Date;
+  totalTokensUsed: number;
+  totalRequests: number;
+  totalCost: number;
+  lastActivity: Date;
+  contextUpdates: number;
+  errors: number;
+  avgResponseTime: number;
+  peakTokensInContext: number;
+}
+
+const sessionAnalytics = new Map<string, SessionAnalytics>();
+
+/**
+ * Create a new AI session with system prompt
+ */
+export function createAISession(
+  config: AIServiceConfig,
+  sessionConfig: SessionConfig = {}
+): AISession {
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const maxContextTokens = sessionConfig.maxContextTokens || 200000; // Claude/Gemini context window
+
+  const session: AISession = {
+    id: sessionId,
+    model: config.model,
+    messages: [],
+    createdAt: new Date(),
+    lastUsedAt: new Date(),
+    contextTokens: 0,
+    maxContextTokens,
+  };
+
+  // Add system prompt if provided
+  if (sessionConfig.systemPrompt) {
+    const systemMessage: AIMessage = {
+      role: 'system',
+      content: sessionConfig.systemPrompt,
+      timestamp: new Date(),
+      tokens: estimateTokens(sessionConfig.systemPrompt),
+    };
+    session.messages.push(systemMessage);
+    session.contextTokens = systemMessage.tokens || 0;
+  }
+
+  activeSessions.set(sessionId, session);
+
+  // Initialize analytics
+  sessionAnalytics.set(sessionId, {
+    sessionId,
+    model: config.model,
+    createdAt: new Date(),
+    totalTokensUsed: 0,
+    totalRequests: 0,
+    totalCost: 0,
+    lastActivity: new Date(),
+    contextUpdates: 0,
+    errors: 0,
+    avgResponseTime: 0,
+    peakTokensInContext: 0,
+  });
+
+  return session;
+}
+
+/**
+ * Update session context with new information
+ */
+export function updateSessionContext(
+  sessionId: string,
+  contextUpdate: string
+): boolean {
+  const session = activeSessions.get(sessionId);
+  if (!session) return false;
+
+  const analytics = sessionAnalytics.get(sessionId);
+  if (analytics) {
+    analytics.contextUpdates++;
+    analytics.lastActivity = new Date();
+  }
+
+  const contextMessage: AIMessage = {
+    role: 'user',
+    content: `CONTEXT UPDATE: ${contextUpdate}`,
+    timestamp: new Date(),
+    tokens: estimateTokens(contextUpdate) + 20, // Include "CONTEXT UPDATE: " prefix
+  };
+
+  // Check if we need to trim old messages to stay within context window
+  const newTotalTokens = session.contextTokens + (contextMessage.tokens || 0);
+  if (newTotalTokens > session.maxContextTokens) {
+    trimSessionMessages(session, newTotalTokens - session.maxContextTokens);
+  }
+
+  session.messages.push(contextMessage);
+  session.contextTokens += contextMessage.tokens || 0;
+  session.lastUsedAt = new Date();
+
+  return true;
+}
+
+/**
+ * Send a message in an existing session
+ */
+export async function callAISession(
+  sessionId: string,
+  message: string,
+  config: AIServiceConfig
+): Promise<{ response: string; tokensUsed?: number }> {
+  const session = activeSessions.get(sessionId);
+  if (!session) {
+    throw new Error(`Session ${sessionId} not found`);
+  }
+
+  if (session.model !== config.model) {
+    throw new Error(`Session model mismatch: expected ${session.model}, got ${config.model}`);
+  }
+
+  const analytics = sessionAnalytics.get(sessionId);
+  const startTime = Date.now();
+
+  // Add user message to session
+  const userMessage: AIMessage = {
+    role: 'user',
+    content: message,
+    timestamp: new Date(),
+    tokens: estimateTokens(message),
+  };
+
+  // Check context limits before adding
+  const newTotalTokens = session.contextTokens + (userMessage.tokens || 0);
+  if (newTotalTokens > session.maxContextTokens) {
+    trimSessionMessages(session, newTotalTokens - session.maxContextTokens);
+  }
+
+  session.messages.push(userMessage);
+  session.contextTokens += userMessage.tokens || 0;
+
+  try {
+    // Call AI with full conversation history
+    const result = await callAIWithHistory(config, session.messages);
+
+    // Add assistant response to session
+    const assistantMessage: AIMessage = {
+      role: 'assistant',
+      content: result.response,
+      timestamp: new Date(),
+      tokens: result.tokensUsed,
+    };
+
+    // Check if we need to trim before adding response
+    const responseTokens = assistantMessage.tokens || 0;
+    if (session.contextTokens + responseTokens > session.maxContextTokens) {
+      trimSessionMessages(session, (session.contextTokens + responseTokens) - session.maxContextTokens);
+    }
+
+    session.messages.push(assistantMessage);
+    session.contextTokens += responseTokens;
+    session.lastUsedAt = new Date();
+
+    // Update analytics
+    if (analytics) {
+      const responseTime = Date.now() - startTime;
+      analytics.totalRequests++;
+      analytics.totalTokensUsed += result.tokensUsed || 0;
+      analytics.totalCost += calculateCost(config.model, result.tokensUsed || 0);
+      analytics.lastActivity = new Date();
+      analytics.avgResponseTime = ((analytics.avgResponseTime * (analytics.totalRequests - 1)) + responseTime) / analytics.totalRequests;
+      analytics.peakTokensInContext = Math.max(analytics.peakTokensInContext, session.contextTokens);
+    }
+
+    return result;
+  } catch (error) {
+    // Update error analytics
+    if (analytics) {
+      analytics.errors++;
+      analytics.lastActivity = new Date();
+    }
+
+    // Remove the user message if the call failed
+    session.messages.pop();
+    session.contextTokens -= userMessage.tokens || 0;
+    throw error;
+  }
+}
+
+/**
+ * Clean up old or inactive sessions
+ */
+export function cleanupSessions(maxAgeHours: number = 24): number {
+  const cutoffTime = Date.now() - (maxAgeHours * 60 * 60 * 1000);
+  let cleaned = 0;
+
+  for (const [sessionId, session] of activeSessions.entries()) {
+    if (session.lastUsedAt.getTime() < cutoffTime) {
+      activeSessions.delete(sessionId);
+      sessionAnalytics.delete(sessionId); // Clean up analytics too
+      cleaned++;
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Get session analytics
+ */
+export function getSessionAnalytics(sessionId?: string): SessionAnalytics[] {
+  if (sessionId) {
+    const analytics = sessionAnalytics.get(sessionId);
+    return analytics ? [analytics] : [];
+  }
+
+  return Array.from(sessionAnalytics.values());
+}
+
+/**
+ * Get aggregated analytics across all sessions
+ */
+export function getAggregatedAnalytics(): {
+  totalSessions: number;
+  totalRequests: number;
+  totalTokensUsed: number;
+  totalCost: number;
+  avgResponseTime: number;
+  errorRate: number;
+  activeSessions: number;
+} {
+  const allAnalytics = Array.from(sessionAnalytics.values());
+  const activeSessionIds = new Set(activeSessions.keys());
+
+  const activeAnalytics = allAnalytics.filter(a => activeSessionIds.has(a.sessionId));
+
+  const totalRequests = activeAnalytics.reduce((sum, a) => sum + a.totalRequests, 0);
+  const totalTokens = activeAnalytics.reduce((sum, a) => sum + a.totalTokensUsed, 0);
+  const totalCost = activeAnalytics.reduce((sum, a) => sum + a.totalCost, 0);
+  const totalErrors = activeAnalytics.reduce((sum, a) => sum + a.errors, 0);
+  const avgResponseTime = totalRequests > 0
+    ? activeAnalytics.reduce((sum, a) => sum + (a.avgResponseTime * a.totalRequests), 0) / totalRequests
+    : 0;
+
+  return {
+    totalSessions: activeAnalytics.length,
+    totalRequests,
+    totalTokensUsed: totalTokens,
+    totalCost,
+    avgResponseTime,
+    errorRate: totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0,
+    activeSessions: activeSessions.size,
+  };
+}
+
+/**
+ * Calculate cost for a given model and token usage
+ */
+function calculateCost(model: AIModel, tokensUsed: number): number {
+  // Pricing as of Nov 2024 (per 1M tokens)
+  const pricing = {
+    anthropic: {
+      input: 3.0,    // $3 per 1M input tokens
+      output: 15.0,  // $15 per 1M output tokens
+    },
+    gemini: {
+      input: 0.5,    // $0.50 per 1M input tokens (approximate)
+      output: 1.5,   // $1.50 per 1M output tokens (approximate)
+    },
+  };
+
+  const modelPricing = pricing[model];
+  if (!modelPricing) return 0;
+
+  // Rough approximation: assume 1/3 output tokens, 2/3 input tokens
+  const estimatedInputTokens = Math.floor(tokensUsed * 0.67);
+  const estimatedOutputTokens = tokensUsed - estimatedInputTokens;
+
+  const inputCost = (estimatedInputTokens / 1_000_000) * modelPricing.input;
+  const outputCost = (estimatedOutputTokens / 1_000_000) * modelPricing.output;
+
+  return inputCost + outputCost;
+}
+
+/**
+ * Get session info for debugging
+ */
+export function getSessionInfo(sessionId: string): AISession | null {
+  const session = activeSessions.get(sessionId);
+  return session ? { ...session } : null; // Return copy
+}
+
+/**
+ * Trim old messages to stay within context limits
+ */
+function trimSessionMessages(session: AISession, tokensToRemove: number): void {
+  let removedTokens = 0;
+
+  // Remove oldest non-system messages first
+  while (removedTokens < tokensToRemove && session.messages.length > 1) {
+    const oldestMessage = session.messages[1]; // Keep system message at index 0
+    if (oldestMessage.role === 'system') break;
+
+    session.messages.splice(1, 1);
+    removedTokens += oldestMessage.tokens || 0;
+  }
+
+  session.contextTokens -= removedTokens;
+}
+
+/**
+ * Estimate token count (rough approximation)
+ */
+function estimateTokens(text: string): number {
+  // Rough approximation: ~4 characters per token
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Call AI with full conversation history
+ */
+async function callAIWithHistory(
+  config: AIServiceConfig,
+  messages: AIMessage[]
+): Promise<{ response: string; tokensUsed?: number }> {
+  if (config.model === 'anthropic') {
+    return await callAnthropicWithHistory(config.apiKey, messages);
+  } else {
+    return await callGeminiWithHistory(config.apiKey, messages);
+  }
+}
 
 // Error types for classification
 export enum AIErrorType {
@@ -115,6 +474,47 @@ async function callAnthropic(
   }
 }
 
+async function callAnthropicWithHistory(
+  apiKey: string,
+  messages: AIMessage[]
+): Promise<{ response: string; tokensUsed: number }> {
+  const anthropic = new Anthropic({ 
+    apiKey,
+    timeout: 60000, // 60 second timeout
+  });
+
+  try {
+    // Convert our message format to Anthropic format
+    const anthropicMessages = messages.map(msg => ({
+      role: msg.role === 'system' ? 'user' : msg.role, // Anthropic doesn't have system role in messages API
+      content: msg.role === 'system' ? `SYSTEM: ${msg.content}` : msg.content,
+    }));
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 4000,
+      temperature: 0.3,
+      messages: anthropicMessages,
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      const error = new Error('Unexpected response type from Claude') as AIError;
+      error.type = AIErrorType.INVALID_RESPONSE;
+      error.retryable = false;
+      throw error;
+    }
+
+    return {
+      response: content.text,
+      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+    };
+  } catch (error: any) {
+    // Re-throw with additional context
+    throw error;
+  }
+}
+
 async function callGemini(
   apiKey: string,
   prompt: string
@@ -156,7 +556,52 @@ async function callGemini(
   }
 }
 
-/**
+async function callGeminiWithHistory(
+  apiKey: string,
+  messages: AIMessage[]
+): Promise<{ response: string; tokensUsed?: number }> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ 
+    model: 'gemini-2.0-flash-lite',
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 4000,
+      responseMimeType: 'application/json',
+    },
+  });
+
+  try {
+    // Convert our message format to Gemini format
+    const geminiContents = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const result = await model.generateContent({
+      contents: geminiContents,
+    });
+
+    const response = await result.response;
+    const text = response.text();
+
+    if (!text || text.trim().length === 0) {
+      const error = new Error('Empty response from Gemini') as AIError;
+      error.type = AIErrorType.INVALID_RESPONSE;
+      error.retryable = true;
+      throw error;
+    }
+
+    return {
+      response: text,
+      tokensUsed: response.usageMetadata
+        ? response.usageMetadata.promptTokenCount + response.usageMetadata.candidatesTokenCount
+        : undefined,
+    };
+  } catch (error: any) {
+    // Re-throw with additional context
+    throw error;
+  }
+}/**
  * Classify error to determine if it's retryable and how to handle it
  */
 function classifyError(error: any, _model: AIModel): AIError {

@@ -1,23 +1,20 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, ScrollView, Alert, View } from 'react-native';
 import {
   Text,
   Card,
   Button,
   List,
   Divider,
-  ActivityIndicator,
-  TextInput,
   Portal,
   Dialog,
-  Switch,
-  SegmentedButtons,
+  TextInput,
 } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from '@/hooks/useDataExport';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { useState, useEffect } from 'react';
-import { useSettings, THEME_COLORS, AI_MODELS, type ThemeColor, type AIModel } from '@/store/useSettings';
+import { useSettings } from '@/store/useSettings';
 import {
   getBirthdayReminderSettings,
   saveBirthdayReminderSettings,
@@ -29,10 +26,16 @@ import {
   getRelationshipColors,
   setRelationshipColor,
   resetRelationshipColors,
-  AVAILABLE_COLORS,
-  DEFAULT_COLORS,
   type RelationshipColorMap,
+  DEFAULT_COLORS,
 } from '@/lib/settings/relationship-colors';
+
+import AppearanceSettings from '@/components/settings/AppearanceSettings';
+import AIConfiguration from '@/components/settings/AIConfiguration';
+import RelationshipColorsSettings from '@/components/settings/RelationshipColorsSettings';
+import DataStatistics from '@/components/settings/DataStatistics';
+import ExportImportSettings from '@/components/settings/ExportImportSettings';
+import BirthdayReminderSettingsSection from '@/components/settings/BirthdayReminderSettings';
 
 export default function SettingsScreen() {
   const exportData = useExportData();
@@ -43,9 +46,6 @@ export default function SettingsScreen() {
 
   // API Key state
   const {
-    apiKey,
-    geminiApiKey,
-    selectedModel,
     setApiKey,
     setGeminiApiKey,
     clearApiKey,
@@ -54,6 +54,7 @@ export default function SettingsScreen() {
     loadGeminiApiKey,
     hasApiKey,
     hasGeminiApiKey,
+    selectedModel,
     setSelectedModel,
     loadSelectedModel,
     hasActiveApiKey,
@@ -263,190 +264,19 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen options={{ title: 'Settings' }} />
       <ScrollView style={styles.container}>
-        {/* Appearance */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Appearance
-            </Text>
-            <Divider style={styles.divider} />
+        <AppearanceSettings themeColor={themeColor} setThemeColor={setThemeColor} />
 
-            <Text variant="bodySmall" style={styles.description}>
-              Customize the look and feel of the app by choosing your preferred theme color.
-            </Text>
-
-            <Text variant="labelMedium" style={styles.themeLabel}>
-              Theme Color
-            </Text>
-            <View style={styles.themeGrid}>
-              {(Object.keys(THEME_COLORS) as ThemeColor[]).map((color) => (
-                <Button
-                  key={color}
-                  mode={themeColor === color ? 'contained' : 'outlined'}
-                  onPress={() => setThemeColor(color)}
-                  style={[
-                    styles.themeButton,
-                    { backgroundColor: themeColor === color 
-                      ? THEME_COLORS[color] 
-                      : THEME_COLORS[color] + '20' }, // 20 = 12.5% opacity
-                  ]}
-                  labelStyle={[
-                    styles.themeButtonLabel,
-                    { color: '#FFFFFF' }, // White text for all buttons
-                  ]}
-                  contentStyle={styles.themeButtonContent}
-                >
-                  {color.charAt(0).toUpperCase() + color.slice(1)}
-                </Button>
-              ))}
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* AI Configuration */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              AI Configuration
-            </Text>
-            <Divider style={styles.divider} />
-
-            <Text variant="bodySmall" style={styles.description}>
-              Choose your AI model and configure API keys for AI-powered story extraction.
-            </Text>
-
-            <Text variant="labelMedium" style={styles.modelLabel}>
-              Selected AI Model
-            </Text>
-            <SegmentedButtons
-              value={selectedModel}
-              onValueChange={(value) => setSelectedModel(value as AIModel)}
-              buttons={[
-                {
-                  value: 'anthropic',
-                  label: 'Claude',
-                  icon: hasApiKey() ? 'check' : 'close',
-                },
-                {
-                  value: 'gemini',
-                  label: 'Gemini',
-                  icon: hasGeminiApiKey() ? 'check' : 'close',
-                },
-              ]}
-              style={styles.segmentedButtons}
-            />
-
-            <Text variant="bodySmall" style={styles.modelDescription}>
-              {AI_MODELS[selectedModel].name}: {AI_MODELS[selectedModel].description}
-            </Text>
-
-            <Divider style={styles.divider} />
-
-            {/* Anthropic API Key */}
-            <List.Item
-              title="Anthropic (Claude) API Key"
-              description={hasApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
-              left={(props) => (
-                <List.Icon
-                  {...props}
-                  icon={hasApiKey() ? 'check-circle' : 'alert-circle'}
-                  color={hasApiKey() ? '#4caf50' : '#ff9800'}
-                />
-              )}
-            />
-
-            {hasApiKey() ? (
-              <View style={styles.apiKeyButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setApiKeyDialogVisible(true)}
-                  icon="key-change"
-                  style={styles.button}
-                >
-                  Change Claude Key
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={handleClearApiKey}
-                  icon="delete"
-                  textColor="#d32f2f"
-                  style={styles.button}
-                >
-                  Clear Claude Key
-                </Button>
-              </View>
-            ) : (
-              <Button
-                mode="contained"
-                onPress={() => setApiKeyDialogVisible(true)}
-                icon="key-plus"
-                style={styles.button}
-              >
-                Set Claude API Key
-              </Button>
-            )}
-
-            <Text variant="labelSmall" style={styles.apiKeyHelp}>
-              Get your key from: https://console.anthropic.com
-            </Text>
-
-            <Divider style={styles.divider} />
-
-            {/* Gemini API Key */}
-            <List.Item
-              title="Google Gemini API Key"
-              description={hasGeminiApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
-              left={(props) => (
-                <List.Icon
-                  {...props}
-                  icon={hasGeminiApiKey() ? 'check-circle' : 'alert-circle'}
-                  color={hasGeminiApiKey() ? '#4caf50' : '#ff9800'}
-                />
-              )}
-            />
-
-            {hasGeminiApiKey() ? (
-              <View style={styles.apiKeyButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setGeminiApiKeyDialogVisible(true)}
-                  icon="key-change"
-                  style={styles.button}
-                >
-                  Change Gemini Key
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={handleClearGeminiApiKey}
-                  icon="delete"
-                  textColor="#d32f2f"
-                  style={styles.button}
-                >
-                  Clear Gemini Key
-                </Button>
-              </View>
-            ) : (
-              <Button
-                mode="contained"
-                onPress={() => setGeminiApiKeyDialogVisible(true)}
-                icon="key-plus"
-                style={styles.button}
-              >
-                Set Gemini API Key
-              </Button>
-            )}
-
-            <Text variant="labelSmall" style={styles.apiKeyHelp}>
-              Get your key from: https://aistudio.google.com/apikey
-            </Text>
-
-            {!hasActiveApiKey() && (
-              <Text variant="bodySmall" style={styles.warningText}>
-                ⚠️ You need to configure an API key for the selected model to use AI extraction.
-              </Text>
-            )}
-          </Card.Content>
-        </Card>
+        <AIConfiguration
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+          hasApiKey={hasApiKey}
+          hasGeminiApiKey={hasGeminiApiKey}
+          hasActiveApiKey={hasActiveApiKey}
+          setApiKeyDialogVisible={setApiKeyDialogVisible}
+          setGeminiApiKeyDialogVisible={setGeminiApiKeyDialogVisible}
+          handleClearApiKey={handleClearApiKey}
+          handleClearGeminiApiKey={handleClearGeminiApiKey}
+        />
 
         {/* Security */}
         <Card style={styles.card}>
@@ -471,264 +301,52 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
-        {/* Relationship Colors */}
+        <RelationshipColorsSettings
+          relationshipColors={relationshipColors}
+          setSelectedRelationType={setSelectedRelationType}
+          setColorPickerVisible={setColorPickerVisible}
+          handleResetColors={handleResetColors}
+        />
+
+        <DataStatistics stats={stats} loading={statsLoading} />
+
+        <ExportImportSettings
+          handleExportJSON={handleExportJSON}
+          exportDataPending={exportData.isPending}
+          handleExportCSV={handleExportCSV}
+          exportCSVPending={exportCSV.isPending}
+          handleImport={handleImport}
+          importLoading={importLoading}
+          importDataPending={importData.isPending}
+        />
+
+        {/* Experimental */}
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              Relationship Colors
+              Experimental
             </Text>
             <Divider style={styles.divider} />
-
             <Text variant="bodySmall" style={styles.description}>
-              Customize colors for different relationship types to easily identify them in the app.
+              Features that are currently in development.
             </Text>
-
-            {Object.keys(DEFAULT_COLORS).map((type) => (
-              <List.Item
-                key={type}
-                title={type.charAt(0).toUpperCase() + type.slice(1)}
-                left={() => (
-                  <View
-                    style={[styles.colorSwatch, { backgroundColor: relationshipColors[type] }]}
-                  />
-                )}
-                right={() => (
-                  <Button
-                    compact
-                    mode="text"
-                    onPress={() => {
-                      setSelectedRelationType(type);
-                      setColorPickerVisible(true);
-                    }}
-                  >
-                    Change
-                  </Button>
-                )}
-              />
-            ))}
-
             <Button
               mode="outlined"
-              onPress={handleResetColors}
-              icon="refresh"
+              onPress={() => router.push('/(tabs)/network')}
+              icon="share-variant"
               style={styles.button}
             >
-              Reset to Defaults
+              Network Graph
             </Button>
           </Card.Content>
         </Card>
 
-        {/* Data Statistics */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Your Data
-            </Text>
-            <Divider style={styles.divider} />
-
-            {statsLoading ? (
-              <ActivityIndicator />
-            ) : (
-              <View style={styles.statsContainer}>
-                <View style={styles.statRow}>
-                  <Text variant="bodyMedium">People:</Text>
-                  <Text variant="bodyMedium" style={styles.statValue}>
-                    {stats?.people || 0}
-                  </Text>
-                </View>
-                <View style={styles.statRow}>
-                  <Text variant="bodyMedium">Relations:</Text>
-                  <Text variant="bodyMedium" style={styles.statValue}>
-                    {stats?.relations || 0}
-                  </Text>
-                </View>
-                <View style={styles.statRow}>
-                  <Text variant="bodyMedium">Connections:</Text>
-                  <Text variant="bodyMedium" style={styles.statValue}>
-                    {stats?.connections || 0}
-                  </Text>
-                </View>
-                <View style={styles.statRow}>
-                  <Text variant="bodyMedium">Stories:</Text>
-                  <Text variant="bodyMedium" style={styles.statValue}>
-                    {stats?.stories || 0}
-                  </Text>
-                </View>
-                <View style={styles.statRow}>
-                  <Text variant="bodyMedium">Events:</Text>
-                  <Text variant="bodyMedium" style={styles.statValue}>
-                    {stats?.events || 0}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
-
-        {/* Export Options */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Export Data
-            </Text>
-            <Divider style={styles.divider} />
-
-            <Text variant="bodySmall" style={styles.description}>
-              Export your data to back it up or transfer to another device.
-            </Text>
-
-            <Button
-              mode="contained"
-              onPress={handleExportJSON}
-              loading={exportData.isPending}
-              disabled={exportData.isPending}
-              icon="file-export"
-              style={styles.button}
-            >
-              Export All Data (JSON)
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={handleExportCSV}
-              loading={exportCSV.isPending}
-              disabled={exportCSV.isPending}
-              icon="file-delimited"
-              style={styles.button}
-            >
-              Export People (CSV)
-            </Button>
-          </Card.Content>
-        </Card>
-
-        {/* Import Options */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Import Data
-            </Text>
-            <Divider style={styles.divider} />
-
-            <Text variant="bodySmall" style={styles.description}>
-              Import data from a previously exported JSON file. Duplicate people (by name) will be
-              skipped.
-            </Text>
-
-            <Button
-              mode="contained"
-              onPress={handleImport}
-              loading={importLoading || importData.isPending}
-              disabled={importLoading || importData.isPending}
-              icon="file-import"
-              style={styles.button}
-            >
-              Import from JSON
-            </Button>
-          </Card.Content>
-        </Card>
-
-        {/* Birthday Reminders */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Birthday Reminders
-            </Text>
-            <Divider style={styles.divider} />
-
-            {birthdaySettings && (
-              <>
-                <List.Item
-                  title="Enable Reminders"
-                  description="Get notified about upcoming birthdays"
-                  left={(props) => <List.Icon {...props} icon="bell" />}
-                  right={() => (
-                    <Switch
-                      value={birthdaySettings.enabled}
-                      onValueChange={(value) => handleBirthdaySettingChange('enabled', value)}
-                      disabled={savingBirthdaySettings}
-                    />
-                  )}
-                />
-
-                {birthdaySettings.enabled && (
-                  <>
-                    <List.Item
-                      title="Remind on Birthday"
-                      description="Notify me on the actual birthday"
-                      left={(props) => <List.Icon {...props} icon="cake-variant" />}
-                      right={() => (
-                        <Switch
-                          value={birthdaySettings.remindOnDay}
-                          onValueChange={(value) => handleBirthdaySettingChange('remindOnDay', value)}
-                        />
-                      )}
-                    />
-
-                    <View style={styles.settingRow}>
-                      <Text variant="bodyMedium">Days before reminder:</Text>
-                      <SegmentedButtons
-                        value={String(birthdaySettings.daysBefore)}
-                        onValueChange={(value) => handleBirthdaySettingChange('daysBefore', parseInt(value))}
-                        buttons={[
-                          { value: '0', label: 'None' },
-                          { value: '1', label: '1' },
-                          { value: '3', label: '3' },
-                          { value: '7', label: '7' },
-                        ]}
-                        style={styles.segmentedButtons}
-                      />
-                    </View>
-
-                    <List.Item
-                      title="Only Important People"
-                      description="Only remind for important+ people"
-                      left={(props) => <List.Icon {...props} icon="star" />}
-                      right={() => (
-                        <Switch
-                          value={birthdaySettings.onlyImportantPeople}
-                          onValueChange={(value) => handleBirthdaySettingChange('onlyImportantPeople', value)}
-                        />
-                      )}
-                    />
-
-                    {birthdaySettings.onlyImportantPeople && (
-                      <View style={styles.settingRow}>
-                        <Text variant="bodyMedium">Minimum importance:</Text>
-                        <SegmentedButtons
-                          value={birthdaySettings.importanceThreshold}
-                          onValueChange={(value) => handleBirthdaySettingChange('importanceThreshold', value)}
-                          buttons={[
-                            { value: 'important', label: 'Important' },
-                            { value: 'very_important', label: 'Very' },
-                            { value: 'critical', label: 'Critical' },
-                          ]}
-                          style={styles.segmentedButtons}
-                        />
-                      </View>
-                    )}
-                  </>
-                )}
-
-                {upcomingBirthdays.length > 0 && (
-                  <View style={styles.upcomingContainer}>
-                    <Text variant="titleSmall" style={styles.upcomingTitle}>
-                      Upcoming Birthdays (30 days):
-                    </Text>
-                    {upcomingBirthdays.slice(0, 5).map((item) => (
-                      <List.Item
-                        key={item.person.id}
-                        title={item.person.name}
-                        description={`In ${item.daysUntil} days (turning ${item.age})`}
-                        left={(props) => <List.Icon {...props} icon="cake" />}
-                        onPress={() => router.push(`/person/${item.person.id}`)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </>
-            )}
-          </Card.Content>
-        </Card>
+        <BirthdayReminderSettingsSection
+          birthdaySettings={birthdaySettings}
+          savingBirthdaySettings={savingBirthdaySettings}
+          handleBirthdaySettingChange={handleBirthdaySettingChange}
+          upcomingBirthdays={upcomingBirthdays}
+        />
 
         {/* Developer Tools */}
         <Card style={styles.card}>
@@ -798,21 +416,16 @@ export default function SettingsScreen() {
               value={tempApiKey}
               onChangeText={setTempApiKey}
               secureTextEntry
-              style={styles.apiKeyInput}
+              style={styles.input}
             />
-            <Text variant="labelSmall" style={styles.dialogHelper}>
-              Your key is stored securely on your device and only sent to Anthropic.
-            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleSaveApiKey}>Save</Button>
           </Dialog.Actions>
         </Dialog>
-      </Portal>
 
-      {/* Gemini API Key Dialog */}
-      <Portal>
+        {/* Gemini API Key Dialog */}
         <Dialog visible={geminiApiKeyDialogVisible} onDismiss={() => setGeminiApiKeyDialogVisible(false)}>
           <Dialog.Title>{hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}</Dialog.Title>
           <Dialog.Content>
@@ -826,41 +439,12 @@ export default function SettingsScreen() {
               value={tempGeminiApiKey}
               onChangeText={setTempGeminiApiKey}
               secureTextEntry
-              style={styles.apiKeyInput}
+              style={styles.input}
             />
-            <Text variant="labelSmall" style={styles.dialogHelper}>
-              Your key is stored securely on your device and only sent to Google.
-            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setGeminiApiKeyDialogVisible(false)}>Cancel</Button>
             <Button onPress={handleSaveGeminiApiKey}>Save</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
-      {/* Color Picker Dialog */}
-      <Portal>
-        <Dialog visible={colorPickerVisible} onDismiss={() => setColorPickerVisible(false)}>
-          <Dialog.Title>Choose Color for {selectedRelationType}</Dialog.Title>
-          <Dialog.Content>
-            <View style={styles.colorGrid}>
-              {AVAILABLE_COLORS.map((color) => (
-                <Button
-                  key={color.value}
-                  mode={relationshipColors[selectedRelationType] === color.value ? 'contained' : 'outlined'}
-                  onPress={() => handleColorChange(color.value)}
-                  style={[styles.colorButton, { borderColor: color.value }]}
-                  labelStyle={{ color: color.value }}
-                  compact
-                >
-                  <View style={[styles.colorPreview, { backgroundColor: color.value }]} />
-                </Button>
-              ))}
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setColorPickerVisible(false)}>Cancel</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -872,134 +456,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 16,
   },
   card: {
-    margin: 16,
-    marginBottom: 8,
+    marginBottom: 16,
+    marginHorizontal: 16,
   },
   sectionTitle: {
-    fontWeight: 'bold',
     marginBottom: 8,
   },
   divider: {
     marginBottom: 16,
   },
   description: {
-    opacity: 0.7,
     marginBottom: 16,
+    opacity: 0.7,
   },
   button: {
     marginBottom: 12,
   },
-  statsContainer: {
-    gap: 8,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  statValue: {
-    fontWeight: 'bold',
-  },
   spacer: {
     height: 40,
   },
-  apiKeyButtons: {
-    gap: 8,
-  },
-  apiKeyHelp: {
-    opacity: 0.6,
-    marginTop: 8,
-  },
   dialogText: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  dialogHelper: {
-    opacity: 0.6,
-    marginTop: 8,
-  },
-  apiKeyInput: {
-    marginTop: 8,
-  },
-  settingRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  segmentedButtons: {
-    marginTop: 8,
-  },
-  upcomingContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  upcomingTitle: {
-    paddingHorizontal: 16,
+  input: {
     marginBottom: 8,
-    fontWeight: '600',
-  },
-  colorSwatch: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginLeft: 16,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  colorButton: {
-    margin: 4,
-    minWidth: 60,
-  },
-  colorPreview: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  themeLabel: {
-    marginBottom: 12,
-    opacity: 0.8,
-  },
-  themeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  themeButton: {
-    flex: 1,
-    minWidth: '45%',
-  },
-  themeButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  themeButtonLabel: {
-    fontSize: 14,
-  },
-  modelLabel: {
-    marginTop: 16,
-    marginBottom: 12,
-    opacity: 0.8,
-  },
-  modelDescription: {
-    marginTop: 12,
-    marginBottom: 8,
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
-  warningText: {
-    marginTop: 16,
-    color: '#ff9800',
-    fontWeight: '600',
   },
 });

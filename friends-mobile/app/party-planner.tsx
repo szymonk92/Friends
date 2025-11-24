@@ -1,22 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import {
-  Text,
-  Card,
-  Button,
-  Chip,
-  Searchbar,
-  List,
-  Divider,
-  TextInput,
-  SegmentedButtons,
-} from 'react-native-paper';
+import { StyleSheet, ScrollView, Alert, View } from 'react-native';
+import { Button, useTheme } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useCreateEvent, useEvents, useUpdateEvent } from '@/hooks/useEvents';
-import { getInitials, formatRelationType } from '@/lib/utils/format';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
+import { getRelationshipColors, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+
+import PartyDetailsForm from '@/components/party/PartyDetailsForm';
+import GuestSelector from '@/components/party/GuestSelector';
+import PartySuggestions from '@/components/party/PartySuggestions';
 
 interface Guest {
   id: string;
@@ -26,6 +20,7 @@ interface Guest {
 }
 
 export default function PartyPlannerScreen() {
+  const theme = useTheme();
   const params = useLocalSearchParams();
   const eventId = params.eventId as string | undefined;
   const initialMode = (params.mode as string) === 'party';
@@ -42,7 +37,11 @@ export default function PartyPlannerScreen() {
   const [partyDate, setPartyDate] = useState('');
   const [partyLocation, setPartyLocation] = useState('');
   const [partyType, setPartyType] = useState<'dinner' | 'party' | 'gathering'>('dinner');
-  const [showSuggestions, setShowSuggestions] = useState(initialMode);
+  const [relationshipColors, setRelationshipColors] = useState(DEFAULT_COLORS);
+
+  useEffect(() => {
+    getRelationshipColors().then(setRelationshipColors);
+  }, []);
 
   // Load existing event if eventId provided
   useEffect(() => {
@@ -53,7 +52,7 @@ export default function PartyPlannerScreen() {
         setPartyDate(event.eventDate ? event.eventDate.toISOString().split('T')[0] : '');
         setPartyLocation(event.location || '');
         setPartyType((event.eventType as any) || 'party');
-        
+
         // Load guests
         if (event.guestIds) {
           try {
@@ -88,7 +87,7 @@ export default function PartyPlannerScreen() {
       // Sort selected people to the end
       const aSelected = selectedGuests.includes(a.id);
       const bSelected = selectedGuests.includes(b.id);
-      
+
       if (aSelected !== bSelected) {
         return aSelected ? 1 : -1; // Selected go to end
       }
@@ -264,209 +263,34 @@ export default function PartyPlannerScreen() {
   return (
     <>
       <Stack.Screen options={{ title: eventId ? 'Update Party' : 'Plan a Party' }} />
-      <ScrollView style={styles.container}>
-        {/* Party Details */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Party Details
-            </Text>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <PartyDetailsForm
+          name={partyName}
+          setName={setPartyName}
+          type={partyType}
+          setType={setPartyType}
+          date={partyDate}
+          setDate={setPartyDate}
+          location={partyLocation}
+          setLocation={setPartyLocation}
+        />
 
-            <TextInput
-              label="Party Name"
-              value={partyName}
-              onChangeText={setPartyName}
-              mode="outlined"
-              style={styles.input}
-              placeholder="e.g., Summer BBQ, Birthday Dinner"
-            />
+        <GuestSelector
+          selectedGuests={selectedGuests}
+          onToggleGuest={toggleGuest}
+          people={filteredPeople}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          relationshipColors={relationshipColors}
+        />
 
-            <SegmentedButtons
-              value={partyType}
-              onValueChange={(v) => setPartyType(v as any)}
-              buttons={[
-                { value: 'dinner', label: 'Dinner' },
-                { value: 'party', label: 'Party' },
-                { value: 'gathering', label: 'Gathering' },
-              ]}
-              style={styles.segmentedButton}
-            />
-
-            <TextInput
-              label="Date (YYYY-MM-DD)"
-              value={partyDate}
-              onChangeText={setPartyDate}
-              mode="outlined"
-              style={styles.input}
-              placeholder="2024-12-25"
-            />
-
-            <TextInput
-              label="Location"
-              value={partyLocation}
-              onChangeText={setPartyLocation}
-              mode="outlined"
-              style={styles.input}
-              placeholder="e.g., My place, Restaurant name"
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Guest Selection */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Select Guests ({selectedGuests.length})
-            </Text>
-
-            <Searchbar
-              placeholder="Search people..."
-              onChangeText={setSearchQuery}
-              value={searchQuery}
-              style={styles.searchbar}
-            />
-
-            {/* Selected guests chips */}
-            {selectedGuests.length > 0 && (
-              <View style={styles.selectedChips}>
-                {guestData.map((guest) => (
-                  <Chip
-                    key={guest.id}
-                    onClose={() => toggleGuest(guest.id)}
-                    style={styles.guestChip}
-                  >
-                    {guest.name}
-                  </Chip>
-                ))}
-              </View>
-            )}
-
-            <Divider style={styles.divider} />
-
-            {/* People list */}
-            <View style={styles.peopleList}>
-              {filteredPeople.slice(0, 10).map((person) => (
-                <List.Item
-                  key={person.id}
-                  title={person.name}
-                  left={() => (
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                    </View>
-                  )}
-                  right={() => (
-                    <Chip
-                      selected={selectedGuests.includes(person.id)}
-                      onPress={() => toggleGuest(person.id)}
-                      style={styles.selectChip}
-                    >
-                      {selectedGuests.includes(person.id) ? 'Selected' : 'Add'}
-                    </Chip>
-                  )}
-                  style={styles.personItem}
-                />
-              ))}
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Suggestions */}
         {selectedGuests.length >= 2 && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Button
-                mode="text"
-                onPress={() => setShowSuggestions(!showSuggestions)}
-                icon={showSuggestions ? 'chevron-up' : 'chevron-down'}
-              >
-                {showSuggestions ? 'Hide' : 'Show'} Suggestions
-              </Button>
-
-              {showSuggestions && (
-                <>
-                  {/* Food Recommendations */}
-                  <Text variant="titleMedium" style={styles.suggestionTitle}>
-                    🍽️ Food Recommendations
-                  </Text>
-                  {foodSuggestions.recommended.length > 0 ? (
-                    <View style={styles.foodChips}>
-                      {foodSuggestions.recommended.slice(0, 8).map((item) => (
-                        <Chip key={item.food} icon="thumb-up" style={styles.recommendChip}>
-                          {item.food} ({item.count}/{guestData.length})
-                        </Chip>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={styles.noDataText}>No common preferences found</Text>
-                  )}
-
-                  {/* Foods to Avoid */}
-                  {foodSuggestions.avoid.length > 0 && (
-                    <>
-                      <Text variant="titleMedium" style={styles.suggestionTitle}>
-                        ⚠️ Foods to Avoid
-                      </Text>
-                      <View style={styles.foodChips}>
-                        {foodSuggestions.avoid.slice(0, 8).map((item) => (
-                          <Chip key={item.food} icon="alert" style={styles.avoidChip}>
-                            {item.food} ({item.count} dislike)
-                          </Chip>
-                        ))}
-                      </View>
-                    </>
-                  )}
-
-                  {/* Seating Suggestions */}
-                  <Text variant="titleMedium" style={styles.suggestionTitle}>
-                    🪑 Seating Suggestions
-                  </Text>
-                  {seatingArrangement.length > 0 ? (
-                    seatingArrangement.map((pair, index) => (
-                      <View key={index} style={styles.seatingPair}>
-                        <Text variant="bodyLarge">
-                          {pair.person1} ↔️ {pair.person2}
-                        </Text>
-                        <Text variant="bodySmall" style={styles.seatingReason}>
-                          {pair.reason}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.noDataText}>
-                      Not enough preference data for seating suggestions
-                    </Text>
-                  )}
-
-                  {/* Guest Preferences */}
-                  <Text variant="titleMedium" style={styles.suggestionTitle}>
-                    👥 Guest Preferences
-                  </Text>
-                  {guestData.map((guest) => (
-                    <View key={guest.id} style={styles.guestPreferences}>
-                      <Text variant="titleSmall">{guest.name}</Text>
-                      {guest.likes.length > 0 && (
-                        <View style={styles.prefRow}>
-                          <Text style={styles.prefLabel}>Likes:</Text>
-                          <Text style={styles.prefItems}>{guest.likes.slice(0, 5).join(', ')}</Text>
-                        </View>
-                      )}
-                      {guest.dislikes.length > 0 && (
-                        <View style={styles.prefRow}>
-                          <Text style={styles.prefLabel}>Dislikes:</Text>
-                          <Text style={styles.prefItemsRed}>
-                            {guest.dislikes.slice(0, 5).join(', ')}
-                          </Text>
-                        </View>
-                      )}
-                      {guest.likes.length === 0 && guest.dislikes.length === 0 && (
-                        <Text style={styles.noDataText}>No preferences recorded</Text>
-                      )}
-                    </View>
-                  ))}
-                </>
-              )}
-            </Card.Content>
-          </Card>
+          <PartySuggestions
+            guestData={guestData}
+            foodSuggestions={foodSuggestions}
+            seatingArrangement={seatingArrangement}
+            initialShow={initialMode}
+          />
         )}
 
         {/* Create Button */}
@@ -490,113 +314,6 @@ export default function PartyPlannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  card: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  input: {
-    marginBottom: 12,
-  },
-  segmentedButton: {
-    marginBottom: 12,
-  },
-  searchbar: {
-    marginBottom: 12,
-  },
-  selectedChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  guestChip: {
-    backgroundColor: '#e3f2fd',
-  },
-  divider: {
-    marginVertical: 8,
-  },
-  peopleList: {
-    maxHeight: 300,
-  },
-  personItem: {
-    paddingVertical: 4,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#6200ee',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  selectChip: {
-    marginRight: 8,
-  },
-  suggestionTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  foodChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  recommendChip: {
-    backgroundColor: '#c8e6c9',
-    marginBottom: 4,
-  },
-  avoidChip: {
-    backgroundColor: '#ffcdd2',
-    marginBottom: 4,
-  },
-  seatingPair: {
-    backgroundColor: '#f3e5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  seatingReason: {
-    opacity: 0.7,
-    marginTop: 4,
-  },
-  guestPreferences: {
-    backgroundColor: '#fff3e0',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  prefRow: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  prefLabel: {
-    fontWeight: 'bold',
-    marginRight: 8,
-    opacity: 0.8,
-  },
-  prefItems: {
-    flex: 1,
-    color: '#2e7d32',
-  },
-  prefItemsRed: {
-    flex: 1,
-    color: '#c62828',
-  },
-  noDataText: {
-    opacity: 0.6,
-    fontStyle: 'italic',
   },
   createButton: {
     margin: 16,
