@@ -4,8 +4,11 @@ import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
+import { useTranslation } from 'react-i18next';
+import { devLogger } from '@/lib/utils/devLogger';
 
 export default function AddPersonModal() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
@@ -33,17 +36,17 @@ export default function AddPersonModal() {
 
   const handleSubmit = async () => {
     if (name.trim().length < 2) {
-      Alert.alert('Invalid Name', 'Please enter a name with at least 2 characters');
+      Alert.alert(t('person.invalidName'), t('person.invalidNameMessage'));
       return;
     }
 
     if (name.trim().length > 255) {
-      Alert.alert('Name Too Long', 'Name must be 255 characters or less');
+      Alert.alert(t('person.nameTooLong'), t('person.nameTooLongMessage'));
       return;
     }
 
     if (nickname.trim().length > 255) {
-      Alert.alert('Nickname Too Long', 'Nickname must be 255 characters or less');
+      Alert.alert(t('person.nicknameTooLong'), t('person.nicknameTooLongMessage'));
       return;
     }
 
@@ -64,9 +67,9 @@ export default function AddPersonModal() {
         status: 'active',
       });
 
-      Alert.alert('Success', `${name} has been added!`, [
+      Alert.alert(t('common.success'), t('person.successAdded', { name }), [
         {
-          text: 'OK',
+          text: t('common.ok'),
           onPress: () => router.back(),
         },
       ]);
@@ -76,14 +79,14 @@ export default function AddPersonModal() {
 
       if (errorMessage.includes('already exists')) {
         Alert.alert(
-          'Duplicate Name',
+          t('person.duplicateName'),
           errorMessage,
-          [{ text: 'OK' }]
+          [{ text: t('common.ok') }]
         );
       } else {
-        Alert.alert('Error', 'Failed to add person. Please try again.');
+        Alert.alert(t('common.error'), t('person.errorAdding'));
       }
-      console.error('Create person error:', error);
+      devLogger.error('Failed to create person', { error, personData: { name } });
     } finally {
       setIsSubmitting(false);
     }
@@ -93,27 +96,28 @@ export default function AddPersonModal() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Text variant="headlineMedium" style={styles.title}>
-          Add a Person
+          {t('person.addTitle')}
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          Manually add someone to your network
+          {t('person.addSubtitle')}
         </Text>
 
         <TextInput
           mode="outlined"
-          label="Name *"
-          placeholder="Enter their name"
+          label={`${t('person.name')} ${t('person.nameRequired')} `}
+          placeholder={t('person.namePlaceholder')}
           value={name}
           onChangeText={setName}
           style={styles.input}
           autoFocus
+          autoCapitalize="words"
           maxLength={255}
         />
 
         <TextInput
           mode="outlined"
-          label="Nickname"
-          placeholder="Optional nickname"
+          label={t('person.nickname')}
+          placeholder={t('person.nicknamePlaceholder')}
           value={nickname}
           onChangeText={setNickname}
           style={styles.input}
@@ -121,15 +125,15 @@ export default function AddPersonModal() {
         />
 
         <Text variant="titleSmall" style={styles.label}>
-          Relationship Type
+          {t('person.relationshipType')}
         </Text>
         <SegmentedButtons
           value={relationshipType}
           onValueChange={setRelationshipType}
           buttons={[
-            { value: 'friend', label: 'Friend', icon: 'account-heart' },
-            { value: 'family', label: 'Family', icon: 'home-heart' },
-            { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
+            { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
+            { value: 'family', label: t('person.family'), icon: 'home-heart' },
+            { value: 'colleague', label: t('person.colleague'), icon: 'briefcase' },
           ]}
           style={styles.segmented}
         />
@@ -137,28 +141,28 @@ export default function AddPersonModal() {
           value={relationshipType}
           onValueChange={setRelationshipType}
           buttons={[
-            { value: 'acquaintance', label: 'Acquaintance' },
-            { value: 'partner', label: 'Partner', icon: 'heart' },
+            { value: 'acquaintance', label: t('person.acquaintance') },
+            { value: 'partner', label: t('person.partner'), icon: 'heart' },
           ]}
           style={styles.segmented}
         />
 
         <TextInput
           mode="outlined"
-          label="Birthday (optional)"
-          placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+          label={t('person.birthday')}
+          placeholder={t('person.birthdayPlaceholder')}
           value={dateOfBirth}
           onChangeText={setDateOfBirth}
           style={styles.input}
         />
         <Text variant="labelSmall" style={styles.birthdayHint}>
-          Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
+          {t('person.birthdayHint')}
         </Text>
 
         <TextInput
           mode="outlined"
-          label="Notes"
-          placeholder="Any notes about this person..."
+          label={t('person.notes')}
+          placeholder={t('person.notesPlaceholder')}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -174,11 +178,11 @@ export default function AddPersonModal() {
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
         >
-          Add Person
+          {t('person.addButton')}
         </Button>
 
         <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-          Cancel
+          {t('common.cancel')}
         </Button>
       </View>
 

@@ -6,6 +6,8 @@ import { Stack } from 'expo-router';
 import { Dimensions, View, Image, StyleSheet, ScrollView } from 'react-native';
 import { Card, Text, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
+import { devLogger } from '@/lib/utils/devLogger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -77,8 +79,68 @@ const steps: OnboardingStep[] = [
 ];
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const insets = useSafeAreaInsets();
+
+  // Create steps from translations
+  const steps: OnboardingStep[] = [
+    {
+      title: t('onboarding.step1.title'),
+      description: t('onboarding.step1.description'),
+      icon: 'account-group',
+      features: [
+        t('onboarding.step1.feature1'),
+        t('onboarding.step1.feature2'),
+        t('onboarding.step1.feature3'),
+        t('onboarding.step1.feature4'),
+      ],
+    },
+    {
+      title: t('onboarding.step2.title'),
+      description: t('onboarding.step2.description'),
+      icon: 'book-open-page-variant',
+      features: [
+        t('onboarding.step2.feature1'),
+        t('onboarding.step2.feature2'),
+        t('onboarding.step2.feature3'),
+        t('onboarding.step2.feature4'),
+      ],
+    },
+    {
+      title: t('onboarding.step3.title'),
+      description: t('onboarding.step3.description'),
+      icon: 'account-details',
+      features: [
+        t('onboarding.step3.feature1'),
+        t('onboarding.step3.feature2'),
+        t('onboarding.step3.feature3'),
+        t('onboarding.step3.feature4'),
+      ],
+    },
+    {
+      title: t('onboarding.step4.title'),
+      description: t('onboarding.step4.description'),
+      icon: 'shield-lock',
+      features: [
+        t('onboarding.step4.feature1'),
+        t('onboarding.step4.feature2'),
+        t('onboarding.step4.feature3'),
+        t('onboarding.step4.feature4'),
+      ],
+    },
+    {
+      title: t('onboarding.step5.title'),
+      description: t('onboarding.step5.description'),
+      icon: 'rocket-launch',
+      features: [
+        t('onboarding.step5.feature1'),
+        t('onboarding.step5.feature2'),
+        t('onboarding.step5.feature3'),
+        t('onboarding.step5.feature4'),
+      ],
+    },
+  ];
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -97,7 +159,7 @@ export default function OnboardingScreen() {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
       router.replace('/');
     } catch (error) {
-      console.error('Failed to save onboarding state:', error);
+      devLogger.error('Failed to save onboarding state', error);
       router.replace('/');
     }
   };
@@ -116,7 +178,7 @@ export default function OnboardingScreen() {
         {/* Skip button */}
         {!isLastStep && (
           <Button mode="text" onPress={handleSkip} style={styles.skipButton}>
-            Skip
+            {t('onboarding.skip')}
           </Button>
         )}
 
@@ -177,7 +239,7 @@ export default function OnboardingScreen() {
         <View style={styles.navigation}>
           {currentStep > 0 ? (
             <Button mode="outlined" onPress={handlePrevious} style={styles.navButton}>
-              Previous
+              {t('common.previous')}
             </Button>
           ) : (
             <View style={styles.navButton} />
@@ -185,17 +247,17 @@ export default function OnboardingScreen() {
 
           {isLastStep ? (
             <Button mode="contained" onPress={handleComplete} style={styles.navButton}>
-              Get Started
+              {t('common.getStarted')}
             </Button>
           ) : (
             <Button mode="contained" onPress={handleNext} style={styles.navButton}>
-              Next
+              {t('common.next')}
             </Button>
           )}
         </View>
 
         <Text variant="bodySmall" style={styles.stepIndicator}>
-          {currentStep + 1} of {steps.length}
+          {t('onboarding.stepIndicator', { current: currentStep + 1, total: steps.length })}
         </Text>
       </View>
     </>
@@ -215,7 +277,7 @@ export async function resetOnboarding(): Promise<void> {
   try {
     await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
   } catch (error) {
-    console.error('Failed to reset onboarding:', error);
+    devLogger.error('Failed to reset onboarding', error);
   }
 }
 
@@ -262,7 +324,7 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 16,
-    maxHeight: height * 0.65,
+    // maxHeight: height * 0.65, // Removed to prevent clipping
   },
   cardContent: {
     alignItems: 'center',

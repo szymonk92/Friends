@@ -40,26 +40,35 @@ async function checkNameExists(
 /**
  * Hook to fetch all people
  */
-export function usePeople() {
+export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
   return useQuery<PersonWithPhoto[]>({
-    queryKey: ['people'],
+    queryKey: ['people', filter?.type || 'all'],
     queryFn: async (): Promise<PersonWithPhoto[]> => {
       const perf = logPerformance(peopleLogger, 'fetchAllPeople');
       const userId = await getCurrentUserId();
-      peopleLogger.debug('Fetching people', { userId });
+      peopleLogger.debug('Fetching people', { userId, filter });
 
-      // First get all people (excluding 'self' type which is the user themselves)
+      // Build where clause based on filter
+      const whereConditions = [
+        eq(people.userId, userId),
+        ne(people.status, 'merged'),
+        isNull(people.deletedAt),
+        ne(people.personType, 'self') // Always exclude self from general list
+      ];
+
+      if (filter?.type === 'primary') {
+        // Show only explicitly added people (primary)
+        whereConditions.push(eq(people.personType, 'primary'));
+      } else if (filter?.type === 'mentioned') {
+        // Show only mentioned/placeholder people
+        whereConditions.push(sql`${people.personType} IN ('mentioned', 'placeholder')`);
+      }
+      // 'all' includes everyone (except self, handled above)
+
       const peopleResults = await db
         .select()
         .from(people)
-        .where(
-          and(
-            eq(people.userId, userId),
-            ne(people.status, 'merged'),
-            isNull(people.deletedAt),
-            ne(people.personType, 'self')
-          )
-        )
+        .where(and(...whereConditions))
         .orderBy(desc(people.updatedAt)) as Person[];
 
       peopleLogger.info('People fetched', { count: peopleResults.length });

@@ -55,14 +55,7 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
-      <Tabs.Screen
-        name="network"
-        options={{
-          title: 'Network',
-          tabBarIcon: ({ color }) => <TabBarIcon name="share-alt" color={color} />,
-          headerShown: false,
-        }}
-      />
+
       <Tabs.Screen
         name="search"
         options={{

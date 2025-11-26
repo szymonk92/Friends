@@ -1,8 +1,10 @@
 import { StyleSheet, View, Alert } from 'react-native';
 import { Text, Chip, Button, IconButton, Portal, Dialog, TextInput as PaperInput, SegmentedButtons, useTheme } from 'react-native-paper';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { usePersonGiftIdeas, useCreateGiftIdea, useUpdateGiftIdea, useDeleteGiftIdea } from '@/hooks/useGifts';
 import { formatShortDate } from '@/lib/utils/format';
+import { useCommonStyles } from '@/styles/common';
 
 interface PersonGiftIdeasProps {
     personId: string;
@@ -11,6 +13,7 @@ interface PersonGiftIdeasProps {
 
 export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdeasProps) {
     const theme = useTheme();
+    const commonStyles = useCommonStyles();
     const { data: giftIdeas = [] } = usePersonGiftIdeas(personId);
     const createGiftIdea = useCreateGiftIdea();
     const updateGiftIdea = useUpdateGiftIdea();
@@ -66,7 +69,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
             case 'high':
                 return '#d32f2f';
             case 'medium':
-                return '#ff9800';
+                return (theme.colors as any).medium || '#ff9800';
             case 'low':
                 return '#4caf50';
             default:
@@ -76,23 +79,28 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
     return (
         <>
-            <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
-                <View style={styles.sectionHeader}>
-                    <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            <View style={commonStyles.section}>
+                <View style={commonStyles.sectionHeader}>
+                    {/* titleLarge ?*/}
+                    <Text variant="titleMedium" style={commonStyles.sectionTitle}>
                         Gift Ideas
                     </Text>
-                    <Button
-                        mode="text"
-                        compact
-                        icon="gift"
-                        onPress={() => setAddGiftDialogVisible(true)}
-                    >
-                        Add
-                    </Button>
+                    <View style={commonStyles.sectionHeaderButtons}>
+                        <IconButton
+                            icon="plus"
+                            size={20}
+                            onPress={() => setAddGiftDialogVisible(true)}
+                        />
+                        <IconButton
+                            icon="dots-vertical"
+                            size={20}
+                            onPress={() => router.push(`/person/manage-gifts?personId=${personId}`)}
+                        />
+                    </View>
                 </View>
 
                 {giftIdeas.length === 0 ? (
-                    <Text variant="bodySmall" style={[styles.emptyStateText, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodySmall" style={commonStyles.emptyStateText}>
                         No gift ideas yet. Add ideas for {personName}!
                     </Text>
                 ) : (
@@ -100,16 +108,20 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
                         <View key={gift.id} style={[styles.giftItem, { backgroundColor: theme.colors.elevation.level1 }]}>
                             <View style={styles.giftInfo}>
                                 <View style={styles.giftHeader}>
-                                    <Text
-                                        variant="bodyMedium"
-                                        style={[
-                                            styles.giftItemText,
-                                            { color: theme.colors.onSurface },
-                                            gift.status === 'given' && styles.giftGiven,
-                                        ]}
-                                    >
-                                        {gift.item}
-                                    </Text>
+                                    <View style={{ flex: 1, marginRight: 8 }}>
+                                        <Text
+                                            variant="bodyMedium"
+                                            style={[
+                                                styles.giftItemText,
+                                                { color: theme.colors.onSurface },
+                                                gift.status === 'given' && styles.giftGiven,
+                                            ]}
+                                            numberOfLines={2}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {gift.item}
+                                        </Text>
+                                    </View>
                                     <Chip
                                         compact
                                         style={[
@@ -216,26 +228,6 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 }
 
 const styles = StyleSheet.create({
-    section: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontWeight: '600',
-        fontSize: 18,
-    },
-    emptyStateText: {
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 12,
-    },
     giftItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',

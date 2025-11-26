@@ -10,6 +10,7 @@ import {
 import { useState, useEffect, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCreateRelation, useUpdateRelation } from '@/hooks/useRelations';
+import { devLogger } from '@/lib/utils/devLogger';
 import { usePerson } from '@/hooks/usePeople';
 import { db } from '@/lib/db';
 import { relations } from '@/lib/db/schema';
@@ -72,7 +73,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
           }
           setIsLoading(false);
         } catch (error) {
-          console.error('Error loading relation:', error);
+          devLogger.error('Failed to load relation for editing', { error, relationId });
           Alert.alert('Error', 'Failed to load relation');
           setIsLoading(false);
         }
@@ -174,7 +175,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
       }
     } catch (error) {
       Alert.alert('Error', `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`);
-      console.error(`${mode} relation error:`, error);
+      devLogger.error(`Failed to ${mode} relation`, { error, relationType, personId });
     } finally {
       setIsSubmitting(false);
     }

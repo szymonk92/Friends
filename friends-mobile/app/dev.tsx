@@ -5,35 +5,47 @@ import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { resetOnboarding } from './onboarding';
 import { useMePerson } from '@/hooks/usePeople';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   testPromptGeneration,
   runMockEvaluation,
   generateComparisonReport,
 } from '@/lib/ai/dev-tools/test-prompts';
+import { useSettings } from '@/store/useSettings';
+import { devLogger } from '@/lib/utils/devLogger';
 
 /**
  * Development utilities screen
  * Access via /dev route
  */
 export default function DevScreen() {
+  const { t } = useTranslation();
   const { data: mePerson } = useMePerson();
   const [isLoading, setIsLoading] = useState(false);
   const [loadTestCount, setLoadTestCount] = useState('500');
   const [loadTestResult, setLoadTestResult] = useState<string | null>(null);
+
+  const maxPhotosPerPerson = useSettings((state) => state.maxPhotosPerPerson);
+  const setMaxPhotosPerPerson = useSettings((state) => state.setMaxPhotosPerPerson);
+  const [photoLimitInput, setPhotoLimitInput] = useState(maxPhotosPerPerson.toString());
+
+  useEffect(() => {
+    setPhotoLimitInput(maxPhotosPerPerson.toString());
+  }, [maxPhotosPerPerson]);
 
   const handleSeedData = async () => {
     setIsLoading(true);
     try {
       await seedSampleData();
       Alert.alert(
-        'Success!',
-        'Sample data has been added:\n\n• 3 people (Emma, Mike, Sarah)\n• 8 relations\n• 1 story',
-        [{ text: 'View People', onPress: () => router.push('/') }]
+        t('dev.sampleData.successTitle'),
+        t('dev.sampleData.successMessage'),
+        [{ text: t('common.ok'), onPress: () => router.push('/') }]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to seed data. Check console for details.');
-      console.error(error);
+      Alert.alert('Error', t('dev.sampleData.errorMessage'));
+      devLogger.error('Failed to seed sample data', error);
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +67,7 @@ export default function DevScreen() {
               Alert.alert('Success', 'All data has been cleared.');
             } catch (error) {
               Alert.alert('Error', 'Failed to clear data. Check console for details.');
-              console.error(error);
+              devLogger.error('Failed to clear all data', error);
             } finally {
               setIsLoading(false);
             }
@@ -94,7 +106,7 @@ export default function DevScreen() {
               );
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to generate test data');
-              console.error(error);
+              devLogger.error('Failed to generate high load test data', error);
             } finally {
               setIsLoading(false);
             }
@@ -121,7 +133,7 @@ export default function DevScreen() {
               Alert.alert('Success', 'Test data has been cleared. Your real data is preserved.');
             } catch (error) {
               Alert.alert('Error', 'Failed to clear test data');
-              console.error(error);
+              devLogger.error('Failed to clear test data', error);
             } finally {
               setIsLoading(false);
             }
@@ -138,12 +150,12 @@ export default function DevScreen() {
       testPromptGeneration();
 
       Alert.alert(
-        'Prompt Generation Test Complete',
-        'All prompt variants have been generated successfully!\n\nCheck the console for detailed token estimates and comparison data.'
+        t('dev.aiPromptTesting.testCompleteTitle'),
+        t('dev.aiPromptTesting.testCompleteMessage')
       );
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to run prompt generation test');
-      console.error(error);
+      devLogger.error('Failed to run prompt generation test', error);
     } finally {
       setIsLoading(false);
     }
@@ -156,12 +168,12 @@ export default function DevScreen() {
       runMockEvaluation();
 
       Alert.alert(
-        'Mock Evaluation Complete',
-        'All test cases have been evaluated with mock responses!\n\nCheck the console for detailed results.'
+        t('dev.aiPromptTesting.mockCompleteTitle'),
+        t('dev.aiPromptTesting.mockCompleteMessage')
       );
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to run mock evaluation');
-      console.error(error);
+      devLogger.error('Failed to run mock evaluation', error);
     } finally {
       setIsLoading(false);
     }
@@ -174,17 +186,32 @@ export default function DevScreen() {
 
       // Show a summary alert
       Alert.alert(
-        'Comparison Report Generated',
-        'A detailed prompt variant comparison report has been generated.\n\nCheck the console to see the full markdown report with recommendations.'
+        t('dev.aiPromptTesting.reportCompleteTitle'),
+        t('dev.aiPromptTesting.reportCompleteMessage')
       );
 
       // Log the full report to console
       console.log('\n' + report);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to generate comparison report');
-      console.error(error);
+      devLogger.error('Failed to generate comparison report', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSavePhotoLimit = async () => {
+    const limit = parseInt(photoLimitInput, 10);
+    if (isNaN(limit) || limit < 1 || limit > 100) {
+      Alert.alert('Invalid Limit', 'Please enter a number between 1 and 100');
+      return;
+    }
+
+    try {
+      await setMaxPhotosPerPerson(limit);
+      Alert.alert('Success', `Photo limit set to ${limit} per person`);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save photo limit');
     }
   };
 
@@ -192,28 +219,55 @@ export default function DevScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Dev Tools',
+          title: t('dev.title'),
           presentation: 'modal',
         }}
       />
       <ScrollView style={styles.container}>
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>
-            Development Tools
+            {t('dev.title')}
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Utilities for testing and development
+            {t('dev.subtitle')}
           </Text>
 
+          {/* Dev Logs section */}
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Sample Data
+                📋 Development Logs
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Add sample people and relations to test the app quickly.
+                View, share, and manage persistent development logs for debugging. All debug logs are saved to a file and persist across app restarts.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push('/dev-logs')}
+                style={styles.button}
+                icon="file-document-outline"
+              >
+                View Logs
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Logs include party operations, AI extraction, database queries, and errors.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                {t('dev.sampleData.title')}
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                {t('dev.sampleData.description')}
               </Text>
 
               <Button
@@ -223,12 +277,11 @@ export default function DevScreen() {
                 disabled={isLoading}
                 style={styles.button}
               >
-                Seed Sample Data
+                {t('dev.sampleData.buttonSeed')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Adds: Emma Rodriguez (friend), Mike Chen (colleague), Sarah Thompson (friend) with
-                various relations.
+                {t('dev.sampleData.buttonNote')}
               </Text>
             </Card.Content>
           </Card>
@@ -236,18 +289,17 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                High Load Test
+                {t('dev.highLoadTest.title')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Generate hundreds of test people with realistic data including diets, likes, dislikes,
-                cares about, and connections between people. Perfect for performance testing!
+                {t('dev.highLoadTest.description')}
               </Text>
 
               <TextInput
                 mode="outlined"
-                label="Number of People"
+                label={t('dev.highLoadTest.inputLabel')}
                 value={loadTestCount}
                 onChangeText={setLoadTestCount}
                 keyboardType="numeric"
@@ -262,7 +314,7 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="database-plus"
               >
-                Generate {loadTestCount} People
+                {t('dev.highLoadTest.buttonGenerate', { count: parseInt(loadTestCount, 10) || 0 })}
               </Button>
 
               {loadTestResult && (
@@ -279,12 +331,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="database-remove"
               >
-                Clear Test Data Only
+                {t('dev.highLoadTest.buttonClearTest')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Each person gets: random name, job, diet, 3-8 likes, 2-5 dislikes, 2-6 cares about,
-                tags, birthday (70% chance), and 2-10 connections to other people.
+                {t('dev.highLoadTest.note')}
               </Text>
             </Card.Content>
           </Card>
@@ -292,12 +343,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Clear Data
+                {t('dev.clearData.title')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Remove all people, relations, and stories from the database.
+                {t('dev.clearData.description')}
               </Text>
 
               <Button
@@ -309,11 +360,11 @@ export default function DevScreen() {
                 buttonColor="#ffebee"
                 textColor="#d32f2f"
               >
-                Clear All Data
+                {t('dev.clearData.button')}
               </Button>
 
               <Text variant="bodySmall" style={styles.warningNote}>
-                ⚠️ Warning: This action cannot be undone!
+                {t('dev.clearData.warning')}
               </Text>
             </Card.Content>
           </Card>
@@ -321,13 +372,49 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                AI Prompt Testing
+                Photo Settings
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Test and evaluate different AI prompt strategies for extracting relationship data from
-                stories. Compare token usage and accuracy across multiple prompt variants.
+                Configure the maximum number of photos that can be added per person. This helps manage storage and keeps profiles organized.
+              </Text>
+
+              <TextInput
+                mode="outlined"
+                label="Max Photos Per Person"
+                value={photoLimitInput}
+                onChangeText={setPhotoLimitInput}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+
+              <Button
+                mode="contained"
+                onPress={handleSavePhotoLimit}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.button}
+                icon="content-save"
+              >
+                Save Photo Limit
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Current limit: {maxPhotosPerPerson} photos per person. Valid range: 1-100.
+              </Text>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                {t('dev.aiPromptTesting.title')}
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="bodyMedium" style={styles.description}>
+                {t('dev.aiPromptTesting.description')}
               </Text>
 
               <Button
@@ -336,9 +423,9 @@ export default function DevScreen() {
                 loading={isLoading}
                 disabled={isLoading}
                 style={styles.button}
-                icon="flask"
+                icon="code-tags"
               >
-                Test Prompt Generation
+                {t('dev.aiPromptTesting.buttonTestGeneration')}
               </Button>
 
               <Button
@@ -347,9 +434,9 @@ export default function DevScreen() {
                 loading={isLoading}
                 disabled={isLoading}
                 style={styles.button}
-                icon="check-circle"
+                icon="checkbox-marked-circle"
               >
-                Run Mock Evaluation
+                {t('dev.aiPromptTesting.buttonMockEvaluation')}
               </Button>
 
               <Button
@@ -360,12 +447,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="file-document"
               >
-                Generate Comparison Report
+                {t('dev.aiPromptTesting.buttonGenerateReport')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Tests prompt variants (V1-V4) for token efficiency, accuracy, and conflict detection.
-                Results are logged to console.
+                {t('dev.aiPromptTesting.note')}
               </Text>
             </Card.Content>
           </Card>
@@ -373,7 +459,7 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Quick Actions
+                {t('dev.quickActions.title')}
               </Text>
               <Divider style={styles.divider} />
 
@@ -383,7 +469,7 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="account-group"
               >
-                View People
+                {t('dev.quickActions.viewPeople')}
               </Button>
 
               <Button
@@ -392,7 +478,7 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="text-box-plus"
               >
-                Tell a Story
+                {t('dev.quickActions.tellStory')}
               </Button>
 
               <Button
@@ -401,8 +487,21 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="account-plus"
               >
-                Add Person
+                {t('dev.quickActions.addPerson')}
               </Button>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push('/documentation')}
+                style={styles.button}
+                icon="book-open-variant"
+              >
+                View Documentation
+              </Button>
+
+              <Text variant="bodySmall" style={styles.note}>
+                Learn about relation types, statuses, and app terminology
+              </Text>
             </Card.Content>
           </Card>
 

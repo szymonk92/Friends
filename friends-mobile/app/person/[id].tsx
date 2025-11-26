@@ -22,6 +22,7 @@ import PersonPhotos from '@/components/person/PersonPhotos';
 import PersonGiftIdeas from '@/components/person/PersonGiftIdeas';
 import PersonRelations from '@/components/person/PersonRelations';
 import PersonConnections from '@/components/person/PersonConnections';
+import { spacing } from '@/styles/spacing';
 
 export default function PersonProfileScreen() {
   const theme = useTheme();
@@ -126,7 +127,8 @@ export default function PersonProfileScreen() {
         options={{
           title: person.name,
           headerRight: () => (
-            <View style={{ marginRight: 16 }}>
+            // Menu padding
+            <View style={{ marginRight: spacing.xs }}>
               <Menu
                 visible={menuVisible}
                 onDismiss={() => setMenuVisible(false)}

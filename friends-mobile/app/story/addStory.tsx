@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
-import type { AIServiceConfig } from '@/lib/ai/ai-service';
+import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { createExtractionPrompt } from '@/lib/ai/prompts';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -13,6 +13,11 @@ import { people } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import * as Clipboard from 'expo-clipboard';
 import MentionTextInput from '@/components/MentionTextInput';
+import { devLogger } from '@/lib/utils/devLogger';
+import PersonSelector from '@/components/PersonSelector';
+import AmbiguityResolutionDialog from '@/components/AmbiguityResolutionDialog';
+import { Chip, IconButton, Avatar } from 'react-native-paper';
+import { usePeople } from '@/hooks/usePeople';
 
 export default function StoryInputScreen() {
   const insets = useSafeAreaInsets();
@@ -25,9 +30,22 @@ export default function StoryInputScreen() {
   const [promptPreviewText, setPromptPreviewText] = useState('');
   const [unsavedDialogVisible, setUnsavedDialogVisible] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<AIDebugInfo | null>(null);
+  const [debugDialogVisible, setDebugDialogVisible] = useState(false);
+
+  // @+ Feature State
+  const [personSelectorVisible, setPersonSelectorVisible] = useState(false);
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
+
+  // Ambiguity Resolution State
+  const [ambiguityDialogVisible, setAmbiguityDialogVisible] = useState(false);
+  const [ambiguousMatches, setAmbiguousMatches] = useState<any[]>([]);
+  const [forceNewPeopleNames, setForceNewPeopleNames] = useState<string[]>([]);
+  const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
 
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
+  const { data: allPeople } = usePeople();
   const { selectedModel, getActiveApiKey, setApiKey, loadApiKey, loadGeminiApiKey, loadSelectedModel, hasActiveApiKey } = useSettings();
 
   // Load API keys and model on mount
@@ -118,38 +136,60 @@ export default function StoryInputScreen() {
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to save story. Please try again.');
-      console.error('Story save error:', error);
+      devLogger.error('Failed to save story', { error, storyText: storyText.substring(0, 50) });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const processStoryWithAI = async () => {
+  const processStoryWithAI = async (
+    existingStoryId?: string,
+    overrides?: {
+      taggedIds?: string[];
+      newNames?: string[];
+    }
+  ) => {
     setIsProcessing(true);
     try {
-      // Step 1: Save story first
-      const story = await createStory.mutateAsync({
-        content: storyText,
-        title: null,
-        storyDate: new Date(),
-      });
+      let storyId = existingStoryId;
+
+      // Step 1: Save story first if not already saved
+      if (!storyId) {
+        const story = await createStory.mutateAsync({
+          content: storyText,
+          title: null,
+          storyDate: new Date(),
+        });
+        storyId = story.id;
+        setCurrentStoryId(story.id);
+      }
 
       // Step 2: Extract with AI
       const apiKey = getActiveApiKey();
       if (!apiKey) {
         throw new Error('No API key available for selected model');
       }
-      
+
       const config: AIServiceConfig = {
         model: selectedModel,
         apiKey,
       };
 
       const result = await extractStory.mutateAsync({
-        storyId: story.id,
+        storyId: storyId!,
         storyText: storyText,
         config,
+        explicitlyTaggedPersonIds: overrides?.taggedIds || selectedPersonIds,
+        forceNewPeopleNames: overrides?.newNames || forceNewPeopleNames,
       });
+
+      // Step 2.5: Check for Ambiguity
+      if (result.ambiguousMatches && result.ambiguousMatches.length > 0) {
+        setAmbiguousMatches(result.ambiguousMatches);
+        setAmbiguityDialogVisible(true);
+        setIsProcessing(false);
+        return; // Stop here, wait for user resolution
+      }
 
       // Step 3: Show results
       const message = `AI extraction complete!
@@ -172,9 +212,17 @@ Tokens used: ${result.tokensUsed || 'N/A'}`;
 
       buttons.push({ text: 'Add Another', onPress: () => setStoryText('') });
 
+      if (result.debugInfo) {
+        setDebugInfo(result.debugInfo);
+        buttons.push({
+          text: 'Debug',
+          onPress: () => setDebugDialogVisible(true)
+        });
+      }
+
       Alert.alert('Success!', message, buttons);
     } catch (error: any) {
-      console.error('AI extraction error:', error);
+      devLogger.ai('AI extraction failed', { error, storyId: currentStoryId });
       Alert.alert(
         'Extraction Failed',
         `Failed to extract relations: ${error.message || 'Unknown error'}
@@ -235,6 +283,43 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
     Alert.alert('Copied!', 'Prompt copied to clipboard');
   };
 
+  const handleAmbiguityResolved = (resolutions: { [name: string]: string | 'NEW' | 'IGNORE' }) => {
+    setAmbiguityDialogVisible(false);
+
+    // Process resolutions
+    const newSelectedIds = [...selectedPersonIds];
+    const newForceNewNames = [...forceNewPeopleNames];
+
+    Object.entries(resolutions).forEach(([name, resolution]) => {
+      if (resolution === 'NEW') {
+        newForceNewNames.push(name);
+      } else if (resolution !== 'IGNORE') {
+        // It's an ID
+        if (!newSelectedIds.includes(resolution)) {
+          newSelectedIds.push(resolution);
+        }
+      }
+    });
+
+    setSelectedPersonIds(newSelectedIds);
+    setForceNewPeopleNames(newForceNewNames);
+
+    // Re-run extraction with new context
+    // We use a timeout to allow state to update and UI to refresh
+    setTimeout(() => {
+      processStoryWithAI(currentStoryId!, {
+        taggedIds: newSelectedIds,
+        newNames: newForceNewNames,
+      });
+    }, 100);
+  };
+
+  const handleRemovePerson = (id: string) => {
+    setSelectedPersonIds(prev => prev.filter(pId => pId !== id));
+  };
+
+  const selectedPeopleObjects = allPeople?.filter(p => selectedPersonIds.includes(p.id)) || [];
+
   const wordCount = storyText.trim().split(/\s+/).filter(Boolean).length;
   const estimatedCost = wordCount > 0 ? '$0.02' : '$0.00';
 
@@ -252,6 +337,25 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           numberOfLines={16}
           style={styles.input}
         />
+
+        {/* Explicitly Tagged People Chips */}
+        {selectedPersonIds.length > 0 && (
+          <View style={styles.chipsContainer}>
+            <Text variant="labelSmall" style={styles.chipsLabel}>Tagged:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {selectedPeopleObjects.map(person => (
+                <Chip
+                  key={person.id}
+                  avatar={person.photoPath ? <Avatar.Image size={24} source={{ uri: person.photoPath }} /> : <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />}
+                  onClose={() => handleRemovePerson(person.id)}
+                  style={styles.chip}
+                >
+                  {person.name}
+                </Chip>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Stats Bar */}
         <View style={styles.statsBar}>
@@ -275,7 +379,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             "Met @Emma for coffee. She's training for a marathon"
           </Text>
           <Text variant="bodySmall" style={styles.example}>
-            "@Mike's mother has dementia, he's caring for her"
+            "Had lunch with @Ola and met her friend @+Fabian"
           </Text>
         </View>
 
@@ -284,16 +388,18 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
       {/* Fixed Bottom Action */}
       <View style={styles.bottomAction}>
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isProcessing}
-          disabled={isProcessing || storyText.trim().length < 10}
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-        >
-          {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
-        </Button>
+        <View style={styles.actionRow}>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isProcessing}
+            disabled={isProcessing || storyText.trim().length < 10}
+            style={styles.submitButton}
+            contentStyle={styles.submitButtonContent}
+          >
+            {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
+          </Button>
+        </View>
 
         {/* DEV Button */}
         <Button
@@ -307,6 +413,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           Show Prompt
         </Button>
       </View>
+
 
       {/* API Key Dialog */}
       <Portal>
@@ -377,6 +484,70 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Debug Info Dialog */}
+      <Portal>
+        <Dialog
+          visible={debugDialogVisible}
+          onDismiss={() => setDebugDialogVisible(false)}
+          style={styles.promptDialog}
+        >
+          <Dialog.Title>AI Debug Info</Dialog.Title>
+          <Dialog.ScrollArea style={styles.promptScrollArea}>
+            <ScrollView>
+              {debugInfo && (
+                <View>
+                  <Text variant="labelLarge" style={styles.debugLabel}>Model & Cost</Text>
+                  <Text variant="bodySmall" style={styles.debugValue}>
+                    Model: {debugInfo.model}{'\n'}
+                    Tokens: {debugInfo.tokensUsed}{'\n'}
+                    Cost: ${debugInfo.cost?.toFixed(6) || 'N/A'}
+                  </Text>
+
+                  <Text variant="labelLarge" style={styles.debugLabel}>System Prompt</Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.systemPrompt || 'N/A'}</Text>
+
+                  <Text variant="labelLarge" style={styles.debugLabel}>User Prompt (Story)</Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.userPrompt}</Text>
+
+                  <Text variant="labelLarge" style={styles.debugLabel}>Response Status</Text>
+                  <Text variant="bodySmall" style={styles.debugValue}>
+                    Status: {debugInfo.responseStatus || 'N/A'}{'\n'}
+                    Headers: {JSON.stringify(debugInfo.requestHeaders || {}, null, 2)}
+                  </Text>
+
+                  <Text variant="labelLarge" style={styles.debugLabel}>Raw Response</Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.rawResponse}</Text>
+                </View>
+              )}
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => {
+              Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
+              Alert.alert('Copied', 'Debug info copied to clipboard');
+            }}>Copy All</Button>
+            <Button onPress={() => setDebugDialogVisible(false)}>Close</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <PersonSelector
+        visible={personSelectorVisible}
+        onDismiss={() => setPersonSelectorVisible(false)}
+        onSelect={setSelectedPersonIds}
+        initialSelectedIds={selectedPersonIds}
+      />
+
+      <AmbiguityResolutionDialog
+        visible={ambiguityDialogVisible}
+        ambiguousMatches={ambiguousMatches}
+        onResolve={handleAmbiguityResolved}
+        onCancel={() => {
+          setAmbiguityDialogVisible(false);
+          setIsProcessing(false);
+        }}
+      />
     </View>
   );
 }
@@ -451,12 +622,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
-  submitButton: {
-    borderRadius: 12,
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
+  tagButton: {
+    marginRight: 8,
+    backgroundColor: '#e3f2fd',
+  },
+  submitButton: {
+    flex: 1,
+    borderRadius: 12,
+  },
   submitButtonContent: {
-    paddingVertical: 12,
+    paddingVertical: 8, // Reduced slightly to align with icon button
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  chipsLabel: {
+    marginRight: 8,
+    opacity: 0.6,
+  },
+  chip: {
+    marginRight: 8,
   },
   devButton: {
     opacity: 0.5,
@@ -485,5 +679,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     padding: 16,
+  },
+  debugLabel: {
+    marginTop: 16,
+    marginBottom: 4,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  debugValue: {
+    fontFamily: 'monospace',
+    backgroundColor: '#f5f5f5',
+    padding: 8,
+    borderRadius: 4,
+  },
+  debugCode: {
+    fontFamily: 'monospace',
+    fontSize: 10,
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 8,
   },
 });

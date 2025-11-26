@@ -5,6 +5,7 @@ import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hook
 import { useUpdatePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
+import { useCommonStyles } from '@/styles/common';
 
 interface PersonImportantDatesProps {
     person: any;
@@ -12,6 +13,7 @@ interface PersonImportantDatesProps {
 
 export default function PersonImportantDates({ person }: PersonImportantDatesProps) {
     const theme = useTheme();
+    const commonStyles = useCommonStyles();
     const { data: personRelations } = usePersonRelations(person.id);
     const deleteRelation = useDeleteRelation();
     const createRelation = useCreateRelation();
@@ -100,19 +102,16 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
 
     return (
         <>
-            <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
-                <View style={styles.sectionHeader}>
-                    <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            <View style={commonStyles.section}>
+                <View style={commonStyles.sectionHeader}>
+                    <Text variant="titleMedium" style={commonStyles.sectionTitle}>
                         Important Dates
                     </Text>
-                    <Button
-                        mode="text"
-                        compact
+                    <IconButton
                         icon="plus"
+                        size={20}
                         onPress={() => setAddDateDialogVisible(true)}
-                    >
-                        Add
-                    </Button>
+                    />
                 </View>
 
                 {person.dateOfBirth && (
@@ -143,7 +142,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
                 ))}
 
                 {!person.dateOfBirth && importantDates.length === 0 && (
-                    <Text variant="bodySmall" style={[styles.emptyStateText, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodySmall" style={commonStyles.emptyStateText}>
                         No important dates added yet
                     </Text>
                 )}
@@ -185,21 +184,6 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
 }
 
 const styles = StyleSheet.create({
-    section: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontWeight: '600',
-        fontSize: 18,
-    },
     importantDateItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -207,10 +191,5 @@ const styles = StyleSheet.create({
     },
     dateChip: {
         marginRight: 8,
-    },
-    emptyStateText: {
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 12,
     },
 });

@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     section: {
         paddingHorizontal: 24,
         paddingVertical: 20,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
     },
     sectionTitle: {
         fontWeight: '600',

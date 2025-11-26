@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { Text, Card, Button, Chip, Divider, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Button, Chip, Divider, IconButton, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -12,9 +12,11 @@ import { useApprovePendingExtraction, useRejectPendingExtraction, usePendingExtr
 import { createSystemPrompt } from '@/lib/ai/prompts';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { useSettings, AI_MODELS } from '@/store/useSettings';
+import { spacing } from '@/styles/spacing';
 
 export default function StoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const theme = useTheme();
   const deleteStory = useDeleteStory();
   const extractRelations = useExtractRelations();
   const approveExtraction = useApprovePendingExtraction();
@@ -23,8 +25,22 @@ export default function StoryDetailScreen() {
   const [extractionResult, setExtractionResult] = useState<any>(null);
   const [selectedExtraction, setSelectedExtraction] = useState<any>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [expandedDebugSections, setExpandedDebugSections] = useState<{
+    systemPrompt: boolean;
+    contextUpdate: boolean;
+    sentText: boolean;
+    aiReply: boolean;
+    tokenUsage: boolean;
+  }>({
+    systemPrompt: false,
+    contextUpdate: false,
+    sentText: false,
+    aiReply: false,
+    tokenUsage: false,
+  });
   const [debugData, setDebugData] = useState<{
     systemPrompt?: string;
+    contextUpdate?: string;
     sentText?: string;
     reply?: string;
     tokenUsage?: {
@@ -32,10 +48,19 @@ export default function StoryDetailScreen() {
       outputTokens?: number;
       totalTokens?: number;
     };
+    costUsd?: number;
+    cost?: number;
     sentData?: any;
     receivedData?: any;
     conflictsCount?: number;
   } | null>(null);
+
+  const toggleDebugSection = (section: keyof typeof expandedDebugSections) => {
+    setExpandedDebugSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
 
   // Check for pending extractions across all stories
   const { data: pendingCount = 0 } = usePendingExtractionsCount();
@@ -68,6 +93,45 @@ export default function StoryDetailScreen() {
     },
     enabled: !!id,
   });
+
+  // Load debug info from extractedData when story loads
+  useEffect(() => {
+    if (story?.extractedData) {
+      try {
+        const extractedData = JSON.parse(story.extractedData);
+
+        // Normalize debugInfo shapes because different paths write different keys
+        // - AIDebugInfo uses { rawResponse, userPrompt, tokensUsed }
+        // - some UI paths expect { reply, sentText, tokenUsage }
+        if (extractedData.debugInfo) {
+          const raw = extractedData.debugInfo;
+
+          const normalized = {
+            // prefer existing more-descriptive keys, then fall back
+            systemPrompt: raw.systemPrompt ?? raw.system_prompt ?? raw.systemMessage ?? undefined,
+            sentText: raw.sentText ?? raw.userPrompt ?? raw.user_prompt ?? raw.userPromptText ?? undefined,
+            contextUpdate: raw.contextUpdate ?? raw.context_update ?? raw.context ?? raw.sentData?.contextUpdate ?? undefined,
+            reply: raw.reply ?? raw.rawResponse ?? raw.response ?? undefined,
+            tokenUsage:
+              raw.tokenUsage || (raw.tokensUsed !== undefined
+                ? {
+                    totalTokens: raw.tokensUsed,
+                    inputTokens: Math.floor(raw.tokensUsed * 0.67),
+                    outputTokens: Math.floor(raw.tokensUsed * 0.33),
+                  }
+                : undefined),
+            // include cost explicitly and keep any additional debug fields intact so we can inspect them if present
+            costUsd: raw.costUsd ?? raw.cost ?? undefined,
+            ...raw,
+          };
+
+          setDebugData(normalized);
+        }
+      } catch (error) {
+        console.error('Failed to parse extracted data:', error);
+      }
+    }
+  }, [story]);
 
   const handleExtractRelations = async () => {
     if (!hasActiveApiKey()) {
@@ -110,15 +174,13 @@ export default function StoryDetailScreen() {
                 .where(and(eq(relations.userId, userId), isNull(relations.deletedAt)));
 
               // Create the extraction message that will be sent
-              const contextUpdate = `CURRENT DATABASE STATE:\n\nEXISTING PEOPLE:\n${
-                existingPeople.length > 0
-                  ? existingPeople.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
-                  : 'None yet'
-              }\n\nEXISTING RELATIONS:\n${
-                existingRelations.length > 0
+              const contextUpdate = `CURRENT DATABASE STATE:\n\nEXISTING PEOPLE:\n${existingPeople.length > 0
+                ? existingPeople.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
+                : 'None yet'
+                }\n\nEXISTING RELATIONS:\n${existingRelations.length > 0
                   ? existingRelations.map(r => `- ${existingPeople.find(p => p.id === r.subjectId)?.name || 'Unknown'}: ${r.relationType} "${r.objectLabel}"`).join('\n')
                   : 'None yet'
-              }`;
+                }`;
 
               const sentText = `EXTRACT RELATIONS FROM THIS STORY:\n\n"${story?.content}"\n\nPlease analyze this story and extract people, their relationships, and any conflicts with existing data. Respond with JSON only.`;
 
@@ -257,10 +319,8 @@ export default function StoryDetailScreen() {
         options={{
           title: story.title || 'Story Details',
           headerRight: () => (
-            <View style={{ marginRight: 16 }}>
-              <Button mode="text" onPress={handleDelete} textColor="#d32f2f" compact>
-                Delete
-              </Button>
+            <View style={{ marginRight: spacing.xs }}>
+              <IconButton onPress={handleDelete} icon="delete-outline" iconColor={theme.colors.primary} />
             </View>
           ),
         }}
@@ -305,17 +365,6 @@ export default function StoryDetailScreen() {
               )}
             </View>
 
-            {/* Temporarily show debug button for testing */}
-            {true && (
-              <Button
-                mode="outlined"
-                icon="bug"
-                onPress={() => setShowDebugInfo(!showDebugInfo)}
-                style={styles.debugButton}
-              >
-                {showDebugInfo ? 'Hide' : 'Show'} Debug Info
-              </Button>
-            )}
           </Card.Content>
         </Card>
 
@@ -485,7 +534,7 @@ export default function StoryDetailScreen() {
         )}
 
         {/* Debug Information */}
-        {showDebugInfo && (
+        {(
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.debugHeader}>
@@ -498,7 +547,7 @@ export default function StoryDetailScreen() {
                   compact
                   style={styles.debugToggle}
                 >
-                  {showDebugInfo ? 'Hide' : 'Show'} Debug Data
+                  Debug Data
                 </Button>
               </View>
               <Divider style={styles.divider} />
@@ -520,56 +569,103 @@ export default function StoryDetailScreen() {
                     </View>
                   ) : (
                     <View>
-                    {debugData.systemPrompt && (
-                        <View style={styles.debugSection}>
-                          <Text variant="labelMedium" style={styles.debugTitle}>
-                            System Prompt:
-                          </Text>
-                          <ScrollView horizontal style={styles.debugScroll}>
-                            <Text variant="bodySmall" style={styles.debugText}>
-                              {debugData.systemPrompt}
+                      {debugData.systemPrompt && (
+                        <View style={[styles.debugSection, expandedDebugSections.systemPrompt ? styles.debugSectionExpanded : null]}>
+                          <TouchableOpacity
+                            onPress={() => toggleDebugSection('systemPrompt')}
+                            style={styles.debugSectionHeader}
+                          >
+                            <Text variant="labelMedium" style={styles.debugTitle}>
+                              System Prompt {expandedDebugSections.systemPrompt ? '▼' : '▶'}
                             </Text>
-                          </ScrollView>
+                          </TouchableOpacity>
+                          {expandedDebugSections.systemPrompt && (
+                            <ScrollView style={styles.debugTextContainer}>
+                              <Text variant="bodySmall" style={styles.debugText} selectable>
+                                {debugData.systemPrompt}
+                              </Text>
+                            </ScrollView>
+                          )}
+                        </View>
+                      )}
+
+                      {debugData.contextUpdate && (
+                        <View style={[styles.debugSection, expandedDebugSections.contextUpdate ? styles.debugSectionExpanded : null]}>
+                          <TouchableOpacity
+                            onPress={() => toggleDebugSection('contextUpdate')}
+                            style={styles.debugSectionHeader}
+                          >
+                            <Text variant="labelMedium" style={styles.debugTitle}>
+                              Context Sent to AI {expandedDebugSections.contextUpdate ? '▼' : '▶'}
+                            </Text>
+                          </TouchableOpacity>
+                          {expandedDebugSections.contextUpdate && (
+                            <ScrollView style={styles.debugTextContainer}>
+                              <Text variant="bodySmall" style={styles.debugText} selectable>
+                                {debugData.contextUpdate}
+                              </Text>
+                            </ScrollView>
+                          )}
                         </View>
                       )}
 
                       {debugData.sentText && (
-                        <View style={styles.debugSection}>
-                          <Text variant="labelMedium" style={styles.debugTitle}>
-                            Text Sent to AI:
-                          </Text>
-                          <ScrollView horizontal style={styles.debugScroll}>
-                            <Text variant="bodySmall" style={styles.debugText}>
-                              {debugData.sentText}
+                        <View style={[styles.debugSection, expandedDebugSections.sentText ? styles.debugSectionExpanded : null]}>
+                          <TouchableOpacity
+                            onPress={() => toggleDebugSection('sentText')}
+                            style={styles.debugSectionHeader}
+                          >
+                            <Text variant="labelMedium" style={styles.debugTitle}>
+                              Text Sent to AI {expandedDebugSections.sentText ? '▼' : '▶'}
                             </Text>
-                          </ScrollView>
+                          </TouchableOpacity>
+                          {expandedDebugSections.sentText && (
+                            <ScrollView style={styles.debugTextContainer}>
+                              <Text variant="bodySmall" style={styles.debugText} selectable>
+                                {debugData.sentText}
+                              </Text>
+                            </ScrollView>
+                          )}
                         </View>
                       )}
 
                       {debugData.reply && (
-                        <View style={styles.debugSection}>
-                          <Text variant="labelMedium" style={styles.debugTitle}>
-                            AI Reply:
-                          </Text>
-                          <ScrollView horizontal style={styles.debugScroll}>
-                            <Text variant="bodySmall" style={styles.debugText}>
-                              {debugData.reply}
+                        <View style={[styles.debugSection, expandedDebugSections.aiReply ? styles.debugSectionExpanded : null]}>
+                          <TouchableOpacity
+                            onPress={() => toggleDebugSection('aiReply')}
+                            style={styles.debugSectionHeader}
+                          >
+                            <Text variant="labelMedium" style={styles.debugTitle}>
+                              AI Reply {expandedDebugSections.aiReply ? '▼' : '▶'}
                             </Text>
-                          </ScrollView>
+                          </TouchableOpacity>
+                          {expandedDebugSections.aiReply && (
+                            <ScrollView style={styles.debugTextContainer}>
+                              <Text variant="bodySmall" style={styles.debugText} selectable>
+                                {debugData.reply}
+                              </Text>
+                            </ScrollView>
+                          )}
                         </View>
                       )}
 
                       {debugData.tokenUsage && (
-                        <View style={styles.debugSection}>
+                        <View style={[styles.debugSection, expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null]}>
                           <Text variant="labelMedium" style={styles.debugTitle}>
                             Token Usage:
                           </Text>
-                          <Text variant="bodySmall" style={styles.debugText}>
+                          <Text variant="bodySmall" style={styles.debugText} selectable>
                             Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
                             {debugData.tokenUsage.inputTokens && debugData.tokenUsage.outputTokens && (
                               <> (Input: {debugData.tokenUsage.inputTokens.toLocaleString()}, Output: {debugData.tokenUsage.outputTokens.toLocaleString()})</>
                             )}
                           </Text>
+
+                          {(debugData.costUsd ?? debugData.cost) !== undefined && (
+                            <Text variant="bodySmall" style={styles.debugText} selectable>
+                              Estimated cost: ${Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
+                            </Text>
+                          )}
                         </View>
                       )}
                     </View>
@@ -591,7 +687,7 @@ export default function StoryDetailScreen() {
               Review AI Extraction
             </Text>
             <Divider style={styles.dialogDivider} />
-            
+
             <View style={styles.relationRow}>
               <Text variant="bodyMedium" style={styles.subjectName}>
                 {selectedExtraction.subjectName}
@@ -603,11 +699,11 @@ export default function StoryDetailScreen() {
                 {selectedExtraction.objectLabel}
               </Text>
             </View>
-            
+
             <Text variant="bodySmall" style={styles.confidence}>
               AI Confidence: {((selectedExtraction.confidence || 0) * 100).toFixed(0)}%
             </Text>
-            
+
             {selectedExtraction.extractionReason && (
               <Text variant="bodySmall" style={styles.reason}>
                 {selectedExtraction.extractionReason}
@@ -831,18 +927,33 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
   debugSection: {
+    // base spacing for a section header (collapsed)
+    marginBottom: 8,
+  },
+  debugSectionExpanded: {
+    // extra spacing when the section shows expanded content
     marginBottom: 16,
+  },
+  debugSectionHeader: {
+    padding: 12,
+    backgroundColor: '#e8f4f8',
+    borderRadius: 8,
+    marginBottom: 8,
   },
   debugTitle: {
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
     color: '#666',
   },
-  debugScroll: {
-    maxHeight: 200,
+  debugHint: {
+    color: '#999',
+    fontSize: 10,
+    fontStyle: 'italic',
+  },
+  debugTextContainer: {
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 8,
+    padding: 12
   },
   debugText: {
     fontFamily: 'monospace',
@@ -853,5 +964,8 @@ const styles = StyleSheet.create({
   debugButton: {
     marginTop: 12,
     marginBottom: 8,
+  },
+  debugButtonBottom: {
+    marginVertical: 0,
   },
 });

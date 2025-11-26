@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, Button } from 'react-native-paper';
 import { THEME_COLORS, type ThemeColor } from '@/store/useSettings';
+import { useTranslation } from 'react-i18next';
 
 interface AppearanceSettingsProps {
     themeColor: ThemeColor;
@@ -8,20 +9,21 @@ interface AppearanceSettingsProps {
 }
 
 export default function AppearanceSettings({ themeColor, setThemeColor }: AppearanceSettingsProps) {
+    const { t } = useTranslation();
     return (
         <Card style={styles.card}>
             <Card.Content>
                 <Text variant="titleLarge" style={styles.sectionTitle}>
-                    Appearance
+                    {t('settings.appearance')}
                 </Text>
                 <Divider style={styles.divider} />
 
                 <Text variant="bodySmall" style={styles.description}>
-                    Customize the look and feel of the app by choosing your preferred theme color.
+                    {t('settings.appearanceDescription')}
                 </Text>
 
                 <Text variant="labelMedium" style={styles.themeLabel}>
-                    Theme Color
+                    {t('settings.themeColor')}
                 </Text>
                 <View style={styles.themeGrid}>
                     {(Object.keys(THEME_COLORS) as ThemeColor[]).map((color) => (

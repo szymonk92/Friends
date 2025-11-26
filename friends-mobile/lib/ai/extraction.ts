@@ -1,11 +1,12 @@
 import { createSystemPrompt } from './prompts';
-import { 
-  createAISession, 
-  updateSessionContext, 
+import {
+  createAISession,
+  updateSessionContext,
   callAISession,
   parseExtractionResponse,
   type AIServiceConfig,
-  type AISession
+  type AISession,
+  type AIDebugInfo
 } from './ai-service';
 
 /**
@@ -51,6 +52,11 @@ export interface ExtractionResult {
   rawResponse?: string;
   tokensUsed?: number;
   processingTime?: number;
+  debugInfo?: AIDebugInfo;
+  ambiguousMatches?: Array<{
+    nameInStory: string;
+    possibleMatches: Array<{ id: string; name: string; reason: string }>;
+  }>;
 }
 
 /**
@@ -67,7 +73,9 @@ export async function extractRelationsFromStorySession(
     subjectId: string;
     subjectName: string;
   }>,
-  sessionId?: string
+  sessionId?: string,
+  explicitlyTaggedPeople?: Array<{ id: string; name: string }>,
+  forceNewPeople?: string[]
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
 
@@ -81,8 +89,12 @@ export async function extractRelationsFromStorySession(
     session = createAISession(config, { systemPrompt: createSystemPrompt() });
   }
 
+  // Filter existing people to only include those relevant to the story
+  // This saves tokens and improves accuracy by reducing noise
+  const relevantPeople = filterRelevantPeople(storyText, existingPeople);
+  
   // Update context with current people and relations
-  const contextUpdate = createContextUpdate(existingPeople, existingRelations);
+  const contextUpdate = createContextUpdate(relevantPeople, existingRelations, explicitlyTaggedPeople, forceNewPeople);
   updateSessionContext(session.id, contextUpdate);
 
   // Create the extraction message
@@ -94,7 +106,12 @@ Please analyze this story and extract people, their relationships, and any confl
 
   try {
     // Call AI with session
-    const { response: rawResponse, tokensUsed } = await callAISession(session.id, extractionMessage, config);
+    const { response: rawResponse, tokensUsed, debugInfo } = await callAISession(session.id, extractionMessage, config);
+
+    // Attach the contextUpdate to debugInfo so it is persisted and visible in UIs
+    if (debugInfo) {
+      (debugInfo as any).contextUpdate = contextUpdate;
+    }
 
     // Parse JSON response
     const parsed = parseExtractionResponse(rawResponse);
@@ -108,6 +125,8 @@ Please analyze this story and extract people, their relationships, and any confl
       rawResponse,
       tokensUsed,
       processingTime,
+      debugInfo,
+      ambiguousMatches: parsed.ambiguousMatches || [],
     };
   } catch (error) {
     console.error('AI extraction failed:', error);
@@ -127,7 +146,9 @@ function createContextUpdate(
     objectLabel: string;
     subjectId: string;
     subjectName: string;
-  }>
+  }>,
+  explicitlyTaggedPeople?: Array<{ id: string; name: string }>,
+  forceNewPeople?: string[]
 ): string {
   let update = 'CURRENT DATABASE STATE:\n\n';
 
@@ -138,6 +159,24 @@ function createContextUpdate(
     });
   } else {
     update += 'None yet\n';
+  }
+
+  update += '\nEXPLICITLY TAGGED PEOPLE (CONFIRMED PRESENT):\n';
+  if (explicitlyTaggedPeople && explicitlyTaggedPeople.length > 0) {
+    explicitlyTaggedPeople.forEach(person => {
+      update += `- ${person.name} (ID: ${person.id}) [CONFIRMED PRESENT]\n`;
+    });
+  } else {
+    update += 'None\n';
+  }
+
+  update += '\nCONFIRMED NEW PEOPLE (DO NOT LINK TO EXISTING):\n';
+  if (forceNewPeople && forceNewPeople.length > 0) {
+    forceNewPeople.forEach(name => {
+      update += `- ${name} [CONFIRMED NEW PERSON]\n`;
+    });
+  } else {
+    update += 'None\n';
   }
 
   update += '\nEXISTING RELATIONS:\n';
@@ -250,4 +289,31 @@ export function estimateExtractionCost(
     estimatedTokens,
     estimatedCost: inputCost + outputCost,
   };
+}
+
+/**
+ * Filter people to only include those likely relevant to the story
+ * Uses simple string matching to find potential mentions
+ */
+function filterRelevantPeople(
+  storyText: string,
+  allPeople: Array<{ id: string; name: string }>
+): Array<{ id: string; name: string }> {
+  const normalizedStory = storyText.toLowerCase();
+  
+  return allPeople.filter(person => {
+    const nameParts = person.name.toLowerCase().split(' ');
+    
+    // Check full name
+    if (normalizedStory.includes(person.name.toLowerCase())) return true;
+    
+    // Check first name (if longer than 2 chars to avoid noise)
+    if (nameParts[0].length > 2 && normalizedStory.includes(nameParts[0])) return true;
+    
+    // Check last name (if exists and longer than 2 chars)
+    if (nameParts.length > 1 && nameParts[nameParts.length - 1].length > 2 && 
+        normalizedStory.includes(nameParts[nameParts.length - 1])) return true;
+        
+    return false;
+  });
 }

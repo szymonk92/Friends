@@ -7,6 +7,7 @@ import {
 } from '@/hooks/usePendingExtractions';
 import { formatRelationType, getRelationEmoji } from '@/lib/utils/format';
 import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
+import { devLogger } from '@/lib/utils/devLogger';
 import { Alert, ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { Stack, router } from 'expo-router';
@@ -37,7 +38,7 @@ export default function ReviewExtractionsScreen() {
       await approveMutation.mutateAsync(extraction.id);
     } catch (error) {
       Alert.alert('Error', 'Failed to approve extraction');
-      console.error('Approve error:', error);
+      devLogger.error('Failed to approve extraction', { error, extractionId: extraction.id });
     }
   };
 
@@ -55,7 +56,7 @@ export default function ReviewExtractionsScreen() {
               await rejectMutation.mutateAsync({ extractionId: extraction.id });
             } catch (error) {
               Alert.alert('Error', 'Failed to reject extraction');
-              console.error('Reject error:', error);
+              devLogger.error('Failed to reject extraction', { error, extractionId: extraction.id });
             }
           },
         },
@@ -85,7 +86,7 @@ export default function ReviewExtractionsScreen() {
       setCurrentEdit(null);
     } catch (error) {
       Alert.alert('Error', 'Failed to save edit');
-      console.error('Edit error:', error);
+      devLogger.error('Failed to edit extraction', { error, extractionId: currentEdit.id });
     }
   };
 

@@ -21,6 +21,7 @@ import {
   List,
   Checkbox,
 } from 'react-native-paper';
+import { devLogger } from '@/lib/utils/devLogger';
 import { useCreateConnection, usePersonConnections, useUpdateConnection, useDeleteConnection } from '@/hooks/useConnections';
 import { usePerson, usePeople, useMePerson, PersonWithPhoto } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
@@ -92,7 +93,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           setStatus((conn.status as any) || 'active');
           setNotes(conn.notes || '');
         } catch (error) {
-          console.error('Error loading connection:', error);
+          devLogger.error('Failed to load connection for editing', { error, connectionId });
           Alert.alert('Error', 'Failed to load connection');
           router.back();
         } finally {
@@ -306,7 +307,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           ]
         );
       } catch (error) {
-        console.error('[AddConnection] Error creating connection:', error);
+        devLogger.error('Failed to create connection', { error, fromPersonId: personId, toPersonId: singlePersonId });
         Alert.alert('Error', 'Failed to create connection. Please try again.');
       } finally {
         setIsSubmitting(false);
@@ -401,7 +402,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to add connection. Please try again.');
-      console.error('Add connection error:', error);
+      devLogger.error('Failed to add connection', { error });
     } finally {
       setIsSubmitting(false);
     }
@@ -701,6 +702,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 style={styles.searchbar}
                 mode="outlined"
               />
+              <Text variant="titleSmall" style={styles.label}>
+                Selecting multiple, adds them as friends
+              </Text>
 
               {loadingPeople && (
                 <CenteredContainer style={styles.centered}>

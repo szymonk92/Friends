@@ -71,8 +71,14 @@ export default function MentionTextInput({
         return;
       }
 
-      // Check if there's a space after the @ symbol
+      // Check if it's @+ syntax (for adding new people - no autocomplete needed)
       const textAfterAt = textBeforeCursor.substring(lastAtSymbol + 1);
+      if (textAfterAt.startsWith('+')) {
+        setShowSuggestions(false);
+        return;
+      }
+
+      // Check if there's a space after the @ symbol
       if (textAfterAt.includes(' ')) {
         setShowSuggestions(false);
         return;
@@ -166,6 +172,14 @@ export default function MentionTextInput({
     setCursorPosition(cursorPosition + 1);
   };
 
+  const insertAddPerson = () => {
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const textAfterCursor = value.substring(cursorPosition);
+    const newText = textBeforeCursor + '@+' + textAfterCursor;
+    onChangeText(newText);
+    setCursorPosition(cursorPosition + 1);
+  };
+
   return (
     <View style={styles.container}>
       <TextInput
@@ -182,13 +196,20 @@ export default function MentionTextInput({
 
       {/* @ Button below text field */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity 
-          style={[styles.atButton, { backgroundColor: theme.colors.primary }]} 
+        <TouchableOpacity
+          style={[styles.atButton, { backgroundColor: theme.colors.primary }]}
           onPress={insertAtSymbol}
         >
           <Text style={styles.atButtonText}>@ Mention</Text>
         </TouchableOpacity>
-        
+
+        <TouchableOpacity
+          style={[styles.atButtonOutlined, { borderColor: theme.colors.primary }]}
+          onPress={insertAddPerson}
+        >
+          <Text style={[styles.atButtonTextOutlined, { color: theme.colors.primary }]}>@+ Add</Text>
+        </TouchableOpacity>
+
         {/* Mention count indicator */}
         {mentions.length > 0 && (
           <Chip icon="account" compact style={styles.chip}>
@@ -206,7 +227,7 @@ export default function MentionTextInput({
                 Mention someone:
               </Text>
             </View>
-            <ScrollView 
+            <ScrollView
               style={styles.suggestionsList}
               nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
@@ -260,6 +281,17 @@ const styles = StyleSheet.create({
   },
   atButtonText: {
     color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  atButtonOutlined: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  atButtonTextOutlined: {
     fontSize: 15,
     fontWeight: '600',
   },

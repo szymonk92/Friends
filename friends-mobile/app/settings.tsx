@@ -10,10 +10,9 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
-import { useExportData, useExportStats, useExportPeopleCSV, useImportData } from '@/hooks/useDataExport';
-import * as DocumentPicker from 'expo-document-picker';
-import { File as ExpoFile } from 'expo-file-system';
+import { useExportStats } from '@/hooks/useDataExport';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/store/useSettings';
 import {
   getBirthdayReminderSettings,
@@ -28,21 +27,20 @@ import {
   resetRelationshipColors,
   type RelationshipColorMap,
   DEFAULT_COLORS,
+  AVAILABLE_COLORS,
 } from '@/lib/settings/relationship-colors';
 
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
 import AIConfiguration from '@/components/settings/AIConfiguration';
 import RelationshipColorsSettings from '@/components/settings/RelationshipColorsSettings';
 import DataStatistics from '@/components/settings/DataStatistics';
-import ExportImportSettings from '@/components/settings/ExportImportSettings';
 import BirthdayReminderSettingsSection from '@/components/settings/BirthdayReminderSettings';
+import LanguageSelector from '@/components/settings/LanguageSelector';
 
 export default function SettingsScreen() {
-  const exportData = useExportData();
-  const exportCSV = useExportPeopleCSV();
-  const importData = useImportData();
+  const { t } = useTranslation();
+
   const { data: stats, isLoading: statsLoading } = useExportStats();
-  const [importLoading, setImportLoading] = useState(false);
 
   // API Key state
   const {
@@ -61,6 +59,7 @@ export default function SettingsScreen() {
     themeColor,
     setThemeColor,
     loadThemeColor,
+    loadMaxPhotosPerPerson,
   } = useSettings();
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
   const [geminiApiKeyDialogVisible, setGeminiApiKeyDialogVisible] = useState(false);
@@ -82,6 +81,7 @@ export default function SettingsScreen() {
     loadGeminiApiKey();
     loadSelectedModel();
     loadThemeColor();
+    loadMaxPhotosPerPerson();
     loadBirthdaySettings();
     loadRelationshipColors();
   }, []);
@@ -206,65 +206,15 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleExportJSON = async () => {
-    try {
-      await exportData.mutateAsync();
-      Alert.alert('Success', 'Data exported successfully!');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to export data');
-    }
-  };
 
-  const handleExportCSV = async () => {
-    try {
-      await exportCSV.mutateAsync();
-      Alert.alert('Success', 'People exported to CSV!');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to export CSV');
-    }
-  };
-
-  const handleImport = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) {
-        return;
-      }
-
-      const file = result.assets[0];
-      setImportLoading(true);
-
-      // Read file content
-      const expoFile = new ExpoFile(file.uri);
-      const content = await expoFile.text();
-
-      const importResult = await importData.mutateAsync(content);
-
-      if (importResult.errors.length > 0) {
-        Alert.alert(
-          'Import Complete',
-          `Imported ${importResult.imported} items.\n\nWarnings:\n${importResult.errors.slice(0, 5).join('\n')}${importResult.errors.length > 5 ? `\n...and ${importResult.errors.length - 5} more` : ''}`,
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Success', `Imported ${importResult.imported} items successfully!`);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to import data');
-    } finally {
-      setImportLoading(false);
-    }
-  };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Settings' }} />
+      <Stack.Screen options={{ title: t('settings.title') }} />
       <ScrollView style={styles.container}>
         <AppearanceSettings themeColor={themeColor} setThemeColor={setThemeColor} />
+
+        <LanguageSelector />
 
         <AIConfiguration
           selectedModel={selectedModel}
@@ -282,7 +232,7 @@ export default function SettingsScreen() {
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              Security
+              {t('settings.security')}
             </Text>
             <Divider style={styles.divider} />
 
@@ -308,39 +258,6 @@ export default function SettingsScreen() {
           handleResetColors={handleResetColors}
         />
 
-        <DataStatistics stats={stats} loading={statsLoading} />
-
-        <ExportImportSettings
-          handleExportJSON={handleExportJSON}
-          exportDataPending={exportData.isPending}
-          handleExportCSV={handleExportCSV}
-          exportCSVPending={exportCSV.isPending}
-          handleImport={handleImport}
-          importLoading={importLoading}
-          importDataPending={importData.isPending}
-        />
-
-        {/* Experimental */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Experimental
-            </Text>
-            <Divider style={styles.divider} />
-            <Text variant="bodySmall" style={styles.description}>
-              Features that are currently in development.
-            </Text>
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/(tabs)/network')}
-              icon="share-variant"
-              style={styles.button}
-            >
-              Network Graph
-            </Button>
-          </Card.Content>
-        </Card>
-
         <BirthdayReminderSettingsSection
           birthdaySettings={birthdaySettings}
           savingBirthdaySettings={savingBirthdaySettings}
@@ -348,35 +265,15 @@ export default function SettingsScreen() {
           upcomingBirthdays={upcomingBirthdays}
         />
 
-        {/* Developer Tools */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Developer Tools
-            </Text>
-            <Divider style={styles.divider} />
+        <DataStatistics stats={stats} loading={statsLoading} />
 
-            <Text variant="bodySmall" style={styles.description}>
-              Testing utilities for development. Generate test data, seed sample people, and debug the
-              application.
-            </Text>
 
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/dev')}
-              icon="code-tags"
-              style={styles.button}
-            >
-              Open Dev Tools
-            </Button>
-          </Card.Content>
-        </Card>
 
         {/* App Info */}
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              About
+              {t('settings.about')}
             </Text>
             <Divider style={styles.divider} />
 
@@ -447,6 +344,30 @@ export default function SettingsScreen() {
             <Button onPress={handleSaveGeminiApiKey}>Save</Button>
           </Dialog.Actions>
         </Dialog>
+
+        {/* Color Picker Dialog */}
+        <Dialog visible={colorPickerVisible} onDismiss={() => setColorPickerVisible(false)}>
+          <Dialog.Title>Choose Color for {selectedRelationType.charAt(0).toUpperCase() + selectedRelationType.slice(1)}</Dialog.Title>
+          <Dialog.Content>
+            <View style={styles.colorGrid}>
+              {AVAILABLE_COLORS.map((color) => (
+                <Button
+                  key={color.value}
+                  mode="outlined"
+                  onPress={() => handleColorChange(color.value)}
+                  style={[styles.colorButton, { borderColor: color.value, borderWidth: 2 }]}
+                  contentStyle={styles.colorButtonContent}
+                  labelStyle={{ color: 'transparent' }}
+                >
+                  <View style={[styles.colorCircle, { backgroundColor: color.value }]} />
+                </Button>
+              ))}
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setColorPickerVisible(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </>
   );
@@ -483,5 +404,29 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 8,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  colorButton: {
+    width: 60,
+    height: 60,
+    padding: 0,
+    margin: 4,
+    borderRadius: 30,
+  },
+  colorButtonContent: {
+    width: 60,
+    height: 60,
+    padding: 0,
+    margin: 0,
+  },
+  colorCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 });

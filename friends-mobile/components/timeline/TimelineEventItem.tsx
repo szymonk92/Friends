@@ -100,7 +100,16 @@ export default function TimelineEventItem({
                                 <Text
                                     variant="titleSmall"
                                     style={styles.personName}
-                                    onPress={() => !item.isPartyEvent && person && router.push(`/person/${person.id}`)}
+                                    onPress={() => {
+                                        if (item.isPartyEvent && item.partyDetails) {
+                                            // Navigate to party view
+                                            const actualEventId = item.id.replace('party-', '');
+                                            router.push(`/party-planner?eventId=${actualEventId}`);
+                                        } else if (!item.isPartyEvent && person) {
+                                            // Navigate to person detail
+                                            router.push(`/person/${person.id}`);
+                                        }
+                                    }}
                                 >
                                     {personName}
                                 </Text>
@@ -110,7 +119,7 @@ export default function TimelineEventItem({
                             </View>
                         </View>
 
-                        {!isSpecialEvent && (
+                        {!isBirthday && !isImportantDate && (
                             <Menu
                                 visible={eventMenuVisible === item.id}
                                 onDismiss={() => setEventMenuVisible(null)}

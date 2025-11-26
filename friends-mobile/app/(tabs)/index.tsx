@@ -1,16 +1,18 @@
 import { StyleSheet, View, FlatList, ScrollView, RefreshControl, Image, TouchableOpacity, StatusBar } from 'react-native';
-import { Text, Card, FAB, Searchbar, Chip, ActivityIndicator, Button, IconButton, Menu, Divider } from 'react-native-paper';
+import { Text, Searchbar, Chip, ActivityIndicator, Button, IconButton, Menu, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { getInitials, formatRelativeTime, getImportanceColor } from '@/lib/utils/format';
+import { getInitials } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import SectionDivider from '@/components/SectionDivider';
+import { useTranslation } from 'react-i18next';
 
 export default function PeopleListScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -21,8 +23,11 @@ export default function PeopleListScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
+  const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
   const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
-  const { data: people = [], isLoading, error, refetch } = usePeople();
+  const { data: people = [], isLoading, error, refetch } = usePeople({ 
+    type: viewMode === 'network' ? 'primary' : 'all' 
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -43,96 +48,96 @@ export default function PeopleListScreen() {
   const filteredPeople = useMemo(() => {
     console.log('[People] Recomputing filtered people, sortBy:', sortBy);
     return people
-    .filter((person) => {
-      // Filter by search query with scoring
-      let searchScore = 0;
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const name = person.name.toLowerCase();
+      .filter((person) => {
+        // Filter by search query with scoring
+        let searchScore = 0;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const name = person.name.toLowerCase();
 
-        if (name === query) {
-          searchScore = 3; // Exact match - highest priority
-        } else if (name.startsWith(query)) {
-          searchScore = 2; // Starts with - medium priority
-        } else if (name.includes(query)) {
-          searchScore = 1; // Contains - lowest priority
+          if (name === query) {
+            searchScore = 3; // Exact match - highest priority
+          } else if (name.startsWith(query)) {
+            searchScore = 2; // Starts with - medium priority
+          } else if (name.includes(query)) {
+            searchScore = 1; // Contains - lowest priority
+          } else {
+            return false; // No match at all
+          }
         } else {
-          return false; // No match at all
+          searchScore = 0; // No search query
         }
-      } else {
-        searchScore = 0; // No search query
-      }
 
-      // Store search score for sorting
-      (person as any)._searchScore = searchScore;
+        // Store search score for sorting
+        (person as any)._searchScore = searchScore;
 
-      // Filter by selected tags (person must have ALL selected tags)
-      const personTags = parseTags(person.tags);
-      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
+        // Filter by selected tags (person must have ALL selected tags)
+        const personTags = parseTags(person.tags);
+        const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
 
-      // Filter by relationship type
-      const matchesRelationType =
-        selectedRelationTypes.length === 0 ||
-        (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
+        // Filter by relationship type
+        const matchesRelationType =
+          selectedRelationTypes.length === 0 ||
+          (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
 
-      return matchesTags && matchesRelationType;
-    })
-    .sort((a, b) => {
-      // First sort by search score (higher score = better match)
-      const aScore = (a as any)._searchScore || 0;
-      const bScore = (b as any)._searchScore || 0;
-      if (aScore !== bScore) {
-        return bScore - aScore; // Higher score first
-      }
-
-      // Then apply the selected sort criteria
-      console.log('[People] Sorting by:', sortBy);
-      switch (sortBy) {
-        case 'name':
-          console.log('[People] Name sort:', a.name, 'vs', b.name);
-          return a.name.localeCompare(b.name);
-        case 'importance': {
-          // Relationship type weights (higher = more important)
-          const relationshipWeights: Record<string, number> = {
-            partner: 5,
-            family: 4,
-            friend: 3,
-            colleague: 2,
-            acquaintance: 1,
-          };
-          
-          const importanceOrder = ['very_important', 'important', 'peripheral', 'unknown'];
-          
-          // First sort by relationship type (primary criteria)
-          const aRelWeight = relationshipWeights[a.relationshipType || ''] || 0;
-          const bRelWeight = relationshipWeights[b.relationshipType || ''] || 0;
-          
-          if (aRelWeight !== bRelWeight) {
-            console.log('[People] Using relationship weight:', a.name, a.relationshipType, aRelWeight, 'vs', b.name, b.relationshipType, bRelWeight);
-            return bRelWeight - aRelWeight; // Higher weight first
-          }
-          
-          // If relationship types are same, use explicit importance as tiebreaker
-          const aImportance = a.importanceToUser || 'unknown';
-          const bImportance = b.importanceToUser || 'unknown';
-          const aImportanceIndex = importanceOrder.indexOf(aImportance);
-          const bImportanceIndex = importanceOrder.indexOf(bImportance);
-          
-          console.log('[People] Importance tiebreaker:', a.name, aImportance, `(${aImportanceIndex})`, 'vs', b.name, bImportance, `(${bImportanceIndex})`);
-          
-          if (aImportanceIndex !== bImportanceIndex) {
-            return aImportanceIndex - bImportanceIndex; // Lower index (higher importance) first
-          }
-          
-          // Finally sort by name
-          return a.name.localeCompare(b.name);
+        return matchesTags && matchesRelationType;
+      })
+      .sort((a, b) => {
+        // First sort by search score (higher score = better match)
+        const aScore = (a as any)._searchScore || 0;
+        const bScore = (b as any)._searchScore || 0;
+        if (aScore !== bScore) {
+          return bScore - aScore; // Higher score first
         }
-        case 'date':
-        default:
-          console.log('[People] Date sort:', a.name, new Date(a.updatedAt).toISOString(), 'vs', b.name, new Date(b.updatedAt).toISOString());
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      }
-    });
+
+        // Then apply the selected sort criteria
+        console.log('[People] Sorting by:', sortBy);
+        switch (sortBy) {
+          case 'name':
+            console.log('[People] Name sort:', a.name, 'vs', b.name);
+            return a.name.localeCompare(b.name);
+          case 'importance': {
+            // Relationship type weights (higher = more important)
+            const relationshipWeights: Record<string, number> = {
+              partner: 5,
+              family: 4,
+              friend: 3,
+              colleague: 2,
+              acquaintance: 1,
+            };
+
+            const importanceOrder = ['very_important', 'important', 'peripheral', 'unknown'];
+
+            // First sort by relationship type (primary criteria)
+            const aRelWeight = relationshipWeights[a.relationshipType || ''] || 0;
+            const bRelWeight = relationshipWeights[b.relationshipType || ''] || 0;
+
+            if (aRelWeight !== bRelWeight) {
+              console.log('[People] Using relationship weight:', a.name, a.relationshipType, aRelWeight, 'vs', b.name, b.relationshipType, bRelWeight);
+              return bRelWeight - aRelWeight; // Higher weight first
+            }
+
+            // If relationship types are same, use explicit importance as tiebreaker
+            const aImportance = a.importanceToUser || 'unknown';
+            const bImportance = b.importanceToUser || 'unknown';
+            const aImportanceIndex = importanceOrder.indexOf(aImportance);
+            const bImportanceIndex = importanceOrder.indexOf(bImportance);
+
+            console.log('[People] Importance tiebreaker:', a.name, aImportance, `(${aImportanceIndex})`, 'vs', b.name, bImportance, `(${bImportanceIndex})`);
+
+            if (aImportanceIndex !== bImportanceIndex) {
+              return aImportanceIndex - bImportanceIndex; // Lower index (higher importance) first
+            }
+
+            // Finally sort by name
+            return a.name.localeCompare(b.name);
+          }
+          case 'date':
+          default:
+            console.log('[People] Date sort:', a.name, new Date(a.updatedAt).toISOString(), 'vs', b.name, new Date(b.updatedAt).toISOString());
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        }
+      });
   }, [people, searchQuery, selectedTags, selectedRelationTypes, sortBy]);
 
   const toggleTag = (tag: string) => {
@@ -157,7 +162,7 @@ export default function PeopleListScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading people...</Text>
+        <Text style={styles.loadingText}>{t('people.loading')}</Text>
       </View>
     );
   }
@@ -165,9 +170,9 @@ export default function PeopleListScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Error loading people</Text>
+        <Text style={styles.errorText}>{t('people.error')}</Text>
         <Button mode="contained" onPress={() => refetch()}>
-          Retry
+          {t('common.retry')}
         </Button>
       </View>
     );
@@ -184,7 +189,7 @@ export default function PeopleListScreen() {
           {!searchVisible ? (
             <>
               <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-                People
+                {t('people.title')}
               </Text>
               <View style={headerStyles.headerActions}>
                 <IconButton
@@ -224,9 +229,17 @@ export default function PeopleListScreen() {
                   <Menu.Item
                     onPress={() => {
                       setMenuVisible(false);
+                      router.push('/menu');
+                    }}
+                    title={t('common.moreOptions') || 'More Options'}
+                    leadingIcon="dots-horizontal"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
                       router.push('/settings');
                     }}
-                    title="Settings"
+                    title={t('navigation.settings')}
                     leadingIcon="cog"
                   />
                   <Menu.Item
@@ -235,7 +248,7 @@ export default function PeopleListScreen() {
                       setSortBy('name');
                       setMenuVisible(false);
                     }}
-                    title="Sort by name"
+                    title={t('people.sortByName')}
                     leadingIcon={sortBy === 'name' ? 'check' : 'sort-alphabetical-ascending'}
                   />
                   <Menu.Item
@@ -244,7 +257,7 @@ export default function PeopleListScreen() {
                       setSortBy('date');
                       setMenuVisible(false);
                     }}
-                    title="Sort by recent"
+                    title={t('people.sortByRecent')}
                     leadingIcon={sortBy === 'date' ? 'check' : 'clock-outline'}
                   />
                   <Menu.Item
@@ -253,7 +266,7 @@ export default function PeopleListScreen() {
                       setSortBy('importance');
                       setMenuVisible(false);
                     }}
-                    title="Sort by importance"
+                    title={t('people.sortByImportance')}
                     leadingIcon={sortBy === 'importance' ? 'check' : 'star'}
                   />
                   <Divider />
@@ -262,7 +275,7 @@ export default function PeopleListScreen() {
                       setShowCategoryDividers(!showCategoryDividers);
                       setMenuVisible(false);
                     }}
-                    title={showCategoryDividers ? 'Hide category dividers' : 'Show category dividers'}
+                    title={showCategoryDividers ? t('people.hideCategoryDividers') : t('people.showCategoryDividers')}
                     leadingIcon={showCategoryDividers ? 'eye-off' : 'eye'}
                   />
                   <Menu.Item
@@ -270,7 +283,7 @@ export default function PeopleListScreen() {
                       setMenuVisible(false);
                       clearAllFilters();
                     }}
-                    title="Clear filters"
+                    title={t('people.clearFilters')}
                     leadingIcon="filter-remove"
                     disabled={!hasActiveFilters}
                   />
@@ -280,7 +293,7 @@ export default function PeopleListScreen() {
           ) : (
             <View style={styles.searchContainer}>
               <Searchbar
-                placeholder="Search people..."
+                placeholder={t('people.searchPlaceholder')}
                 onChangeText={setSearchQuery}
                 value={searchQuery}
                 style={styles.searchbar}
@@ -326,22 +339,42 @@ export default function PeopleListScreen() {
             ))}
           </ScrollView>
         )}
+
+        {/* View Toggle Chips */}
+        <View style={styles.viewToggleContainer}>
+          <Chip 
+            selected={viewMode === 'network'} 
+            onPress={() => setViewMode('network')}
+            showSelectedOverlay
+            style={styles.viewToggleChip}
+          >
+            My Network
+          </Chip>
+          <Chip 
+            selected={viewMode === 'all'} 
+            onPress={() => setViewMode('all')}
+            showSelectedOverlay
+            style={styles.viewToggleChip}
+          >
+            All People
+          </Chip>
+        </View>
       </View>
 
       {filteredPeople && filteredPeople.length === 0 && !searchQuery && (
         <View style={styles.emptyState}>
           <Text variant="headlineSmall" style={styles.emptyTitle}>
-            No people yet
+            {t('people.noPeople')}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            Add your first person to get started!
+            {t('people.noPeopleDesc')}
           </Text>
           <Button
             mode="contained"
             onPress={() => router.push('/modal')}
             style={styles.emptyButton}
           >
-            Add a Person
+            {t('people.addPerson')}
           </Button>
         </View>
       )}
@@ -349,7 +382,7 @@ export default function PeopleListScreen() {
       {filteredPeople && filteredPeople.length === 0 && searchQuery && (
         <View style={styles.emptyState}>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            No results found for "{searchQuery}"
+            {t('people.noResults', { query: searchQuery })}
           </Text>
         </View>
       )}
@@ -375,7 +408,7 @@ export default function PeopleListScreen() {
           const avatarColor = item.relationshipType
             ? relationshipColors[item.relationshipType] || '#6200ee'
             : '#6200ee';
-          
+
           // Check if we need to show category divider
           const currentCategory = item.relationshipType || 'Other';
           const previousCategory = index > 0 ? (filteredPeople[index - 1].relationshipType || 'Other') : null;
@@ -386,9 +419,9 @@ export default function PeopleListScreen() {
           return (
             <>
               {showCategoryHeader && (
-                <SectionDivider 
-                  label={currentCategory} 
-                  variant="labelMedium" 
+                <SectionDivider
+                  label={currentCategory}
+                  variant="labelMedium"
                   textStyle="uppercase"
                   marginVertical={16}
                 />
@@ -580,5 +613,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 8,
+  },
+  viewToggleChip: {
+    flex: 1,
   },
 });

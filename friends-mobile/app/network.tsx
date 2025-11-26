@@ -1,11 +1,12 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Dimensions, StyleSheet, View, ActivityIndicator, StatusBar, ScrollView } from 'react-native';
+import { Dimensions, StyleSheet, View, ActivityIndicator, StatusBar } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, Stack } from 'expo-router';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
@@ -21,7 +22,7 @@ export default function NetworkScreen() {
   const insets = useSafeAreaInsets();
   const { data: people = [], isLoading: loadingPeople, refetch } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
-  
+
   console.log('[Network] Data loaded:', {
     peopleCount: people.length,
     connectionsCount: connections.length,
@@ -59,7 +60,7 @@ export default function NetworkScreen() {
   const filteredPeople = useMemo(() => {
     return people.filter((person) => {
       // Filter by search query
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (person.nickname && person.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -138,14 +139,23 @@ export default function NetworkScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      
+
       {/* Custom Header - Android Contacts Style */}
       <View style={[headerStyles.header, { paddingTop: insets.top }]}>
         <View style={headerStyles.headerContent}>
-          <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-            Network
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={() => router.back()}
+              style={{ marginLeft: -8, marginRight: 4 }}
+            />
+            <Text variant="headlineMedium" style={headerStyles.headerTitle}>
+              Network
+            </Text>
+          </View>
           <View style={headerStyles.headerActions}>
             {(allTags.length > 0 || relationshipTypes.length > 0) && (
               <IconButton

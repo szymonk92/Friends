@@ -2,14 +2,13 @@ import { StyleSheet, View, Alert, ScrollView, TouchableOpacity } from 'react-nat
 import { Text, List, IconButton, Divider, ActivityIndicator, Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
-import { usePerson, usePeople } from '@/hooks/usePeople';
+import { usePeople } from '@/hooks/usePeople';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { getInitials } from '@/lib/utils/format';
 import { getRelationshipColor } from '@/lib/utils/format';
 
 export default function ManageConnectionsScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
-  const { data: person } = usePerson(personId!);
   const { data: allPeople = [] } = usePeople();
   const { data: connections = [], isLoading } = usePersonConnections(personId!);
   const deleteConnection = useDeleteConnection();

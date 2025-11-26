@@ -5,6 +5,7 @@ import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
 import { usePerson } from '@/hooks/usePeople';
 import { formatRelationType, getRelationEmoji, formatRelativeTime } from '@/lib/utils/format';
 import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
+import { spacing } from '@/styles/spacing';
 
 // Helper function to get intensity label
 const getIntensityLabel = (intensity: string) => {
@@ -88,7 +89,7 @@ export default function ManageRelationsScreen() {
         options={{
           title: `${person?.name || 'Person'} - Relations`,
           headerRight: () => (
-            <View style={{ marginRight: 16 }}>
+            <View style={{ marginRight: spacing.xs }}>
               <IconButton
                 icon="plus"
                 onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
@@ -200,17 +201,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   categoryChip: {
-    height: 24,
+    marginVertical: 4,
+    height: 32,
   },
   categoryChipText: {
-    fontSize: 10,
+    fontSize: 12,
+    lineHeight: 20,
   },
   intensityChip: {
-    height: 28,
-    paddingHorizontal: 6,
+    height: 32,
+    paddingHorizontal: 8,
   },
   intensityChipText: {
-    fontSize: 10,
+    fontSize: 12,
+    lineHeight: 20,
   },
   dateText: {
     opacity: 0.6,

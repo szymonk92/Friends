@@ -1,7 +1,7 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import {
   View,
   StyleSheet,
@@ -230,12 +230,20 @@ export default function TimelineScreen() {
   };
 
   const handleEditEvent = (event: any) => {
-    setEditingEvent(event);
-    setSelectedPersonId(event.personId);
-    setEventType(event.eventType);
-    setDateInput(event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
-    setNotes(event.notes || '');
-    setAddDialogVisible(true);
+    // Check if this is a party event
+    if (event.isPartyEvent && event.partyDetails) {
+      // Navigate to party-planner screen with the actual event ID (without 'party-' prefix)
+      const actualEventId = event.id.replace('party-', '');
+      router.push(`/party-planner?eventId=${actualEventId}`);
+    } else {
+      // Regular contact event - show dialog
+      setEditingEvent(event);
+      setSelectedPersonId(event.personId);
+      setEventType(event.eventType);
+      setDateInput(event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setNotes(event.notes || '');
+      setAddDialogVisible(true);
+    }
   };
 
   const handleDeleteEvent = (eventId: string) => {

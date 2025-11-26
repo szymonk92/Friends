@@ -1,17 +1,71 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeColor = 'violet' | 'blue' | 'green' | 'rose' | 'orange' | 'teal';
+export type ThemeColor = 'violet' | 'blue' | 'green' | 'rose' | 'orange' | 'teal' | 'inkWash' | 'cherry' | 'lavender';
 export type AIModel = 'anthropic' | 'gemini';
 
-export const THEME_COLORS: Record<ThemeColor, string> = {
-  violet: '#8b5cf6',
-  blue: '#3b82f6',
-  green: '#10b981',
-  rose: '#f43f5e',
-  orange: '#f97316',
-  teal: '#14b8a6',
+export interface ColorPalette {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+}
+
+export const THEME_PALETTES: Record<ThemeColor, ColorPalette> = {
+  violet: {
+    primary: '#8b5cf6',
+    secondary: '#ec4899', // Pink
+    tertiary: '#6366f1',  // Indigo
+  },
+  blue: {
+    primary: '#3882ddff',
+    secondary: '#0ea5e9', // Sky blue
+    tertiary: '#06b6d4',  // Cyan
+  },
+  green: {
+    primary: '#10b981',
+    secondary: '#14b8a6', // Teal
+    tertiary: '#22c55e',  // Light green
+  },
+  rose: {
+    primary: '#f43f5e',
+    secondary: '#f97316', // Orange
+    tertiary: '#ec4899',  // Pink
+  },
+  orange: {
+    primary: '#f97316',
+    secondary: '#f59e0b', // Amber
+    tertiary: '#ef4444',  // Red
+  },
+  teal: {
+    primary: '#08605F',
+    secondary: '#177E89', // Teal blue
+    tertiary: '#598381',  // Sage
+  },
+  inkWash: {
+    primary: '#4A4A4A',
+    secondary: '#CBCBCB', // Teal blue
+    tertiary: '#FFFFF3',  // Sage
+  },
+  cherry: {
+    primary: '#F2C7C7',
+    secondary: '#F2C7C7', // Teal blue
+    tertiary: '#F2C7C7',  // Sage
+  },
+  lavender: {
+    primary: '#3882ddff',
+    secondary: '#9EF0FF', // Teal blue
+    tertiary: '#A4A5F5',  // Sage
+  },
 };
+
+// Backward compatibility - export just primary colors
+export const THEME_COLORS: Record<ThemeColor, string> = Object.entries(THEME_PALETTES).reduce(
+  (acc, [key, palette]) => {
+    acc[key as ThemeColor] = palette.primary;
+    return acc;
+  },
+  {} as Record<ThemeColor, string>
+);
 
 export const AI_MODELS: Record<AIModel, { name: string; description: string }> = {
   anthropic: {
@@ -29,6 +83,7 @@ interface SettingsState {
   geminiApiKey: string | null;
   selectedModel: AIModel;
   themeColor: ThemeColor;
+  maxPhotosPerPerson: number;
   setApiKey: (key: string) => Promise<void>;
   clearApiKey: () => Promise<void>;
   loadApiKey: () => Promise<void>;
@@ -44,12 +99,15 @@ interface SettingsState {
   setThemeColor: (color: ThemeColor) => Promise<void>;
   loadThemeColor: () => Promise<void>;
   getThemeColorValue: () => string;
+  setMaxPhotosPerPerson: (limit: number) => Promise<void>;
+  loadMaxPhotosPerPerson: () => Promise<void>;
 }
 
 const API_KEY_STORAGE_KEY = '@friends_api_key';
 const GEMINI_API_KEY_STORAGE_KEY = '@friends_gemini_api_key';
 const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
 const THEME_COLOR_STORAGE_KEY = '@friends_theme_color';
+const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
 
 /**
  * Settings store using Zustand
@@ -60,6 +118,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   geminiApiKey: null,
   selectedModel: 'anthropic',
   themeColor: 'violet',
+  maxPhotosPerPerson: 5,
 
   setApiKey: async (key: string) => {
     try {
@@ -185,5 +244,32 @@ export const useSettings = create<SettingsState>((set, get) => ({
   getThemeColorValue: () => {
     const state = get();
     return THEME_COLORS[state.themeColor];
+  },
+
+  setMaxPhotosPerPerson: async (limit: number) => {
+    try {
+      if (limit < 1 || limit > 100) {
+        throw new Error('Photo limit must be between 1 and 100');
+      }
+      await AsyncStorage.setItem(MAX_PHOTOS_PER_PERSON_STORAGE_KEY, limit.toString());
+      set({ maxPhotosPerPerson: limit });
+    } catch (error) {
+      console.error('Failed to save max photos per person:', error);
+      throw error;
+    }
+  },
+
+  loadMaxPhotosPerPerson: async () => {
+    try {
+      const limit = await AsyncStorage.getItem(MAX_PHOTOS_PER_PERSON_STORAGE_KEY);
+      if (limit) {
+        const parsedLimit = parseInt(limit, 10);
+        if (!isNaN(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 100) {
+          set({ maxPhotosPerPerson: parsedLimit });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load max photos per person:', error);
+    }
   },
 }));

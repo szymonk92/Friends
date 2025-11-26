@@ -1,7 +1,8 @@
 import { StyleSheet, View, Alert } from 'react-native';
-import { Text, Chip, Button, Portal, Dialog, TextInput as PaperInput, useTheme } from 'react-native-paper';
+import { Text, Chip, Button, Portal, Dialog, TextInput as PaperInput, useTheme, IconButton } from 'react-native-paper';
 import { useState } from 'react';
 import { usePersonTags, useAddTagToPerson, useRemoveTagFromPerson, useAllTags } from '@/hooks/useTags';
+import { useCommonStyles } from '@/styles/common';
 
 interface PersonTagsProps {
     personId: string;
@@ -10,6 +11,7 @@ interface PersonTagsProps {
 
 export default function PersonTags({ personId, personName }: PersonTagsProps) {
     const theme = useTheme();
+    const commonStyles = useCommonStyles();
     const { data: personTags = [] } = usePersonTags(personId);
     const { data: allTags = [] } = useAllTags();
     const addTagToPerson = useAddTagToPerson();
@@ -53,23 +55,20 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
     return (
         <>
-            <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
-                <View style={styles.sectionHeader}>
-                    <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            <View style={commonStyles.section}>
+                <View style={commonStyles.sectionHeader}>
+                    <Text variant="titleMedium" style={commonStyles.sectionTitle}>
                         Tags
                     </Text>
-                    <Button
-                        mode="text"
-                        compact
-                        icon="tag-plus"
+                    <IconButton
+                        icon="plus"
+                        size={20}
                         onPress={() => setAddTagDialogVisible(true)}
-                    >
-                        Add
-                    </Button>
+                    />
                 </View>
 
                 {personTags.length === 0 ? (
-                    <Text variant="bodySmall" style={[styles.emptyStateText, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodySmall" style={commonStyles.emptyStateText}>
                         No tags yet. Add tags to organize and filter contacts.
                     </Text>
                 ) : (
@@ -138,26 +137,6 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 }
 
 const styles = StyleSheet.create({
-    section: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontWeight: '600',
-        fontSize: 18,
-    },
-    emptyStateText: {
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 12,
-    },
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',

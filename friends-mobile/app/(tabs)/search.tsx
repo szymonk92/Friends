@@ -2,7 +2,7 @@ import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
-import { View, ActivityIndicator, StatusBar, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StatusBar, TouchableOpacity, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { Card, Chip, Text, Searchbar, SegmentedButtons, List } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
@@ -203,17 +203,40 @@ export default function SearchScreen() {
           style={styles.searchbar}
           autoFocus
         />
-        <SegmentedButtons
-          value={category}
-          onValueChange={(value) => setCategory(value as SearchCategory)}
-          buttons={[
-            { value: 'all', label: 'All' },
-            { value: 'people', label: 'People' },
-            { value: 'relations', label: 'Preferences' },
-            { value: 'stories', label: 'Stories' },
-          ]}
-          style={styles.segmented}
-        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+          <Chip
+            selected={category === 'all'}
+            onPress={() => setCategory('all')}
+            style={styles.categoryChip}
+            showSelectedOverlay={true}
+          >
+            All
+          </Chip>
+          <Chip
+            selected={category === 'people'}
+            onPress={() => setCategory('people')}
+            style={styles.categoryChip}
+            showSelectedOverlay={true}
+          >
+            People
+          </Chip>
+          <Chip
+            selected={category === 'relations'}
+            onPress={() => setCategory('relations')}
+            style={styles.categoryChip}
+            showSelectedOverlay={true}
+          >
+            Preferences
+          </Chip>
+          <Chip
+            selected={category === 'stories'}
+            onPress={() => setCategory('stories')}
+            style={styles.categoryChip}
+            showSelectedOverlay={true}
+          >
+            Stories
+          </Chip>
+        </ScrollView>
       </View>
 
       {isLoading && (
@@ -352,8 +375,12 @@ const styles = StyleSheet.create({
     elevation: 0,
     backgroundColor: '#f5f5f5',
   },
-  segmented: {
+  categoriesContainer: {
+    flexDirection: 'row',
     marginBottom: 4,
+  },
+  categoryChip: {
+    marginRight: 8,
   },
   emptyState: {
     padding: 32,

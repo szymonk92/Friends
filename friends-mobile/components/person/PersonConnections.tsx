@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
+import { useCommonStyles } from '@/styles/common';
 
 interface PersonConnectionsProps {
     personId: string;
@@ -12,6 +13,7 @@ interface PersonConnectionsProps {
 
 export default function PersonConnections({ personId, personName }: PersonConnectionsProps) {
     const theme = useTheme();
+    const commonStyles = useCommonStyles();
     const { data: personConnections, isLoading: connectionsLoading } = usePersonConnections(personId);
     const { data: allPeople = [] } = usePeople();
 
@@ -22,12 +24,12 @@ export default function PersonConnections({ personId, personName }: PersonConnec
     };
 
     return (
-        <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
-            <View style={styles.sectionHeader}>
-                <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+        <View style={commonStyles.section}>
+            <View style={commonStyles.sectionHeader}>
+                <Text variant="titleLarge" style={commonStyles.sectionTitle}>
                     Connections ({personConnections?.length || 0})
                 </Text>
-                <View style={styles.sectionHeaderButtons}>
+                <View style={commonStyles.sectionHeaderButtons}>
                     <IconButton
                         icon="plus"
                         size={20}
@@ -49,7 +51,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
 
             {!connectionsLoading && personConnections && personConnections.length === 0 && (
                 <View style={styles.emptyState}>
-                    <Text variant="bodyMedium" style={[styles.emptyStateText, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodyMedium" style={commonStyles.emptyStateText}>
                         No connections yet. Add connections to show how {personName} relates to other
                         people.
                     </Text>
@@ -88,7 +90,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
                                 )
                             }
                             right={() => (
-                                <Chip compact style={{ marginRight: 4 }}>
+                                <Chip compact style={{ marginRight: 4, alignItems: 'center', justifyContent: 'center' }}>
                                     {connection.status}
                                 </Chip>
                             )}
@@ -113,25 +115,6 @@ export default function PersonConnections({ personId, personName }: PersonConnec
 }
 
 const styles = StyleSheet.create({
-    section: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionHeaderButtons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    sectionTitle: {
-        fontWeight: '600',
-        fontSize: 18,
-    },
     centered: {
         padding: 20,
         alignItems: 'center',
@@ -139,11 +122,6 @@ const styles = StyleSheet.create({
     emptyState: {
         paddingVertical: 16,
         alignItems: 'center',
-    },
-    emptyStateText: {
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 12,
     },
     emptyStateButton: {
         marginTop: 8,

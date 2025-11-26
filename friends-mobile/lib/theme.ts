@@ -1,25 +1,26 @@
 import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import type { MD3Theme } from 'react-native-paper';
-import { THEME_COLORS, type ThemeColor } from '@/store/useSettings';
+import { THEME_PALETTES, type ThemeColor } from '@/store/useSettings';
 
 export const createTheme = (themeColor: ThemeColor, isDark: boolean = false): MD3Theme => {
   const baseTheme = isDark ? MD3DarkTheme : MD3LightTheme;
-  const primaryColor = THEME_COLORS[themeColor];
+  const palette = THEME_PALETTES[themeColor];
 
   return {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      primary: primaryColor,
-      primaryContainer: `${primaryColor}20`,
-      secondary: primaryColor,
-      secondaryContainer: `${primaryColor}15`,
-      tertiary: primaryColor,
-      tertiaryContainer: `${primaryColor}10`,
+      primary: palette.primary,
+      primaryContainer: `${palette.primary}20`,
+      secondary: palette.secondary,
+      secondaryContainer: `${palette.secondary}15`,
+      tertiary: palette.tertiary,
+      tertiaryContainer: `${palette.tertiary}10`,
       surface: isDark ? '#1c1b1f' : '#ffffff',
       surfaceVariant: isDark ? '#49454f' : '#e7e0ec',
       background: isDark ? '#1c1b1f' : '#fafafa',
       error: '#ba1a1a',
+      warning: '#ba7000ff',
       errorContainer: '#ffdad6',
       onPrimary: '#ffffff',
       onPrimaryContainer: isDark ? '#ffffff' : '#21005d',
@@ -36,7 +37,7 @@ export const createTheme = (themeColor: ThemeColor, isDark: boolean = false): MD
       outlineVariant: isDark ? '#49454f' : '#cac4d0',
       inverseSurface: isDark ? '#e6e1e5' : '#313033',
       inverseOnSurface: isDark ? '#1c1b1f' : '#f4eff4',
-      inversePrimary: primaryColor,
+      inversePrimary: palette.primary,
       shadow: '#000000',
       scrim: '#000000',
       backdrop: 'rgba(0, 0, 0, 0.4)',
@@ -50,6 +51,8 @@ export const createTheme = (themeColor: ThemeColor, isDark: boolean = false): MD
       },
       surfaceDisabled: 'rgba(28, 27, 31, 0.12)',
       onSurfaceDisabled: 'rgba(28, 27, 31, 0.38)',
-    },
+      // Custom colors
+      medium: '#ff9800',
+    } as any, // Cast to any to allow custom properties
   };
 };

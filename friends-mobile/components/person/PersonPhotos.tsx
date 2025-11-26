@@ -1,6 +1,9 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Text, Button, IconButton, useTheme } from 'react-native-paper';
 import { usePersonPhotos, useAddPhotoToPerson, useTakePhoto, useSetProfilePhoto, useDeletePhoto } from '@/hooks/usePhotos';
+import { useState } from 'react';
+import PhotoBrowser from './PhotoBrowser';
+import { useSettings } from '@/store/useSettings';
 
 interface PersonPhotosProps {
     personId: string;
@@ -14,44 +17,67 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
     const takePhoto = useTakePhoto();
     const setProfilePhoto = useSetProfilePhoto();
     const deletePhoto = useDeletePhoto();
+    const maxPhotosPerPerson = useSettings((state) => state.maxPhotosPerPerson);
+
+    const [browserVisible, setBrowserVisible] = useState(false);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
     if (personPhotos.length === 0) return null;
+
+    const handleAddPhoto = () => {
+        // Check if we've reached the limit
+        if (personPhotos.length >= maxPhotosPerPerson) {
+            Alert.alert(
+                'Photo Limit Reached',
+                `You can only add up to ${maxPhotosPerPerson} photos per person. Delete a photo first or adjust the limit in Dev settings.`,
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        Alert.alert(
+            'Add Photo',
+            'Choose how to add a photo',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Take Photo',
+                    onPress: () => takePhoto.mutateAsync({ personId }),
+                },
+                {
+                    text: 'Choose from Library',
+                    onPress: () => addPhotoToPerson.mutateAsync({ personId }),
+                },
+            ]
+        );
+    };
+
+    const handlePhotoPress = (index: number) => {
+        setSelectedPhotoIndex(index);
+        setBrowserVisible(true);
+    };
 
     return (
         <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
             <View style={styles.sectionHeader}>
                 <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                    Photos ({personPhotos.length})
+                    Photos ({personPhotos.length}/{maxPhotosPerPerson})
                 </Text>
                 <Button
                     mode="text"
                     compact
                     icon="image-plus"
-                    onPress={() => {
-                        Alert.alert(
-                            'Add Photo',
-                            'Choose how to add a photo',
-                            [
-                                { text: 'Cancel', style: 'cancel' },
-                                {
-                                    text: 'Take Photo',
-                                    onPress: () => takePhoto.mutateAsync({ personId }),
-                                },
-                                {
-                                    text: 'Choose from Library',
-                                    onPress: () => addPhotoToPerson.mutateAsync({ personId }),
-                                },
-                            ]
-                        );
-                    }}
+                    onPress={handleAddPhoto}
+                    disabled={personPhotos.length >= maxPhotosPerPerson}
                 >
                     Add
                 </Button>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {personPhotos.map((photo) => (
+                {personPhotos.map((photo, index) => (
                     <TouchableOpacity
                         key={photo.id}
+                        onPress={() => handlePhotoPress(index)}
                         onLongPress={() => {
                             Alert.alert(
                                 'Photo Options',
@@ -83,8 +109,23 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
                 ))}
             </ScrollView>
             <Text variant="labelSmall" style={[styles.photoHint, { color: theme.colors.onSurfaceVariant }]}>
-                Long press on a photo for options
+                Tap to view • Long press for options
             </Text>
+
+            <PhotoBrowser
+                visible={browserVisible}
+                photos={personPhotos}
+                initialIndex={selectedPhotoIndex}
+                currentPhotoId={currentPhotoId}
+                onClose={() => setBrowserVisible(false)}
+                onSetAsProfile={(photoId) => {
+                    setProfilePhoto.mutateAsync({ personId, photoId });
+                    setBrowserVisible(false);
+                }}
+                onDelete={(photoId) => {
+                    deletePhoto.mutateAsync(photoId);
+                }}
+            />
         </View>
     );
 }
@@ -130,3 +171,4 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
 });
+

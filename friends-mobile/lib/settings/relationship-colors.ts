@@ -5,33 +5,33 @@ export interface RelationshipColorMap {
 }
 
 export const DEFAULT_COLORS: RelationshipColorMap = {
-  friend: '#4CAF50',
-  family: '#E91E63',
-  colleague: '#2196F3',
-  acquaintance: '#9E9E9E',
-  partner: '#F44336',
+  friend: '#81C784',      // Soft green (less saturated)
+  family: '#F06292',      // Soft pink (less saturated)
+  colleague: '#64B5F6',   // Soft blue (less saturated)
+  acquaintance: '#B0BEC5', // Soft grey
+  partner: '#E57373',     // Soft red (less saturated)
 };
 
 export const AVAILABLE_COLORS = [
-  { name: 'Red', value: '#F44336' },
-  { name: 'Pink', value: '#E91E63' },
-  { name: 'Purple', value: '#9C27B0' },
-  { name: 'Deep Purple', value: '#673AB7' },
-  { name: 'Indigo', value: '#3F51B5' },
-  { name: 'Blue', value: '#2196F3' },
-  { name: 'Light Blue', value: '#03A9F4' },
-  { name: 'Cyan', value: '#00BCD4' },
-  { name: 'Teal', value: '#009688' },
-  { name: 'Green', value: '#4CAF50' },
-  { name: 'Light Green', value: '#8BC34A' },
-  { name: 'Lime', value: '#CDDC39' },
-  { name: 'Yellow', value: '#FFEB3B' },
-  { name: 'Amber', value: '#FFC107' },
-  { name: 'Orange', value: '#FF9800' },
-  { name: 'Deep Orange', value: '#FF5722' },
-  { name: 'Brown', value: '#795548' },
-  { name: 'Grey', value: '#9E9E9E' },
-  { name: 'Blue Grey', value: '#607D8B' },
+  { name: 'Soft Red', value: '#E57373' },
+  { name: 'Soft Pink', value: '#F06292' },
+  { name: 'Soft Purple', value: '#BA68C8' },
+  { name: 'Soft Deep Purple', value: '#9575CD' },
+  { name: 'Soft Indigo', value: '#7986CB' },
+  { name: 'Soft Blue', value: '#64B5F6' },
+  { name: 'Soft Light Blue', value: '#4FC3F7' },
+  { name: 'Soft Cyan', value: '#4DD0E1' },
+  { name: 'Soft Teal', value: '#4DB6AC' },
+  { name: 'Soft Green', value: '#81C784' },
+  { name: 'Soft Light Green', value: '#AED581' },
+  { name: 'Soft Lime', value: '#DCE775' },
+  { name: 'Soft Yellow', value: '#FFF176' },
+  { name: 'Soft Amber', value: '#FFD54F' },
+  { name: 'Soft Orange', value: '#FFB74D' },
+  { name: 'Soft Deep Orange', value: '#FF8A65' },
+  { name: 'Soft Brown', value: '#A1887F' },
+  { name: 'Soft Grey', value: '#B0BEC5' },
+  { name: 'Soft Blue Grey', value: '#90A4AE' },
 ];
 
 const STORAGE_KEY = 'relationship_colors';

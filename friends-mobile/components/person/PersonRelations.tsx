@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { formatRelationType, getRelationEmoji } from '@/lib/utils/format';
 import { WEAK, MEDIUM, STRONG, VERY_STRONG } from '@/lib/constants/relations';
+import { useCommonStyles } from '@/styles/common';
 
 // Priority order for relation types (higher priority = shown first)
 const RELATION_TYPE_PRIORITY: Record<string, number> = {
@@ -36,6 +37,7 @@ interface PersonRelationsProps {
 
 export default function PersonRelations({ personId, personName }: PersonRelationsProps) {
     const theme = useTheme();
+    const commonStyles = useCommonStyles();
     const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(personId);
 
     // Group relations by type and sort by priority
@@ -57,12 +59,12 @@ export default function PersonRelations({ personId, personName }: PersonRelation
         : [];
 
     return (
-        <View style={[styles.section, { borderBottomColor: theme.colors.surfaceVariant }]}>
-            <View style={styles.sectionHeader}>
-                <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+        <View style={commonStyles.section}>
+            <View style={commonStyles.sectionHeader}>
+                <Text variant="titleLarge" style={commonStyles.sectionTitle}>
                     Relations ({personRelations?.length || 0})
                 </Text>
-                <View style={styles.sectionHeaderButtons}>
+                <View style={commonStyles.sectionHeaderButtons}>
                     <IconButton
                         icon="plus"
                         size={20}
@@ -84,7 +86,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
 
             {!relationsLoading && personRelations && personRelations.length === 0 && (
                 <View style={styles.emptyState}>
-                    <Text variant="bodyMedium" style={[styles.emptyStateText, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodyMedium" style={commonStyles.emptyStateText}>
                         No relations yet. Add preferences, facts, or information about {personName}.
                     </Text>
                     <Button
@@ -137,25 +139,6 @@ export default function PersonRelations({ personId, personName }: PersonRelation
 }
 
 const styles = StyleSheet.create({
-    section: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        borderBottomWidth: 1,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionHeaderButtons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    sectionTitle: {
-        fontWeight: '600',
-        fontSize: 18,
-    },
     centered: {
         padding: 20,
         alignItems: 'center',
@@ -163,11 +146,6 @@ const styles = StyleSheet.create({
     emptyState: {
         paddingVertical: 16,
         alignItems: 'center',
-    },
-    emptyStateText: {
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 12,
     },
     emptyStateButton: {
         marginTop: 8,

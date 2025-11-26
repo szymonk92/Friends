@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { Chip, Menu } from 'react-native-paper';
+import { Chip, Menu, useTheme, Icon } from 'react-native-paper';
 
 interface TimelineFiltersProps {
     filtersVisible: boolean;
@@ -27,6 +27,18 @@ export default function TimelineFilters({
     eventTypes,
     getPersonName,
 }: TimelineFiltersProps) {
+    const theme = useTheme();
+
+    // Sort event types to move selected to the front
+    const sortedEventTypes = useMemo(() => {
+        if (!filterEventType) return eventTypes;
+
+        const selected = eventTypes.find(t => t.value === filterEventType);
+        const others = eventTypes.filter(t => t.value !== filterEventType);
+
+        return selected ? [selected, ...others] : eventTypes;
+    }, [eventTypes, filterEventType]);
+
     if (!filtersVisible) return null;
 
     return (
@@ -39,10 +51,21 @@ export default function TimelineFilters({
                         onDismiss={() => setPersonMenuVisible(false)}
                         anchor={
                             <Chip
-                                icon="account"
+                                icon={({ size, color }) => (
+                                    <Icon
+                                        source="account"
+                                        size={size}
+                                        color={filterPersonId ? theme.colors.onPrimary : color}
+                                    />
+                                )}
                                 onPress={() => setPersonMenuVisible(true)}
                                 onClose={filterPersonId ? () => setFilterPersonId(null) : undefined}
-                                style={styles.filterChip}
+                                selected={!!filterPersonId}
+                                style={[
+                                    styles.filterChip,
+                                    filterPersonId ? { backgroundColor: theme.colors.primary } : null
+                                ]}
+                                selectedColor={filterPersonId ? theme.colors.onPrimary : undefined}
                             >
                                 {filterPersonId ? getPersonName(filterPersonId) : 'All People'}
                             </Chip>
@@ -76,17 +99,31 @@ export default function TimelineFilters({
                     >
                         All Types
                     </Chip>
-                    {eventTypes.map((type) => (
-                        <Chip
-                            key={type.value}
-                            icon={type.icon}
-                            onPress={() => setFilterEventType(type.value)}
-                            selected={filterEventType === type.value}
-                            style={styles.filterChip}
-                        >
-                            {type.label}
-                        </Chip>
-                    ))}
+                    {sortedEventTypes.map((type) => {
+                        const isSelected = filterEventType === type.value;
+                        return (
+                            <Chip
+                                key={type.value}
+                                icon={({ size, color }) => (
+                                    <Icon
+                                        source={type.icon}
+                                        size={size}
+                                        color={isSelected ? theme.colors.onPrimary : color}
+                                    />
+                                )}
+                                onPress={() => setFilterEventType(isSelected ? null : type.value)}
+                                selected={isSelected}
+                                style={[
+                                    styles.filterChip,
+                                    isSelected && { backgroundColor: theme.colors.primary }
+                                ]}
+                                selectedColor={isSelected ? theme.colors.onPrimary : undefined}
+                                showSelectedOverlay={true}
+                            >
+                                {type.label}
+                            </Chip>
+                        );
+                    })}
                 </ScrollView>
             </View>
         </View>

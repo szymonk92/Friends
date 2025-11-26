@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Divider, SegmentedButtons, List, Button } from 'react-native-paper';
+import { Card, Text, Divider, SegmentedButtons, List, Button, useTheme } from 'react-native-paper';
 import { AI_MODELS, type AIModel } from '@/store/useSettings';
 
 interface AIConfigurationProps {
@@ -25,6 +25,7 @@ export default function AIConfiguration({
     handleClearApiKey,
     handleClearGeminiApiKey,
 }: AIConfigurationProps) {
+    const theme = useTheme();
     return (
         <Card style={styles.card}>
             <Card.Content>
@@ -72,7 +73,7 @@ export default function AIConfiguration({
                         <List.Icon
                             {...props}
                             icon={hasApiKey() ? 'check-circle' : 'alert-circle'}
-                            color={hasApiKey() ? '#4caf50' : '#ff9800'}
+                            color={hasApiKey() ? theme.colors.primary : theme.colors.error}
                         />
                     )}
                 />
@@ -85,13 +86,13 @@ export default function AIConfiguration({
                             icon="key-change"
                             style={styles.button}
                         >
-                            Change Claude Key
+                            Change Key
                         </Button>
                         <Button
                             mode="outlined"
                             onPress={handleClearApiKey}
                             icon="delete"
-                            textColor="#d32f2f"
+                            textColor={theme.colors.error}
                             style={styles.button}
                         >
                             Clear Claude Key
@@ -122,7 +123,7 @@ export default function AIConfiguration({
                         <List.Icon
                             {...props}
                             icon={hasGeminiApiKey() ? 'check-circle' : 'alert-circle'}
-                            color={hasGeminiApiKey() ? '#4caf50' : '#ff9800'}
+                            color={hasGeminiApiKey() ? theme.colors.primary : theme.colors.error}
                         />
                     )}
                 />
@@ -135,13 +136,13 @@ export default function AIConfiguration({
                             icon="key-change"
                             style={styles.button}
                         >
-                            Change Gemini Key
+                            Change Key
                         </Button>
                         <Button
                             mode="outlined"
                             onPress={handleClearGeminiApiKey}
                             icon="delete"
-                            textColor="#d32f2f"
+                            textColor={theme.colors.error}
                             style={styles.button}
                         >
                             Clear Gemini Key
@@ -163,7 +164,7 @@ export default function AIConfiguration({
                 </Text>
 
                 {!hasActiveApiKey() && (
-                    <Text variant="bodySmall" style={styles.warningText}>
+                    <Text variant="bodySmall" style={[styles.warningText, { color: theme.colors.error }]}>
                         ⚠️ You need to configure an API key for the selected model to use AI extraction.
                     </Text>
                 )}
@@ -212,7 +213,6 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     warningText: {
-        color: '#f57c00',
         marginTop: 16,
     },
 });

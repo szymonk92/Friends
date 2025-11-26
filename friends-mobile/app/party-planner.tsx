@@ -7,6 +7,7 @@ import { useRelations } from '@/hooks/useRelations';
 import { useCreateEvent, useEvents, useUpdateEvent } from '@/hooks/useEvents';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
 import { getRelationshipColors, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import { devLogger } from '@/lib/utils/devLogger';
 
 import PartyDetailsForm from '@/components/party/PartyDetailsForm';
 import GuestSelector from '@/components/party/GuestSelector';
@@ -48,6 +49,13 @@ export default function PartyPlannerScreen() {
     if (eventId) {
       const event = allEvents.find((e) => e.id === eventId);
       if (event) {
+        devLogger.party('Loading party for edit', {
+          eventId,
+          name: event.name,
+          rawGuestIds: event.guestIds,
+          eventType: event.eventType,
+        });
+
         setPartyName(event.name || '');
         setPartyDate(event.eventDate ? event.eventDate.toISOString().split('T')[0] : '');
         setPartyLocation(event.location || '');
@@ -57,11 +65,30 @@ export default function PartyPlannerScreen() {
         if (event.guestIds) {
           try {
             const guestIds = JSON.parse(event.guestIds);
-            setSelectedGuests(guestIds);
+            devLogger.party('Parsed guest IDs successfully', {
+              guestIds,
+              count: guestIds.length,
+              isArray: Array.isArray(guestIds),
+            });
+
+            // Validate that guestIds is an array
+            if (Array.isArray(guestIds)) {
+              setSelectedGuests(guestIds);
+              devLogger.party('Set selected guests', { count: guestIds.length });
+            } else {
+              devLogger.error('Guest IDs is not an array', { guestIds });
+              setSelectedGuests([]);
+            }
           } catch (e) {
-            console.error('Failed to parse guest IDs:', e);
+            devLogger.error('Failed to parse guest IDs', { error: String(e), rawGuestIds: event.guestIds });
+            setSelectedGuests([]);
           }
+        } else {
+          devLogger.party('No guests stored in event', { eventId });
+          setSelectedGuests([]);
         }
+      } else {
+        devLogger.warn('Event not found for ID', { eventId, allEventsCount: allEvents.length });
       }
     }
   }, [eventId, allEvents]);
@@ -236,6 +263,14 @@ export default function PartyPlannerScreen() {
       status: 'planned' as const,
     };
 
+    devLogger.party(eventId ? 'Updating party' : 'Creating party', {
+      eventId,
+      name: partyName,
+      guestCount: selectedGuests.length,
+      selectedGuests,
+      guestIdsJSON: eventData.guestIds,
+    });
+
     try {
       if (eventId) {
         // Update existing event
@@ -244,18 +279,25 @@ export default function PartyPlannerScreen() {
           ...eventData,
         });
 
+        devLogger.party('Party updated successfully', { eventId, name: partyName });
         Alert.alert('Party Updated!', `${partyName} has been updated.`, [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
         // Create new event
-        await createEvent.mutateAsync(eventData);
+        const result = await createEvent.mutateAsync(eventData);
+        devLogger.party('Party created successfully', {
+          newEventId: result?.id,
+          name: partyName,
+          guestCount: selectedGuests.length,
+        });
 
         Alert.alert('Party Created!', `${partyName} has been saved with ${selectedGuests.length} guests.`, [
           { text: 'OK', onPress: () => router.back() },
         ]);
       }
     } catch (error) {
+      devLogger.error(`Failed to ${eventId ? 'update' : 'create'} party`, { error: String(error), eventData });
       Alert.alert('Error', `Failed to ${eventId ? 'update' : 'create'} party. Please try again.`);
     }
   };

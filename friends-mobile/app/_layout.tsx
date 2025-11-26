@@ -16,6 +16,8 @@ import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
 import { useSettings } from '@/store/useSettings';
 import { createTheme } from '@/lib/theme';
+import '@/lib/i18n'; // Initialize i18n
+import '@/lib/i18n/types'; // Import type definitions
 
 // Create QueryClient instance
 const queryClient = new QueryClient({

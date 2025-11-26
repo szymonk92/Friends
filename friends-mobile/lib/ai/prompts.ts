@@ -12,6 +12,8 @@ export interface ExtractionContext {
     subjectName: string;
   }>;
   storyText: string;
+  explicitlyTaggedPeople?: Array<{ id: string; name: string }>;
+  forceNewPeople?: string[];
 }
 
 /**
@@ -19,24 +21,40 @@ export interface ExtractionContext {
  * Uses lightweight context (only person names, not full profiles)
  */
 export function createExtractionPrompt(context: ExtractionContext): string {
-  const { existingPeople, existingRelations, storyText } = context;
+  const { existingPeople, existingRelations, storyText, explicitlyTaggedPeople, forceNewPeople } = context;
 
   const existingPeopleList =
     existingPeople.length > 0
       ? existingPeople.map((p) => `- ${p.name} (ID: ${p.id})`).join('\n')
       : 'None yet';
 
+  const taggedPeopleList =
+    explicitlyTaggedPeople && explicitlyTaggedPeople.length > 0
+      ? explicitlyTaggedPeople.map((p) => `- ${p.name} (ID: ${p.id}) [CONFIRMED PRESENT]`).join('\n')
+      : 'None';
+
+  const newPeopleList =
+    forceNewPeople && forceNewPeople.length > 0
+      ? forceNewPeople.map((name) => `- ${name} [CONFIRMED NEW PERSON]`).join('\n')
+      : 'None';
+
   const existingRelationsList =
     existingRelations && existingRelations.length > 0
       ? existingRelations
-          .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
-          .join('\n')
+        .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
+        .join('\n')
       : 'None yet';
 
   return `You are an AI assistant that extracts structured relationship data from stories about people.
 
 EXISTING PEOPLE IN DATABASE:
 ${existingPeopleList}
+
+EXPLICITLY TAGGED PEOPLE (CONFIRMED PRESENT):
+${taggedPeopleList}
+
+CONFIRMED NEW PEOPLE (DO NOT LINK TO EXISTING):
+${newPeopleList}
 
 EXISTING RELATIONS:
 ${existingRelationsList}
@@ -47,13 +65,20 @@ STORY TO ANALYZE:
 YOUR TASK:
 Extract all people mentioned and their relations (preferences, facts, experiences, etc.)
 
-⚠️ ATTENTION: @MENTION SYNTAX ⚠️
-The user may use @mentions to reference people (e.g., "@Sarah", "@Mark").
-- When you see @Name, that's a person reference
-- @Name is the same as Name (don't treat @ as part of the name)
-- Match @mentions with existing people in the database
-- If @Sarah appears and "Sarah" is in EXISTING PEOPLE, use that person's ID
-- Pay special attention to @mentions - they indicate the user wants to clearly identify specific people
+⚠️ CRITICAL: AMBIGUITY RESOLUTION RULES ⚠️
+1. **EXPLICITLY TAGGED PEOPLE**: If a person is in the "EXPLICITLY TAGGED PEOPLE" list (selected via UI), they are definitely in the story. Use their ID.
+2. **@MENTIONS (@Name)**: If the user writes "@Name" (e.g., "@Sarah"), they are explicitly referring to an EXISTING person. Match them to the database.
+3. **@+ SYNTAX (@+Name)**: If the user writes "@+Name" (e.g., "@+Fabian"), they want to ADD A NEW PERSON on-the-fly. Create a new person entry.
+   - Extract relationships from context (e.g., "her friend @+Fabian" → "Fabian KNOWS [mentioned person]")
+   - Mark for approval (especially check for duplicate names)
+   - Person type: AI decides between "mentioned" or "acquaintance" based on context
+4. **CONFIRMED NEW**: If a name is in "CONFIRMED NEW PEOPLE", you MUST create a new person for them. Do NOT link to existing.
+5. **PLAIN NAMES (Ambiguity Check)**:
+   - If the user writes just "Name" (no @ or @+) and it matches an existing person:
+     - IF the name is very unique (e.g., "Xavier"), assume it's them.
+     - IF the name is common (e.g., "Ola", "David", "Mike") AND there is NO explicit context (like "my wife Ola"), you MUST flag it as AMBIGUOUS.
+     - DO NOT guess if there are multiple people with similar names.
+6. **NEW PEOPLE**: If a name is completely new (no @ prefix), create a new person entry.
 
 RELATION TYPES (use exactly these):
 - KNOWS: knows a person/place/thing
@@ -142,7 +167,7 @@ Existing: "Mike IS: lactose intolerant"
 Example 4:
 Story: "Emma is vegetarian now"
 Existing: "Emma LIKES: sushi"
-→ POTENTIAL CONFLICT! Some sushi has fish. Flag as: "Most sushi contains fish, which vegetarians avoid"
+→ POTENTIAL CONFLICT! Most sushi contains fish, which vegetarians avoid
 
 Example 5:
 Story: "Tom hates cheese"
@@ -152,6 +177,22 @@ New: "Tom loves pizza"
 DUPLICATE DETECTION:
 - If a mentioned person matches an existing person (same or similar name), use the existing person's ID
 - If unsure, create a new person and flag as potential duplicate
+
+⚠️ ATTENTION: MENTION SYNTAX ⚠️
+The user has TWO ways to reference people:
+
+1. **@MENTION (@Name)** - Reference EXISTING people:
+   - Example: "@Sarah", "@Mark"
+   - Match @mentions with existing people in the database
+   - If @Sarah appears and "Sarah" is in EXISTING PEOPLE, use that person's ID
+   - Strip the @ symbol (don't treat it as part of the name)
+
+2. **@+ SYNTAX (@+Name)** - Add NEW people on-the-fly:
+   - Example: "@+Fabian", "@+NewPerson"
+   - Create a new person entry
+   - Extract relationships from context (e.g., "her friend @+Fabian")
+   - Mark for user approval (especially check for duplicate names)
+   - Strip the @+ prefix (just use the name)
 
 RESPONSE FORMAT (JSON):
 {
@@ -194,6 +235,14 @@ RESPONSE FORMAT (JSON):
         "objectLabel": "..."
       }
     }
+  ],
+  "ambiguousMatches": [
+    {
+      "nameInStory": "Name as it appears in story",
+      "possibleMatches": [
+        { "id": "existing-id", "name": "Existing Name", "reason": "Exact match" }
+      ]
+    }
   ]
 }
 
@@ -204,7 +253,8 @@ IMPORTANT:
 - Use "mentioned" for people only referenced (e.g., "Sarah's mother")
 - Use "primary" for main people in the story
 - Extract temporal info (validFrom/validTo) when dates are mentioned
-- For allergies/sensitivities, use "SENSITIVE_TO" relation type`;
+- For allergies/sensitivities, use "SENSITIVE_TO" relation type
+- CRITICAL: Every person mentioned in "relations" MUST be listed in the "people" array with the EXACT SAME ID.`;
 }
 
 /**
@@ -337,24 +387,45 @@ Existing: "Mike IS: lactose intolerant"
 Example 4:
 Story: "Emma is vegetarian now"
 Existing: "Emma LIKES: sushi"
-→ POTENTIAL CONFLICT! Some sushi has fish. Flag as: "Most sushi contains fish, which vegetarians avoid"
+→ POTENTIAL CONFLICT! Most sushi contains fish, which vegetarians avoid
 
 Example 5:
 Story: "Tom hates cheese"
 New: "Tom loves pizza"
 → CONFLICT! "Most pizza contains cheese"
 
+
+Example 6:
+Story: "Played tennis with David and Ola"
+Existing: "David Smith (ID: david-1)", "Ola Kowalska (ID: ola-1)"
+Response:
+{
+  "people": [],
+  "ambiguousMatches": [
+    { "nameInStory": "David", "possibleMatches": [{"id": "david-1", "name": "David Smith", "reason": "Name match"}]},
+    { "nameInStory": "Ola", "possibleMatches": [{"id": "ola-1", "name": "Ola Kowalska", "reason": "Name match"}]}
+  ]
+}
+
 DUPLICATE DETECTION:
 - If a mentioned person matches an existing person (same or similar name), use the existing person's ID
 - If unsure, create a new person and flag as potential duplicate
 
-⚠️ ATTENTION: @MENTION SYNTAX ⚠️
-The user may use @mentions to reference people (e.g., "@Sarah", "@Mark").
-- When you see @Name, that's a person reference
-- @Name is the same as Name (don't treat @ as part of the name)
-- Match @mentions with existing people in the database
-- If @Sarah appears and "Sarah" is in EXISTING PEOPLE, use that person's ID
-- Pay special attention to @mentions - they indicate the user wants to clearly identify specific people
+⚠️ ATTENTION: MENTION SYNTAX ⚠️
+The user has TWO ways to reference people:
+
+1. **@MENTION (@Name)** - Reference EXISTING people:
+   - Example: "@Sarah", "@Mark"
+   - Match @mentions with existing people in the database
+   - If @Sarah appears and "Sarah" is in EXISTING PEOPLE, use that person's ID
+   - Strip the @ symbol (don't treat it as part of the name)
+
+2. **@+ SYNTAX (@+Name)** - Add NEW people on-the-fly:
+   - Example: "@+Fabian", "@+NewPerson"
+   - Create a new person entry
+   - Extract relationships from context (e.g., "her friend @+Fabian")
+   - Mark for user approval (especially check for duplicate names)
+   - Strip the @+ prefix (just use the name)
 
 RESPONSE FORMAT (JSON):
 {
@@ -397,6 +468,14 @@ RESPONSE FORMAT (JSON):
         "objectLabel": "..."
       }
     }
+  ],
+  "ambiguousMatches": [
+    {
+      "nameInStory": "Name as it appears in story",
+      "possibleMatches": [
+        { "id": "existing-id", "name": "Existing Name", "reason": "Name match" }
+      ]
+    }
   ]
 }
 
@@ -407,5 +486,10 @@ IMPORTANT:
 - Use "mentioned" for people only referenced (e.g., "Sarah's mother")
 - Use "primary" for main people in the story
 - Extract temporal info (validFrom/validTo) when dates are mentioned
-- For allergies/sensitivities, use "SENSITIVE_TO" relation type`;
+- For allergies/sensitivities, use "SENSITIVE_TO" relation type
+- CRITICAL: Every person mentioned in "relations" MUST be listed in the "people" array with the EXACT SAME ID.
+- CRITICAL: If a person exists in the database, you MUST use their existing ID. Do not create a new ID for them.
+- CRITICAL: Common names (David, Mike, Sarah, Ola, etc.) WITHOUT @ or explicit context should be flagged as AMBIGUOUS
+- CRITICAL: Add ambiguous names to ambiguousMatches, NOT to people array
+- CRITICAL: Do NOT create relations for ambiguous people - wait for user clarification`;
 }
