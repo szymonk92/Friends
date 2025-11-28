@@ -1,15 +1,13 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { router } from 'expo-router';
 import { Stack } from 'expo-router';
-import { Dimensions, View, Image, StyleSheet, ScrollView } from 'react-native';
+import { Dimensions, View, Image, StyleSheet, FlatList, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Card, Text, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { devLogger } from '@/lib/utils/devLogger';
-
-const { width, height } = Dimensions.get('window');
 
 const ONBOARDING_COMPLETE_KEY = 'onboarding_completed';
 
@@ -20,68 +18,12 @@ interface OnboardingStep {
   features: string[];
 }
 
-const steps: OnboardingStep[] = [
-  {
-    title: 'Welcome to Friends',
-    description: 'Your personal CRM for managing relationships',
-    icon: 'account-group',
-    features: [
-      'Remember important details about people',
-      'Track preferences, likes, and dislikes',
-      'Never forget a birthday or important event',
-      'Store sensitive information securely',
-    ],
-  },
-  {
-    title: 'Add Stories',
-    description: 'Write down conversations and experiences',
-    icon: 'book-open-page-variant',
-    features: [
-      'Record interactions as you have them',
-      'AI extracts people and details automatically',
-      'Build a knowledge base over time',
-      'Search and recall information easily',
-    ],
-  },
-  {
-    title: 'Manage People',
-    description: 'Organize your contacts with rich details',
-    icon: 'account-details',
-    features: [
-      'Add friends, family, and colleagues',
-      'Track their preferences and interests',
-      'Note dietary restrictions and allergies',
-      'Tag and categorize for easy filtering',
-    ],
-  },
-  {
-    title: 'Secure Secrets',
-    description: 'Protect sensitive information',
-    icon: 'shield-lock',
-    features: [
-      'Biometric or password protection',
-      'End-to-end encryption on device',
-      'Auto-clear after viewing',
-      'Associate secrets with people',
-    ],
-  },
-  {
-    title: 'Get Started',
-    description: 'You\'re all set to begin!',
-    icon: 'rocket-launch',
-    features: [
-      'Add your first story or person',
-      'Explore the app features',
-      'Configure AI extraction in Settings',
-      'Set up secrets protection when ready',
-    ],
-  },
-];
-
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const flatListRef = useRef<FlatList>(null);
 
   // Create steps from translations
   const steps: OnboardingStep[] = [
@@ -144,13 +86,29 @@ export default function OnboardingScreen() {
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
+      flatListRef.current?.scrollToIndex({
+        index: currentStep + 1,
+        animated: true,
+      });
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 0) {
+      flatListRef.current?.scrollToIndex({
+        index: currentStep - 1,
+        animated: true,
+      });
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const currentIndex = Math.round(contentOffsetX / width);
+    if (currentIndex !== currentStep) {
+      setCurrentStep(currentIndex);
     }
   };
 
@@ -168,13 +126,58 @@ export default function OnboardingScreen() {
     await handleComplete();
   };
 
-  const step = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
+
+  const renderItem = ({ item }: { item: OnboardingStep }) => (
+    <View style={[styles.slide, { width }]}>
+      <CenteredContainer style={styles.content}>
+        <Card style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.iconContainer}>
+              {item.icon === 'account-group' ? (
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text variant="displaySmall" style={styles.icon}>
+                  {item.icon === 'book-open-page-variant' && '📖'}
+                  {item.icon === 'account-details' && '👤'}
+                  {item.icon === 'shield-lock' && '🔒'}
+                  {item.icon === 'rocket-launch' && '🚀'}
+                </Text>
+              )}
+            </View>
+
+            <Text variant="headlineMedium" style={styles.title}>
+              {item.title}
+            </Text>
+
+            <Text variant="bodyLarge" style={styles.description}>
+              {item.description}
+            </Text>
+
+            <View style={styles.featureList}>
+              {item.features.map((feature, index) => (
+                <View key={index} style={styles.featureItem}>
+                  <Text style={styles.featureBullet}>•</Text>
+                  <Text variant="bodyMedium" style={styles.featureText}>
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+      </CenteredContainer>
+    </View>
+  );
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
         {/* Skip button */}
         {!isLastStep && (
           <Button mode="text" onPress={handleSkip} style={styles.skipButton}>
@@ -193,47 +196,17 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Content */}
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <CenteredContainer style={styles.content}>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                {step.icon === 'account-group' ? (
-                  <Image
-                    source={require('@/assets/images/icon.png')}
-                    style={styles.logoImage}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <Text variant="displaySmall" style={styles.icon}>
-                    {step.icon === 'book-open-page-variant' && '📖'}
-                    {step.icon === 'account-details' && '👤'}
-                    {step.icon === 'shield-lock' && '🔒'}
-                    {step.icon === 'rocket-launch' && '🚀'}
-                  </Text>
-                )}
-
-                <Text variant="headlineMedium" style={styles.title}>
-                  {step.title}
-                </Text>
-
-                <Text variant="bodyLarge" style={styles.description}>
-                  {step.description}
-                </Text>
-
-                <View style={styles.featureList}>
-                  {step.features.map((feature, index) => (
-                    <View key={index} style={styles.featureItem}>
-                      <Text style={styles.featureBullet}>•</Text>
-                      <Text variant="bodyMedium" style={styles.featureText}>
-                        {feature}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </Card.Content>
-            </Card>
-          </CenteredContainer>
-        </ScrollView>
+        <FlatList
+          ref={flatListRef}
+          data={steps}
+          renderItem={renderItem}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScroll}
+          keyExtractor={(_, index) => index.toString()}
+          style={styles.flatList}
+        />
 
         {/* Navigation */}
         <View style={styles.navigation}>
@@ -285,7 +258,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingBottom: 20,
   },
   skipButton: {
     position: 'absolute',
@@ -296,13 +268,13 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 80,
     height: 80,
-    marginBottom: 16,
   },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
     marginBottom: 16,
+    marginTop: 40, // Added to clear the skip button area
   },
   progressDot: {
     width: 10,
@@ -314,24 +286,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200ee',
     width: 24,
   },
-  scrollContent: {
+  flatList: {
     flexGrow: 1,
+  },
+  slide: {
+    flex: 1,
     justifyContent: 'center',
   },
   content: {
     paddingHorizontal: 24,
     paddingBottom: 16,
+    width: '100%',
   },
   card: {
     padding: 16,
-    // maxHeight: height * 0.65, // Removed to prevent clipping
+    width: '100%',
   },
   cardContent: {
     alignItems: 'center',
   },
+  iconContainer: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   icon: {
     fontSize: 56,
-    marginBottom: 16,
+    lineHeight: 70,
+    textAlign: 'center',
   },
   title: {
     textAlign: 'center',
