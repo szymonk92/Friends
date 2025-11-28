@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -126,156 +126,162 @@ export default function EditPersonScreen() {
           headerBackTitle: 'Cancel',
         }}
       />
-      <ScrollView style={styles.container}>
-        <View style={styles.content}>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Update information for {person.name}
-          </Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView style={styles.container}>
+          <View style={styles.content}>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              Update information for {person.name}
+            </Text>
 
-          <TextInput
-            mode="outlined"
-            label="Name *"
-            placeholder="Enter their name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            autoFocus
-          />
+            <TextInput
+              mode="outlined"
+              label="Name *"
+              placeholder="Enter their name"
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+              autoFocus
+            />
 
-          <TextInput
-            mode="outlined"
-            label="Nickname"
-            placeholder="Optional nickname"
-            value={nickname}
-            onChangeText={setNickname}
-            style={styles.input}
-          />
+            <TextInput
+              mode="outlined"
+              label="Nickname"
+              placeholder="Optional nickname"
+              value={nickname}
+              onChangeText={setNickname}
+              style={styles.input}
+            />
 
-          <Text variant="titleSmall" style={styles.label}>
-            Relationship Type
-          </Text>
-          <SegmentedButtons
-            value={relationshipType}
-            onValueChange={setRelationshipType}
-            buttons={[
-              { value: 'friend', label: 'Friend', icon: 'account-heart' },
-              { value: 'family', label: 'Family', icon: 'home-heart' },
-              { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
-            ]}
-            style={styles.segmented}
-          />
-          <SegmentedButtons
-            value={relationshipType}
-            onValueChange={setRelationshipType}
-            buttons={[
-              { value: 'acquaintance', label: 'Acquaintance' },
-              { value: 'partner', label: 'Partner', icon: 'heart' },
-            ]}
-            style={styles.segmented}
-          />
+            <Text variant="titleSmall" style={styles.label}>
+              Relationship Type
+            </Text>
+            <SegmentedButtons
+              value={relationshipType}
+              onValueChange={setRelationshipType}
+              buttons={[
+                { value: 'friend', label: 'Friend', icon: 'account-heart' },
+                { value: 'family', label: 'Family', icon: 'home-heart' },
+                { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
+              ]}
+              style={styles.segmented}
+            />
+            <SegmentedButtons
+              value={relationshipType}
+              onValueChange={setRelationshipType}
+              buttons={[
+                { value: 'acquaintance', label: 'Acquaintance' },
+                { value: 'partner', label: 'Partner', icon: 'heart' },
+              ]}
+              style={styles.segmented}
+            />
 
-          <TextInput
-            mode="outlined"
-            label="Birthday (optional)"
-            placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-            style={styles.input}
-          />
-          <Text variant="labelSmall" style={styles.birthdayHint}>
-            Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
-          </Text>
+            <TextInput
+              mode="outlined"
+              label="Birthday (optional)"
+              placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+              style={styles.input}
+            />
+            <Text variant="labelSmall" style={styles.birthdayHint}>
+              Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
+            </Text>
 
-          <Text variant="titleSmall" style={styles.label}>
-            Person Type
-          </Text>
-          <Text variant="bodySmall" style={styles.hint}>
-            Primary people appear in party mode and food quiz. Mentioned people are tracked but less prominent.
-          </Text>
-          <SegmentedButtons
-            value={personType}
-            onValueChange={setPersonType}
-            buttons={[
-              { value: 'primary', label: 'Primary', icon: 'star' },
-              { value: 'mentioned', label: 'Mentioned', icon: 'account-outline' },
-            ]}
-            style={styles.segmented}
-          />
+            <Text variant="titleSmall" style={styles.label}>
+              Person Type
+            </Text>
+            <Text variant="bodySmall" style={styles.hint}>
+              Primary people appear in party mode and food quiz. Mentioned people are tracked but less prominent.
+            </Text>
+            <SegmentedButtons
+              value={personType}
+              onValueChange={setPersonType}
+              buttons={[
+                { value: 'primary', label: 'Primary', icon: 'star' },
+                { value: 'mentioned', label: 'Mentioned', icon: 'account-outline' },
+              ]}
+              style={styles.segmented}
+            />
 
-          <Text variant="titleSmall" style={styles.label}>
-            Importance to You
-          </Text>
-          <Text variant="bodySmall" style={styles.hint}>
-            Used for sorting people by importance. Very important people appear first.
-          </Text>
-          <SegmentedButtons
-            value={importanceToUser}
-            onValueChange={setImportanceToUser}
-            buttons={[
-              { value: 'very_important', label: 'Very Important', icon: 'star' },
-              { value: 'important', label: 'Important', icon: 'star-half-full' },
-            ]}
-            style={styles.segmented}
-          />
-          <SegmentedButtons
-            value={importanceToUser}
-            onValueChange={setImportanceToUser}
-            buttons={[
-              { value: 'peripheral', label: 'Peripheral', icon: 'star-outline' },
-              { value: 'unknown', label: 'Unknown' },
-            ]}
-            style={styles.segmented}
-          />
+            <Text variant="titleSmall" style={styles.label}>
+              Importance to You
+            </Text>
+            <Text variant="bodySmall" style={styles.hint}>
+              Used for sorting people by importance. Very important people appear first.
+            </Text>
+            <SegmentedButtons
+              value={importanceToUser}
+              onValueChange={setImportanceToUser}
+              buttons={[
+                { value: 'very_important', label: 'Very Important', icon: 'star' },
+                { value: 'important', label: 'Important', icon: 'star-half-full' },
+              ]}
+              style={styles.segmented}
+            />
+            <SegmentedButtons
+              value={importanceToUser}
+              onValueChange={setImportanceToUser}
+              buttons={[
+                { value: 'peripheral', label: 'Peripheral', icon: 'star-outline' },
+                { value: 'unknown', label: 'Unknown' },
+              ]}
+              style={styles.segmented}
+            />
 
-          <TextInput
-            mode="outlined"
-            label="Notes"
-            placeholder="Any notes about this person..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            style={styles.input}
-          />
+            <TextInput
+              mode="outlined"
+              label="Notes"
+              placeholder="Any notes about this person..."
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+              style={styles.input}
+            />
 
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={isSubmitting || name.trim().length < 2}
-            style={styles.submitButton}
-            contentStyle={styles.submitButtonContent}
-          >
-            Save Changes
-          </Button>
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              disabled={isSubmitting || name.trim().length < 2}
+              style={styles.submitButton}
+              contentStyle={styles.submitButtonContent}
+            >
+              Save Changes
+            </Button>
 
-          <Button
-            mode="outlined"
-            onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-            icon="plus"
-            style={styles.addRelationButton}
-            disabled={isSubmitting}
-          >
-            Add Relation
-          </Button>
+            <Button
+              mode="outlined"
+              onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+              icon="plus"
+              style={styles.addRelationButton}
+              disabled={isSubmitting}
+            >
+              Add Relation
+            </Button>
 
-          <Button
-            mode="outlined"
-            onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
-            icon="account-multiple-plus"
-            style={styles.addRelationButton}
-            disabled={isSubmitting}
-          >
-            Add Connection to Person
-          </Button>
+            <Button
+              mode="outlined"
+              onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
+              icon="account-multiple-plus"
+              style={styles.addRelationButton}
+              disabled={isSubmitting}
+            >
+              Add Connection to Person
+            </Button>
 
-          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-            Cancel
-          </Button>
-        </View>
+            <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+              Cancel
+            </Button>
+          </View>
 
-        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-      </ScrollView>
+          <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }

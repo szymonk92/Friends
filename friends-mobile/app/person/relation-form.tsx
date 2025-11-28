@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, Alert, Animated } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   Text,
   TextInput,
@@ -230,114 +230,120 @@ export default function RelationForm({ mode }: RelationFormProps) {
 
   return (
     <>
-      <ScrollView style={styles.container}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="headlineSmall" style={styles.title}>
-                {mode === 'add' ? 'Add Relation' : 'Edit Relation'} for {displayPerson?.name}
-              </Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>
-                {mode === 'add' ? 'Add information about this person' : 'Update information about this person'}
-              </Text>
-            </Card.Content>
-          </Card>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView style={styles.container}>
+          <View style={styles.content}>
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="headlineSmall" style={styles.title}>
+                  {mode === 'add' ? 'Add Relation' : 'Edit Relation'} for {displayPerson?.name}
+                </Text>
+                <Text variant="bodyMedium" style={styles.subtitle}>
+                  {mode === 'add' ? 'Add information about this person' : 'Update information about this person'}
+                </Text>
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleSmall" style={styles.label}>
-                Relation Type
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.typeScrollContainer}
-              >
-                <Animated.View style={{
-                  transform: [{ translateX: relationTypeScrollAnim }],
-                }}>
-                  <View style={styles.typeGrid}>
-                    {RELATION_TYPE_OPTIONS.map((type) => (
-                      <Button
-                        key={type.value}
-                        mode={relationType === type.value ? 'contained' : 'outlined'}
-                        onPress={() => setRelationType(type.value)}
-                        style={styles.typeButton}
-                        compact
-                      >
-                        {type.label}
-                      </Button>
-                    ))}
-                  </View>
-                </Animated.View>
-              </ScrollView>
-            </Card.Content>
-          </Card>
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="titleSmall" style={styles.label}>
+                  Relation Type
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.typeScrollContainer}
+                >
+                  <Animated.View style={{
+                    transform: [{ translateX: relationTypeScrollAnim }],
+                  }}>
+                    <View style={styles.typeGrid}>
+                      {RELATION_TYPE_OPTIONS.map((type) => (
+                        <Button
+                          key={type.value}
+                          mode={relationType === type.value ? 'contained' : 'outlined'}
+                          onPress={() => setRelationType(type.value)}
+                          style={styles.typeButton}
+                          compact
+                        >
+                          {type.label}
+                        </Button>
+                      ))}
+                    </View>
+                  </Animated.View>
+                </ScrollView>
+              </Card.Content>
+            </Card>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <TextInput
-                mode="outlined"
-                label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
-                placeholder={getPlaceholder()}
-                value={objectLabel}
-                onChangeText={setObjectLabel}
-                style={styles.input}
-                autoFocus
-              />
+            <Card style={styles.card}>
+              <Card.Content>
+                <TextInput
+                  mode="outlined"
+                  label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
+                  placeholder={getPlaceholder()}
+                  value={objectLabel}
+                  onChangeText={setObjectLabel}
+                  style={styles.input}
+                  autoFocus
+                />
 
-              <TextInput
-                mode="outlined"
-                label="Category (optional)"
-                placeholder="e.g., food, activity, music, sport"
-                value={category}
-                onChangeText={setCategory}
-                style={styles.input}
-              />
+                <TextInput
+                  mode="outlined"
+                  label="Category (optional)"
+                  placeholder="e.g., food, activity, music, sport"
+                  value={category}
+                  onChangeText={setCategory}
+                  style={styles.input}
+                />
 
-              <Text variant="titleSmall" style={styles.label}>
-                Intensity
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.intensityScrollContainer}
-              >
-                <Animated.View style={{
-                  transform: [{ translateX: intensityScrollAnim }],
-                }}>
-                  <SegmentedButtons
-                    value={intensity}
-                    onValueChange={setIntensity}
-                    buttons={INTENSITY_OPTIONS.map(option => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    style={styles.segmented}
-                  />
-                </Animated.View>
-              </ScrollView>
-            </Card.Content>
-          </Card>
+                <Text variant="titleSmall" style={styles.label}>
+                  Intensity
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.intensityScrollContainer}
+                >
+                  <Animated.View style={{
+                    transform: [{ translateX: intensityScrollAnim }],
+                  }}>
+                    <SegmentedButtons
+                      value={intensity}
+                      onValueChange={setIntensity}
+                      buttons={INTENSITY_OPTIONS.map(option => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      style={styles.segmented}
+                    />
+                  </Animated.View>
+                </ScrollView>
+              </Card.Content>
+            </Card>
 
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={isSubmitting || !objectLabel.trim()}
-            style={styles.submitButton}
-            contentStyle={styles.submitButtonContent}
-          >
-            {mode === 'add' ? 'Add Relation' : 'Save Changes'}
-          </Button>
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              disabled={isSubmitting || !objectLabel.trim()}
+              style={styles.submitButton}
+              contentStyle={styles.submitButtonContent}
+            >
+              {mode === 'add' ? 'Add Relation' : 'Save Changes'}
+            </Button>
 
-          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-            Cancel
-          </Button>
+            <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+              Cancel
+            </Button>
 
-          <View style={styles.spacer} />
-        </View>
-      </ScrollView>
+            <View style={styles.spacer} />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }

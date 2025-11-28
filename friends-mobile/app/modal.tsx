@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
@@ -93,101 +93,107 @@ export default function AddPersonModal() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          {t('person.addTitle')}
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          {t('person.addSubtitle')}
-        </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Text variant="headlineMedium" style={styles.title}>
+            {t('person.addTitle')}
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            {t('person.addSubtitle')}
+          </Text>
 
-        <TextInput
-          mode="outlined"
-          label={`${t('person.name')} ${t('person.nameRequired')} `}
-          placeholder={t('person.namePlaceholder')}
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          autoFocus
-          autoCapitalize="words"
-          maxLength={255}
-        />
+          <TextInput
+            mode="outlined"
+            label={`${t('person.name')} ${t('person.nameRequired')} `}
+            placeholder={t('person.namePlaceholder')}
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+            autoFocus
+            autoCapitalize="words"
+            maxLength={255}
+          />
 
-        <TextInput
-          mode="outlined"
-          label={t('person.nickname')}
-          placeholder={t('person.nicknamePlaceholder')}
-          value={nickname}
-          onChangeText={setNickname}
-          style={styles.input}
-          maxLength={255}
-        />
+          <TextInput
+            mode="outlined"
+            label={t('person.nickname')}
+            placeholder={t('person.nicknamePlaceholder')}
+            value={nickname}
+            onChangeText={setNickname}
+            style={styles.input}
+            maxLength={255}
+          />
 
-        <Text variant="titleSmall" style={styles.label}>
-          {t('person.relationshipType')}
-        </Text>
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
-            { value: 'family', label: t('person.family'), icon: 'home-heart' },
-            { value: 'colleague', label: t('person.colleague'), icon: 'briefcase' },
-          ]}
-          style={styles.segmented}
-        />
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'acquaintance', label: t('person.acquaintance') },
-            { value: 'partner', label: t('person.partner'), icon: 'heart' },
-          ]}
-          style={styles.segmented}
-        />
+          <Text variant="titleSmall" style={styles.label}>
+            {t('person.relationshipType')}
+          </Text>
+          <SegmentedButtons
+            value={relationshipType}
+            onValueChange={setRelationshipType}
+            buttons={[
+              { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
+              { value: 'family', label: t('person.family'), icon: 'home-heart' },
+              { value: 'colleague', label: t('person.colleague'), icon: 'briefcase' },
+            ]}
+            style={styles.segmented}
+          />
+          <SegmentedButtons
+            value={relationshipType}
+            onValueChange={setRelationshipType}
+            buttons={[
+              { value: 'acquaintance', label: t('person.acquaintance') },
+              { value: 'partner', label: t('person.partner'), icon: 'heart' },
+            ]}
+            style={styles.segmented}
+          />
 
-        <TextInput
-          mode="outlined"
-          label={t('person.birthday')}
-          placeholder={t('person.birthdayPlaceholder')}
-          value={dateOfBirth}
-          onChangeText={setDateOfBirth}
-          style={styles.input}
-        />
-        <Text variant="labelSmall" style={styles.birthdayHint}>
-          {t('person.birthdayHint')}
-        </Text>
+          <TextInput
+            mode="outlined"
+            label={t('person.birthday')}
+            placeholder={t('person.birthdayPlaceholder')}
+            value={dateOfBirth}
+            onChangeText={setDateOfBirth}
+            style={styles.input}
+          />
+          <Text variant="labelSmall" style={styles.birthdayHint}>
+            {t('person.birthdayHint')}
+          </Text>
 
-        <TextInput
-          mode="outlined"
-          label={t('person.notes')}
-          placeholder={t('person.notesPlaceholder')}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={4}
-          style={styles.input}
-        />
+          <TextInput
+            mode="outlined"
+            label={t('person.notes')}
+            placeholder={t('person.notesPlaceholder')}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            style={styles.input}
+          />
 
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={isSubmitting || name.trim().length < 2}
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-        >
-          {t('person.addButton')}
-        </Button>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting || name.trim().length < 2}
+            style={styles.submitButton}
+            contentStyle={styles.submitButtonContent}
+          >
+            {t('person.addButton')}
+          </Button>
 
-        <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-          {t('common.cancel')}
-        </Button>
-      </View>
+          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+            {t('common.cancel')}
+          </Button>
+        </View>
 
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-    </ScrollView>
+        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   Card,
@@ -454,338 +456,344 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="headlineSmall" style={styles.title}>
-              {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              {mode === 'add'
-                ? 'Select multiple people (checkbox) or tap avatar for detailed single connection'
-                : 'Update connection details'
-              }
-            </Text>
-          </Card.Content>
-        </Card>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="headlineSmall" style={styles.title}>
+                {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
+              </Text>
+              <Text variant="bodyMedium" style={styles.subtitle}>
+                {mode === 'add'
+                  ? 'Select multiple people (checkbox) or tap avatar for detailed single connection'
+                  : 'Update connection details'
+                }
+              </Text>
+            </Card.Content>
+          </Card>
 
-        {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
-          // Single person detailed mode (add only)
-          <>
-            <Card style={styles.card}>
-              <Card.Content>
-                <View style={styles.singlePersonHeader}>
-                  <Button mode="text" icon="arrow-left" onPress={backToMultiMode}>
-                    Back to Multi-Select
-                  </Button>
-                </View>
-                <Card style={styles.selectedCard} mode="outlined">
-                  <Card.Content>
-                    <View style={styles.selectedPerson}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{getInitials(selectedSinglePerson.name)}</Text>
+          {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
+            // Single person detailed mode (add only)
+            <>
+              <Card style={styles.card}>
+                <Card.Content>
+                  <View style={styles.singlePersonHeader}>
+                    <Button mode="text" icon="arrow-left" onPress={backToMultiMode}>
+                      Back to Multi-Select
+                    </Button>
+                  </View>
+                  <Card style={styles.selectedCard} mode="outlined">
+                    <Card.Content>
+                      <View style={styles.selectedPerson}>
+                        <View style={styles.avatar}>
+                          <Text style={styles.avatarText}>{getInitials(selectedSinglePerson.name)}</Text>
+                        </View>
+                        <View style={styles.personInfo}>
+                          <Text variant="titleMedium">{selectedSinglePerson.name}</Text>
+                          {selectedSinglePerson.nickname && (
+                            <Text variant="bodySmall" style={styles.nickname}>
+                              "{selectedSinglePerson.nickname}"
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                      <View style={styles.personInfo}>
-                        <Text variant="titleMedium">{selectedSinglePerson.name}</Text>
-                        {selectedSinglePerson.nickname && (
-                          <Text variant="bodySmall" style={styles.nickname}>
-                            "{selectedSinglePerson.nickname}"
-                          </Text>
-                        )}
+                    </Card.Content>
+                  </Card>
+                </Card.Content>
+              </Card>
+
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.label}>
+                    Relationship Type
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.typeScrollContainer}
+                  >
+                    <Animated.View style={{
+                      transform: [{ translateX: relationshipTypeScrollAnim }],
+                    }}>
+                      <View style={styles.typeGrid}>
+                        {RELATIONSHIP_TYPES.map((type) => (
+                          <Button
+                            key={type.value}
+                            mode={relationshipType === type.value ? 'contained' : 'outlined'}
+                            onPress={() => setRelationshipType(type.value)}
+                            icon={type.icon}
+                            style={styles.typeButton}
+                            compact
+                          >
+                            {type.label}
+                          </Button>
+                        ))}
                       </View>
-                    </View>
-                  </Card.Content>
-                </Card>
-              </Card.Content>
-            </Card>
+                    </Animated.View>
+                  </ScrollView>
+                </Card.Content>
+              </Card>
 
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Relationship Type
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.typeScrollContainer}
-                >
-                  <Animated.View style={{
-                    transform: [{ translateX: relationshipTypeScrollAnim }],
-                  }}>
-                    <View style={styles.typeGrid}>
-                      {RELATIONSHIP_TYPES.map((type) => (
-                        <Button
-                          key={type.value}
-                          mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                          onPress={() => setRelationshipType(type.value)}
-                          icon={type.icon}
-                          style={styles.typeButton}
-                          compact
-                        >
-                          {type.label}
-                        </Button>
-                      ))}
-                    </View>
-                  </Animated.View>
-                </ScrollView>
-              </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Status
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.statusScrollContainer}
-                >
-                  <SegmentedButtons
-                    value={status}
-                    onValueChange={setStatus}
-                    buttons={[
-                      { value: 'active', label: 'Active' },
-                      { value: 'inactive', label: 'Inactive' },
-                      { value: 'complicated', label: 'Complicated' },
-                    ]}
-                    style={styles.segmented}
-                  />
-                </ScrollView>
-              </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Additional Details
-                </Text>
-                <TextInput
-                  label="Qualifier (e.g., best, close, ex)"
-                  value={qualifier}
-                  onChangeText={setQualifier}
-                  mode="outlined"
-                  style={styles.input}
-                  placeholder="How to qualify this relationship"
-                />
-                <TextInput
-                  label="Notes"
-                  value={notes}
-                  onChangeText={setNotes}
-                  mode="outlined"
-                  multiline
-                  numberOfLines={3}
-                  style={styles.input}
-                  placeholder="Any additional context"
-                />
-              </Card.Content>
-            </Card>
-          </>
-        ) : (
-          // Form mode (edit) or multi-select mode (add)
-          <>
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Relationship Type
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.typeScrollContainer}
-                >
-                  <Animated.View style={{
-                    transform: [{ translateX: relationshipTypeScrollAnim }],
-                  }}>
-                    <View style={styles.typeGrid}>
-                      {RELATIONSHIP_TYPES.map((type) => (
-                        <Button
-                          key={type.value}
-                          mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                          onPress={() => setRelationshipType(type.value)}
-                          icon={type.icon}
-                          style={styles.typeButton}
-                          compact
-                        >
-                          {type.label}
-                        </Button>
-                      ))}
-                    </View>
-                  </Animated.View>
-                </ScrollView>
-              </Card.Content>
-            </Card>
-
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Connection Status
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.statusScrollContainer}
-                >
-                  <Animated.View style={{
-                    transform: [{ translateX: statusScrollAnim }],
-                  }}>
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.label}>
+                    Status
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.statusScrollContainer}
+                  >
                     <SegmentedButtons
                       value={status}
                       onValueChange={setStatus}
-                      buttons={CONNECTION_STATUSES}
+                      buttons={[
+                        { value: 'active', label: 'Active' },
+                        { value: 'inactive', label: 'Inactive' },
+                        { value: 'complicated', label: 'Complicated' },
+                      ]}
                       style={styles.segmented}
                     />
-                  </Animated.View>
-                </ScrollView>
+                  </ScrollView>
+                </Card.Content>
+              </Card>
 
-                <TextInput
-                  mode="outlined"
-                  label="Qualifier (married, sibling, etc.)"
-                  placeholder="e.g., childhood friend, work colleague, cousin"
-                  value={qualifier}
-                  onChangeText={setQualifier}
-                  style={styles.input}
-                />
-
-                {mode === 'add' && (
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.label}>
+                    Additional Details
+                  </Text>
                   <TextInput
+                    label="Qualifier (e.g., best, close, ex)"
+                    value={qualifier}
+                    onChangeText={setQualifier}
                     mode="outlined"
-                    label="Notes (optional)"
-                    placeholder="Any additional notes about this connection..."
+                    style={styles.input}
+                    placeholder="How to qualify this relationship"
+                  />
+                  <TextInput
+                    label="Notes"
                     value={notes}
                     onChangeText={setNotes}
+                    mode="outlined"
                     multiline
                     numberOfLines={3}
                     style={styles.input}
+                    placeholder="Any additional context"
                   />
+                </Card.Content>
+              </Card>
+            </>
+          ) : (
+            // Form mode (edit) or multi-select mode (add)
+            <>
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.label}>
+                    Relationship Type
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.typeScrollContainer}
+                  >
+                    <Animated.View style={{
+                      transform: [{ translateX: relationshipTypeScrollAnim }],
+                    }}>
+                      <View style={styles.typeGrid}>
+                        {RELATIONSHIP_TYPES.map((type) => (
+                          <Button
+                            key={type.value}
+                            mode={relationshipType === type.value ? 'contained' : 'outlined'}
+                            onPress={() => setRelationshipType(type.value)}
+                            icon={type.icon}
+                            style={styles.typeButton}
+                            compact
+                          >
+                            {type.label}
+                          </Button>
+                        ))}
+                      </View>
+                    </Animated.View>
+                  </ScrollView>
+                </Card.Content>
+              </Card>
+
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Text variant="titleSmall" style={styles.label}>
+                    Connection Status
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.statusScrollContainer}
+                  >
+                    <Animated.View style={{
+                      transform: [{ translateX: statusScrollAnim }],
+                    }}>
+                      <SegmentedButtons
+                        value={status}
+                        onValueChange={setStatus}
+                        buttons={CONNECTION_STATUSES}
+                        style={styles.segmented}
+                      />
+                    </Animated.View>
+                  </ScrollView>
+
+                  <TextInput
+                    mode="outlined"
+                    label="Qualifier (married, sibling, etc.)"
+                    placeholder="e.g., childhood friend, work colleague, cousin"
+                    value={qualifier}
+                    onChangeText={setQualifier}
+                    style={styles.input}
+                  />
+
+                  {mode === 'add' && (
+                    <TextInput
+                      mode="outlined"
+                      label="Notes (optional)"
+                      placeholder="Any additional notes about this connection..."
+                      value={notes}
+                      onChangeText={setNotes}
+                      multiline
+                      numberOfLines={3}
+                      style={styles.input}
+                    />
+                  )}
+                </Card.Content>
+              </Card>
+
+              {mode === 'edit' && (
+                <View style={styles.buttonContainer}>
+                  <View style={styles.topButtons}>
+                    <Button
+                      mode="outlined"
+                      onPress={handleDelete}
+                      style={[styles.button, styles.deleteButton]}
+                      icon="delete-outline"
+                      textColor="#d32f2f"
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      mode="outlined"
+                      onPress={() => router.back()}
+                      style={styles.button}
+                    >
+                      Cancel
+                    </Button>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {mode === 'add' && !singlePersonMode && (
+            // Multi-select mode (add only)
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="titleSmall" style={styles.label}>
+                  Select People to Connect ({selectedPersonIds.length} selected)
+                </Text>
+                <TextInput
+                  placeholder="Search people..."
+                  onChangeText={setSearchQuery}
+                  value={searchQuery}
+                  style={styles.searchbar}
+                  mode="outlined"
+                />
+                <Text variant="titleSmall" style={styles.label}>
+                  Selecting multiple, adds them as friends
+                </Text>
+
+                {loadingPeople && (
+                  <CenteredContainer style={styles.centered}>
+                    <ActivityIndicator />
+                  </CenteredContainer>
+                )}
+
+                {selectedPersonIds.length > 0 && (
+                  <View style={styles.selectedChipsContainer}>
+                    {selectedPersonIds.map((id) => {
+                      const person = allPeople.find((p) => p.id === id);
+                      return person ? (
+                        <Chip
+                          key={id}
+                          onClose={() => togglePersonSelection(id)}
+                          style={styles.selectedChip}
+                        >
+                          {person.name}
+                        </Chip>
+                      ) : null;
+                    })}
+                  </View>
+                )}
+
+                {availablePeople.length === 0 && !loadingPeople && (
+                  <Text style={styles.emptyText}>
+                    No other people found. Add more people first.
+                  </Text>
+                )}
+
+                {availablePeople.length > 0 && (
+                  <ScrollView style={styles.peopleList} nestedScrollEnabled>
+                    {availablePeople.map((p) => (
+                      <List.Item
+                        key={p.id}
+                        title={p.name}
+                        description={p.nickname || p.relationshipType}
+                        left={(props) => (
+                          <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
+                            <View style={[styles.listAvatar, props.style]}>
+                              <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )}
+                        right={(props) => (
+                          <Checkbox
+                            status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
+                            {...props}
+                          />
+                        )}
+                        onPress={() => togglePersonSelection(p.id)}
+                        style={styles.listItem}
+                      />
+                    ))}
+                  </ScrollView>
                 )}
               </Card.Content>
             </Card>
+          )}
 
-            {mode === 'edit' && (
-              <View style={styles.buttonContainer}>
-                <View style={styles.topButtons}>
-                  <Button
-                    mode="outlined"
-                    onPress={handleDelete}
-                    style={[styles.button, styles.deleteButton]}
-                    icon="delete-outline"
-                    textColor="#d32f2f"
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={() => router.back()}
-                    style={styles.button}
-                  >
-                    Cancel
-                  </Button>
-                </View>
-              </View>
-            )}
-          </>
-        )}
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={
+              isSubmitting ||
+              (mode === 'add' && !singlePersonMode && selectedPersonIds.length === 0)
+            }
+            style={styles.submitButton}
+            contentStyle={styles.submitButtonContent}
+          >
+            {mode === 'add' ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}` : 'Update Connection'}
+          </Button>
 
-        {mode === 'add' && !singlePersonMode && (
-          // Multi-select mode (add only)
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleSmall" style={styles.label}>
-                Select People to Connect ({selectedPersonIds.length} selected)
-              </Text>
-              <TextInput
-                placeholder="Search people..."
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchbar}
-                mode="outlined"
-              />
-              <Text variant="titleSmall" style={styles.label}>
-                Selecting multiple, adds them as friends
-              </Text>
+          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+            Cancel
+          </Button>
 
-              {loadingPeople && (
-                <CenteredContainer style={styles.centered}>
-                  <ActivityIndicator />
-                </CenteredContainer>
-              )}
-
-              {selectedPersonIds.length > 0 && (
-                <View style={styles.selectedChipsContainer}>
-                  {selectedPersonIds.map((id) => {
-                    const person = allPeople.find((p) => p.id === id);
-                    return person ? (
-                      <Chip
-                        key={id}
-                        onClose={() => togglePersonSelection(id)}
-                        style={styles.selectedChip}
-                      >
-                        {person.name}
-                      </Chip>
-                    ) : null;
-                  })}
-                </View>
-              )}
-
-              {availablePeople.length === 0 && !loadingPeople && (
-                <Text style={styles.emptyText}>
-                  No other people found. Add more people first.
-                </Text>
-              )}
-
-              {availablePeople.length > 0 && (
-                <ScrollView style={styles.peopleList} nestedScrollEnabled>
-                  {availablePeople.map((p) => (
-                    <List.Item
-                      key={p.id}
-                      title={p.name}
-                      description={p.nickname || p.relationshipType}
-                      left={(props) => (
-                        <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                          <View style={[styles.listAvatar, props.style]}>
-                            <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                      right={(props) => (
-                        <Checkbox
-                          status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                          {...props}
-                        />
-                      )}
-                      onPress={() => togglePersonSelection(p.id)}
-                      style={styles.listItem}
-                    />
-                  ))}
-                </ScrollView>
-              )}
-            </Card.Content>
-          </Card>
-        )}
-
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={
-            isSubmitting ||
-            (mode === 'add' && !singlePersonMode && selectedPersonIds.length === 0)
-          }
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-        >
-          {mode === 'add' ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}` : 'Update Connection'}
-        </Button>
-
-        <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-          Cancel
-        </Button>
-
-        <View style={styles.spacer} />
-      </View>
-    </ScrollView>
+          <View style={styles.spacer} />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

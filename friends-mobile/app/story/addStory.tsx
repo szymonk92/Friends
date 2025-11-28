@@ -1,5 +1,5 @@
-import { StyleSheet, View, ScrollView, Alert, StatusBar, BackHandler } from 'react-native';
-import { Text, TextInput, Button, Card, HelperText, Dialog, Portal } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Alert, StatusBar, BackHandler, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, TextInput, Button, Dialog, Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
@@ -326,93 +326,99 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      <View style={[styles.statusBarSpacer, { height: insets.top }]} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={[styles.statusBarSpacer, { height: insets.top }]} />
 
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.content}>
-        {/* Main Input */}
-        <MentionTextInput
-          placeholder="Had dinner with @Sarah last night. She's now vegan and really into yoga..."
-          value={storyText}
-          onChangeText={setStoryText}
-          numberOfLines={16}
-          style={styles.input}
-        />
+        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.content}>
+          {/* Main Input */}
+          <MentionTextInput
+            placeholder="Had dinner with @Sarah last night. She's now vegan and really into yoga..."
+            value={storyText}
+            onChangeText={setStoryText}
+            numberOfLines={16}
+            style={styles.input}
+          />
 
-        {/* Explicitly Tagged People Chips */}
-        {selectedPersonIds.length > 0 && (
-          <View style={styles.chipsContainer}>
-            <Text variant="labelSmall" style={styles.chipsLabel}>Tagged:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {selectedPeopleObjects.map(person => (
-                <Chip
-                  key={person.id}
-                  avatar={person.photoPath ? <Avatar.Image size={24} source={{ uri: person.photoPath }} /> : <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />}
-                  onClose={() => handleRemovePerson(person.id)}
-                  style={styles.chip}
-                >
-                  {person.name}
-                </Chip>
-              ))}
-            </ScrollView>
+          {/* Explicitly Tagged People Chips */}
+          {selectedPersonIds.length > 0 && (
+            <View style={styles.chipsContainer}>
+              <Text variant="labelSmall" style={styles.chipsLabel}>Tagged:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {selectedPeopleObjects.map(person => (
+                  <Chip
+                    key={person.id}
+                    avatar={person.photoPath ? <Avatar.Image size={24} source={{ uri: person.photoPath }} /> : <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />}
+                    onClose={() => handleRemovePerson(person.id)}
+                    style={styles.chip}
+                  >
+                    {person.name}
+                  </Chip>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Stats Bar */}
+          <View style={styles.statsBar}>
+            <Text variant="bodySmall" style={styles.statsText}>
+              {wordCount} words
+            </Text>
+            <Text variant="bodySmall" style={styles.statsDivider}>
+              •
+            </Text>
+            <Text variant="bodySmall" style={styles.statsText}>
+              ~{estimatedCost}
+            </Text>
           </View>
-        )}
 
-        {/* Stats Bar */}
-        <View style={styles.statsBar}>
-          <Text variant="bodySmall" style={styles.statsText}>
-            {wordCount} words
-          </Text>
-          <Text variant="bodySmall" style={styles.statsDivider}>
-            •
-          </Text>
-          <Text variant="bodySmall" style={styles.statsText}>
-            ~{estimatedCost}
-          </Text>
-        </View>
+          {/* Examples Hint */}
+          <View style={styles.examplesSection}>
+            <Text variant="labelMedium" style={styles.examplesTitle}>
+              Quick examples
+            </Text>
+            <Text variant="bodySmall" style={styles.example}>
+              "Met @Emma for coffee. She's training for a marathon"
+            </Text>
+            <Text variant="bodySmall" style={styles.example}>
+              "Had lunch with @Ola and met her friend @+Fabian"
+            </Text>
+          </View>
 
-        {/* Examples Hint */}
-        <View style={styles.examplesSection}>
-          <Text variant="labelMedium" style={styles.examplesTitle}>
-            Quick examples
-          </Text>
-          <Text variant="bodySmall" style={styles.example}>
-            "Met @Emma for coffee. She's training for a marathon"
-          </Text>
-          <Text variant="bodySmall" style={styles.example}>
-            "Had lunch with @Ola and met her friend @+Fabian"
-          </Text>
-        </View>
+          <View style={styles.spacer} />
+        </ScrollView>
 
-        <View style={styles.spacer} />
-      </ScrollView>
+        {/* Fixed Bottom Action */}
+        <View style={styles.bottomAction}>
+          <View style={styles.actionRow}>
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              loading={isProcessing}
+              disabled={isProcessing || storyText.trim().length < 10}
+              style={styles.submitButton}
+              contentStyle={styles.submitButtonContent}
+            >
+              {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
+            </Button>
+          </View>
 
-      {/* Fixed Bottom Action */}
-      <View style={styles.bottomAction}>
-        <View style={styles.actionRow}>
+          {/* DEV Button */}
           <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isProcessing}
-            disabled={isProcessing || storyText.trim().length < 10}
-            style={styles.submitButton}
-            contentStyle={styles.submitButtonContent}
+            mode="text"
+            onPress={handleShowPrompt}
+            disabled={storyText.trim().length < 10}
+            style={styles.devButton}
+            icon="code-tags"
+            compact
           >
-            {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
+            Show Prompt
           </Button>
         </View>
-
-        {/* DEV Button */}
-        <Button
-          mode="text"
-          onPress={handleShowPrompt}
-          disabled={storyText.trim().length < 10}
-          style={styles.devButton}
-          icon="code-tags"
-          compact
-        >
-          Show Prompt
-        </Button>
-      </View>
+      </KeyboardAvoidingView>
 
 
       {/* API Key Dialog */}
