@@ -1,14 +1,21 @@
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, Button } from 'react-native-paper';
-import { THEME_COLORS, type ThemeColor } from '@/store/useSettings';
+import { THEME_COLORS, AVAILABLE_FONTS, type ThemeColor, type FontFamily } from '@/store/useSettings';
 import { useTranslation } from 'react-i18next';
 
 interface AppearanceSettingsProps {
   themeColor: ThemeColor;
   setThemeColor: (color: ThemeColor) => void;
+  fontFamily: FontFamily;
+  setFontFamily: (font: FontFamily) => void;
 }
 
-export default function AppearanceSettings({ themeColor, setThemeColor }: AppearanceSettingsProps) {
+export default function AppearanceSettings({
+  themeColor,
+  setThemeColor,
+  fontFamily,
+  setFontFamily,
+}: AppearanceSettingsProps) {
   const { t } = useTranslation();
   return (
     <Card style={styles.card}>
@@ -21,6 +28,25 @@ export default function AppearanceSettings({ themeColor, setThemeColor }: Appear
         <Text variant="bodySmall" style={styles.description}>
           {t('settings.appearanceDescription')}
         </Text>
+
+        <Text variant="labelMedium" style={styles.themeLabel}>
+          Font Family
+        </Text>
+        <View style={styles.themeGrid}>
+          {(Object.keys(AVAILABLE_FONTS) as FontFamily[]).map((font) => (
+            <Button
+              key={font}
+              mode={fontFamily === font ? 'contained' : 'outlined'}
+              onPress={() => setFontFamily(font)}
+              style={styles.themeButton}
+              labelStyle={styles.themeButtonLabel}
+              contentStyle={styles.themeButtonContent}
+              compact
+            >
+              {font}
+            </Button>
+          ))}
+        </View>
 
         <Text variant="labelMedium" style={styles.themeLabel}>
           {t('settings.themeColor')}

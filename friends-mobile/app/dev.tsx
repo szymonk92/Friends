@@ -12,7 +12,7 @@ import {
   runMockEvaluation,
   generateComparisonReport,
 } from '@/lib/ai/dev-tools/test-prompts';
-import { useSettings } from '@/store/useSettings';
+import { useSettings, AVAILABLE_FONTS, type FontFamily } from '@/store/useSettings';
 import { devLogger } from '@/lib/utils/devLogger';
 
 /**
@@ -26,6 +26,7 @@ export default function DevScreen() {
   const [loadTestCount, setLoadTestCount] = useState('500');
   const [loadTestResult, setLoadTestResult] = useState<string | null>(null);
 
+  const { fontFamily, setFontFamily } = useSettings();
   const maxPhotosPerPerson = useSettings((state) => state.maxPhotosPerPerson);
   const setMaxPhotosPerPerson = useSettings((state) => state.setMaxPhotosPerPerson);
   const [photoLimitInput, setPhotoLimitInput] = useState(maxPhotosPerPerson.toString());
@@ -229,6 +230,29 @@ export default function DevScreen() {
           <Text variant="bodyMedium" style={styles.subtitle}>
             {t('dev.subtitle')}
           </Text>
+
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Appearance
+              </Text>
+              <Divider style={styles.divider} />
+
+              <Text variant="titleMedium" style={{ marginBottom: 8 }}>Font Family</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {(Object.keys(AVAILABLE_FONTS) as FontFamily[]).map((font) => (
+                  <Button
+                    key={font}
+                    mode={fontFamily === font ? 'contained' : 'outlined'}
+                    onPress={() => setFontFamily(font)}
+                    compact
+                  >
+                    {font}
+                  </Button>
+                ))}
+              </View>
+            </Card.Content>
+          </Card>
 
           {/* Dev Logs section */}
           <Card style={styles.card}>

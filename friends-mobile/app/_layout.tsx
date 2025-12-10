@@ -65,6 +65,9 @@ SplashScreen.preventAutoHideAsync();
 export default Sentry.wrap(function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    InstrumentSans: require('../lib/fonts/InstrumentSans-VariableFont_wdth,wght.ttf'),
+    Inter: require('../lib/fonts/Inter-VariableFont_opsz,wght.ttf'),
+    PlayfairDisplay: require('../lib/fonts/PlayfairDisplay-VariableFont_wght.ttf'),
     ...FontAwesome.font,
   });
   const [appReady, setAppReady] = useState(false);
@@ -118,13 +121,14 @@ export default Sentry.wrap(function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { themeColor, loadThemeColor } = useSettings();
+  const { themeColor, loadThemeColor, fontFamily, loadFontFamily } = useSettings();
 
   useEffect(() => {
     loadThemeColor();
+    loadFontFamily();
   }, []);
 
-  const paperTheme = createTheme(themeColor, colorScheme === 'dark');
+  const paperTheme = createTheme(themeColor, fontFamily, colorScheme === 'dark');
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

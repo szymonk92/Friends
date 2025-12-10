@@ -67,6 +67,15 @@ export const THEME_PALETTES: Record<ThemeColor, ColorPalette> = {
   },
 };
 
+export type FontFamily = 'System' | 'InstrumentSans' | 'Inter' | 'PlayfairDisplay';
+
+export const AVAILABLE_FONTS: Record<FontFamily, string> = {
+  System: 'System',
+  InstrumentSans: 'InstrumentSans',
+  Inter: 'Inter',
+  PlayfairDisplay: 'PlayfairDisplay',
+};
+
 // Backward compatibility - export just primary colors
 export const THEME_COLORS: Record<ThemeColor, string> = Object.entries(THEME_PALETTES).reduce(
   (acc, [key, palette]) => {
@@ -92,6 +101,7 @@ interface SettingsState {
   geminiApiKey: string | null;
   selectedModel: AIModel;
   themeColor: ThemeColor;
+  fontFamily: FontFamily;
   maxPhotosPerPerson: number;
   setApiKey: (key: string) => Promise<void>;
   clearApiKey: () => Promise<void>;
@@ -108,6 +118,8 @@ interface SettingsState {
   setThemeColor: (color: ThemeColor) => Promise<void>;
   loadThemeColor: () => Promise<void>;
   getThemeColorValue: () => string;
+  setFontFamily: (font: FontFamily) => Promise<void>;
+  loadFontFamily: () => Promise<void>;
   setMaxPhotosPerPerson: (limit: number) => Promise<void>;
   loadMaxPhotosPerPerson: () => Promise<void>;
 }
@@ -116,6 +128,7 @@ const API_KEY_STORAGE_KEY = '@friends_api_key';
 const GEMINI_API_KEY_STORAGE_KEY = '@friends_gemini_api_key';
 const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
 const THEME_COLOR_STORAGE_KEY = '@friends_theme_color';
+const FONT_FAMILY_STORAGE_KEY = '@friends_font_family';
 const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
 
 /**
@@ -127,6 +140,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   geminiApiKey: null,
   selectedModel: 'anthropic',
   themeColor: 'violet',
+  fontFamily: 'System',
   maxPhotosPerPerson: 5,
 
   setApiKey: async (key: string) => {
@@ -253,6 +267,27 @@ export const useSettings = create<SettingsState>((set, get) => ({
   getThemeColorValue: () => {
     const state = get();
     return THEME_COLORS[state.themeColor];
+  },
+
+  setFontFamily: async (font: FontFamily) => {
+    try {
+      await AsyncStorage.setItem(FONT_FAMILY_STORAGE_KEY, font);
+      set({ fontFamily: font });
+    } catch (error) {
+      console.error('Failed to save font family:', error);
+      throw error;
+    }
+  },
+
+  loadFontFamily: async () => {
+    try {
+      const font = await AsyncStorage.getItem(FONT_FAMILY_STORAGE_KEY);
+      if (font && Object.keys(AVAILABLE_FONTS).includes(font)) {
+        set({ fontFamily: font as FontFamily });
+      }
+    } catch (error) {
+      console.error('Failed to load font family:', error);
+    }
   },
 
   setMaxPhotosPerPerson: async (limit: number) => {

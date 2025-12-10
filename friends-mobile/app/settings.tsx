@@ -50,6 +50,9 @@ export default function SettingsScreen() {
     themeColor,
     setThemeColor,
     loadThemeColor,
+    fontFamily,
+    setFontFamily,
+    loadFontFamily,
     loadMaxPhotosPerPerson,
   } = useSettings();
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
@@ -73,6 +76,7 @@ export default function SettingsScreen() {
     loadGeminiApiKey();
     loadSelectedModel();
     loadThemeColor();
+    loadFontFamily();
     loadMaxPhotosPerPerson();
     loadBirthdaySettings();
     loadRelationshipColors();
@@ -198,7 +202,12 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen options={{ title: t('settings.title') }} />
       <ScrollView style={styles.container}>
-        <AppearanceSettings themeColor={themeColor} setThemeColor={setThemeColor} />
+        <AppearanceSettings
+          themeColor={themeColor}
+          setThemeColor={setThemeColor}
+          fontFamily={fontFamily}
+          setFontFamily={setFontFamily}
+        />
 
         <LanguageSelector />
 
