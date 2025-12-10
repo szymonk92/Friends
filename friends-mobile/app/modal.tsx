@@ -1,33 +1,65 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
+import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
-import { relationshipTypeEnum } from '@/lib/validation/schemas';
+import { useTranslation } from 'react-i18next';
+import { devLogger } from '@/lib/utils/devLogger';
 
 export default function AddPersonModal() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createPerson = useCreatePerson();
 
+  const parseFlexibleDate = (input: string): Date | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
+
+    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
+      return new Date(parts[0], 0, 1);
+    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
+      return new Date(parts[0], parts[1] - 1, 1);
+    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return null;
+  };
+
   const handleSubmit = async () => {
     if (name.trim().length < 2) {
-      Alert.alert('Invalid Name', 'Please enter a name with at least 2 characters');
+      Alert.alert(t('person.invalidName'), t('person.invalidNameMessage'));
+      return;
+    }
+
+    if (name.trim().length > 255) {
+      Alert.alert(t('person.nameTooLong'), t('person.nameTooLongMessage'));
+      return;
+    }
+
+    if (nickname.trim().length > 255) {
+      Alert.alert(t('person.nicknameTooLong'), t('person.nicknameTooLongMessage'));
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      const parsedBirthday = parseFlexibleDate(dateOfBirth);
+
       await createPerson.mutateAsync({
         name: name.trim(),
         nickname: nickname.trim() || undefined,
         relationshipType: relationshipType as any,
+        dateOfBirth: parsedBirthday || undefined,
         notes: notes.trim() || undefined,
         personType: 'primary',
         dataCompleteness: 'partial',
@@ -35,101 +67,129 @@ export default function AddPersonModal() {
         status: 'active',
       });
 
-      Alert.alert('Success', `${name} has been added!`, [
+      Alert.alert(t('common.success'), t('person.successAdded', { name }), [
         {
-          text: 'OK',
+          text: t('common.ok'),
           onPress: () => router.back(),
         },
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add person. Please try again.');
-      console.error('Create person error:', error);
+      // Handle specific error cases
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('already exists')) {
+        Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
+      } else {
+        Alert.alert(t('common.error'), t('person.errorAdding'));
+      }
+      devLogger.error('Failed to create person', { error, personData: { name } });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Add a Person
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Manually add someone to your network
-        </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Text variant="headlineMedium" style={styles.title}>
+            {t('person.addTitle')}
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            {t('person.addSubtitle')}
+          </Text>
 
-        <TextInput
-          mode="outlined"
-          label="Name *"
-          placeholder="Enter their name"
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          autoFocus
-        />
+          <TextInput
+            mode="outlined"
+            label={`${t('person.name')} ${t('person.nameRequired')} `}
+            placeholder={t('person.namePlaceholder')}
+            value={name}
+            onChangeText={setName}
+            style={styles.input}
+            autoFocus
+            autoCapitalize="words"
+            maxLength={255}
+          />
 
-        <TextInput
-          mode="outlined"
-          label="Nickname"
-          placeholder="Optional nickname"
-          value={nickname}
-          onChangeText={setNickname}
-          style={styles.input}
-        />
+          <TextInput
+            mode="outlined"
+            label={t('person.nickname')}
+            placeholder={t('person.nicknamePlaceholder')}
+            value={nickname}
+            onChangeText={setNickname}
+            style={styles.input}
+            maxLength={255}
+          />
 
-        <Text variant="titleSmall" style={styles.label}>
-          Relationship Type
-        </Text>
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'friend', label: 'Friend', icon: 'account-heart' },
-            { value: 'family', label: 'Family', icon: 'home-heart' },
-            { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
-          ]}
-          style={styles.segmented}
-        />
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'acquaintance', label: 'Acquaintance' },
-            { value: 'partner', label: 'Partner', icon: 'heart' },
-          ]}
-          style={styles.segmented}
-        />
+          <Text variant="titleSmall" style={styles.label}>
+            {t('person.relationshipType')}
+          </Text>
+          <SegmentedButtons
+            value={relationshipType}
+            onValueChange={setRelationshipType}
+            buttons={[
+              { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
+              { value: 'family', label: t('person.family'), icon: 'home-heart' },
+              { value: 'colleague', label: t('person.colleague'), icon: 'briefcase' },
+            ]}
+            style={styles.segmented}
+          />
+          <SegmentedButtons
+            value={relationshipType}
+            onValueChange={setRelationshipType}
+            buttons={[
+              { value: 'acquaintance', label: t('person.acquaintance') },
+              { value: 'partner', label: t('person.partner'), icon: 'heart' },
+            ]}
+            style={styles.segmented}
+          />
 
-        <TextInput
-          mode="outlined"
-          label="Notes"
-          placeholder="Any notes about this person..."
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={4}
-          style={styles.input}
-        />
+          <TextInput
+            mode="outlined"
+            label={t('person.birthday')}
+            placeholder={t('person.birthdayPlaceholder')}
+            value={dateOfBirth}
+            onChangeText={setDateOfBirth}
+            style={styles.input}
+          />
+          <Text variant="labelSmall" style={styles.birthdayHint}>
+            {t('person.birthdayHint')}
+          </Text>
 
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={isSubmitting || name.trim().length < 2}
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-        >
-          Add Person
-        </Button>
+          <TextInput
+            mode="outlined"
+            label={t('person.notes')}
+            placeholder={t('person.notesPlaceholder')}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            style={styles.input}
+          />
 
-        <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-          Cancel
-        </Button>
-      </View>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting || name.trim().length < 2}
+            style={styles.submitButton}
+            contentStyle={styles.submitButtonContent}
+          >
+            {t('person.addButton')}
+          </Button>
 
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-    </ScrollView>
+          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+            {t('common.cancel')}
+          </Button>
+        </View>
+
+        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -164,5 +224,10 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
+  },
+  birthdayHint: {
+    opacity: 0.6,
+    marginTop: -12,
+    marginBottom: 16,
   },
 });

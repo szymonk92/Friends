@@ -1,4 +1,4 @@
-# Friends Mobile App
+# FriendZ
 
 AI-powered relationship tracker - Remember everything about everyone you care about.
 
@@ -207,12 +207,12 @@ Get your API key from: https://console.anthropic.com
 
 ## Future Enhancements (Phase 2+)
 
-- [ ] Review screen for low-confidence relations (manual approval)
+- [x] Review screen for low-confidence relations (manual approval)
 - [ ] Conflict detection UI (contradictions between stories)
 - [ ] Duplicate person merging (intelligent de-duplication)
-- [ ] Import/export data (backup & restore)
+- [x] Import/export data (backup & restore)
 - [ ] Contact frequency tracking (relationship health)
-- [ ] Birthday reminders
+- [x] Birthday reminders
 - [ ] Voice note support
 
 ## Troubleshooting

@@ -1,16 +1,19 @@
 import { useMutation } from '@tanstack/react-query';
-import { extractRelationsFromStory, shouldAutoAccept } from '@/lib/ai/extraction';
+import { extractRelationsFromStorySession, shouldAutoAccept } from '@/lib/ai/extraction';
 import { useCreatePerson, useUpdatePerson } from './usePeople';
 import { useCreateRelations } from './useRelations';
 import { useMarkStoryProcessed } from './useStories';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, pendingExtractions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
 
 interface ExtractionInput {
   storyId: string;
   storyText: string;
-  apiKey: string;
+  config: AIServiceConfig;
+  explicitlyTaggedPersonIds?: string[];
+  forceNewPeopleNames?: string[];
 }
 
 interface ExtractionOutput {
@@ -20,6 +23,11 @@ interface ExtractionOutput {
   conflicts: any[];
   rawResponse?: string;
   tokensUsed?: number;
+  debugInfo?: AIDebugInfo;
+  ambiguousMatches?: Array<{
+    nameInStory: string;
+    possibleMatches: Array<{ id: string; name: string; reason: string }>;
+  }>;
 }
 
 /**
@@ -41,7 +49,9 @@ export function useExtractStory() {
     mutationFn: async ({
       storyId,
       storyText,
-      apiKey,
+      config,
+      explicitlyTaggedPersonIds,
+      forceNewPeopleNames,
     }: ExtractionInput): Promise<ExtractionOutput> => {
       // Step 1: Get existing people (for lightweight context)
       const userId = await getCurrentUserId();
@@ -50,8 +60,20 @@ export function useExtractStory() {
         .from(people)
         .where(eq(people.userId, userId));
 
+      const explicitlyTaggedPeople = explicitlyTaggedPersonIds
+        ? existingPeople.filter((p) => explicitlyTaggedPersonIds.includes(p.id))
+        : undefined;
+
       // Step 2: Call AI extraction
-      const extractionResult = await extractRelationsFromStory(storyText, existingPeople, apiKey);
+      const extractionResult = await extractRelationsFromStorySession(
+        storyText,
+        existingPeople,
+        config,
+        undefined, // existingRelations
+        undefined, // sessionId
+        explicitlyTaggedPeople,
+        forceNewPeopleNames
+      );
 
       // Step 3: Process extracted people
       const personIdMap = new Map<string, string>(); // Map temp IDs to real IDs
@@ -99,7 +121,13 @@ export function useExtractStory() {
 
       for (const relation of extractionResult.relations) {
         const realSubjectId = personIdMap.get(relation.subjectId);
-        if (!realSubjectId) continue;
+
+        if (!realSubjectId) {
+          console.warn(
+            `Could not find ID for subject: ${relation.subjectName} (${relation.subjectId})`
+          );
+          continue;
+        }
 
         const relationData = {
           subjectId: realSubjectId,
@@ -163,6 +191,7 @@ export function useExtractStory() {
           relations: extractionResult.relations,
           conflicts: extractionResult.conflicts,
           tokensUsed: extractionResult.tokensUsed,
+          debugInfo: extractionResult.debugInfo,
         },
       });
 
@@ -173,6 +202,8 @@ export function useExtractStory() {
         conflicts: extractionResult.conflicts,
         rawResponse: extractionResult.rawResponse,
         tokensUsed: extractionResult.tokensUsed,
+        debugInfo: extractionResult.debugInfo,
+        ambiguousMatches: extractionResult.ambiguousMatches,
       };
     },
   });

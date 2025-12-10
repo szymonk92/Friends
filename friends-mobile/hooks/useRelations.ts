@@ -3,6 +3,7 @@ import { relations, type NewRelation, type Relation } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+import { relationsLogger, logPerformance } from '@/lib/logger';
 
 /**
  * Hook to fetch relations for a specific person
@@ -53,6 +54,13 @@ export function useCreateRelation() {
 
   return useMutation({
     mutationFn: async (data: Omit<NewRelation, 'userId'>) => {
+      relationsLogger.info('Creating relation', {
+        subjectId: data.subjectId,
+        type: data.relationType,
+        object: data.objectLabel,
+        source: data.source,
+      });
+
       const userId = await getCurrentUserId();
       const result = (await db
         .insert(relations)
@@ -62,6 +70,8 @@ export function useCreateRelation() {
           id: randomUUID(),
         })
         .returning()) as any[];
+
+      relationsLogger.debug('Relation created', { relationId: result[0]?.id });
       return result[0];
     },
     onSuccess: (data) => {

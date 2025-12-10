@@ -1,7 +1,11 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['**/lib/**/__tests__/**/*.test.[jt]s?(x)', '**/lib/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: [
+    '**/lib/**/__tests__/**/*.test.[jt]s?(x)',
+    '**/lib/**/?(*.)+(spec|test).[jt]s?(x)',
+    '**/components/**/__tests__/**/*-test.tsx',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
@@ -19,12 +23,15 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: {
-          jsx: 'react',
+          jsx: 'react-jsx',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
         },
       },
     ],
   },
-  modulePathIgnorePatterns: ['<rootDir>/app/', '<rootDir>/components/', '<rootDir>/hooks/'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-paper|@testing-library)/)',
+  ],
+  modulePathIgnorePatterns: ['<rootDir>/app/', '<rootDir>/hooks/'],
 };

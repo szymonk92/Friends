@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { pendingExtractions, relations } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { ALLOWED_RELATION_TYPES } from '@/lib/constants/relations';
 
 /**
  * Hook to get all pending extractions for the current user
@@ -67,6 +68,40 @@ export function useApprovePendingExtraction() {
         throw new Error('Pending extraction not found');
       }
 
+      // Check if already processed
+      if (extraction.reviewStatus !== 'pending') {
+        throw new Error(`This extraction has already been ${extraction.reviewStatus}`);
+      }
+
+      // Validate relation type is allowed
+      if (!ALLOWED_RELATION_TYPES.includes(extraction.relationType as any)) {
+        throw new Error(
+          `Invalid relation type: ${extraction.relationType}. This relation type is not supported.`
+        );
+      }
+
+      // Check for duplicate relations
+      const existingRelations = await db
+        .select()
+        .from(relations)
+        .where(
+          and(
+            eq(relations.subjectId, extraction.subjectId),
+            eq(relations.relationType, extraction.relationType as any),
+            eq(relations.objectLabel, extraction.objectLabel),
+            eq(relations.userId, extraction.userId)
+          )
+        )
+        .limit(1);
+
+      // Validate status is allowed (if provided)
+      const allowedStatuses = ['current', 'past', 'future', 'aspiration'];
+      if (extraction.status && !allowedStatuses.includes(extraction.status)) {
+        throw new Error(
+          `Invalid status: ${extraction.status}. Must be one of: ${allowedStatuses.join(', ')}`
+        );
+      }
+
       // Create the relation
       const [newRelation] = (await db
         .insert(relations)
@@ -100,6 +135,7 @@ export function useApprovePendingExtraction() {
     onSuccess: (data) => {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
       queryClient.invalidateQueries({ queryKey: ['relations', 'person', data.subjectId] });
     },
@@ -125,6 +161,7 @@ export function useRejectPendingExtraction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
     },
   });
 }

@@ -40,3 +40,15 @@ yarn-error.*
 /ios
 /android
 coverage/
+
+# build artifacts
+/build/
+*.apk
+*.aab
+*.ipa
+
+# local user settings
+.idea/
+.vscode/
+
+.env.local

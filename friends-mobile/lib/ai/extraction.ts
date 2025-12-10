@@ -1,9 +1,18 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { createExtractionPrompt, type ExtractionContext } from './prompts';
+import { createSystemPrompt } from './prompts';
+import {
+  createAISession,
+  updateSessionContext,
+  callAISession,
+  parseExtractionResponse,
+  type AIServiceConfig,
+  type AISession,
+  type AIDebugInfo,
+} from './ai-service';
 
 /**
  * AI Extraction Service
  * Implements lightweight context strategy from AI_EXTRACTION_STRATEGY.md
+ * Supports multiple AI models: Anthropic Claude and Google Gemini
  */
 
 interface ExtractedPerson {
@@ -43,70 +52,78 @@ export interface ExtractionResult {
   rawResponse?: string;
   tokensUsed?: number;
   processingTime?: number;
+  debugInfo?: AIDebugInfo;
+  ambiguousMatches?: Array<{
+    nameInStory: string;
+    possibleMatches: Array<{ id: string; name: string; reason: string }>;
+  }>;
 }
 
 /**
- * Extract relations from a story using Claude 3.5 Sonnet
+ * Extract relations from a story using AI with session-based approach
+ * This creates/maintains a session for more efficient context management
  */
-export async function extractRelationsFromStory(
+export async function extractRelationsFromStorySession(
   storyText: string,
   existingPeople: Array<{ id: string; name: string }>,
-  apiKey: string,
+  config: AIServiceConfig,
   existingRelations?: Array<{
     relationType: string;
     objectLabel: string;
     subjectId: string;
     subjectName: string;
-  }>
+  }>,
+  sessionId?: string,
+  explicitlyTaggedPeople?: Array<{ id: string; name: string }>,
+  forceNewPeople?: string[]
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
 
-  // Initialize Anthropic client
-  const anthropic = new Anthropic({
-    apiKey,
-  });
+  // Create or get session
+  let session: AISession;
+  if (sessionId) {
+    // For now, we'll create a new session each time since we don't persist them
+    // In a production system, you'd load the session from storage
+    session = createAISession(config, { systemPrompt: createSystemPrompt() });
+  } else {
+    session = createAISession(config, { systemPrompt: createSystemPrompt() });
+  }
 
-  // Create extraction context (lightweight - only names, not full profiles)
-  const context: ExtractionContext = {
-    existingPeople,
+  // Filter existing people to only include those relevant to the story
+  // This saves tokens and improves accuracy by reducing noise
+  const relevantPeople = filterRelevantPeople(storyText, existingPeople);
+
+  // Update context with current people and relations
+  const contextUpdate = createContextUpdate(
+    relevantPeople,
     existingRelations,
-    storyText,
-  };
+    explicitlyTaggedPeople,
+    forceNewPeople
+  );
+  updateSessionContext(session.id, contextUpdate);
 
-  // Generate prompt
-  const prompt = createExtractionPrompt(context);
+  // Create the extraction message
+  const extractionMessage = `EXTRACT RELATIONS FROM THIS STORY:
+
+"${storyText}"
+
+Please analyze this story and extract people, their relationships, and any conflicts with existing data. Respond with JSON only.`;
 
   try {
-    // Call Claude API
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
-      temperature: 0.3, // Low temperature for consistent structured output
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+    // Call AI with session
+    const {
+      response: rawResponse,
+      tokensUsed,
+      debugInfo,
+    } = await callAISession(session.id, extractionMessage, config);
 
-    // Extract text content
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    // Attach the contextUpdate to debugInfo so it is persisted and visible in UIs
+    if (debugInfo) {
+      (debugInfo as any).contextUpdate = contextUpdate;
     }
 
-    const rawResponse = content.text;
-
     // Parse JSON response
-    // Claude might wrap JSON in markdown code blocks
-    const jsonMatch = rawResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || [
-      null,
-      rawResponse,
-    ];
-    const jsonText = jsonMatch[1] || rawResponse;
-
-    const parsed = JSON.parse(jsonText.trim());
+    const parsed = parseExtractionResponse(rawResponse);
 
     const processingTime = Date.now() - startTime;
 
@@ -115,16 +132,72 @@ export async function extractRelationsFromStory(
       relations: parsed.relations || [],
       conflicts: parsed.conflicts || [],
       rawResponse,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+      tokensUsed,
       processingTime,
+      debugInfo,
+      ambiguousMatches: parsed.ambiguousMatches || [],
     };
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('AI extraction failed:', error);
     throw new Error(
       `Failed to extract relations: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+/**
+ * Create context update message for session
+ */
+function createContextUpdate(
+  existingPeople: Array<{ id: string; name: string }>,
+  existingRelations?: Array<{
+    relationType: string;
+    objectLabel: string;
+    subjectId: string;
+    subjectName: string;
+  }>,
+  explicitlyTaggedPeople?: Array<{ id: string; name: string }>,
+  forceNewPeople?: string[]
+): string {
+  let update = 'CURRENT DATABASE STATE:\n\n';
+
+  update += 'EXISTING PEOPLE:\n';
+  if (existingPeople.length > 0) {
+    existingPeople.forEach((person) => {
+      update += `- ${person.name} (ID: ${person.id})\n`;
+    });
+  } else {
+    update += 'None yet\n';
+  }
+
+  update += '\nEXPLICITLY TAGGED PEOPLE (CONFIRMED PRESENT):\n';
+  if (explicitlyTaggedPeople && explicitlyTaggedPeople.length > 0) {
+    explicitlyTaggedPeople.forEach((person) => {
+      update += `- ${person.name} (ID: ${person.id}) [CONFIRMED PRESENT]\n`;
+    });
+  } else {
+    update += 'None\n';
+  }
+
+  update += '\nCONFIRMED NEW PEOPLE (DO NOT LINK TO EXISTING):\n';
+  if (forceNewPeople && forceNewPeople.length > 0) {
+    forceNewPeople.forEach((name) => {
+      update += `- ${name} [CONFIRMED NEW PERSON]\n`;
+    });
+  } else {
+    update += 'None\n';
+  }
+
+  update += '\nEXISTING RELATIONS:\n';
+  if (existingRelations && existingRelations.length > 0) {
+    existingRelations.forEach((relation) => {
+      update += `- ${relation.subjectName}: ${relation.relationType} "${relation.objectLabel}"\n`;
+    });
+  } else {
+    update += 'None yet\n';
+  }
+
+  return update;
 }
 
 /**
@@ -225,4 +298,35 @@ export function estimateExtractionCost(
     estimatedTokens,
     estimatedCost: inputCost + outputCost,
   };
+}
+
+/**
+ * Filter people to only include those likely relevant to the story
+ * Uses simple string matching to find potential mentions
+ */
+function filterRelevantPeople(
+  storyText: string,
+  allPeople: Array<{ id: string; name: string }>
+): Array<{ id: string; name: string }> {
+  const normalizedStory = storyText.toLowerCase();
+
+  return allPeople.filter((person) => {
+    const nameParts = person.name.toLowerCase().split(' ');
+
+    // Check full name
+    if (normalizedStory.includes(person.name.toLowerCase())) return true;
+
+    // Check first name (if longer than 2 chars to avoid noise)
+    if (nameParts[0].length > 2 && normalizedStory.includes(nameParts[0])) return true;
+
+    // Check last name (if exists and longer than 2 chars)
+    if (
+      nameParts.length > 1 &&
+      nameParts[nameParts.length - 1].length > 2 &&
+      normalizedStory.includes(nameParts[nameParts.length - 1])
+    )
+      return true;
+
+    return false;
+  });
 }

@@ -7,10 +7,8 @@ import { initializeDatabase } from './index';
 export async function runMigrations() {
   try {
     await initializeDatabase();
-    // eslint-disable-next-line no-console
     console.log('✅ Database ready');
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('❌ Database initialization failed:', error);
     throw error;
   }

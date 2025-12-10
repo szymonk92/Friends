@@ -92,7 +92,7 @@ export const people = sqliteTable(
 
     // Person Classification & Management
     personType: text('person_type', {
-      enum: ['primary', 'mentioned', 'placeholder'],
+      enum: ['primary', 'mentioned', 'placeholder', 'self'],
     }).default('placeholder'),
     dataCompleteness: text('data_completeness', {
       enum: ['minimal', 'partial', 'complete'],
@@ -103,6 +103,11 @@ export const people = sqliteTable(
     importanceToUser: text('importance_to_user', {
       enum: ['unknown', 'peripheral', 'important', 'very_important'],
     }).default('unknown'),
+
+    // User's personal sentiment towards this person
+    userSentiment: text('user_sentiment', {
+      enum: ['neutral', 'positive', 'negative', 'complicated'],
+    }).default('neutral'),
 
     // De-duplication & Merging
     potentialDuplicates: text('potential_duplicates'),
@@ -127,6 +132,7 @@ export const people = sqliteTable(
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
     notes: text('notes'),
+    tags: text('tags'), // JSON array of tag strings, e.g., '["college", "work"]'
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -213,6 +219,7 @@ export const relations = sqliteTable(
         'KNOWS',
         'LIKES',
         'DISLIKES',
+        'UNKNOWN',
         'ASSOCIATED_WITH',
         'EXPERIENCED',
         'HAS_SKILL',
@@ -236,7 +243,7 @@ export const relations = sqliteTable(
     objectType: text('object_type'),
     objectLabel: text('object_label').notNull(),
     metadata: text('metadata'),
-    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong'] }),
+    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong', 'unknown'] }),
     confidence: real('confidence').default(1.0),
     category: text('category'),
     source: text('source', {
@@ -521,6 +528,80 @@ export const pendingExtractions = sqliteTable(
 );
 
 // ============================================================================
+// QUIZ DISMISSALS TABLE
+// ============================================================================
+
+export const quizDismissals = sqliteTable(
+  'quiz_dismissals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    quizType: text('quiz_type', { enum: ['food', 'hobby', 'general'] }).notNull(),
+    questionKey: text('question_key').notNull(), // e.g., "Tomatoes", "Hiking"
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    userIdIdx: index('quiz_dismissals_user_id_idx').on(table.userId),
+    personIdIdx: index('quiz_dismissals_person_id_idx').on(table.personId),
+    quizTypeIdx: index('quiz_dismissals_quiz_type_idx').on(table.quizType),
+    // Unique constraint: one dismissal per person+quiz+question
+    uniqueDismissal: index('quiz_dismissals_unique_idx').on(
+      table.personId,
+      table.quizType,
+      table.questionKey
+    ),
+  })
+);
+
+// ============================================================================
+// REMINDERS TABLE
+// ============================================================================
+
+export const reminders = sqliteTable(
+  'reminders',
+  {
+    id: text('id').primaryKey().notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id').references(() => people.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    message: text('message'),
+    reminderType: text('reminder_type', {
+      enum: ['contact', 'birthday', 'anniversary', 'custom'],
+    }).notNull(),
+    scheduledFor: integer('scheduled_for', { mode: 'timestamp' }).notNull(),
+    repeatInterval: text('repeat_interval', {
+      enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
+    }).default('none'),
+    notificationId: text('notification_id'), // Expo notification ID
+    status: text('status', { enum: ['pending', 'sent', 'cancelled'] }).default('pending'),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  },
+  (table) => ({
+    userIdIdx: index('reminders_user_id_idx').on(table.userId),
+    personIdIdx: index('reminders_person_id_idx').on(table.personId),
+    scheduledForIdx: index('reminders_scheduled_for_idx').on(table.scheduledFor),
+    statusIdx: index('reminders_status_idx').on(table.status),
+  })
+);
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
@@ -556,3 +637,9 @@ export type NewFile = typeof files.$inferInsert;
 
 export type PendingExtraction = typeof pendingExtractions.$inferSelect;
 export type NewPendingExtraction = typeof pendingExtractions.$inferInsert;
+
+export type QuizDismissal = typeof quizDismissals.$inferSelect;
+export type NewQuizDismissal = typeof quizDismissals.$inferInsert;
+
+export type Reminder = typeof reminders.$inferSelect;
+export type NewReminder = typeof reminders.$inferInsert;
