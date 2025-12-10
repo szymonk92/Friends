@@ -10,18 +10,8 @@ import { randomUUID } from 'expo-crypto';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { router } from 'expo-router';
 import { Stack } from 'expo-router';
-import {
-  Dimensions,
-  LogBox,
-  View,
-  StyleSheet,
-  Animated,
-  PanResponder,
-} from 'react-native';
-import {
-  Text,
-  Button,
-} from 'react-native-paper';
+import { Dimensions, LogBox, View, StyleSheet, Animated, PanResponder } from 'react-native';
+import { Text, Button } from 'react-native-paper';
 import { LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
 
 import QuizCard from '@/components/food-quiz/QuizCard';
@@ -106,7 +96,7 @@ export default function FoodQuizScreen() {
     const answered = new Set<string>();
     for (const relation of existingRelations) {
       // Check if this is a food preference (any relation type) using O(1) Set lookup
-      if (FOOD_ITEM_SET.has(relation.objectLabel as typeof FOOD_QUESTIONS[number]['item'])) {
+      if (FOOD_ITEM_SET.has(relation.objectLabel as (typeof FOOD_QUESTIONS)[number]['item'])) {
         answered.add(`${relation.subjectId}:${relation.objectLabel}`);
       }
     }
@@ -126,8 +116,10 @@ export default function FoodQuizScreen() {
   const questionsToAsk = useMemo(() => {
     if (dismissalsLoading) return [];
 
-    const questions: Array<{ person: (typeof primaryPeople)[0]; food: (typeof FOOD_QUESTIONS)[number] }> =
-      [];
+    const questions: Array<{
+      person: (typeof primaryPeople)[0];
+      food: (typeof FOOD_QUESTIONS)[number];
+    }> = [];
 
     // Create a mixed list: iterate through foods first, then people
     // This ensures we ask about food A for person 1, food A for person 2, etc.

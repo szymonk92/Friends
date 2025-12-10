@@ -1,12 +1,34 @@
-import { StyleSheet, View, FlatList, ScrollView, RefreshControl, Image, TouchableOpacity, StatusBar } from 'react-native';
-import { Text, Searchbar, Chip, ActivityIndicator, Button, IconButton, Menu, Divider } from 'react-native-paper';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  ScrollView,
+  RefreshControl,
+  Image,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import {
+  Text,
+  Searchbar,
+  Chip,
+  ActivityIndicator,
+  Button,
+  IconButton,
+  Menu,
+  Divider,
+} from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { getInitials } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import {
+  getRelationshipColors,
+  type RelationshipColorMap,
+  DEFAULT_COLORS,
+} from '@/lib/settings/relationship-colors';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import SectionDivider from '@/components/SectionDivider';
 import { useTranslation } from 'react-i18next';
@@ -24,9 +46,15 @@ export default function PeopleListScreen() {
   const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
-  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
-  const { data: people = [], isLoading, error, refetch } = usePeople({ 
-    type: viewMode === 'network' ? 'primary' : 'all' 
+  const [relationshipColors, setRelationshipColors] =
+    useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const {
+    data: people = [],
+    isLoading,
+    error,
+    refetch,
+  } = usePeople({
+    type: viewMode === 'network' ? 'primary' : 'all',
   });
 
   useFocusEffect(
@@ -43,7 +71,9 @@ export default function PeopleListScreen() {
   const { data: allTags = [] } = useAllTags();
 
   // Get unique relationship types from people
-  const relationshipTypes = Array.from(new Set(people.map((p) => p.relationshipType).filter(Boolean))).sort();
+  const relationshipTypes = Array.from(
+    new Set(people.map((p) => p.relationshipType).filter(Boolean))
+  ).sort();
 
   const filteredPeople = useMemo(() => {
     console.log('[People] Recomputing filtered people, sortBy:', sortBy);
@@ -73,7 +103,8 @@ export default function PeopleListScreen() {
 
         // Filter by selected tags (person must have ALL selected tags)
         const personTags = parseTags(person.tags);
-        const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
+        const matchesTags =
+          selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
 
         // Filter by relationship type
         const matchesRelationType =
@@ -113,7 +144,16 @@ export default function PeopleListScreen() {
             const bRelWeight = relationshipWeights[b.relationshipType || ''] || 0;
 
             if (aRelWeight !== bRelWeight) {
-              console.log('[People] Using relationship weight:', a.name, a.relationshipType, aRelWeight, 'vs', b.name, b.relationshipType, bRelWeight);
+              console.log(
+                '[People] Using relationship weight:',
+                a.name,
+                a.relationshipType,
+                aRelWeight,
+                'vs',
+                b.name,
+                b.relationshipType,
+                bRelWeight
+              );
               return bRelWeight - aRelWeight; // Higher weight first
             }
 
@@ -123,7 +163,16 @@ export default function PeopleListScreen() {
             const aImportanceIndex = importanceOrder.indexOf(aImportance);
             const bImportanceIndex = importanceOrder.indexOf(bImportance);
 
-            console.log('[People] Importance tiebreaker:', a.name, aImportance, `(${aImportanceIndex})`, 'vs', b.name, bImportance, `(${bImportanceIndex})`);
+            console.log(
+              '[People] Importance tiebreaker:',
+              a.name,
+              aImportance,
+              `(${aImportanceIndex})`,
+              'vs',
+              b.name,
+              bImportance,
+              `(${bImportanceIndex})`
+            );
 
             if (aImportanceIndex !== bImportanceIndex) {
               return aImportanceIndex - bImportanceIndex; // Lower index (higher importance) first
@@ -134,18 +183,29 @@ export default function PeopleListScreen() {
           }
           case 'date':
           default:
-            console.log('[People] Date sort:', a.name, new Date(a.updatedAt).toISOString(), 'vs', b.name, new Date(b.updatedAt).toISOString());
+            console.log(
+              '[People] Date sort:',
+              a.name,
+              new Date(a.updatedAt).toISOString(),
+              'vs',
+              b.name,
+              new Date(b.updatedAt).toISOString()
+            );
             return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         }
       });
   }, [people, searchQuery, selectedTags, selectedRelationTypes, sortBy]);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   };
 
   const toggleRelationType = (type: string) => {
-    setSelectedRelationTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+    setSelectedRelationTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   };
 
   const clearAllFilters = () => {
@@ -178,7 +238,8 @@ export default function PeopleListScreen() {
     );
   }
 
-  const hasActiveFilters = searchQuery || selectedTags.length > 0 || selectedRelationTypes.length > 0;
+  const hasActiveFilters =
+    searchQuery || selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
   return (
     <View style={styles.container}>
@@ -210,7 +271,7 @@ export default function PeopleListScreen() {
                   onDismiss={() => {
                     console.log('[People] Menu dismissed');
                     setMenuVisible(false);
-                    setMenuKey(prev => prev + 1);
+                    setMenuKey((prev) => prev + 1);
                   }}
                   anchor={
                     <IconButton
@@ -220,7 +281,7 @@ export default function PeopleListScreen() {
                         console.log('[People] Menu button pressed, current visible:', menuVisible);
                         setMenuVisible(!menuVisible);
                         if (!menuVisible) {
-                          setMenuKey(prev => prev + 1);
+                          setMenuKey((prev) => prev + 1);
                         }
                       }}
                     />
@@ -275,7 +336,11 @@ export default function PeopleListScreen() {
                       setShowCategoryDividers(!showCategoryDividers);
                       setMenuVisible(false);
                     }}
-                    title={showCategoryDividers ? t('people.hideCategoryDividers') : t('people.showCategoryDividers')}
+                    title={
+                      showCategoryDividers
+                        ? t('people.hideCategoryDividers')
+                        : t('people.showCategoryDividers')
+                    }
                     leadingIcon={showCategoryDividers ? 'eye-off' : 'eye'}
                   />
                   <Menu.Item
@@ -342,16 +407,16 @@ export default function PeopleListScreen() {
 
         {/* View Toggle Chips */}
         <View style={styles.viewToggleContainer}>
-          <Chip 
-            selected={viewMode === 'network'} 
+          <Chip
+            selected={viewMode === 'network'}
             onPress={() => setViewMode('network')}
             showSelectedOverlay
             style={styles.viewToggleChip}
           >
             My Network
           </Chip>
-          <Chip 
-            selected={viewMode === 'all'} 
+          <Chip
+            selected={viewMode === 'all'}
             onPress={() => setViewMode('all')}
             showSelectedOverlay
             style={styles.viewToggleChip}
@@ -369,11 +434,7 @@ export default function PeopleListScreen() {
           <Text variant="bodyMedium" style={styles.emptyText}>
             {t('people.noPeopleDesc')}
           </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push('/modal')}
-            style={styles.emptyButton}
-          >
+          <Button mode="contained" onPress={() => router.push('/modal')} style={styles.emptyButton}>
             {t('people.addPerson')}
           </Button>
         </View>
@@ -411,9 +472,14 @@ export default function PeopleListScreen() {
 
           // Check if we need to show category divider
           const currentCategory = item.relationshipType || 'Other';
-          const previousCategory = index > 0 ? (filteredPeople[index - 1].relationshipType || 'Other') : null;
-          const nextCategory = index < filteredPeople.length - 1 ? (filteredPeople[index + 1].relationshipType || 'Other') : null;
-          const showCategoryHeader = showCategoryDividers && (index === 0 || currentCategory !== previousCategory);
+          const previousCategory =
+            index > 0 ? filteredPeople[index - 1].relationshipType || 'Other' : null;
+          const nextCategory =
+            index < filteredPeople.length - 1
+              ? filteredPeople[index + 1].relationshipType || 'Other'
+              : null;
+          const showCategoryHeader =
+            showCategoryDividers && (index === 0 || currentCategory !== previousCategory);
           const isLastInCategory = nextCategory !== currentCategory;
 
           return (

@@ -24,25 +24,31 @@ export function useExportData() {
       const userId = await getCurrentUserId();
 
       // Fetch all data
-      const [peopleData, relationsData, connectionsData, storiesData, eventsData] = await Promise.all([
-        db
-          .select()
-          .from(people)
-          .where(and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))),
-        db
-          .select()
-          .from(relations)
-          .where(and(eq(relations.userId, userId), isNull(relations.deletedAt))),
-        db
-          .select()
-          .from(connections)
-          .where(and(eq(connections.userId, userId), isNull(connections.deletedAt))),
-        db
-          .select()
-          .from(stories)
-          .where(and(eq(stories.userId, userId), isNull(stories.deletedAt))),
-        db.select().from(contactEvents).where(and(eq(contactEvents.userId, userId), isNull(contactEvents.deletedAt))),
-      ]);
+      const [peopleData, relationsData, connectionsData, storiesData, eventsData] =
+        await Promise.all([
+          db
+            .select()
+            .from(people)
+            .where(
+              and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+            ),
+          db
+            .select()
+            .from(relations)
+            .where(and(eq(relations.userId, userId), isNull(relations.deletedAt))),
+          db
+            .select()
+            .from(connections)
+            .where(and(eq(connections.userId, userId), isNull(connections.deletedAt))),
+          db
+            .select()
+            .from(stories)
+            .where(and(eq(stories.userId, userId), isNull(stories.deletedAt))),
+          db
+            .select()
+            .from(contactEvents)
+            .where(and(eq(contactEvents.userId, userId), isNull(contactEvents.deletedAt))),
+        ]);
 
       const exportData: ExportData = {
         version: '1.0',
@@ -116,28 +122,31 @@ export function useExportStats() {
     queryFn: async () => {
       const userId = await getCurrentUserId();
 
-      const [peopleCount, relationsCount, connectionsCount, storiesCount, eventsCount] = await Promise.all([
-        db
-          .select({ id: people.id })
-          .from(people)
-          .where(and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))),
-        db
-          .select({ id: relations.id })
-          .from(relations)
-          .where(and(eq(relations.userId, userId), isNull(relations.deletedAt))),
-        db
-          .select({ id: connections.id })
-          .from(connections)
-          .where(and(eq(connections.userId, userId), isNull(connections.deletedAt))),
-        db
-          .select({ id: stories.id })
-          .from(stories)
-          .where(and(eq(stories.userId, userId), isNull(stories.deletedAt))),
-        db
-          .select({ id: contactEvents.id })
-          .from(contactEvents)
-          .where(and(eq(contactEvents.userId, userId), isNull(contactEvents.deletedAt))),
-      ]);
+      const [peopleCount, relationsCount, connectionsCount, storiesCount, eventsCount] =
+        await Promise.all([
+          db
+            .select({ id: people.id })
+            .from(people)
+            .where(
+              and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+            ),
+          db
+            .select({ id: relations.id })
+            .from(relations)
+            .where(and(eq(relations.userId, userId), isNull(relations.deletedAt))),
+          db
+            .select({ id: connections.id })
+            .from(connections)
+            .where(and(eq(connections.userId, userId), isNull(connections.deletedAt))),
+          db
+            .select({ id: stories.id })
+            .from(stories)
+            .where(and(eq(stories.userId, userId), isNull(stories.deletedAt))),
+          db
+            .select({ id: contactEvents.id })
+            .from(contactEvents)
+            .where(and(eq(contactEvents.userId, userId), isNull(contactEvents.deletedAt))),
+        ]);
 
       return {
         people: peopleCount.length,
@@ -174,7 +183,13 @@ export function useImportData() {
             const existing = await db
               .select()
               .from(people)
-              .where(and(eq(people.userId, userId), eq(people.name, person.name), isNull(people.deletedAt)))
+              .where(
+                and(
+                  eq(people.userId, userId),
+                  eq(people.name, person.name),
+                  isNull(people.deletedAt)
+                )
+              )
               .limit(1);
 
             if (existing.length === 0) {
@@ -296,10 +311,21 @@ export function useExportPeopleCSV() {
       const peopleData = await db
         .select()
         .from(people)
-        .where(and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged')));
+        .where(
+          and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+        );
 
       // Create CSV header
-      const headers = ['Name', 'Nickname', 'Relationship Type', 'Importance', 'Birthday', 'Met Date', 'Notes', 'Tags'];
+      const headers = [
+        'Name',
+        'Nickname',
+        'Relationship Type',
+        'Importance',
+        'Birthday',
+        'Met Date',
+        'Notes',
+        'Tags',
+      ];
 
       // Create CSV rows
       const rows = peopleData.map((p) => {

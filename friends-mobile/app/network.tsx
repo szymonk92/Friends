@@ -9,7 +9,11 @@ import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router, useFocusEffect, Stack } from 'expo-router';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
-import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import {
+  getRelationshipColors,
+  type RelationshipColorMap,
+  DEFAULT_COLORS,
+} from '@/lib/settings/relationship-colors';
 import { Text, Button, IconButton, Chip, Searchbar } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
 import ForceDirectedGraph from '@/components/ForceDirectedGraph';
@@ -28,15 +32,20 @@ export default function NetworkScreen() {
     connectionsCount: connections.length,
     loadingPeople,
     loadingConnections,
-    peopleSample: people.slice(0, 3).map(p => ({ id: p.id, name: p.name, relationshipType: p.relationshipType })),
-    connectionsSample: connections.slice(0, 3).map(c => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
+    peopleSample: people
+      .slice(0, 3)
+      .map((p) => ({ id: p.id, name: p.name, relationshipType: p.relationshipType })),
+    connectionsSample: connections
+      .slice(0, 3)
+      .map((c) => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
   });
   const { data: allTags = [] } = useAllTags();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const [relationshipColors, setRelationshipColors] =
+    useState<RelationshipColorMap>(DEFAULT_COLORS);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Get relations for selected person
@@ -53,20 +62,24 @@ export default function NetworkScreen() {
 
   // Get unique relationship types
   const relationshipTypes = useMemo(() => {
-    return Array.from(new Set(people.map((p) => p.relationshipType).filter((type) => type !== null))) as string[];
+    return Array.from(
+      new Set(people.map((p) => p.relationshipType).filter((type) => type !== null))
+    ) as string[];
   }, [people]);
 
   // Filter people based on search, tags and relationship types
   const filteredPeople = useMemo(() => {
     return people.filter((person) => {
       // Filter by search query
-      const matchesSearch = searchQuery === '' ||
+      const matchesSearch =
+        searchQuery === '' ||
         person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (person.nickname && person.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Filter by tags
       const personTags = parseTags(person.tags);
-      const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
+      const matchesTags =
+        selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
 
       // Filter by relationship type
       const matchesRelationType =
@@ -84,7 +97,9 @@ export default function NetworkScreen() {
   }, [connections, filteredPeople]);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   };
 
   const toggleRelationType = (type: string) => {
@@ -171,7 +186,6 @@ export default function NetworkScreen() {
       </View>
 
       <ScrollView style={styles.scrollContent}>
-
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Searchbar
@@ -239,13 +253,17 @@ export default function NetworkScreen() {
         <View style={styles.statsSection}>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text variant="titleLarge" style={styles.statNumber}>{filteredPeople.length}</Text>
+              <Text variant="titleLarge" style={styles.statNumber}>
+                {filteredPeople.length}
+              </Text>
               <Text variant="labelSmall" style={styles.statLabel}>
                 People{filteredPeople.length !== people.length && ` / ${people.length}`}
               </Text>
             </View>
             <View style={styles.stat}>
-              <Text variant="titleLarge" style={styles.statNumber}>{filteredConnections.length}</Text>
+              <Text variant="titleLarge" style={styles.statNumber}>
+                {filteredConnections.length}
+              </Text>
               <Text variant="labelSmall" style={styles.statLabel}>
                 Connections
                 {filteredConnections.length !== connections.length && ` / ${connections.length}`}
@@ -257,7 +275,9 @@ export default function NetworkScreen() {
                   ? ((filteredConnections.length * 2) / filteredPeople.length).toFixed(1)
                   : '0'}
               </Text>
-              <Text variant="labelSmall" style={styles.statLabel}>Avg Links</Text>
+              <Text variant="labelSmall" style={styles.statLabel}>
+                Avg Links
+              </Text>
             </View>
           </View>
         </View>
@@ -270,8 +290,10 @@ export default function NetworkScreen() {
               filteredConnectionsCount: filteredConnections.length,
               selectedPersonId,
               relationshipColorsKeys: Object.keys(relationshipColors),
-              peopleSample: filteredPeople.slice(0, 3).map(p => ({ id: p.id, name: p.name })),
-              connectionsSample: filteredConnections.slice(0, 3).map(c => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
+              peopleSample: filteredPeople.slice(0, 3).map((p) => ({ id: p.id, name: p.name })),
+              connectionsSample: filteredConnections
+                .slice(0, 3)
+                .map((c) => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
             });
             return (
               <ForceDirectedGraph

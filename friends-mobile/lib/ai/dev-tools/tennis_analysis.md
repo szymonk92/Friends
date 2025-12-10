@@ -1,16 +1,19 @@
 # Tennis Example: Real Analysis
 
 ## The Story
+
 ```
 "Played tennis on Tuesday with Falko, David, and Ola. Our trainer was David."
 ```
 
 ## Database State Before
+
 - **David Smith** (id: david-1) - existing
 - **Ola Kowalska** (id: ola-1) - existing
 - No "Falko"
 
 ## What Our Prompt Says
+
 ```
 4. **PLAIN NAMES (Ambiguity Check)**:
    - If the user writes just "Name" (no @) and it matches an existing person:
@@ -23,6 +26,7 @@
 Our prompt says **"flag as AMBIGUOUS"** but what does that actually mean?
 
 Looking at the JSON format we defined:
+
 ```json
 "ambiguousMatches": [
   {
@@ -35,6 +39,7 @@ Looking at the JSON format we defined:
 ```
 
 So the AI should:
+
 1. **NOT** add them to the `people` array
 2. **NOT** create relations for them
 3. **INSTEAD** add them to `ambiguousMatches`
@@ -64,15 +69,11 @@ So the AI should:
   "ambiguousMatches": [
     {
       "nameInStory": "David",
-      "possibleMatches": [
-        { "id": "david-1", "name": "David Smith", "reason": "Name match" }
-      ]
+      "possibleMatches": [{ "id": "david-1", "name": "David Smith", "reason": "Name match" }]
     },
     {
       "nameInStory": "Ola",
-      "possibleMatches": [
-        { "id": "ola-1", "name": "Ola Kowalska", "reason": "Name match" }
-      ]
+      "possibleMatches": [{ "id": "ola-1", "name": "Ola Kowalska", "reason": "Name match" }]
     }
   ]
 }
@@ -89,11 +90,13 @@ So the AI should:
 ## The "Trainer David" Issue
 
 The story says "Our trainer was David" - which creates a complex scenario:
+
 - Player David (ambiguous with David Smith)
 - Trainer David (could be the same or different)
 
 **What SHOULD happen:**
 The AI might be smart enough to notice duplicate "David" mentions and ask:
+
 ```json
 "ambiguousMatches": [
   {
@@ -117,6 +120,7 @@ The AI could infer they're the same person and only ask once.
 ## The REAL Issue: We Need to Test This!
 
 We have the code, but we don't know if:
+
 1. The AI will actually follow our "flag as ambiguous" instruction
 2. The AI will handle duplicate mentions correctly
 3. The AI will leave ambiguous people OUT of the `people` array (crucial!)
@@ -124,6 +128,7 @@ We have the code, but we don't know if:
 ## Proposed Test Approach
 
 Create a **manual test script** that:
+
 1. Uses the actual `extractRelationsFromStorySession` function
 2. Calls a real AI (Anthropic/Gemini) with the prompts
 3. Logs the actual JSON response

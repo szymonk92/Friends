@@ -21,7 +21,8 @@ export interface ExtractionContext {
  * Uses lightweight context (only person names, not full profiles)
  */
 export function createExtractionPrompt(context: ExtractionContext): string {
-  const { existingPeople, existingRelations, storyText, explicitlyTaggedPeople, forceNewPeople } = context;
+  const { existingPeople, existingRelations, storyText, explicitlyTaggedPeople, forceNewPeople } =
+    context;
 
   const existingPeopleList =
     existingPeople.length > 0
@@ -30,7 +31,9 @@ export function createExtractionPrompt(context: ExtractionContext): string {
 
   const taggedPeopleList =
     explicitlyTaggedPeople && explicitlyTaggedPeople.length > 0
-      ? explicitlyTaggedPeople.map((p) => `- ${p.name} (ID: ${p.id}) [CONFIRMED PRESENT]`).join('\n')
+      ? explicitlyTaggedPeople
+          .map((p) => `- ${p.name} (ID: ${p.id}) [CONFIRMED PRESENT]`)
+          .join('\n')
       : 'None';
 
   const newPeopleList =
@@ -41,8 +44,8 @@ export function createExtractionPrompt(context: ExtractionContext): string {
   const existingRelationsList =
     existingRelations && existingRelations.length > 0
       ? existingRelations
-        .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
-        .join('\n')
+          .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
+          .join('\n')
       : 'None yet';
 
   return `You are an AI assistant that extracts structured relationship data from stories about people.

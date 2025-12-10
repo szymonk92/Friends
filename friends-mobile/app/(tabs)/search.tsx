@@ -2,7 +2,15 @@ import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
-import { View, ActivityIndicator, StatusBar, TouchableOpacity, FlatList, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  ActivityIndicator,
+  StatusBar,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import { Card, Chip, Text, Searchbar, SegmentedButtons, List } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
@@ -118,16 +126,12 @@ export default function SearchScreen() {
 
     // Find all people who LIKE this thing
     const likes = relations.filter(
-      (r) =>
-        r.relationType === LIKES &&
-        r.objectLabel.toLowerCase().includes(query)
+      (r) => r.relationType === LIKES && r.objectLabel.toLowerCase().includes(query)
     );
 
     // Find all people who DISLIKE this thing
     const dislikes = relations.filter(
-      (r) =>
-        r.relationType === DISLIKES &&
-        r.objectLabel.toLowerCase().includes(query)
+      (r) => r.relationType === DISLIKES && r.objectLabel.toLowerCase().includes(query)
     );
 
     if (likes.length === 0 && dislikes.length === 0) return null;
@@ -203,7 +207,11 @@ export default function SearchScreen() {
           style={styles.searchbar}
           autoFocus
         />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+        >
           <Chip
             selected={category === 'all'}
             onPress={() => setCategory('all')}
@@ -262,69 +270,70 @@ export default function SearchScreen() {
       {!isLoading && searchQuery.length >= 2 && (
         <>
           {/* Preference Summary Card */}
-          {preferenceSummary && (preferenceSummary.likes.length > 0 || preferenceSummary.dislikes.length > 0) && (
-            <Card style={styles.summaryCard}>
-              <Card.Content>
-                <Text variant="titleMedium" style={styles.summaryTitle}>
-                  Who likes/dislikes "{searchQuery}"?
-                </Text>
+          {preferenceSummary &&
+            (preferenceSummary.likes.length > 0 || preferenceSummary.dislikes.length > 0) && (
+              <Card style={styles.summaryCard}>
+                <Card.Content>
+                  <Text variant="titleMedium" style={styles.summaryTitle}>
+                    Who likes/dislikes "{searchQuery}"?
+                  </Text>
 
-                {preferenceSummary.likes.length > 0 && (
-                  <View style={styles.summarySection}>
-                    <Text variant="titleSmall" style={styles.likesTitle}>
-                      👍 Likes ({preferenceSummary.likes.length})
-                    </Text>
-                    {preferenceSummary.likes.map((item, index) => (
-                      <TouchableOpacity
-                        key={`like-${index}`}
-                        onPress={() => router.push(`/person/${item.personId}`)}
-                      >
-                        <List.Item
-                          title={item.personName}
-                          description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
-                          left={() => (
-                            <View style={styles.summaryAvatar}>
-                              <Text style={styles.summaryAvatarText}>
-                                {getInitials(item.personName)}
-                              </Text>
-                            </View>
-                          )}
-                          style={styles.summaryItem}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
+                  {preferenceSummary.likes.length > 0 && (
+                    <View style={styles.summarySection}>
+                      <Text variant="titleSmall" style={styles.likesTitle}>
+                        👍 Likes ({preferenceSummary.likes.length})
+                      </Text>
+                      {preferenceSummary.likes.map((item, index) => (
+                        <TouchableOpacity
+                          key={`like-${index}`}
+                          onPress={() => router.push(`/person/${item.personId}`)}
+                        >
+                          <List.Item
+                            title={item.personName}
+                            description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
+                            left={() => (
+                              <View style={styles.summaryAvatar}>
+                                <Text style={styles.summaryAvatarText}>
+                                  {getInitials(item.personName)}
+                                </Text>
+                              </View>
+                            )}
+                            style={styles.summaryItem}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
 
-                {preferenceSummary.dislikes.length > 0 && (
-                  <View style={styles.summarySection}>
-                    <Text variant="titleSmall" style={styles.dislikesTitle}>
-                      👎 Dislikes ({preferenceSummary.dislikes.length})
-                    </Text>
-                    {preferenceSummary.dislikes.map((item, index) => (
-                      <TouchableOpacity
-                        key={`dislike-${index}`}
-                        onPress={() => router.push(`/person/${item.personId}`)}
-                      >
-                        <List.Item
-                          title={item.personName}
-                          description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
-                          left={() => (
-                            <View style={[styles.summaryAvatar, styles.dislikeAvatar]}>
-                              <Text style={styles.summaryAvatarText}>
-                                {getInitials(item.personName)}
-                              </Text>
-                            </View>
-                          )}
-                          style={styles.summaryItem}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </Card.Content>
-            </Card>
-          )}
+                  {preferenceSummary.dislikes.length > 0 && (
+                    <View style={styles.summarySection}>
+                      <Text variant="titleSmall" style={styles.dislikesTitle}>
+                        👎 Dislikes ({preferenceSummary.dislikes.length})
+                      </Text>
+                      {preferenceSummary.dislikes.map((item, index) => (
+                        <TouchableOpacity
+                          key={`dislike-${index}`}
+                          onPress={() => router.push(`/person/${item.personId}`)}
+                        >
+                          <List.Item
+                            title={item.personName}
+                            description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
+                            left={() => (
+                              <View style={[styles.summaryAvatar, styles.dislikeAvatar]}>
+                                <Text style={styles.summaryAvatarText}>
+                                  {getInitials(item.personName)}
+                                </Text>
+                              </View>
+                            )}
+                            style={styles.summaryItem}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
 
           {/* All Results */}
           <View style={styles.resultsHeader}>

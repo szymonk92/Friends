@@ -1,14 +1,5 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import {
-  Text,
-  Card,
-  Button,
-  List,
-  Divider,
-  Portal,
-  Dialog,
-  TextInput,
-} from 'react-native-paper';
+import { Text, Card, Button, List, Divider, Portal, Dialog, TextInput } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import { useExportStats } from '@/hooks/useDataExport';
 import { useState, useEffect } from 'react';
@@ -72,7 +63,8 @@ export default function SettingsScreen() {
   const [savingBirthdaySettings, setSavingBirthdaySettings] = useState(false);
 
   // Relationship color settings
-  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const [relationshipColors, setRelationshipColors] =
+    useState<RelationshipColorMap>(DEFAULT_COLORS);
   const [colorPickerVisible, setColorPickerVisible] = useState(false);
   const [selectedRelationType, setSelectedRelationType] = useState<string>('');
 
@@ -189,24 +181,18 @@ export default function SettingsScreen() {
   };
 
   const handleClearGeminiApiKey = () => {
-    Alert.alert(
-      'Clear Gemini API Key',
-      'Are you sure you want to remove your Gemini API key?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await clearGeminiApiKey();
-            Alert.alert('Success', 'Gemini API key cleared.');
-          },
+    Alert.alert('Clear Gemini API Key', 'Are you sure you want to remove your Gemini API key?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          await clearGeminiApiKey();
+          Alert.alert('Success', 'Gemini API key cleared.');
         },
-      ]
-    );
+      },
+    ]);
   };
-
-
 
   return (
     <>
@@ -267,8 +253,6 @@ export default function SettingsScreen() {
 
         <DataStatistics stats={stats} loading={statsLoading} />
 
-
-
         {/* App Info */}
         <Card style={styles.card}>
           <Card.Content>
@@ -301,7 +285,9 @@ export default function SettingsScreen() {
       {/* Anthropic API Key Dialog */}
       <Portal>
         <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
-          <Dialog.Title>{hasApiKey() ? 'Change Claude API Key' : 'Set Claude API Key'}</Dialog.Title>
+          <Dialog.Title>
+            {hasApiKey() ? 'Change Claude API Key' : 'Set Claude API Key'}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogText}>
               Enter your Anthropic API key to enable Claude AI extraction.
@@ -323,8 +309,13 @@ export default function SettingsScreen() {
         </Dialog>
 
         {/* Gemini API Key Dialog */}
-        <Dialog visible={geminiApiKeyDialogVisible} onDismiss={() => setGeminiApiKeyDialogVisible(false)}>
-          <Dialog.Title>{hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}</Dialog.Title>
+        <Dialog
+          visible={geminiApiKeyDialogVisible}
+          onDismiss={() => setGeminiApiKeyDialogVisible(false)}
+        >
+          <Dialog.Title>
+            {hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}
+          </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogText}>
               Enter your Google Gemini API key to enable Gemini AI extraction.
@@ -347,7 +338,10 @@ export default function SettingsScreen() {
 
         {/* Color Picker Dialog */}
         <Dialog visible={colorPickerVisible} onDismiss={() => setColorPickerVisible(false)}>
-          <Dialog.Title>Choose Color for {selectedRelationType.charAt(0).toUpperCase() + selectedRelationType.slice(1)}</Dialog.Title>
+          <Dialog.Title>
+            Choose Color for{' '}
+            {selectedRelationType.charAt(0).toUpperCase() + selectedRelationType.slice(1)}
+          </Dialog.Title>
           <Dialog.Content>
             <View style={styles.colorGrid}>
               {AVAILABLE_COLORS.map((color) => (

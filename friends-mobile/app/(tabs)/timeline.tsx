@@ -2,20 +2,8 @@ import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-  Alert,
-  ActivityIndicator,
-  FlatList,
-} from 'react-native';
-import {
-  Text,
-  Button,
-  IconButton,
-  useTheme,
-} from 'react-native-paper';
+import { View, StyleSheet, StatusBar, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { Text, Button, IconButton, useTheme } from 'react-native-paper';
 import {
   useContactEvents,
   useCreateContactEvent,
@@ -25,7 +13,11 @@ import {
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
-import { getRelationshipColors, type RelationshipColorMap, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import {
+  getRelationshipColors,
+  type RelationshipColorMap,
+  DEFAULT_COLORS,
+} from '@/lib/settings/relationship-colors';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 
@@ -74,7 +66,8 @@ export default function TimelineScreen() {
   const [filtersVisible, setFiltersVisible] = useState(false);
 
   // Relationship colors
-  const [relationshipColors, setRelationshipColors] = useState<RelationshipColorMap>(DEFAULT_COLORS);
+  const [relationshipColors, setRelationshipColors] =
+    useState<RelationshipColorMap>(DEFAULT_COLORS);
 
   useFocusEffect(
     useCallback(() => {
@@ -139,7 +132,12 @@ export default function TimelineScreen() {
 
   // Combine and filter events
   const filteredEvents = useMemo(() => {
-    const allEvents = [...events, ...birthdayEvents, ...importantDateEvents, ...partyTimelineEvents];
+    const allEvents = [
+      ...events,
+      ...birthdayEvents,
+      ...importantDateEvents,
+      ...partyTimelineEvents,
+    ];
 
     return allEvents
       .filter((event) => {
@@ -150,7 +148,14 @@ export default function TimelineScreen() {
         return true;
       })
       .sort((a, b) => new Date(b.eventDate!).getTime() - new Date(a.eventDate!).getTime());
-  }, [events, birthdayEvents, importantDateEvents, partyTimelineEvents, filterPersonId, filterEventType]);
+  }, [
+    events,
+    birthdayEvents,
+    importantDateEvents,
+    partyTimelineEvents,
+    filterPersonId,
+    filterEventType,
+  ]);
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
@@ -240,7 +245,11 @@ export default function TimelineScreen() {
       setEditingEvent(event);
       setSelectedPersonId(event.personId);
       setEventType(event.eventType);
-      setDateInput(event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setDateInput(
+        event.eventDate
+          ? new Date(event.eventDate).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
+      );
       setNotes(event.notes || '');
       setAddDialogVisible(true);
     }

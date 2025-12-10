@@ -258,7 +258,11 @@ export function useCancelReminder() {
   return useMutation({
     mutationFn: async (reminderId: string) => {
       // Get reminder to find notification ID
-      const reminder = await db.select().from(reminders).where(eq(reminders.id, reminderId)).limit(1);
+      const reminder = await db
+        .select()
+        .from(reminders)
+        .where(eq(reminders.id, reminderId))
+        .limit(1);
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
@@ -296,7 +300,11 @@ export function useDeleteReminder() {
   return useMutation({
     mutationFn: async (reminderId: string) => {
       // Get reminder to find notification ID
-      const reminder = await db.select().from(reminders).where(eq(reminders.id, reminderId)).limit(1);
+      const reminder = await db
+        .select()
+        .from(reminders)
+        .where(eq(reminders.id, reminderId))
+        .limit(1);
 
       if (reminder.length > 0 && reminder[0].notificationId) {
         try {
@@ -326,11 +334,7 @@ export function useCreateContactReminder() {
   const createReminder = useCreateReminder();
 
   return useMutation({
-    mutationFn: async (data: {
-      personId: string;
-      personName: string;
-      daysFromNow: number;
-    }) => {
+    mutationFn: async (data: { personId: string; personName: string; daysFromNow: number }) => {
       const scheduledFor = new Date();
       scheduledFor.setDate(scheduledFor.getDate() + data.daysFromNow);
       scheduledFor.setHours(10, 0, 0, 0); // 10 AM

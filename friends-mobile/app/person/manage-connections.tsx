@@ -14,16 +14,20 @@ export default function ManageConnectionsScreen() {
   const deleteConnection = useDeleteConnection();
 
   const handleDelete = (connectionId: string, personName: string) => {
-    Alert.alert('Delete Connection', `Are you sure you want to delete the connection with ${personName}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteConnection.mutateAsync(connectionId);
+    Alert.alert(
+      'Delete Connection',
+      `Are you sure you want to delete the connection with ${personName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteConnection.mutateAsync(connectionId);
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const getConnectedPerson = (connection: any) => {
@@ -85,7 +89,12 @@ export default function ManageConnectionsScreen() {
                         onPress={() => router.push(`/person/${connectedPerson.id}`)}
                         style={styles.avatarTouchable}
                       >
-                        <View style={[styles.avatar, { backgroundColor: getRelationshipColor(connection.relationshipType) }]}>
+                        <View
+                          style={[
+                            styles.avatar,
+                            { backgroundColor: getRelationshipColor(connection.relationshipType) },
+                          ]}
+                        >
                           <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
                         </View>
                       </TouchableOpacity>
@@ -94,7 +103,12 @@ export default function ManageConnectionsScreen() {
                         onPress={() => router.push(`/person/${connectedPerson.id}`)}
                         style={styles.avatarTouchable}
                       >
-                        <View style={[styles.avatar, { backgroundColor: getRelationshipColor(connection.relationshipType) }]}>
+                        <View
+                          style={[
+                            styles.avatar,
+                            { backgroundColor: getRelationshipColor(connection.relationshipType) },
+                          ]}
+                        >
                           <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
                         </View>
                       </TouchableOpacity>

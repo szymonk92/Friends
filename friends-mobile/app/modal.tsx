@@ -78,11 +78,7 @@ export default function AddPersonModal() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('already exists')) {
-        Alert.alert(
-          t('person.duplicateName'),
-          errorMessage,
-          [{ text: t('common.ok') }]
-        );
+        Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
       } else {
         Alert.alert(t('common.error'), t('person.errorAdding'));
       }

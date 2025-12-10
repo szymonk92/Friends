@@ -227,7 +227,7 @@ export async function clearTestData() {
 
     // Filter to only test data people (those with test_data tag)
     const testPersonIds = allPeople
-      .filter(person => {
+      .filter((person) => {
         try {
           const tags = person.tags ? JSON.parse(person.tags) : [];
           return tags.includes('test_data');
@@ -235,7 +235,7 @@ export async function clearTestData() {
           return false;
         }
       })
-      .map(person => person.id);
+      .map((person) => person.id);
 
     if (testPersonIds.length === 0) {
       console.log('✅ No test data found to clear');
@@ -244,12 +244,9 @@ export async function clearTestData() {
 
     // Delete in correct order (due to foreign keys)
     // Delete relations where subject is a test person
-    await db.delete(relations).where(
-      and(
-        eq(relations.userId, userId),
-        inArray(relations.subjectId, testPersonIds)
-      )
-    );
+    await db
+      .delete(relations)
+      .where(and(eq(relations.userId, userId), inArray(relations.subjectId, testPersonIds)));
 
     // Delete stories that mention test people
     const storiesWithTestPeople = await db
@@ -259,7 +256,7 @@ export async function clearTestData() {
       .all();
 
     const storyIdsToDelete = storiesWithTestPeople
-      .filter(story => {
+      .filter((story) => {
         if (!story.peopleIds) return false;
         try {
           const peopleIds = JSON.parse(story.peopleIds);
@@ -268,7 +265,7 @@ export async function clearTestData() {
           return false;
         }
       })
-      .map(story => story.id);
+      .map((story) => story.id);
 
     if (storyIdsToDelete.length > 0) {
       await db.delete(stories).where(inArray(stories.id, storyIdsToDelete));
@@ -277,7 +274,9 @@ export async function clearTestData() {
     // Finally, delete the test people
     await db.delete(people).where(inArray(people.id, testPersonIds));
 
-    console.log(`✅ Test data cleared successfully! Removed ${testPersonIds.length} test people and their associated data`);
+    console.log(
+      `✅ Test data cleared successfully! Removed ${testPersonIds.length} test people and their associated data`
+    );
   } catch (error) {
     console.error('❌ Failed to clear test data:', error);
     throw error;

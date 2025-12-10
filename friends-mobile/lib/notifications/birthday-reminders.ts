@@ -37,7 +37,9 @@ export async function getBirthdayReminderSettings(): Promise<BirthdayReminderSet
   return DEFAULT_SETTINGS;
 }
 
-export async function saveBirthdayReminderSettings(settings: BirthdayReminderSettings): Promise<void> {
+export async function saveBirthdayReminderSettings(
+  settings: BirthdayReminderSettings
+): Promise<void> {
   try {
     await AsyncStorage.setItem(BIRTHDAY_SETTINGS_KEY, JSON.stringify(settings));
 
@@ -202,12 +204,14 @@ export async function cancelAllBirthdayReminders(): Promise<void> {
   }
 }
 
-export async function getUpcomingBirthdays(daysAhead: number = 30): Promise<Array<{
-  person: any;
-  daysUntil: number;
-  nextBirthday: Date;
-  age: number;
-}>> {
+export async function getUpcomingBirthdays(daysAhead: number = 30): Promise<
+  Array<{
+    person: any;
+    daysUntil: number;
+    nextBirthday: Date;
+    age: number;
+  }>
+> {
   const userId = await getCurrentUserId();
 
   const peopleWithBirthdays = await db
@@ -237,7 +241,9 @@ export async function getUpcomingBirthdays(daysAhead: number = 30): Promise<Arra
         age,
       };
     })
-    .filter((item): item is NonNullable<typeof item> => item !== null && item.daysUntil <= daysAhead)
+    .filter(
+      (item): item is NonNullable<typeof item> => item !== null && item.daysUntil <= daysAhead
+    )
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
   return upcoming;

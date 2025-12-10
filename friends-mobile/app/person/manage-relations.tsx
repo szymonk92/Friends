@@ -1,5 +1,13 @@
 import { StyleSheet, View, Alert, ScrollView } from 'react-native';
-import { Text, List, IconButton, Divider, ActivityIndicator, Button, Chip } from 'react-native-paper';
+import {
+  Text,
+  List,
+  IconButton,
+  Divider,
+  ActivityIndicator,
+  Button,
+  Chip,
+} from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
 import { usePerson } from '@/hooks/usePeople';
@@ -9,7 +17,7 @@ import { spacing } from '@/styles/spacing';
 
 // Helper function to get intensity label
 const getIntensityLabel = (intensity: string) => {
-  const option = INTENSITY_OPTIONS.find(opt => opt.value === intensity);
+  const option = INTENSITY_OPTIONS.find((opt) => opt.value === intensity);
   return option ? option.label : intensity;
 };
 
@@ -124,12 +132,20 @@ export default function ManageRelationsScreen() {
                   description={
                     <View style={styles.descriptionRow}>
                       {relation.category && (
-                        <Chip compact style={styles.categoryChip} textStyle={styles.categoryChipText}>
+                        <Chip
+                          compact
+                          style={styles.categoryChip}
+                          textStyle={styles.categoryChipText}
+                        >
                           {relation.category}
                         </Chip>
                       )}
                       {relation.intensity && (
-                        <Chip compact style={styles.intensityChip} textStyle={styles.intensityChipText}>
+                        <Chip
+                          compact
+                          style={styles.intensityChip}
+                          textStyle={styles.intensityChipText}
+                        >
                           {getIntensityLabel(relation.intensity)}
                         </Chip>
                       )}

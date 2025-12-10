@@ -79,10 +79,7 @@ export function useDeleteContactEvent() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await db
-        .update(contactEvents)
-        .set({ deletedAt: new Date() })
-        .where(eq(contactEvents.id, id));
+      await db.update(contactEvents).set({ deletedAt: new Date() }).where(eq(contactEvents.id, id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contactEvents'] });
@@ -97,10 +94,7 @@ export function useUpdateContactEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      ...data
-    }: Partial<NewContactEvent> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: Partial<NewContactEvent> & { id: string }) => {
       const result = (await db
         .update(contactEvents)
         .set({ ...data })

@@ -52,10 +52,21 @@ export function testPromptGeneration(): void {
       { id: 'sarah-456', name: 'Sarah Johnson' },
     ],
     existingRelations: [
-      { relationType: 'LIKES', objectLabel: 'coffee', subjectId: 'john-123', subjectName: 'John Smith' },
-      { relationType: 'IS', objectLabel: 'vegetarian', subjectId: 'sarah-456', subjectName: 'Sarah Johnson' },
+      {
+        relationType: 'LIKES',
+        objectLabel: 'coffee',
+        subjectId: 'john-123',
+        subjectName: 'John Smith',
+      },
+      {
+        relationType: 'IS',
+        objectLabel: 'vegetarian',
+        subjectId: 'sarah-456',
+        subjectName: 'Sarah Johnson',
+      },
     ],
-    storyText: 'Met up with John at the new Italian place. He ordered the margherita pizza and loved it. Sarah joined us later - she mentioned she started doing yoga and is trying to cut down on sugar.',
+    storyText:
+      'Met up with John at the new Italian place. He ordered the margherita pizza and loved it. Sarah joined us later - she mentioned she started doing yoga and is trying to cut down on sugar.',
   };
 
   for (const generator of promptGenerators) {
@@ -73,10 +84,12 @@ export function testPromptGeneration(): void {
 
   // Token efficiency comparison
   // console.log('=== TOKEN EFFICIENCY RANKING ===\n');
-  const rankings = promptGenerators.map((g) => ({
-    name: g.name,
-    tokens: estimateTokens(g.fn(testContext)),
-  })).sort((a, b) => a.tokens - b.tokens);
+  const rankings = promptGenerators
+    .map((g) => ({
+      name: g.name,
+      tokens: estimateTokens(g.fn(testContext)),
+    }))
+    .sort((a, b) => a.tokens - b.tokens);
 
   rankings.forEach((_r, _i) => {
     // console.log(`${_i + 1}. ${_r.name}: ~${_r.tokens} tokens`);
@@ -93,9 +106,33 @@ export const mockResponses: Record<string, any> = {
       { id: 'john-123', name: 'John Smith', isNew: false, personType: 'primary', confidence: 1.0 },
     ],
     relations: [
-      { subjectId: 'john-123', subjectName: 'John Smith', relationType: 'LIKES', objectLabel: 'carrots', intensity: 'strong', confidence: 0.9, category: 'food' },
-      { subjectId: 'john-123', subjectName: 'John Smith', relationType: 'DISLIKES', objectLabel: 'broccoli', intensity: 'very_strong', confidence: 0.95, category: 'food' },
-      { subjectId: 'john-123', subjectName: 'John Smith', relationType: 'REGULARLY_DOES', objectLabel: 'running every morning', intensity: 'medium', confidence: 0.85, category: 'activity' },
+      {
+        subjectId: 'john-123',
+        subjectName: 'John Smith',
+        relationType: 'LIKES',
+        objectLabel: 'carrots',
+        intensity: 'strong',
+        confidence: 0.9,
+        category: 'food',
+      },
+      {
+        subjectId: 'john-123',
+        subjectName: 'John Smith',
+        relationType: 'DISLIKES',
+        objectLabel: 'broccoli',
+        intensity: 'very_strong',
+        confidence: 0.95,
+        category: 'food',
+      },
+      {
+        subjectId: 'john-123',
+        subjectName: 'John Smith',
+        relationType: 'REGULARLY_DOES',
+        objectLabel: 'running every morning',
+        intensity: 'medium',
+        confidence: 0.85,
+        category: 'activity',
+      },
     ],
     conflicts: [],
   },
@@ -104,7 +141,15 @@ export const mockResponses: Record<string, any> = {
       { id: 'sarah-456', name: 'Sarah', isNew: false, personType: 'primary', confidence: 1.0 },
     ],
     relations: [
-      { subjectId: 'sarah-456', subjectName: 'Sarah', relationType: 'IS', objectLabel: 'vegan', intensity: 'strong', confidence: 0.95, category: 'diet' },
+      {
+        subjectId: 'sarah-456',
+        subjectName: 'Sarah',
+        relationType: 'IS',
+        objectLabel: 'vegan',
+        intensity: 'strong',
+        confidence: 0.95,
+        category: 'diet',
+      },
     ],
     conflicts: [
       {
@@ -119,7 +164,15 @@ export const mockResponses: Record<string, any> = {
       { id: 'mike-789', name: 'Mike', isNew: false, personType: 'primary', confidence: 1.0 },
     ],
     relations: [
-      { subjectId: 'mike-789', subjectName: 'Mike', relationType: 'SENSITIVE_TO', objectLabel: 'potatoes', intensity: 'strong', confidence: 0.9, category: 'allergy' },
+      {
+        subjectId: 'mike-789',
+        subjectName: 'Mike',
+        relationType: 'SENSITIVE_TO',
+        objectLabel: 'potatoes',
+        intensity: 'strong',
+        confidence: 0.9,
+        category: 'allergy',
+      },
     ],
     conflicts: [
       {
@@ -135,12 +188,60 @@ export const mockResponses: Record<string, any> = {
       { id: 'tom-new-002', name: 'Tom', isNew: true, personType: 'mentioned', confidence: 0.9 },
     ],
     relations: [
-      { subjectId: 'emma-new-001', subjectName: 'Emma', relationType: 'IS', objectLabel: 'software engineer', intensity: 'strong', confidence: 0.95, category: 'profession' },
-      { subjectId: 'emma-new-001', subjectName: 'Emma', relationType: 'KNOWS', objectLabel: 'Tom', intensity: 'strong', confidence: 0.9, category: 'person' },
-      { subjectId: 'emma-new-001', subjectName: 'Emma', relationType: 'LIKES', objectLabel: 'traveling', intensity: 'strong', confidence: 0.85, category: 'activity' },
-      { subjectId: 'tom-new-002', subjectName: 'Tom', relationType: 'IS', objectLabel: 'chef', intensity: 'strong', confidence: 0.95, category: 'profession' },
-      { subjectId: 'tom-new-002', subjectName: 'Tom', relationType: 'HAS_SKILL', objectLabel: 'Italian cuisine', intensity: 'strong', confidence: 0.9, category: 'cooking' },
-      { subjectId: 'tom-new-002', subjectName: 'Tom', relationType: 'LIKES', objectLabel: 'traveling', intensity: 'strong', confidence: 0.85, category: 'activity' },
+      {
+        subjectId: 'emma-new-001',
+        subjectName: 'Emma',
+        relationType: 'IS',
+        objectLabel: 'software engineer',
+        intensity: 'strong',
+        confidence: 0.95,
+        category: 'profession',
+      },
+      {
+        subjectId: 'emma-new-001',
+        subjectName: 'Emma',
+        relationType: 'KNOWS',
+        objectLabel: 'Tom',
+        intensity: 'strong',
+        confidence: 0.9,
+        category: 'person',
+      },
+      {
+        subjectId: 'emma-new-001',
+        subjectName: 'Emma',
+        relationType: 'LIKES',
+        objectLabel: 'traveling',
+        intensity: 'strong',
+        confidence: 0.85,
+        category: 'activity',
+      },
+      {
+        subjectId: 'tom-new-002',
+        subjectName: 'Tom',
+        relationType: 'IS',
+        objectLabel: 'chef',
+        intensity: 'strong',
+        confidence: 0.95,
+        category: 'profession',
+      },
+      {
+        subjectId: 'tom-new-002',
+        subjectName: 'Tom',
+        relationType: 'HAS_SKILL',
+        objectLabel: 'Italian cuisine',
+        intensity: 'strong',
+        confidence: 0.9,
+        category: 'cooking',
+      },
+      {
+        subjectId: 'tom-new-002',
+        subjectName: 'Tom',
+        relationType: 'LIKES',
+        objectLabel: 'traveling',
+        intensity: 'strong',
+        confidence: 0.85,
+        category: 'activity',
+      },
     ],
     conflicts: [],
   },
@@ -149,9 +250,33 @@ export const mockResponses: Record<string, any> = {
       { id: 'lisa-111', name: 'Lisa', isNew: false, personType: 'primary', confidence: 1.0 },
     ],
     relations: [
-      { subjectId: 'lisa-111', subjectName: 'Lisa', relationType: 'STRUGGLES_WITH', objectLabel: 'anxiety', intensity: 'medium', confidence: 0.9, category: 'mental_health' },
-      { subjectId: 'lisa-111', subjectName: 'Lisa', relationType: 'FEARS', objectLabel: 'flying', intensity: 'strong', confidence: 0.95, category: 'phobia' },
-      { subjectId: 'lisa-111', subjectName: 'Lisa', relationType: 'WANTS_TO_ACHIEVE', objectLabel: 'visit Japan', intensity: 'strong', confidence: 0.85, category: 'travel' },
+      {
+        subjectId: 'lisa-111',
+        subjectName: 'Lisa',
+        relationType: 'STRUGGLES_WITH',
+        objectLabel: 'anxiety',
+        intensity: 'medium',
+        confidence: 0.9,
+        category: 'mental_health',
+      },
+      {
+        subjectId: 'lisa-111',
+        subjectName: 'Lisa',
+        relationType: 'FEARS',
+        objectLabel: 'flying',
+        intensity: 'strong',
+        confidence: 0.95,
+        category: 'phobia',
+      },
+      {
+        subjectId: 'lisa-111',
+        subjectName: 'Lisa',
+        relationType: 'WANTS_TO_ACHIEVE',
+        objectLabel: 'visit Japan',
+        intensity: 'strong',
+        confidence: 0.85,
+        category: 'travel',
+      },
     ],
     conflicts: [],
   },
@@ -197,17 +322,42 @@ export function generateComparisonReport(): string {
   const testContext = {
     existingPeople: [{ id: 'john-123', name: 'John Smith' }],
     existingRelations: [
-      { relationType: 'LIKES', objectLabel: 'coffee', subjectId: 'john-123', subjectName: 'John Smith' },
+      {
+        relationType: 'LIKES',
+        objectLabel: 'coffee',
+        subjectId: 'john-123',
+        subjectName: 'John Smith',
+      },
     ],
     storyText: 'John loves carrots but hates broccoli. He started running every morning.',
   };
 
   const variants = [
-    { name: 'Original', fn: createExtractionPrompt, description: 'Comprehensive with detailed conflict detection instructions' },
-    { name: 'V1 Concise', fn: createPromptV1, description: 'Minimal instructions, lowest token count' },
-    { name: 'V2 Chain-of-Thought', fn: createPromptV2, description: 'Step-by-step reasoning, good for complex scenarios' },
-    { name: 'V3 Few-Shot', fn: createPromptV3, description: 'Learns from examples, consistent formatting' },
-    { name: 'V4 Structured', fn: createPromptV4, description: 'Strict schema definition, easy parsing' },
+    {
+      name: 'Original',
+      fn: createExtractionPrompt,
+      description: 'Comprehensive with detailed conflict detection instructions',
+    },
+    {
+      name: 'V1 Concise',
+      fn: createPromptV1,
+      description: 'Minimal instructions, lowest token count',
+    },
+    {
+      name: 'V2 Chain-of-Thought',
+      fn: createPromptV2,
+      description: 'Step-by-step reasoning, good for complex scenarios',
+    },
+    {
+      name: 'V3 Few-Shot',
+      fn: createPromptV3,
+      description: 'Learns from examples, consistent formatting',
+    },
+    {
+      name: 'V4 Structured',
+      fn: createPromptV4,
+      description: 'Strict schema definition, easy parsing',
+    },
   ];
 
   report.push('## Prompt Variants\n');
@@ -229,7 +379,9 @@ export function generateComparisonReport(): string {
   report.push('3. **For consistency:** Use V3 (Few-Shot) - learns from examples\n');
   report.push('4. **For parsing reliability:** Use V4 (Structured) - strict schema\n');
   report.push('\n## Best Practice\n');
-  report.push('Start with V1 for simple stories, upgrade to V2/Original for complex conflict detection.\n');
+  report.push(
+    'Start with V1 for simple stories, upgrade to V2/Original for complex conflict detection.\n'
+  );
 
   return report.join('');
 }

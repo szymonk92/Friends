@@ -47,7 +47,12 @@ interface Link extends d3.SimulationLinkDatum<Node> {
 }
 
 interface ForceDirectedGraphProps {
-  people: Array<{ id: string; name: string; photoPath?: string | null; relationshipType?: string | null }>;
+  people: Array<{
+    id: string;
+    name: string;
+    photoPath?: string | null;
+    relationshipType?: string | null;
+  }>;
   connections: Array<{ id: string; person1Id: string; person2Id: string }>;
   relationshipColors: Record<string, string>;
   selectedPersonId: string | null;
@@ -60,83 +65,68 @@ const isNode = (n: string | Node): n is Node => {
 };
 
 // --- SUB-COMPONENT FOR INDIVIDUAL NODE RENDERING ---
-const GraphNode = ({ 
-  node, 
-  x, 
-  y, 
-  isSelected, 
-  isNeighbor, 
-  font, 
+const GraphNode = ({
+  node,
+  x,
+  y,
+  isSelected,
+  isNeighbor,
+  font,
   titleFont,
-  clipPath 
-}: { 
-  node: Node,
-  x: number,
-  y: number, 
-  isSelected: boolean, 
-  isNeighbor: boolean, 
-  font: any, 
-  titleFont: any,
-  clipPath: any
+  clipPath,
+}: {
+  node: Node;
+  x: number;
+  y: number;
+  isSelected: boolean;
+  isNeighbor: boolean;
+  font: any;
+  titleFont: any;
+  clipPath: any;
 }) => {
-  const image = useImage(node.photoPath || "");
+  const image = useImage(node.photoPath || '');
   const shouldShowLabel = isSelected || isNeighbor;
-  
-  const opacity = (isSelected || isNeighbor) ? 1 : 0.6;
+
+  const opacity = isSelected || isNeighbor ? 1 : 0.6;
   const scale = isSelected ? 1.2 : 1;
 
   return (
-    <Group 
-      transform={[
-        { translateX: x }, 
-        { translateY: y },
-        { scale: scale }
-      ]}
-      opacity={opacity}
-    >
+    <Group transform={[{ translateX: x }, { translateY: y }, { scale: scale }]} opacity={opacity}>
       {/* 1. Node Circle Background (White filler) */}
-      <Circle 
-        cx={0} 
-        cy={0} 
-        r={NODE_RADIUS} 
-        color="#ffffff" 
-        style="fill"
-      />
+      <Circle cx={0} cy={0} r={NODE_RADIUS} color="#ffffff" style="fill" />
 
       {/* 2. Avatar Image OR Initials */}
       {image ? (
         // Use Group clipping instead of boolean prop
         <Group clip={clipPath}>
-           <Image
-             image={image}
-             x={-NODE_RADIUS}
-             y={-NODE_RADIUS}
-             width={IMAGE_SIZE}
-             height={IMAGE_SIZE}
-             fit="cover"
-           />
-        </Group>
-      ) : (
-        titleFont ? (
-          <SkiaText
-            x={-8} 
-            y={TITLE_FONT_SIZE / 2 - 2}
-            text={node.name.substring(0, 2).toUpperCase()}
-            font={titleFont}
-            color={node.color}
-            opacity={1}
+          <Image
+            image={image}
+            x={-NODE_RADIUS}
+            y={-NODE_RADIUS}
+            width={IMAGE_SIZE}
+            height={IMAGE_SIZE}
+            fit="cover"
           />
-        ) : null
-      )}
+        </Group>
+      ) : titleFont ? (
+        <SkiaText
+          x={-8}
+          y={TITLE_FONT_SIZE / 2 - 2}
+          text={node.name.substring(0, 2).toUpperCase()}
+          font={titleFont}
+          color={node.color}
+          opacity={1}
+        />
+      ) : null}
 
       {/* 3. Node Border */}
-      <Circle 
-        cx={0} 
-        cy={0} 
-        r={NODE_RADIUS} 
-        color={node.color} 
-        style="stroke" 
-        strokeWidth={STROKE_WIDTH} 
+      <Circle
+        cx={0}
+        cy={0}
+        r={NODE_RADIUS}
+        color={node.color}
+        style="stroke"
+        strokeWidth={STROKE_WIDTH}
       />
 
       {/* 4. Label */}
@@ -165,7 +155,7 @@ export default function ForceDirectedGraph({
   onSelectPerson,
 }: ForceDirectedGraphProps) {
   const theme = useTheme();
-  
+
   const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), FONT_SIZE);
   const titleFont = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), TITLE_FONT_SIZE);
 
@@ -188,208 +178,224 @@ export default function ForceDirectedGraph({
     if (!people.length) return;
 
     // Initialize Nodes
-    const newNodes: Node[] = people.map(p => {
-        const existing = nodes.find(n => n.id === p.id);
-        return {
-            ...p,
-            x: existing ? existing.x : SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 50,
-            y: existing ? existing.y : GRAPH_HEIGHT / 2 + (Math.random() - 0.5) * 50,
-            color: (p.relationshipType && relationshipColors[p.relationshipType]) 
-                   ? relationshipColors[p.relationshipType] 
-                   : theme.colors.primary
-        };
+    const newNodes: Node[] = people.map((p) => {
+      const existing = nodes.find((n) => n.id === p.id);
+      return {
+        ...p,
+        x: existing ? existing.x : SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 50,
+        y: existing ? existing.y : GRAPH_HEIGHT / 2 + (Math.random() - 0.5) * 50,
+        color:
+          p.relationshipType && relationshipColors[p.relationshipType]
+            ? relationshipColors[p.relationshipType]
+            : theme.colors.primary,
+      };
     });
 
-    const nodeMap = new Map(newNodes.map(n => [n.id, n]));
-    
+    const nodeMap = new Map(newNodes.map((n) => [n.id, n]));
+
     // Initialize Links with references to actual node objects if available
     const newLinks: Link[] = connections
-        .filter(c => nodeMap.has(c.person1Id) && nodeMap.has(c.person2Id))
-        .map(c => ({
-            id: c.id,
-            source: c.person1Id,
-            target: c.person2Id,
-        }));
+      .filter((c) => nodeMap.has(c.person1Id) && nodeMap.has(c.person2Id))
+      .map((c) => ({
+        id: c.id,
+        source: c.person1Id,
+        target: c.person2Id,
+      }));
 
     if (simulationRef.current) simulationRef.current.stop();
 
-    simulationRef.current = d3.forceSimulation<Node, Link>(newNodes)
-        .force('link', d3.forceLink<Node, Link>(newLinks).id(d => d.id).distance(LINK_DISTANCE))
-        .force('charge', d3.forceManyBody().strength(MANY_BODY_STRENGTH).distanceMax(250))
-        .force('center', d3.forceCenter(SCREEN_WIDTH / 2, GRAPH_HEIGHT / 2).strength(CENTER_FORCE))
-        .force('collide', d3.forceCollide(COLLISION_RADIUS));
+    simulationRef.current = d3
+      .forceSimulation<Node, Link>(newNodes)
+      .force(
+        'link',
+        d3
+          .forceLink<Node, Link>(newLinks)
+          .id((d) => d.id)
+          .distance(LINK_DISTANCE)
+      )
+      .force('charge', d3.forceManyBody().strength(MANY_BODY_STRENGTH).distanceMax(250))
+      .force('center', d3.forceCenter(SCREEN_WIDTH / 2, GRAPH_HEIGHT / 2).strength(CENTER_FORCE))
+      .force('collide', d3.forceCollide(COLLISION_RADIUS));
 
     simulationRef.current.on('tick', () => {
-        // Trigger React Render
-        setNodes([...newNodes]); 
-        setLinks([...newLinks]);
+      // Trigger React Render
+      setNodes([...newNodes]);
+      setLinks([...newLinks]);
     });
 
     simulationRef.current.restart();
 
     // FIX: Explicitly return void for cleanup
     return () => {
-        simulationRef.current?.stop();
+      simulationRef.current?.stop();
     };
   }, [people, connections, relationshipColors]);
 
   // --- 2. GESTURE HANDLERS ---
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
-        .runOnJS(true)
-        .onStart(() => {
-            startCamera.current = { ...camera };
-        })
-        .onUpdate((e) => {
-            setCamera({
-                x: startCamera.current.x + e.translationX,
-                y: startCamera.current.y + e.translationY,
-                scale: startCamera.current.scale
-            });
+      .runOnJS(true)
+      .onStart(() => {
+        startCamera.current = { ...camera };
+      })
+      .onUpdate((e) => {
+        setCamera({
+          x: startCamera.current.x + e.translationX,
+          y: startCamera.current.y + e.translationY,
+          scale: startCamera.current.scale,
         });
+      });
 
     const pinch = Gesture.Pinch()
-        .runOnJS(true)
-        .onStart(() => {
-            startCamera.current = { ...camera };
-        })
-        .onUpdate((e) => {
-            const newScale = startCamera.current.scale * e.scale;
-            setCamera({
-                ...camera,
-                scale: Math.max(0.5, Math.min(newScale, 3))
-            });
+      .runOnJS(true)
+      .onStart(() => {
+        startCamera.current = { ...camera };
+      })
+      .onUpdate((e) => {
+        const newScale = startCamera.current.scale * e.scale;
+        setCamera({
+          ...camera,
+          scale: Math.max(0.5, Math.min(newScale, 3)),
         });
+      });
 
     const tap = Gesture.Tap()
-        .runOnJS(true)
-        .maxDistance(10)
-        .onEnd((e) => {
-            // Transform Touch to World Coordinates
-            const worldX = (e.x - camera.x) / camera.scale;
-            const worldY = (e.y - camera.y) / camera.scale;
+      .runOnJS(true)
+      .maxDistance(10)
+      .onEnd((e) => {
+        // Transform Touch to World Coordinates
+        const worldX = (e.x - camera.x) / camera.scale;
+        const worldY = (e.y - camera.y) / camera.scale;
 
-            const HIT_SLOP = 40;
-            let closestNode: string | null = null;
-            let minDist = HIT_SLOP;
+        const HIT_SLOP = 40;
+        let closestNode: string | null = null;
+        let minDist = HIT_SLOP;
 
-            for (const node of nodes) {
-                // Skip nodes that haven't been positioned yet
-                if (node.x === undefined || node.y === undefined) continue;
+        for (const node of nodes) {
+          // Skip nodes that haven't been positioned yet
+          if (node.x === undefined || node.y === undefined) continue;
 
-                const dx = node.x - worldX;
-                const dy = node.y - worldY;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestNode = node.id;
-                }
-            }
-            
-            // Toggle selection
-            onSelectPerson(closestNode === selectedPersonId ? null : closestNode);
-        });
+          const dx = node.x - worldX;
+          const dy = node.y - worldY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < minDist) {
+            minDist = dist;
+            closestNode = node.id;
+          }
+        }
+
+        // Toggle selection
+        onSelectPerson(closestNode === selectedPersonId ? null : closestNode);
+      });
 
     return Gesture.Simultaneous(tap, pan, pinch);
   }, [camera, nodes, selectedPersonId, onSelectPerson]);
 
-  const neighborIds = useMemo(() => new Set(
-    links
-      .filter(l => (l.source as Node).id === selectedPersonId || (l.target as Node).id === selectedPersonId)
-      .flatMap(l => [(l.source as Node).id, (l.target as Node).id])
-  ), [links, selectedPersonId]);
+  const neighborIds = useMemo(
+    () =>
+      new Set(
+        links
+          .filter(
+            (l) =>
+              (l.source as Node).id === selectedPersonId ||
+              (l.target as Node).id === selectedPersonId
+          )
+          .flatMap((l) => [(l.source as Node).id, (l.target as Node).id])
+      ),
+    [links, selectedPersonId]
+  );
 
   if (nodes.length === 0) {
-      return (
-        <View style={[styles.container, styles.centered]}>
-            <ActivityIndicator size="large" />
-        </View>
-      );
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-        <GestureDetector gesture={gesture}>
-            <View style={{ flex: 1 }}>
-                <Canvas style={styles.canvas}>
-                    <Group 
-                        transform={[
-                            { translateX: camera.x },
-                            { translateY: camera.y },
-                            { scale: camera.scale }
-                        ]}
-                    >
-                        {/* Links */}
-                        {links.map(link => {
-                            const s = link.source;
-                            const t = link.target;
-                            
-                            // FIX: Ensure nodes are fully resolved objects before rendering line
-                            if (!isNode(s) || !isNode(t)) return null;
-                            
-                            // Extra safety for NaN
-                            if (isNaN(s.x!) || isNaN(s.y!) || isNaN(t.x!) || isNaN(t.y!)) return null;
+      <GestureDetector gesture={gesture}>
+        <View style={{ flex: 1 }}>
+          <Canvas style={styles.canvas}>
+            <Group
+              transform={[
+                { translateX: camera.x },
+                { translateY: camera.y },
+                { scale: camera.scale },
+              ]}
+            >
+              {/* Links */}
+              {links.map((link) => {
+                const s = link.source;
+                const t = link.target;
 
-                            const isConnected = selectedPersonId && 
-                                (s.id === selectedPersonId || t.id === selectedPersonId);
-                            const opacity = selectedPersonId ? (isConnected ? 1 : 0.1) : 0.2;
-                            const color = isConnected ? theme.colors.primary : "#999";
-                            const width = isConnected ? 2 : 1;
+                // FIX: Ensure nodes are fully resolved objects before rendering line
+                if (!isNode(s) || !isNode(t)) return null;
 
-                            return (
-                                <Line
-                                    key={link.id}
-                                    p1={vec(s.x!, s.y!)}
-                                    p2={vec(t.x!, t.y!)}
-                                    color={color}
-                                    style="stroke"
-                                    strokeWidth={width}
-                                    opacity={opacity}
-                                />
-                            );
-                        })}
+                // Extra safety for NaN
+                if (isNaN(s.x!) || isNaN(s.y!) || isNaN(t.x!) || isNaN(t.y!)) return null;
 
-                        {/* Nodes */}
-                        {nodes.map(node => {
-                            // Skip if coordinates are missing
-                            if (node.x === undefined || node.y === undefined) return null;
+                const isConnected =
+                  selectedPersonId && (s.id === selectedPersonId || t.id === selectedPersonId);
+                const opacity = selectedPersonId ? (isConnected ? 1 : 0.1) : 0.2;
+                const color = isConnected ? theme.colors.primary : '#999';
+                const width = isConnected ? 2 : 1;
 
-                            return (
-                                <GraphNode
-                                    key={node.id}
-                                    node={node}
-                                    x={node.x}
-                                    y={node.y}
-                                    isSelected={node.id === selectedPersonId}
-                                    isNeighbor={neighborIds.has(node.id)}
-                                    font={font}
-                                    titleFont={titleFont}
-                                    clipPath={circleClipPath}
-                                />
-                            );
-                        })}
-                    </Group>
-                </Canvas>
-            </View>
-        </GestureDetector>
+                return (
+                  <Line
+                    key={link.id}
+                    p1={vec(s.x!, s.y!)}
+                    p2={vec(t.x!, t.y!)}
+                    color={color}
+                    style="stroke"
+                    strokeWidth={width}
+                    opacity={opacity}
+                  />
+                );
+              })}
+
+              {/* Nodes */}
+              {nodes.map((node) => {
+                // Skip if coordinates are missing
+                if (node.x === undefined || node.y === undefined) return null;
+
+                return (
+                  <GraphNode
+                    key={node.id}
+                    node={node}
+                    x={node.x}
+                    y={node.y}
+                    isSelected={node.id === selectedPersonId}
+                    isNeighbor={neighborIds.has(node.id)}
+                    font={font}
+                    titleFont={titleFont}
+                    clipPath={circleClipPath}
+                  />
+                );
+              })}
+            </Group>
+          </Canvas>
+        </View>
+      </GestureDetector>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        height: GRAPH_HEIGHT,
-        width: '100%',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
-    canvas: {
-        flex: 1,
-    },
-    centered: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    }
+  container: {
+    height: GRAPH_HEIGHT,
+    width: '100%',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  canvas: {
+    flex: 1,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

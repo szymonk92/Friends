@@ -7,10 +7,27 @@
  * All allowed relation types for database validation
  */
 export const ALLOWED_RELATION_TYPES = [
-  'KNOWS', 'LIKES', 'DISLIKES', 'UNKNOWN', 'ASSOCIATED_WITH', 'EXPERIENCED',
-  'HAS_SKILL', 'OWNS', 'HAS_IMPORTANT_DATE', 'IS', 'BELIEVES', 'FEARS',
-  'WANTS_TO_ACHIEVE', 'STRUGGLES_WITH', 'CARES_FOR', 'DEPENDS_ON',
-  'REGULARLY_DOES', 'PREFERS_OVER', 'USED_TO_BE', 'SENSITIVE_TO', 'UNCOMFORTABLE_WITH'
+  'KNOWS',
+  'LIKES',
+  'DISLIKES',
+  'UNKNOWN',
+  'ASSOCIATED_WITH',
+  'EXPERIENCED',
+  'HAS_SKILL',
+  'OWNS',
+  'HAS_IMPORTANT_DATE',
+  'IS',
+  'BELIEVES',
+  'FEARS',
+  'WANTS_TO_ACHIEVE',
+  'STRUGGLES_WITH',
+  'CARES_FOR',
+  'DEPENDS_ON',
+  'REGULARLY_DOES',
+  'PREFERS_OVER',
+  'USED_TO_BE',
+  'SENSITIVE_TO',
+  'UNCOMFORTABLE_WITH',
 ] as const;
 
 export const RELATION_TYPE_OPTIONS = [
@@ -38,8 +55,8 @@ export const INTENSITY_OPTIONS = [
 ] as const;
 
 // Type helpers to ensure type safety
-export type RelationTypeOption = typeof RELATION_TYPE_OPTIONS[number];
-export type IntensityOption = typeof INTENSITY_OPTIONS[number];
+export type RelationTypeOption = (typeof RELATION_TYPE_OPTIONS)[number];
+export type IntensityOption = (typeof INTENSITY_OPTIONS)[number];
 
 // Common relation types for frequent use
 export const LIKES = 'LIKES' as const;

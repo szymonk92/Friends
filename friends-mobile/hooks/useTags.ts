@@ -45,7 +45,11 @@ export function usePersonTags(personId: string) {
   return useQuery({
     queryKey: ['tags', 'person', personId],
     queryFn: async () => {
-      const result = await db.select({ tags: people.tags }).from(people).where(eq(people.id, personId)).limit(1);
+      const result = await db
+        .select({ tags: people.tags })
+        .from(people)
+        .where(eq(people.id, personId))
+        .limit(1);
 
       if (!result.length || !result[0].tags) return [];
 
@@ -69,7 +73,11 @@ export function useAddTagToPerson() {
   return useMutation({
     mutationFn: async ({ personId, tag }: { personId: string; tag: string }) => {
       // Get current tags
-      const current = await db.select({ tags: people.tags }).from(people).where(eq(people.id, personId)).limit(1);
+      const current = await db
+        .select({ tags: people.tags })
+        .from(people)
+        .where(eq(people.id, personId))
+        .limit(1);
 
       if (!current.length) throw new Error('Person not found');
 
@@ -117,7 +125,11 @@ export function useRemoveTagFromPerson() {
   return useMutation({
     mutationFn: async ({ personId, tag }: { personId: string; tag: string }) => {
       // Get current tags
-      const current = await db.select({ tags: people.tags }).from(people).where(eq(people.id, personId)).limit(1);
+      const current = await db
+        .select({ tags: people.tags })
+        .from(people)
+        .where(eq(people.id, personId))
+        .limit(1);
 
       if (!current.length) throw new Error('Person not found');
 

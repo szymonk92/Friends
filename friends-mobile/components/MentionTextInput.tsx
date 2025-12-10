@@ -135,9 +135,7 @@ export default function MentionTextInput({
 
     // Replace @query with @PersonName
     const newText =
-      textBeforeCursor.substring(0, lastAtSymbol) +
-      `@${person.name} ` +
-      textAfterCursor;
+      textBeforeCursor.substring(0, lastAtSymbol) + `@${person.name} ` + textAfterCursor;
 
     onChangeText(newText);
     setShowSuggestions(false);
@@ -185,7 +183,9 @@ export default function MentionTextInput({
       <TextInput
         mode="outlined"
         label={label}
-        placeholder={placeholder || "Example: Had dinner with Sarah. She mentioned she's now vegan..."}
+        placeholder={
+          placeholder || "Example: Had dinner with Sarah. She mentioned she's now vegan..."
+        }
         value={value}
         onChangeText={handleTextChange}
         onSelectionChange={handleSelectionChange}

@@ -98,7 +98,8 @@ export async function authenticateUser(
     if (!status.isEnrolled) {
       return {
         success: false,
-        error: 'No biometric data enrolled. Please set up fingerprint or face recognition in device settings.',
+        error:
+          'No biometric data enrolled. Please set up fingerprint or face recognition in device settings.',
       };
     }
 

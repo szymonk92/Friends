@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
-import {
-  Text,
-  Portal,
-} from 'react-native-paper';
+import { Text, Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import {
@@ -126,9 +123,9 @@ export default function SecretsScreen() {
     Alert.alert(
       'IMPORTANT WARNING',
       'You are about to set a password for your secrets.\n\n' +
-      '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
-      'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
-      'Make sure you remember this password or write it down in a safe place.',
+        '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
+        'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
+        'Make sure you remember this password or write it down in a safe place.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

@@ -24,7 +24,12 @@ import {
   Checkbox,
 } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
-import { useCreateConnection, usePersonConnections, useUpdateConnection, useDeleteConnection } from '@/hooks/useConnections';
+import {
+  useCreateConnection,
+  usePersonConnections,
+  useUpdateConnection,
+  useDeleteConnection,
+} from '@/hooks/useConnections';
 import { usePerson, usePeople, useMePerson, PersonWithPhoto } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
@@ -309,7 +314,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           ]
         );
       } catch (error) {
-        devLogger.error('Failed to create connection', { error, fromPersonId: personId, toPersonId: singlePersonId });
+        devLogger.error('Failed to create connection', {
+          error,
+          fromPersonId: personId,
+          toPersonId: singlePersonId,
+        });
         Alert.alert('Error', 'Failed to create connection. Please try again.');
       } finally {
         setIsSubmitting(false);
@@ -413,8 +422,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const handleDelete = async () => {
     if (mode !== 'edit' || !connection) return;
 
-    const connectedPerson = allPeople.find((p) =>
-      p.id === (connection.person1Id === connection.person1Id ? connection.person2Id : connection.person1Id)
+    const connectedPerson = allPeople.find(
+      (p) =>
+        p.id ===
+        (connection.person1Id === connection.person1Id
+          ? connection.person2Id
+          : connection.person1Id)
     );
 
     Alert.alert(
@@ -471,8 +484,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               <Text variant="bodyMedium" style={styles.subtitle}>
                 {mode === 'add'
                   ? 'Select multiple people (checkbox) or tap avatar for detailed single connection'
-                  : 'Update connection details'
-                }
+                  : 'Update connection details'}
               </Text>
             </Card.Content>
           </Card>
@@ -491,7 +503,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     <Card.Content>
                       <View style={styles.selectedPerson}>
                         <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>{getInitials(selectedSinglePerson.name)}</Text>
+                          <Text style={styles.avatarText}>
+                            {getInitials(selectedSinglePerson.name)}
+                          </Text>
                         </View>
                         <View style={styles.personInfo}>
                           <Text variant="titleMedium">{selectedSinglePerson.name}</Text>
@@ -517,9 +531,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.typeScrollContainer}
                   >
-                    <Animated.View style={{
-                      transform: [{ translateX: relationshipTypeScrollAnim }],
-                    }}>
+                    <Animated.View
+                      style={{
+                        transform: [{ translateX: relationshipTypeScrollAnim }],
+                      }}
+                    >
                       <View style={styles.typeGrid}>
                         {RELATIONSHIP_TYPES.map((type) => (
                           <Button
@@ -602,9 +618,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.typeScrollContainer}
                   >
-                    <Animated.View style={{
-                      transform: [{ translateX: relationshipTypeScrollAnim }],
-                    }}>
+                    <Animated.View
+                      style={{
+                        transform: [{ translateX: relationshipTypeScrollAnim }],
+                      }}
+                    >
                       <View style={styles.typeGrid}>
                         {RELATIONSHIP_TYPES.map((type) => (
                           <Button
@@ -634,9 +652,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.statusScrollContainer}
                   >
-                    <Animated.View style={{
-                      transform: [{ translateX: statusScrollAnim }],
-                    }}>
+                    <Animated.View
+                      style={{
+                        transform: [{ translateX: statusScrollAnim }],
+                      }}
+                    >
                       <SegmentedButtons
                         value={status}
                         onValueChange={setStatus}
@@ -682,11 +702,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     >
                       Delete
                     </Button>
-                    <Button
-                      mode="outlined"
-                      onPress={() => router.back()}
-                      style={styles.button}
-                    >
+                    <Button mode="outlined" onPress={() => router.back()} style={styles.button}>
                       Cancel
                     </Button>
                   </View>
@@ -783,7 +799,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             style={styles.submitButton}
             contentStyle={styles.submitButtonContent}
           >
-            {mode === 'add' ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}` : 'Update Connection'}
+            {mode === 'add'
+              ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}`
+              : 'Update Connection'}
           </Button>
 
           <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>

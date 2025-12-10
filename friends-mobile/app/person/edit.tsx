@@ -84,11 +84,7 @@ export default function EditPersonScreen() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('already exists')) {
-        Alert.alert(
-          'Duplicate Name',
-          errorMessage,
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Duplicate Name', errorMessage, [{ text: 'OK' }]);
       } else {
         Alert.alert('Error', 'Failed to update person. Please try again.');
       }
@@ -195,7 +191,8 @@ export default function EditPersonScreen() {
               Person Type
             </Text>
             <Text variant="bodySmall" style={styles.hint}>
-              Primary people appear in party mode and food quiz. Mentioned people are tracked but less prominent.
+              Primary people appear in party mode and food quiz. Mentioned people are tracked but
+              less prominent.
             </Text>
             <SegmentedButtons
               value={personType}

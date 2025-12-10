@@ -14,9 +14,10 @@ import type { ExtractionContext } from '../prompts';
 export function createPromptV1(context: ExtractionContext): string {
   const { existingPeople, existingRelations: _existingRelations, storyText } = context;
 
-  const peopleList = existingPeople.length > 0
-    ? existingPeople.map(p => `${p.name} (${p.id})`).join(', ')
-    : 'None';
+  const peopleList =
+    existingPeople.length > 0
+      ? existingPeople.map((p) => `${p.name} (${p.id})`).join(', ')
+      : 'None';
 
   return `Extract relationship data from this story about people.
 
@@ -52,13 +53,17 @@ IMPORTANT: Check for ingredient/dietary conflicts! (e.g., "vegan" + "likes chees
 export function createPromptV2(context: ExtractionContext): string {
   const { existingPeople, existingRelations, storyText } = context;
 
-  const peopleList = existingPeople.length > 0
-    ? existingPeople.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
-    : 'None';
+  const peopleList =
+    existingPeople.length > 0
+      ? existingPeople.map((p) => `- ${p.name} (ID: ${p.id})`).join('\n')
+      : 'None';
 
-  const relationsList = existingRelations && existingRelations.length > 0
-    ? existingRelations.map(r => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`).join('\n')
-    : 'None';
+  const relationsList =
+    existingRelations && existingRelations.length > 0
+      ? existingRelations
+          .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
+          .join('\n')
+      : 'None';
 
   return `You are extracting structured relationship data. Think step-by-step.
 
@@ -135,9 +140,10 @@ RESPOND WITH JSON:
 export function createPromptV3(context: ExtractionContext): string {
   const { existingPeople, existingRelations: _existingRelations, storyText } = context;
 
-  const peopleList = existingPeople.length > 0
-    ? existingPeople.map(p => `- ${p.name} (${p.id})`).join('\n')
-    : 'None';
+  const peopleList =
+    existingPeople.length > 0
+      ? existingPeople.map((p) => `- ${p.name} (${p.id})`).join('\n')
+      : 'None';
 
   return `Extract relationship data from stories. Learn from these examples:
 
@@ -207,8 +213,8 @@ Extract people and relations following the exact format above. Check for conflic
 export function createPromptV4(context: ExtractionContext): string {
   const { existingPeople, storyText } = context;
 
-  const peopleIds = existingPeople.map(p => p.id).join(', ') || 'none';
-  const peopleNames = existingPeople.map(p => p.name).join(', ') || 'none';
+  const peopleIds = existingPeople.map((p) => p.id).join(', ') || 'none';
+  const peopleNames = existingPeople.map((p) => p.name).join(', ') || 'none';
 
   return `TASK: Parse story into structured relationship data
 
@@ -277,7 +283,8 @@ export interface PromptTestCase {
 export const testCases: PromptTestCase[] = [
   {
     name: 'Simple likes/dislikes',
-    story: 'Had coffee with John today. He loves carrots but absolutely hates broccoli. He also mentioned he started running every morning.',
+    story:
+      'Had coffee with John today. He loves carrots but absolutely hates broccoli. He also mentioned he started running every morning.',
     existingPeople: [{ id: 'john-123', name: 'John Smith' }],
     expectedPeopleCount: 1,
     expectedRelationTypes: ['LIKES', 'DISLIKES', 'REGULARLY_DOES'],
@@ -285,10 +292,16 @@ export const testCases: PromptTestCase[] = [
   },
   {
     name: 'Dietary conflict detection',
-    story: 'Sarah told me she went vegan last month. She said she really misses eating cheese pizza.',
+    story:
+      'Sarah told me she went vegan last month. She said she really misses eating cheese pizza.',
     existingPeople: [{ id: 'sarah-456', name: 'Sarah' }],
     existingRelations: [
-      { relationType: 'LIKES', objectLabel: 'cheese pizza', subjectId: 'sarah-456', subjectName: 'Sarah' },
+      {
+        relationType: 'LIKES',
+        objectLabel: 'cheese pizza',
+        subjectId: 'sarah-456',
+        subjectName: 'Sarah',
+      },
     ],
     expectedPeopleCount: 1,
     expectedRelationTypes: ['IS'],
@@ -299,7 +312,12 @@ export const testCases: PromptTestCase[] = [
     story: 'Mike mentioned he developed a potato allergy recently.',
     existingPeople: [{ id: 'mike-789', name: 'Mike' }],
     existingRelations: [
-      { relationType: 'LIKES', objectLabel: 'french fries', subjectId: 'mike-789', subjectName: 'Mike' },
+      {
+        relationType: 'LIKES',
+        objectLabel: 'french fries',
+        subjectId: 'mike-789',
+        subjectName: 'Mike',
+      },
     ],
     expectedPeopleCount: 1,
     expectedRelationTypes: ['SENSITIVE_TO'],
@@ -307,7 +325,8 @@ export const testCases: PromptTestCase[] = [
   },
   {
     name: 'Multiple people extraction',
-    story: 'At the party, I met Emma who is a software engineer. Her boyfriend Tom is a chef who specializes in Italian cuisine. They both love traveling.',
+    story:
+      'At the party, I met Emma who is a software engineer. Her boyfriend Tom is a chef who specializes in Italian cuisine. They both love traveling.',
     existingPeople: [],
     expectedPeopleCount: 2,
     expectedRelationTypes: ['IS', 'HAS_SKILL', 'LIKES', 'KNOWS'],
@@ -315,7 +334,8 @@ export const testCases: PromptTestCase[] = [
   },
   {
     name: 'Complex traits and fears',
-    story: 'Lisa struggles with anxiety and is afraid of flying. She wants to overcome this because her dream is to visit Japan.',
+    story:
+      'Lisa struggles with anxiety and is afraid of flying. She wants to overcome this because her dream is to visit Japan.',
     existingPeople: [{ id: 'lisa-111', name: 'Lisa' }],
     expectedPeopleCount: 1,
     expectedRelationTypes: ['STRUGGLES_WITH', 'FEARS', 'WANTS_TO_ACHIEVE'],
@@ -331,7 +351,9 @@ export function evaluateExtraction(
 
   // Check people count
   if (result.people?.length !== testCase.expectedPeopleCount) {
-    issues.push(`Expected ${testCase.expectedPeopleCount} people, got ${result.people?.length || 0}`);
+    issues.push(
+      `Expected ${testCase.expectedPeopleCount} people, got ${result.people?.length || 0}`
+    );
   }
 
   // Check relation types

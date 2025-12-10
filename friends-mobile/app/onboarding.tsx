@@ -3,7 +3,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef } from 'react';
 import { router } from 'expo-router';
 import { Stack } from 'expo-router';
-import { View, Image, StyleSheet, FlatList, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import {
+  View,
+  Image,
+  StyleSheet,
+  FlatList,
+  useWindowDimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from 'react-native';
 import { Card, Text, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
@@ -177,7 +185,12 @@ export default function OnboardingScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+        ]}
+      >
         {/* Skip button */}
         {!isLastStep && (
           <Button mode="text" onPress={handleSkip} style={styles.skipButton}>

@@ -2,9 +2,16 @@ import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Text, Card, Chip, Divider, useTheme } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';
-import { 
-  LIKES, DISLIKES, HAS_SKILL, REGULARLY_DOES, 
-  PREFERS_OVER, FEARS, WANTS_TO_ACHIEVE, VERY_STRONG, STRONG 
+import {
+  LIKES,
+  DISLIKES,
+  HAS_SKILL,
+  REGULARLY_DOES,
+  PREFERS_OVER,
+  FEARS,
+  WANTS_TO_ACHIEVE,
+  VERY_STRONG,
+  STRONG,
 } from '@/lib/constants/relations';
 
 interface Relation {
@@ -52,7 +59,10 @@ export default function NetworkPersonDetails({
     return (
       <View style={styles.section} key={title}>
         <View style={styles.sectionHeader}>
-          <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+          <Text
+            variant="labelLarge"
+            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
+          >
             {icon} {title}
           </Text>
         </View>

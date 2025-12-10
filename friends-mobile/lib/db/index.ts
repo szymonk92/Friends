@@ -400,14 +400,12 @@ export async function initializeLocalUser(): Promise<string> {
     }
 
     const userId = randomUUID();
-    await db
-      .insert(schema.users)
-      .values({
-        id: userId,
-        email: null,
-        displayName: 'Me',
-        subscriptionTier: 'free',
-      });
+    await db.insert(schema.users).values({
+      id: userId,
+      email: null,
+      displayName: 'Me',
+      subscriptionTier: 'free',
+    });
 
     // Create "ME" person for self-relations
     await ensureMePerson(userId);
@@ -427,9 +425,7 @@ async function ensureMePerson(userId: string): Promise<void> {
     const existingMe = await db
       .select()
       .from(schema.people)
-      .where(
-        and(eq(schema.people.userId, userId), eq(schema.people.personType, 'self' as any))
-      )
+      .where(and(eq(schema.people.userId, userId), eq(schema.people.personType, 'self' as any)))
       .limit(1);
 
     if (existingMe.length > 0) {

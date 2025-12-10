@@ -15,11 +15,7 @@ export type PersonWithPhoto = Person & {
 /**
  * Check if a person name already exists (case-insensitive)
  */
-async function checkNameExists(
-  userId: string,
-  name: string,
-  excludeId?: string
-): Promise<boolean> {
+async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = name.trim().toLowerCase();
   const existingPeople = await db
     .select()
@@ -53,7 +49,7 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
         eq(people.userId, userId),
         ne(people.status, 'merged'),
         isNull(people.deletedAt),
-        ne(people.personType, 'self') // Always exclude self from general list
+        ne(people.personType, 'self'), // Always exclude self from general list
       ];
 
       if (filter?.type === 'primary') {
@@ -65,17 +61,17 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
       }
       // 'all' includes everyone (except self, handled above)
 
-      const peopleResults = await db
+      const peopleResults = (await db
         .select()
         .from(people)
         .where(and(...whereConditions))
-        .orderBy(desc(people.updatedAt)) as Person[];
+        .orderBy(desc(people.updatedAt))) as Person[];
 
       peopleLogger.info('People fetched', { count: peopleResults.length });
-      
+
       console.log('[usePeople] Fetched people:', {
         count: peopleResults.length,
-        sample: peopleResults.slice(0, 3).map(p => ({
+        sample: peopleResults.slice(0, 3).map((p) => ({
           id: p.id,
           name: p.name,
           relationshipType: p.relationshipType,
@@ -85,9 +81,7 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
       });
 
       // Then try to get photo paths for people with photoId
-      const photoIds = peopleResults
-        .filter((p) => p.photoId)
-        .map((p) => p.photoId as string);
+      const photoIds = peopleResults.filter((p) => p.photoId).map((p) => p.photoId as string);
 
       let photoMap: Record<string, string> = {};
       if (photoIds.length > 0) {
@@ -95,7 +89,12 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
           const photosResults = await db
             .select({ id: files.id, filePath: files.filePath })
             .from(files)
-            .where(sql`${files.id} IN (${sql.join(photoIds.map((id) => sql`${id}`), sql`, `)})`);
+            .where(
+              sql`${files.id} IN (${sql.join(
+                photoIds.map((id) => sql`${id}`),
+                sql`, `
+              )})`
+            );
 
           for (const photo of photosResults) {
             photoMap[photo.id] = photo.filePath;

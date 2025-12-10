@@ -1,4 +1,13 @@
-import { StyleSheet, View, ScrollView, Alert, StatusBar, BackHandler, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Alert,
+  StatusBar,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Text, TextInput, Button, Dialog, Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
@@ -46,7 +55,15 @@ export default function StoryInputScreen() {
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
   const { data: allPeople } = usePeople();
-  const { selectedModel, getActiveApiKey, setApiKey, loadApiKey, loadGeminiApiKey, loadSelectedModel, hasActiveApiKey } = useSettings();
+  const {
+    selectedModel,
+    getActiveApiKey,
+    setApiKey,
+    loadApiKey,
+    loadGeminiApiKey,
+    loadSelectedModel,
+    hasActiveApiKey,
+  } = useSettings();
 
   // Load API keys and model on mount
   useEffect(() => {
@@ -216,7 +233,7 @@ Tokens used: ${result.tokensUsed || 'N/A'}`;
         setDebugInfo(result.debugInfo);
         buttons.push({
           text: 'Debug',
-          onPress: () => setDebugDialogVisible(true)
+          onPress: () => setDebugDialogVisible(true),
         });
       }
 
@@ -315,10 +332,10 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
   };
 
   const handleRemovePerson = (id: string) => {
-    setSelectedPersonIds(prev => prev.filter(pId => pId !== id));
+    setSelectedPersonIds((prev) => prev.filter((pId) => pId !== id));
   };
 
-  const selectedPeopleObjects = allPeople?.filter(p => selectedPersonIds.includes(p.id)) || [];
+  const selectedPeopleObjects = allPeople?.filter((p) => selectedPersonIds.includes(p.id)) || [];
 
   const wordCount = storyText.trim().split(/\s+/).filter(Boolean).length;
   const estimatedCost = wordCount > 0 ? '$0.02' : '$0.00';
@@ -346,12 +363,20 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           {/* Explicitly Tagged People Chips */}
           {selectedPersonIds.length > 0 && (
             <View style={styles.chipsContainer}>
-              <Text variant="labelSmall" style={styles.chipsLabel}>Tagged:</Text>
+              <Text variant="labelSmall" style={styles.chipsLabel}>
+                Tagged:
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {selectedPeopleObjects.map(person => (
+                {selectedPeopleObjects.map((person) => (
                   <Chip
                     key={person.id}
-                    avatar={person.photoPath ? <Avatar.Image size={24} source={{ uri: person.photoPath }} /> : <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />}
+                    avatar={
+                      person.photoPath ? (
+                        <Avatar.Image size={24} source={{ uri: person.photoPath }} />
+                      ) : (
+                        <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />
+                      )
+                    }
                     onClose={() => handleRemovePerson(person.id)}
                     style={styles.chip}
                   >
@@ -419,7 +444,6 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Button>
         </View>
       </KeyboardAvoidingView>
-
 
       {/* API Key Dialog */}
       <Portal>
@@ -503,36 +527,59 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             <ScrollView>
               {debugInfo && (
                 <View>
-                  <Text variant="labelLarge" style={styles.debugLabel}>Model & Cost</Text>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
+                    Model & Cost
+                  </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
-                    Model: {debugInfo.model}{'\n'}
-                    Tokens: {debugInfo.tokensUsed}{'\n'}
+                    Model: {debugInfo.model}
+                    {'\n'}
+                    Tokens: {debugInfo.tokensUsed}
+                    {'\n'}
                     Cost: ${debugInfo.cost?.toFixed(6) || 'N/A'}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>System Prompt</Text>
-                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.systemPrompt || 'N/A'}</Text>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
+                    System Prompt
+                  </Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>
+                    {debugInfo.systemPrompt || 'N/A'}
+                  </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>User Prompt (Story)</Text>
-                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.userPrompt}</Text>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
+                    User Prompt (Story)
+                  </Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>
+                    {debugInfo.userPrompt}
+                  </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>Response Status</Text>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
+                    Response Status
+                  </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
-                    Status: {debugInfo.responseStatus || 'N/A'}{'\n'}
+                    Status: {debugInfo.responseStatus || 'N/A'}
+                    {'\n'}
                     Headers: {JSON.stringify(debugInfo.requestHeaders || {}, null, 2)}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>Raw Response</Text>
-                  <Text variant="bodySmall" style={styles.debugCode}>{debugInfo.rawResponse}</Text>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
+                    Raw Response
+                  </Text>
+                  <Text variant="bodySmall" style={styles.debugCode}>
+                    {debugInfo.rawResponse}
+                  </Text>
                 </View>
               )}
             </ScrollView>
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button onPress={() => {
-              Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
-              Alert.alert('Copied', 'Debug info copied to clipboard');
-            }}>Copy All</Button>
+            <Button
+              onPress={() => {
+                Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
+                Alert.alert('Copied', 'Debug info copied to clipboard');
+              }}
+            >
+              Copy All
+            </Button>
             <Button onPress={() => setDebugDialogVisible(false)}>Close</Button>
           </Dialog.Actions>
         </Dialog>

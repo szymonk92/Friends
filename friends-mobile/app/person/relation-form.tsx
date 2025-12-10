@@ -1,4 +1,12 @@
-import { StyleSheet, View, ScrollView, Alert, Animated, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import {
   Text,
   TextInput,
@@ -174,7 +182,10 @@ export default function RelationForm({ mode }: RelationFormProps) {
         ]);
       }
     } catch (error) {
-      Alert.alert('Error', `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`);
+      Alert.alert(
+        'Error',
+        `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`
+      );
       devLogger.error(`Failed to ${mode} relation`, { error, relationType, personId });
     } finally {
       setIsSubmitting(false);
@@ -243,7 +254,9 @@ export default function RelationForm({ mode }: RelationFormProps) {
                   {mode === 'add' ? 'Add Relation' : 'Edit Relation'} for {displayPerson?.name}
                 </Text>
                 <Text variant="bodyMedium" style={styles.subtitle}>
-                  {mode === 'add' ? 'Add information about this person' : 'Update information about this person'}
+                  {mode === 'add'
+                    ? 'Add information about this person'
+                    : 'Update information about this person'}
                 </Text>
               </Card.Content>
             </Card>
@@ -258,9 +271,11 @@ export default function RelationForm({ mode }: RelationFormProps) {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.typeScrollContainer}
                 >
-                  <Animated.View style={{
-                    transform: [{ translateX: relationTypeScrollAnim }],
-                  }}>
+                  <Animated.View
+                    style={{
+                      transform: [{ translateX: relationTypeScrollAnim }],
+                    }}
+                  >
                     <View style={styles.typeGrid}>
                       {RELATION_TYPE_OPTIONS.map((type) => (
                         <Button
@@ -308,13 +323,15 @@ export default function RelationForm({ mode }: RelationFormProps) {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.intensityScrollContainer}
                 >
-                  <Animated.View style={{
-                    transform: [{ translateX: intensityScrollAnim }],
-                  }}>
+                  <Animated.View
+                    style={{
+                      transform: [{ translateX: intensityScrollAnim }],
+                    }}
+                  >
                     <SegmentedButtons
                       value={intensity}
                       onValueChange={setIntensity}
-                      buttons={INTENSITY_OPTIONS.map(option => ({
+                      buttons={INTENSITY_OPTIONS.map((option) => ({
                         value: option.value,
                         label: option.label,
                       }))}

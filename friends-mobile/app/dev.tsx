@@ -38,11 +38,9 @@ export default function DevScreen() {
     setIsLoading(true);
     try {
       await seedSampleData();
-      Alert.alert(
-        t('dev.sampleData.successTitle'),
-        t('dev.sampleData.successMessage'),
-        [{ text: t('common.ok'), onPress: () => router.push('/') }]
-      );
+      Alert.alert(t('dev.sampleData.successTitle'), t('dev.sampleData.successMessage'), [
+        { text: t('common.ok'), onPress: () => router.push('/') },
+      ]);
     } catch (error) {
       Alert.alert('Error', t('dev.sampleData.errorMessage'));
       devLogger.error('Failed to seed sample data', error);
@@ -241,7 +239,8 @@ export default function DevScreen() {
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                View, share, and manage persistent development logs for debugging. All debug logs are saved to a file and persist across app restarts.
+                View, share, and manage persistent development logs for debugging. All debug logs
+                are saved to a file and persist across app restarts.
               </Text>
 
               <Button
@@ -377,7 +376,8 @@ export default function DevScreen() {
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Configure the maximum number of photos that can be added per person. This helps manage storage and keeps profiles organized.
+                Configure the maximum number of photos that can be added per person. This helps
+                manage storage and keeps profiles organized.
               </Text>
 
               <TextInput
@@ -513,8 +513,8 @@ export default function DevScreen() {
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Tinder-style swipe quiz to quickly add food preferences for your primary contacts. Swipe
-                right for likes, left for dislikes, down for unknown.
+                Tinder-style swipe quiz to quickly add food preferences for your primary contacts.
+                Swipe right for likes, left for dislikes, down for unknown.
               </Text>
 
               <Button
@@ -529,8 +529,8 @@ export default function DevScreen() {
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Asks about popular foods like tomatoes, mushrooms, spicy food, etc. for primary people
-                only.
+                Asks about popular foods like tomatoes, mushrooms, spicy food, etc. for primary
+                people only.
               </Text>
             </Card.Content>
           </Card>
@@ -559,8 +559,8 @@ export default function DevScreen() {
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Creates an event with date, location, guest list, and AI-powered suggestions for seating
-                and menu.
+                Creates an event with date, location, guest list, and AI-powered suggestions for
+                seating and menu.
               </Text>
             </Card.Content>
           </Card>

@@ -80,7 +80,10 @@ export default function PartyPlannerScreen() {
               setSelectedGuests([]);
             }
           } catch (e) {
-            devLogger.error('Failed to parse guest IDs', { error: String(e), rawGuestIds: event.guestIds });
+            devLogger.error('Failed to parse guest IDs', {
+              error: String(e),
+              rawGuestIds: event.guestIds,
+            });
             setSelectedGuests([]);
           }
         } else {
@@ -292,12 +295,17 @@ export default function PartyPlannerScreen() {
           guestCount: selectedGuests.length,
         });
 
-        Alert.alert('Party Created!', `${partyName} has been saved with ${selectedGuests.length} guests.`, [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        Alert.alert(
+          'Party Created!',
+          `${partyName} has been saved with ${selectedGuests.length} guests.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       }
     } catch (error) {
-      devLogger.error(`Failed to ${eventId ? 'update' : 'create'} party`, { error: String(error), eventData });
+      devLogger.error(`Failed to ${eventId ? 'update' : 'create'} party`, {
+        error: String(error),
+        eventData,
+      });
       Alert.alert('Error', `Failed to ${eventId ? 'update' : 'create'} party. Please try again.`);
     }
   };
@@ -341,7 +349,12 @@ export default function PartyPlannerScreen() {
           onPress={handleCreateParty}
           style={styles.createButton}
           loading={createEvent.isPending || updateEvent.isPending}
-          disabled={(createEvent.isPending || updateEvent.isPending) || !partyName.trim() || selectedGuests.length === 0}
+          disabled={
+            createEvent.isPending ||
+            updateEvent.isPending ||
+            !partyName.trim() ||
+            selectedGuests.length === 0
+          }
           icon="party-popper"
         >
           {eventId ? 'Update Party' : 'Create Party'}

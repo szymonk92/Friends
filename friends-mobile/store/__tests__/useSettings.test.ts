@@ -97,10 +97,7 @@ describe('useSettings', () => {
         await result.current.setGeminiApiKey('AIzaTest123');
       });
 
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@friends_gemini_api_key',
-        'AIzaTest123'
-      );
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('@friends_gemini_api_key', 'AIzaTest123');
       expect(result.current.geminiApiKey).toBe('AIzaTest123');
     });
 

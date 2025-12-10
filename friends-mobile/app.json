@@ -25,10 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
-      ]
+      "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +40,15 @@
           "faceIDPermission": "Allow Friends to use Face ID to protect your secrets."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "friend-z",
+          "organization": "szymon-k"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

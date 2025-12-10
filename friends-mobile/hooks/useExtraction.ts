@@ -61,7 +61,7 @@ export function useExtractStory() {
         .where(eq(people.userId, userId));
 
       const explicitlyTaggedPeople = explicitlyTaggedPersonIds
-        ? existingPeople.filter(p => explicitlyTaggedPersonIds.includes(p.id))
+        ? existingPeople.filter((p) => explicitlyTaggedPersonIds.includes(p.id))
         : undefined;
 
       // Step 2: Call AI extraction
@@ -166,7 +166,7 @@ export function useExtractStory() {
           subjectId: rel.subjectId,
           subjectName: personIdMap.get(rel.subjectId)
             ? extractionResult.people.find((p: any) => personIdMap.get(p.id) === rel.subjectId)
-              ?.name || 'Unknown'
+                ?.name || 'Unknown'
             : 'Unknown',
           relationType: rel.relationType,
           objectLabel: rel.objectLabel,

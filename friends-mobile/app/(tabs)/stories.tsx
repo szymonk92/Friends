@@ -65,7 +65,8 @@ export default function StoriesListScreen() {
 
   const renderStoryItem = ({ item }: { item: any }) => {
     const wordCount = item.content.trim().split(/\s+/).filter(Boolean).length;
-    const preview = item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
+    const preview =
+      item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
 
     return (
       <Card
@@ -117,7 +118,7 @@ export default function StoriesListScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      
+
       {/* Custom Header - Android Contacts Style */}
       <View style={[headerStyles.header, { paddingTop: insets.top }]}>
         <View style={headerStyles.headerContent}>
@@ -165,10 +166,14 @@ export default function StoriesListScreen() {
             No stories yet
           </Text>
           <Text variant="bodyMedium" style={styles.emptyDescription}>
-            Start capturing memories by adding your first story. Tell us about your friends,
-            family, and the moments you share together.
+            Start capturing memories by adding your first story. Tell us about your friends, family,
+            and the moments you share together.
           </Text>
-          <Button mode="contained" onPress={() => router.push('/story/addStory')} style={styles.addButton}>
+          <Button
+            mode="contained"
+            onPress={() => router.push('/story/addStory')}
+            style={styles.addButton}
+          >
             Add Your First Story
           </Button>
         </CenteredContainer>

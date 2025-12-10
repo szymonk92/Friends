@@ -12,22 +12,16 @@ interface SectionDividerProps {
  * Reusable section divider component with centered label and decorative lines
  * Used for year headers in timeline, category dividers in lists, etc.
  */
-export default function SectionDivider({ 
-  label, 
+export default function SectionDivider({
+  label,
   variant = 'labelMedium',
   textStyle = 'normal',
-  marginVertical = 20
+  marginVertical = 20,
 }: SectionDividerProps) {
   return (
     <View style={[styles.container, { marginVertical }]}>
       <View style={styles.line} />
-      <Text 
-        variant={variant} 
-        style={[
-          styles.text,
-          textStyle === 'uppercase' && styles.uppercase
-        ]}
-      >
+      <Text variant={variant} style={[styles.text, textStyle === 'uppercase' && styles.uppercase]}>
         {label}
       </Text>
       <View style={styles.line} />

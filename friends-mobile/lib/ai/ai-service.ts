@@ -129,10 +129,7 @@ export function createAISession(
 /**
  * Update session context with new information
  */
-export function updateSessionContext(
-  sessionId: string,
-  contextUpdate: string
-): boolean {
+export function updateSessionContext(sessionId: string, contextUpdate: string): boolean {
   const session = activeSessions.get(sessionId);
   if (!session) return false;
 
@@ -207,16 +204,17 @@ export async function callAISession(
     const cost = calculateCost(config.model, result.tokensUsed || 0);
 
     // Construct debug info
-    const tokenUsage = result.tokensUsed !== undefined
-      ? {
-          totalTokens: result.tokensUsed,
-          inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-          outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-        }
-      : undefined;
+    const tokenUsage =
+      result.tokensUsed !== undefined
+        ? {
+            totalTokens: result.tokensUsed,
+            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+          }
+        : undefined;
 
     const debugInfo: AIDebugInfo = {
-      systemPrompt: session.messages.find(m => m.role === 'system')?.content,
+      systemPrompt: session.messages.find((m) => m.role === 'system')?.content,
       userPrompt: message,
       rawResponse: result.response,
       tokensUsed: result.tokensUsed,
@@ -225,7 +223,7 @@ export async function callAISession(
       cost, // dollars (approx)
       costUsd: cost, // keep an explicit field named costUsd for clarity
       // We'll add more details if available from the result
-      ...result.debugDetails
+      ...result.debugDetails,
     };
 
     // Add assistant response to session
@@ -239,7 +237,10 @@ export async function callAISession(
     // Check if we need to trim before adding response
     const responseTokens = assistantMessage.tokens || 0;
     if (session.contextTokens + responseTokens > session.maxContextTokens) {
-      trimSessionMessages(session, (session.contextTokens + responseTokens) - session.maxContextTokens);
+      trimSessionMessages(
+        session,
+        session.contextTokens + responseTokens - session.maxContextTokens
+      );
     }
 
     session.messages.push(assistantMessage);
@@ -253,14 +254,19 @@ export async function callAISession(
       analytics.totalTokensUsed += result.tokensUsed || 0;
       analytics.totalCost += calculateCost(config.model, result.tokensUsed || 0);
       analytics.lastActivity = new Date();
-      analytics.avgResponseTime = ((analytics.avgResponseTime * (analytics.totalRequests - 1)) + responseTime) / analytics.totalRequests;
-      analytics.peakTokensInContext = Math.max(analytics.peakTokensInContext, session.contextTokens);
+      analytics.avgResponseTime =
+        (analytics.avgResponseTime * (analytics.totalRequests - 1) + responseTime) /
+        analytics.totalRequests;
+      analytics.peakTokensInContext = Math.max(
+        analytics.peakTokensInContext,
+        session.contextTokens
+      );
     }
 
     return {
       response: result.response,
       tokensUsed: result.tokensUsed,
-      debugInfo
+      debugInfo,
     };
   } catch (error) {
     // Update error analytics
@@ -280,7 +286,7 @@ export async function callAISession(
  * Clean up old or inactive sessions
  */
 export function cleanupSessions(maxAgeHours: number = 24): number {
-  const cutoffTime = Date.now() - (maxAgeHours * 60 * 60 * 1000);
+  const cutoffTime = Date.now() - maxAgeHours * 60 * 60 * 1000;
   let cleaned = 0;
 
   for (const [sessionId, session] of activeSessions.entries()) {
@@ -321,15 +327,17 @@ export function getAggregatedAnalytics(): {
   const allAnalytics = Array.from(sessionAnalytics.values());
   const activeSessionIds = new Set(activeSessions.keys());
 
-  const activeAnalytics = allAnalytics.filter(a => activeSessionIds.has(a.sessionId));
+  const activeAnalytics = allAnalytics.filter((a) => activeSessionIds.has(a.sessionId));
 
   const totalRequests = activeAnalytics.reduce((sum, a) => sum + a.totalRequests, 0);
   const totalTokens = activeAnalytics.reduce((sum, a) => sum + a.totalTokensUsed, 0);
   const totalCost = activeAnalytics.reduce((sum, a) => sum + a.totalCost, 0);
   const totalErrors = activeAnalytics.reduce((sum, a) => sum + a.errors, 0);
-  const avgResponseTime = totalRequests > 0
-    ? activeAnalytics.reduce((sum, a) => sum + (a.avgResponseTime * a.totalRequests), 0) / totalRequests
-    : 0;
+  const avgResponseTime =
+    totalRequests > 0
+      ? activeAnalytics.reduce((sum, a) => sum + a.avgResponseTime * a.totalRequests, 0) /
+        totalRequests
+      : 0;
 
   return {
     totalSessions: activeAnalytics.length,
@@ -349,8 +357,8 @@ function calculateCost(model: AIModel, tokensUsed: number): number {
   // Pricing as of Nov 2024 (per 1M tokens)
   const pricing = {
     anthropic: {
-      input: 3.0,    // $3 per 1M input tokens
-      output: 15.0,  // $15 per 1M output tokens
+      input: 3.0, // $3 per 1M input tokens
+      output: 15.0, // $15 per 1M output tokens
       // NOTE: Claude pricing TBD — update when official paid-tier pricing is determined
     },
     // Gemini (paid tier) pricing per 1M tokens (USD)
@@ -358,7 +366,7 @@ function calculateCost(model: AIModel, tokensUsed: number): number {
     // - output: $0.30
     gemini: {
       input: 0.075,
-      output: 0.30,
+      output: 0.3,
     },
   };
 
@@ -445,12 +453,12 @@ export interface AIError extends Error {
 
 /**
  * Main AI call function with retry logic and error handling
- * 
+ *
  * @param config - AI model configuration
  * @param prompt - The prompt to send
  * @param retryCount - Current retry attempt (internal use)
  * @returns AI response with token usage
- * 
+ *
  * TODO: Rate limiting per user
  * - Track requests per user in database or Redis
  * - Implement sliding window rate limit (e.g., 10 requests per hour)
@@ -468,13 +476,14 @@ export async function callAI(
       const result = await callAnthropic(config.apiKey, prompt);
       // compute cost and token usage
       const cost = calculateCost(config.model, result.tokensUsed || 0);
-      const tokenUsage = result.tokensUsed !== undefined
-        ? {
-            totalTokens: result.tokensUsed,
-            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-          }
-        : undefined;
+      const tokenUsage =
+        result.tokensUsed !== undefined
+          ? {
+              totalTokens: result.tokensUsed,
+              inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+              outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+            }
+          : undefined;
 
       return {
         response: result.response,
@@ -486,19 +495,20 @@ export async function callAI(
           tokenUsage,
           model: config.model,
           cost,
-          costUsd: cost
-        }
+          costUsd: cost,
+        },
       };
     } else {
       const result = await callGemini(config.apiKey, prompt);
       const cost = calculateCost(config.model, result.tokensUsed || 0);
-      const tokenUsage = result.tokensUsed !== undefined
-        ? {
-            totalTokens: result.tokensUsed,
-            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-          }
-        : undefined;
+      const tokenUsage =
+        result.tokensUsed !== undefined
+          ? {
+              totalTokens: result.tokensUsed,
+              inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+              outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+            }
+          : undefined;
 
       return {
         response: result.response,
@@ -510,8 +520,8 @@ export async function callAI(
           tokenUsage,
           model: config.model,
           cost,
-          costUsd: cost
-        }
+          costUsd: cost,
+        },
       };
     }
   } catch (error) {
@@ -520,7 +530,9 @@ export async function callAI(
     // If retryable and haven't exceeded max retries, retry with exponential backoff
     if (aiError.retryable && retryCount < MAX_RETRIES) {
       const delay = calculateRetryDelay(retryCount, aiError.retryAfter);
-      console.log(`[AI Service] Retry ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms for ${aiError.type}`);
+      console.log(
+        `[AI Service] Retry ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms for ${aiError.type}`
+      );
 
       await sleep(delay);
       return callAI(config, prompt, retryCount + 1);
@@ -582,7 +594,7 @@ async function callAnthropicWithHistory(
 
   try {
     // Convert our message format to Anthropic format
-    const anthropicMessages = messages.map(msg => ({
+    const anthropicMessages = messages.map((msg) => ({
       role: msg.role === 'system' ? 'user' : msg.role, // Anthropic doesn't have system role in messages API
       content: msg.role === 'system' ? `SYSTEM: ${msg.content}` : msg.content,
     }));
@@ -608,7 +620,7 @@ async function callAnthropicWithHistory(
       debugDetails: {
         responseStatus: 200, // SDK doesn't expose raw status easily, assuming 200 on success
         requestHeaders: { 'x-api-key': '***' }, // Placeholder
-      }
+      },
     };
   } catch (error: any) {
     // Re-throw with additional context
@@ -673,7 +685,7 @@ async function callGeminiWithHistory(
 
   try {
     // Convert our message format to Gemini format
-    const geminiContents = messages.map(msg => ({
+    const geminiContents = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }));
@@ -700,13 +712,13 @@ async function callGeminiWithHistory(
       debugDetails: {
         responseStatus: 200,
         requestHeaders: { 'x-goog-api-key': '***' },
-      }
+      },
     };
   } catch (error: any) {
     // Re-throw with additional context
     throw error;
   }
-}/**
+} /**
  * Classify error to determine if it's retryable and how to handle it
  */
 function classifyError(error: any, _model: AIModel): AIError {
@@ -720,7 +732,11 @@ function classifyError(error: any, _model: AIModel): AIError {
   const errorString = error.toString().toLowerCase();
 
   // Rate limit errors (429)
-  if (errorMessage.includes('429') || errorMessage.includes('rate limit') || errorMessage.includes('resource exhausted')) {
+  if (
+    errorMessage.includes('429') ||
+    errorMessage.includes('rate limit') ||
+    errorMessage.includes('resource exhausted')
+  ) {
     aiError.type = AIErrorType.RATE_LIMIT;
     aiError.retryable = true;
     aiError.statusCode = 429;
@@ -733,7 +749,11 @@ function classifyError(error: any, _model: AIModel): AIError {
   }
 
   // Quota exceeded (billing/limits)
-  if (errorMessage.includes('quota') || errorMessage.includes('insufficient_quota') || errorMessage.includes('billing')) {
+  if (
+    errorMessage.includes('quota') ||
+    errorMessage.includes('insufficient_quota') ||
+    errorMessage.includes('billing')
+  ) {
     aiError.type = AIErrorType.QUOTA_EXCEEDED;
     aiError.retryable = false; // User needs to add credits
     aiError.statusCode = 429;
@@ -741,9 +761,14 @@ function classifyError(error: any, _model: AIModel): AIError {
   }
 
   // Invalid API key (401/403)
-  if (errorMessage.includes('401') || errorMessage.includes('403') ||
-    errorMessage.includes('unauthorized') || errorMessage.includes('forbidden') ||
-    errorMessage.includes('invalid api key') || errorMessage.includes('authentication')) {
+  if (
+    errorMessage.includes('401') ||
+    errorMessage.includes('403') ||
+    errorMessage.includes('unauthorized') ||
+    errorMessage.includes('forbidden') ||
+    errorMessage.includes('invalid api key') ||
+    errorMessage.includes('authentication')
+  ) {
     aiError.type = AIErrorType.INVALID_API_KEY;
     aiError.retryable = false;
     aiError.statusCode = error.status || 401;
@@ -751,33 +776,50 @@ function classifyError(error: any, _model: AIModel): AIError {
   }
 
   // Network errors
-  if (errorMessage.includes('network') || errorMessage.includes('fetch') ||
-    errorMessage.includes('econnrefused') || errorMessage.includes('enotfound') ||
-    errorString.includes('networkerror')) {
+  if (
+    errorMessage.includes('network') ||
+    errorMessage.includes('fetch') ||
+    errorMessage.includes('econnrefused') ||
+    errorMessage.includes('enotfound') ||
+    errorString.includes('networkerror')
+  ) {
     aiError.type = AIErrorType.NETWORK_ERROR;
     aiError.retryable = true;
     return aiError;
   }
 
   // Timeout errors
-  if (errorMessage.includes('timeout') || errorMessage.includes('timed out') || errorMessage.includes('etimedout')) {
+  if (
+    errorMessage.includes('timeout') ||
+    errorMessage.includes('timed out') ||
+    errorMessage.includes('etimedout')
+  ) {
     aiError.type = AIErrorType.TIMEOUT;
     aiError.retryable = true;
     return aiError;
   }
 
   // Content policy violations
-  if (errorMessage.includes('content policy') || errorMessage.includes('safety') ||
-    errorMessage.includes('harmful') || errorMessage.includes('blocked')) {
+  if (
+    errorMessage.includes('content policy') ||
+    errorMessage.includes('safety') ||
+    errorMessage.includes('harmful') ||
+    errorMessage.includes('blocked')
+  ) {
     aiError.type = AIErrorType.CONTENT_POLICY;
     aiError.retryable = false;
     return aiError;
   }
 
   // Server errors (500s)
-  if (errorMessage.includes('500') || errorMessage.includes('502') ||
-    errorMessage.includes('503') || errorMessage.includes('504') ||
-    errorMessage.includes('server error') || errorMessage.includes('internal error')) {
+  if (
+    errorMessage.includes('500') ||
+    errorMessage.includes('502') ||
+    errorMessage.includes('503') ||
+    errorMessage.includes('504') ||
+    errorMessage.includes('server error') ||
+    errorMessage.includes('internal error')
+  ) {
     aiError.type = AIErrorType.SERVER_ERROR;
     aiError.retryable = true;
     aiError.statusCode = 500;
@@ -815,7 +857,7 @@ function calculateRetryDelay(retryCount: number, retryAfter?: number): number {
  * Sleep helper for retry delays
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -830,7 +872,8 @@ function createUserFriendlyError(error: AIError, model: AIModel): Error {
   switch (error.type) {
     case AIErrorType.RATE_LIMIT:
       message = `${modelName} rate limit reached. Please wait a moment and try again.`;
-      suggestion = 'Tip: Try again in a few minutes, or consider upgrading your API plan for higher limits.';
+      suggestion =
+        'Tip: Try again in a few minutes, or consider upgrading your API plan for higher limits.';
       break;
 
     case AIErrorType.QUOTA_EXCEEDED:

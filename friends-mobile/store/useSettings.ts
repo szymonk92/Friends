@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeColor = 'violet' | 'blue' | 'green' | 'rose' | 'orange' | 'teal' | 'inkWash' | 'cherry' | 'lavender';
+export type ThemeColor =
+  | 'violet'
+  | 'blue'
+  | 'green'
+  | 'rose'
+  | 'orange'
+  | 'teal'
+  | 'inkWash'
+  | 'cherry'
+  | 'lavender';
 export type AIModel = 'anthropic' | 'gemini';
 
 export interface ColorPalette {
@@ -14,47 +23,47 @@ export const THEME_PALETTES: Record<ThemeColor, ColorPalette> = {
   violet: {
     primary: '#8b5cf6',
     secondary: '#ec4899', // Pink
-    tertiary: '#6366f1',  // Indigo
+    tertiary: '#6366f1', // Indigo
   },
   blue: {
     primary: '#3882ddff',
     secondary: '#0ea5e9', // Sky blue
-    tertiary: '#06b6d4',  // Cyan
+    tertiary: '#06b6d4', // Cyan
   },
   green: {
     primary: '#10b981',
     secondary: '#14b8a6', // Teal
-    tertiary: '#22c55e',  // Light green
+    tertiary: '#22c55e', // Light green
   },
   rose: {
     primary: '#f43f5e',
     secondary: '#f97316', // Orange
-    tertiary: '#ec4899',  // Pink
+    tertiary: '#ec4899', // Pink
   },
   orange: {
     primary: '#f97316',
     secondary: '#f59e0b', // Amber
-    tertiary: '#ef4444',  // Red
+    tertiary: '#ef4444', // Red
   },
   teal: {
     primary: '#08605F',
     secondary: '#177E89', // Teal blue
-    tertiary: '#598381',  // Sage
+    tertiary: '#598381', // Sage
   },
   inkWash: {
     primary: '#4A4A4A',
     secondary: '#CBCBCB', // Teal blue
-    tertiary: '#FFFFF3',  // Sage
+    tertiary: '#FFFFF3', // Sage
   },
   cherry: {
     primary: '#F2C7C7',
     secondary: '#F2C7C7', // Teal blue
-    tertiary: '#F2C7C7',  // Sage
+    tertiary: '#F2C7C7', // Sage
   },
   lavender: {
     primary: '#3882ddff',
     secondary: '#9EF0FF', // Teal blue
-    tertiary: '#A4A5F5',  // Sage
+    tertiary: '#A4A5F5', // Sage
   },
 };
 

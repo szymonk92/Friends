@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { Text, Card, Button, Chip, Divider, IconButton, ActivityIndicator, useTheme } from 'react-native-paper';
+import {
+  Text,
+  Card,
+  Button,
+  Chip,
+  Divider,
+  IconButton,
+  ActivityIndicator,
+  useTheme,
+} from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -8,7 +17,11 @@ import { stories, pendingExtractions, people, relations } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm';
 import { useDeleteStory } from '@/hooks/useStories';
 import { useExtractRelations } from '@/hooks/useAIExtraction';
-import { useApprovePendingExtraction, useRejectPendingExtraction, usePendingExtractionsCount } from '@/hooks/usePendingExtractions';
+import {
+  useApprovePendingExtraction,
+  useRejectPendingExtraction,
+  usePendingExtractionsCount,
+} from '@/hooks/usePendingExtractions';
 import { createSystemPrompt } from '@/lib/ai/prompts';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { useSettings, AI_MODELS } from '@/store/useSettings';
@@ -56,7 +69,7 @@ export default function StoryDetailScreen() {
   } | null>(null);
 
   const toggleDebugSection = (section: keyof typeof expandedDebugSections) => {
-    setExpandedDebugSections(prev => ({
+    setExpandedDebugSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
@@ -65,7 +78,11 @@ export default function StoryDetailScreen() {
   // Check for pending extractions across all stories
   const { data: pendingCount = 0 } = usePendingExtractionsCount();
 
-  const { data: story, isLoading, refetch } = useQuery({
+  const {
+    data: story,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['story', id],
     queryFn: async () => {
       const userId = await getCurrentUserId();
@@ -109,11 +126,18 @@ export default function StoryDetailScreen() {
           const normalized = {
             // prefer existing more-descriptive keys, then fall back
             systemPrompt: raw.systemPrompt ?? raw.system_prompt ?? raw.systemMessage ?? undefined,
-            sentText: raw.sentText ?? raw.userPrompt ?? raw.user_prompt ?? raw.userPromptText ?? undefined,
-            contextUpdate: raw.contextUpdate ?? raw.context_update ?? raw.context ?? raw.sentData?.contextUpdate ?? undefined,
+            sentText:
+              raw.sentText ?? raw.userPrompt ?? raw.user_prompt ?? raw.userPromptText ?? undefined,
+            contextUpdate:
+              raw.contextUpdate ??
+              raw.context_update ??
+              raw.context ??
+              raw.sentData?.contextUpdate ??
+              undefined,
             reply: raw.reply ?? raw.rawResponse ?? raw.response ?? undefined,
             tokenUsage:
-              raw.tokenUsage || (raw.tokensUsed !== undefined
+              raw.tokenUsage ||
+              (raw.tokensUsed !== undefined
                 ? {
                     totalTokens: raw.tokensUsed,
                     inputTokens: Math.floor(raw.tokensUsed * 0.67),
@@ -174,13 +198,20 @@ export default function StoryDetailScreen() {
                 .where(and(eq(relations.userId, userId), isNull(relations.deletedAt)));
 
               // Create the extraction message that will be sent
-              const contextUpdate = `CURRENT DATABASE STATE:\n\nEXISTING PEOPLE:\n${existingPeople.length > 0
-                ? existingPeople.map(p => `- ${p.name} (ID: ${p.id})`).join('\n')
-                : 'None yet'
-                }\n\nEXISTING RELATIONS:\n${existingRelations.length > 0
-                  ? existingRelations.map(r => `- ${existingPeople.find(p => p.id === r.subjectId)?.name || 'Unknown'}: ${r.relationType} "${r.objectLabel}"`).join('\n')
+              const contextUpdate = `CURRENT DATABASE STATE:\n\nEXISTING PEOPLE:\n${
+                existingPeople.length > 0
+                  ? existingPeople.map((p) => `- ${p.name} (ID: ${p.id})`).join('\n')
                   : 'None yet'
-                }`;
+              }\n\nEXISTING RELATIONS:\n${
+                existingRelations.length > 0
+                  ? existingRelations
+                      .map(
+                        (r) =>
+                          `- ${existingPeople.find((p) => p.id === r.subjectId)?.name || 'Unknown'}: ${r.relationType} "${r.objectLabel}"`
+                      )
+                      .join('\n')
+                  : 'None yet'
+              }`;
 
               const sentText = `EXTRACT RELATIONS FROM THIS STORY:\n\n"${story?.content}"\n\nPlease analyze this story and extract people, their relationships, and any conflicts with existing data. Respond with JSON only.`;
 
@@ -269,7 +300,8 @@ export default function StoryDetailScreen() {
       refetch();
       Alert.alert('Success', 'Relation approved and added to your network!');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to approve relation. Please try again.';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to approve relation. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
@@ -281,7 +313,8 @@ export default function StoryDetailScreen() {
       refetch();
       Alert.alert('Success', 'Relation rejected.');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to reject relation. Please try again.';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to reject relation. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
@@ -320,7 +353,11 @@ export default function StoryDetailScreen() {
           title: story.title || 'Story Details',
           headerRight: () => (
             <View style={{ marginRight: spacing.xs }}>
-              <IconButton onPress={handleDelete} icon="delete-outline" iconColor={theme.colors.primary} />
+              <IconButton
+                onPress={handleDelete}
+                icon="delete-outline"
+                iconColor={theme.colors.primary}
+              />
             </View>
           ),
         }}
@@ -333,9 +370,7 @@ export default function StoryDetailScreen() {
               <Text variant="labelMedium" style={styles.metaLabel}>
                 Created:
               </Text>
-              <Text variant="bodyMedium">
-                {formatRelativeTime(new Date(story.createdAt))}
-              </Text>
+              <Text variant="bodyMedium">{formatRelativeTime(new Date(story.createdAt))}</Text>
             </View>
 
             {story.storyDate && (
@@ -364,7 +399,6 @@ export default function StoryDetailScreen() {
                 </Chip>
               )}
             </View>
-
           </Card.Content>
         </Card>
 
@@ -379,7 +413,8 @@ export default function StoryDetailScreen() {
               {pendingCount > 0 ? (
                 <>
                   <Text variant="bodySmall" style={styles.extractionDescription}>
-                    You have {pendingCount} pending extraction{pendingCount !== 1 ? 's' : ''} waiting for review from previous stories.
+                    You have {pendingCount} pending extraction{pendingCount !== 1 ? 's' : ''}{' '}
+                    waiting for review from previous stories.
                   </Text>
                   <Button
                     mode="contained"
@@ -393,8 +428,9 @@ export default function StoryDetailScreen() {
               ) : (
                 <>
                   <Text variant="bodySmall" style={styles.extractionDescription}>
-                    Use AI to automatically extract people, preferences, and relationships from this story.
-                    The AI will identify @mentions, detect likes/dislikes, and create connections.
+                    Use AI to automatically extract people, preferences, and relationships from this
+                    story. The AI will identify @mentions, detect likes/dislikes, and create
+                    connections.
                   </Text>
                   <Button
                     mode="contained"
@@ -408,7 +444,8 @@ export default function StoryDetailScreen() {
                   </Button>
                   {!hasActiveApiKey() && (
                     <Text variant="labelSmall" style={styles.apiKeyWarning}>
-                      Note: API key required for {AI_MODELS[selectedModel]?.name}. Configure in Settings.
+                      Note: API key required for {AI_MODELS[selectedModel]?.name}. Configure in
+                      Settings.
                     </Text>
                   )}
                 </>
@@ -442,9 +479,10 @@ export default function StoryDetailScreen() {
               {extractions.length > 0 ? (
                 <View>
                   <Text variant="bodySmall" style={styles.extractionInfo}>
-                    {extractions.length} relation{extractions.length !== 1 ? 's' : ''} extracted from this story:
+                    {extractions.length} relation{extractions.length !== 1 ? 's' : ''} extracted
+                    from this story:
                   </Text>
-                  {extractions.map((ext) => (
+                  {extractions.map((ext) =>
                     ext.reviewStatus === 'pending' ? (
                       <TouchableOpacity
                         key={ext.id}
@@ -464,11 +502,7 @@ export default function StoryDetailScreen() {
                           </Text>
                         </View>
                         <View style={styles.metadataRow}>
-                          <Chip
-                            mode="outlined"
-                            compact
-                            style={styles.pendingChip}
-                          >
+                          <Chip mode="outlined" compact style={styles.pendingChip}>
                             pending
                           </Chip>
                           <Text variant="labelSmall" style={styles.confidence}>
@@ -518,7 +552,7 @@ export default function StoryDetailScreen() {
                         )}
                       </View>
                     )
-                  ))}
+                  )}
                 </View>
               ) : (
                 <Text variant="bodySmall" style={styles.extractionInfo}>
@@ -527,14 +561,15 @@ export default function StoryDetailScreen() {
               )}
 
               <Text variant="labelSmall" style={styles.warning}>
-                Note: Deleting this story will NOT remove any extracted people, relations, or information.
+                Note: Deleting this story will NOT remove any extracted people, relations, or
+                information.
               </Text>
             </Card.Content>
           </Card>
         )}
 
         {/* Debug Information */}
-        {(
+        {
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.debugHeader}>
@@ -554,14 +589,14 @@ export default function StoryDetailScreen() {
 
               {showDebugInfo && (
                 <View>
-
                   {!debugData ? (
                     <View style={styles.debugSection}>
                       <Text variant="labelMedium" style={styles.debugTitle}>
                         No Debug Data Available
                       </Text>
                       <Text variant="bodySmall" style={styles.debugText}>
-                        Debug information is captured during AI extraction. Process this story with AI to see the debug details.
+                        Debug information is captured during AI extraction. Process this story with
+                        AI to see the debug details.
                       </Text>
                       <Text variant="bodySmall" style={styles.debugText}>
                         This story's AI processed status: {story.aiProcessed ? 'Yes' : 'No'}
@@ -570,7 +605,12 @@ export default function StoryDetailScreen() {
                   ) : (
                     <View>
                       {debugData.systemPrompt && (
-                        <View style={[styles.debugSection, expandedDebugSections.systemPrompt ? styles.debugSectionExpanded : null]}>
+                        <View
+                          style={[
+                            styles.debugSection,
+                            expandedDebugSections.systemPrompt ? styles.debugSectionExpanded : null,
+                          ]}
+                        >
                           <TouchableOpacity
                             onPress={() => toggleDebugSection('systemPrompt')}
                             style={styles.debugSectionHeader}
@@ -590,7 +630,14 @@ export default function StoryDetailScreen() {
                       )}
 
                       {debugData.contextUpdate && (
-                        <View style={[styles.debugSection, expandedDebugSections.contextUpdate ? styles.debugSectionExpanded : null]}>
+                        <View
+                          style={[
+                            styles.debugSection,
+                            expandedDebugSections.contextUpdate
+                              ? styles.debugSectionExpanded
+                              : null,
+                          ]}
+                        >
                           <TouchableOpacity
                             onPress={() => toggleDebugSection('contextUpdate')}
                             style={styles.debugSectionHeader}
@@ -610,7 +657,12 @@ export default function StoryDetailScreen() {
                       )}
 
                       {debugData.sentText && (
-                        <View style={[styles.debugSection, expandedDebugSections.sentText ? styles.debugSectionExpanded : null]}>
+                        <View
+                          style={[
+                            styles.debugSection,
+                            expandedDebugSections.sentText ? styles.debugSectionExpanded : null,
+                          ]}
+                        >
                           <TouchableOpacity
                             onPress={() => toggleDebugSection('sentText')}
                             style={styles.debugSectionHeader}
@@ -630,7 +682,12 @@ export default function StoryDetailScreen() {
                       )}
 
                       {debugData.reply && (
-                        <View style={[styles.debugSection, expandedDebugSections.aiReply ? styles.debugSectionExpanded : null]}>
+                        <View
+                          style={[
+                            styles.debugSection,
+                            expandedDebugSections.aiReply ? styles.debugSectionExpanded : null,
+                          ]}
+                        >
                           <TouchableOpacity
                             onPress={() => toggleDebugSection('aiReply')}
                             style={styles.debugSectionHeader}
@@ -650,20 +707,31 @@ export default function StoryDetailScreen() {
                       )}
 
                       {debugData.tokenUsage && (
-                        <View style={[styles.debugSection, expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null]}>
+                        <View
+                          style={[
+                            styles.debugSection,
+                            expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null,
+                          ]}
+                        >
                           <Text variant="labelMedium" style={styles.debugTitle}>
                             Token Usage:
                           </Text>
                           <Text variant="bodySmall" style={styles.debugText} selectable>
                             Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
-                            {debugData.tokenUsage.inputTokens && debugData.tokenUsage.outputTokens && (
-                              <> (Input: {debugData.tokenUsage.inputTokens.toLocaleString()}, Output: {debugData.tokenUsage.outputTokens.toLocaleString()})</>
-                            )}
+                            {debugData.tokenUsage.inputTokens &&
+                              debugData.tokenUsage.outputTokens && (
+                                <>
+                                  {' '}
+                                  (Input: {debugData.tokenUsage.inputTokens.toLocaleString()},
+                                  Output: {debugData.tokenUsage.outputTokens.toLocaleString()})
+                                </>
+                              )}
                           </Text>
 
                           {(debugData.costUsd ?? debugData.cost) !== undefined && (
                             <Text variant="bodySmall" style={styles.debugText} selectable>
-                              Estimated cost: ${Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
+                              Estimated cost: $
+                              {Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
                             </Text>
                           )}
                         </View>
@@ -674,7 +742,7 @@ export default function StoryDetailScreen() {
               )}
             </Card.Content>
           </Card>
-        )}
+        }
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -953,7 +1021,7 @@ const styles = StyleSheet.create({
   debugTextContainer: {
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 12
+    padding: 12,
   },
   debugText: {
     fontFamily: 'monospace',

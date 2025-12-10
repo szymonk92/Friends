@@ -50,3 +50,5 @@ coverage/
 # local user settings
 .idea/
 .vscode/
+
+.env.local

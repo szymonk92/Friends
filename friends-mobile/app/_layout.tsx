@@ -16,6 +16,26 @@ import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
 import { useSettings } from '@/store/useSettings';
 import { createTheme } from '@/lib/theme';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://dbe446a4b72a4544455d457e63b864b5@o4510194904137728.ingest.de.sentry.io/4510509906722896',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 import '@/lib/i18n'; // Initialize i18n
 import '@/lib/i18n/types'; // Import type definitions
 
@@ -42,7 +62,7 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -94,7 +114,7 @@ export default function RootLayout() {
   }
 
   return <RootLayoutNav />;
-}
+});
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
@@ -114,7 +134,10 @@ function RootLayoutNav() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="person" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Add a Person' }} />
+              <Stack.Screen
+                name="modal"
+                options={{ presentation: 'modal', title: 'Add a Person' }}
+              />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
             </Stack>

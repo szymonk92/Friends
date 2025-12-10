@@ -15,11 +15,36 @@ const _existingPeople = [
 ];
 
 const _existingRelations = [
-  { relationType: 'LIKES', objectLabel: 'sushi', subjectId: 'sarah-001', subjectName: 'Sarah Miller' },
-  { relationType: 'IS', objectLabel: 'vegetarian', subjectId: 'sarah-003', subjectName: 'Sarah Chen' },
-  { relationType: 'LIKES', objectLabel: 'hiking', subjectId: 'mike-002', subjectName: 'Mike Thompson' },
-  { relationType: 'SENSITIVE_TO', objectLabel: 'peanuts', subjectId: 'tom-004', subjectName: 'Tom Wilson' },
-  { relationType: 'LIKES', objectLabel: 'Thai food', subjectId: 'tom-004', subjectName: 'Tom Wilson' },
+  {
+    relationType: 'LIKES',
+    objectLabel: 'sushi',
+    subjectId: 'sarah-001',
+    subjectName: 'Sarah Miller',
+  },
+  {
+    relationType: 'IS',
+    objectLabel: 'vegetarian',
+    subjectId: 'sarah-003',
+    subjectName: 'Sarah Chen',
+  },
+  {
+    relationType: 'LIKES',
+    objectLabel: 'hiking',
+    subjectId: 'mike-002',
+    subjectName: 'Mike Thompson',
+  },
+  {
+    relationType: 'SENSITIVE_TO',
+    objectLabel: 'peanuts',
+    subjectId: 'tom-004',
+    subjectName: 'Tom Wilson',
+  },
+  {
+    relationType: 'LIKES',
+    objectLabel: 'Thai food',
+    subjectId: 'tom-004',
+    subjectName: 'Tom Wilson',
+  },
 ];
 
 // The complex story
@@ -58,19 +83,20 @@ const challenges = [
   {
     type: 'DUPLICATE NAMES - SARAH',
     instances: [
-      'Sarah Miller (mike-002\'s girlfriend, ID: sarah-001)',
+      "Sarah Miller (mike-002's girlfriend, ID: sarah-001)",
       'Sarah Chen (vegetarian, ID: sarah-003)',
-      'Mike Thompson\'s sister Sarah (NEW - studying medicine at Harvard)',
-      'Tom\'s ex-girlfriend Sarah (NEW - works at Google)',
+      "Mike Thompson's sister Sarah (NEW - studying medicine at Harvard)",
+      "Tom's ex-girlfriend Sarah (NEW - works at Google)",
     ],
     problem: '4 different Sarahs! Need context clues to distinguish them.',
-    solution: 'Use relationship context: "Mike\'s girlfriend", "Mike\'s sister", "Tom\'s ex", profession/location hints',
+    solution:
+      'Use relationship context: "Mike\'s girlfriend", "Mike\'s sister", "Tom\'s ex", profession/location hints',
   },
   {
     type: 'DUPLICATE NAMES - MIKE',
     instances: [
       'Mike Thompson (ID: mike-002)',
-      'Mike Rodriguez (NEW - chef, Sarah\'s new boyfriend)',
+      "Mike Rodriguez (NEW - chef, Sarah's new boyfriend)",
     ],
     problem: '2 Mikes with different professions and relationships',
     solution: 'Full name when available, otherwise relationship context',
@@ -86,7 +112,7 @@ const challenges = [
         recommendation: 'Flag for user review - contradicts existing data',
       },
       {
-        conflict: 'Tom\'s food preferences changing',
+        conflict: "Tom's food preferences changing",
         existing: 'Tom Wilson: LIKES Thai food',
         newInfo: 'Tom is giving up Thai food for marathon training',
         confidence: 0.9,
@@ -109,7 +135,7 @@ const challenges = [
         confidence: 0.95,
       },
       {
-        relation: 'Mike Thompson\'s sister Sarah IS vegan',
+        relation: "Mike Thompson's sister Sarah IS vegan",
         evidence: 'Explicitly stated "went vegan"',
         confidence: 0.95,
       },
@@ -173,41 +199,214 @@ challenges.forEach((challenge) => {
 const _expectedOutput = {
   people: [
     // Existing people (matched)
-    { id: 'sarah-001', name: 'Sarah Miller', isNew: false, personType: 'primary', confidence: 0.95, context: 'Mike Thompson\'s girlfriend, party organizer' },
-    { id: 'mike-002', name: 'Mike Thompson', isNew: false, personType: 'primary', confidence: 1.0, context: 'Sarah Miller\'s boyfriend, has sister' },
-    { id: 'sarah-003', name: 'Sarah Chen', isNew: false, personType: 'mentioned', confidence: 0.9, context: 'The vegetarian one' },
-    { id: 'tom-004', name: 'Tom Wilson', isNew: false, personType: 'primary', confidence: 1.0, context: 'Party was for him' },
+    {
+      id: 'sarah-001',
+      name: 'Sarah Miller',
+      isNew: false,
+      personType: 'primary',
+      confidence: 0.95,
+      context: "Mike Thompson's girlfriend, party organizer",
+    },
+    {
+      id: 'mike-002',
+      name: 'Mike Thompson',
+      isNew: false,
+      personType: 'primary',
+      confidence: 1.0,
+      context: "Sarah Miller's boyfriend, has sister",
+    },
+    {
+      id: 'sarah-003',
+      name: 'Sarah Chen',
+      isNew: false,
+      personType: 'mentioned',
+      confidence: 0.9,
+      context: 'The vegetarian one',
+    },
+    {
+      id: 'tom-004',
+      name: 'Tom Wilson',
+      isNew: false,
+      personType: 'primary',
+      confidence: 1.0,
+      context: 'Party was for him',
+    },
 
     // New people
-    { id: 'NEW-sarah-sister', name: 'Sarah Thompson', isNew: true, personType: 'mentioned', confidence: 0.85, context: 'Mike Thompson\'s sister, Harvard med student', potentialDuplicateOf: null },
-    { id: 'NEW-sarah-ex', name: 'Sarah (Tom\'s ex)', isNew: true, personType: 'mentioned', confidence: 0.8, context: 'Tom\'s ex-girlfriend, works at Google', potentialDuplicateOf: 'sarah-001 OR sarah-003 - NEEDS REVIEW' },
-    { id: 'NEW-mike-chef', name: 'Mike Rodriguez', isNew: true, personType: 'mentioned', confidence: 0.9, context: 'Professional chef, Sarah (Tom\'s ex) boyfriend' },
+    {
+      id: 'NEW-sarah-sister',
+      name: 'Sarah Thompson',
+      isNew: true,
+      personType: 'mentioned',
+      confidence: 0.85,
+      context: "Mike Thompson's sister, Harvard med student",
+      potentialDuplicateOf: null,
+    },
+    {
+      id: 'NEW-sarah-ex',
+      name: "Sarah (Tom's ex)",
+      isNew: true,
+      personType: 'mentioned',
+      confidence: 0.8,
+      context: "Tom's ex-girlfriend, works at Google",
+      potentialDuplicateOf: 'sarah-001 OR sarah-003 - NEEDS REVIEW',
+    },
+    {
+      id: 'NEW-mike-chef',
+      name: 'Mike Rodriguez',
+      isNew: true,
+      personType: 'mentioned',
+      confidence: 0.9,
+      context: "Professional chef, Sarah (Tom's ex) boyfriend",
+    },
   ],
   relations: [
     // Sarah Miller (sarah-001)
-    { subjectId: 'sarah-001', subjectName: 'Sarah Miller', relationType: 'KNOWS', objectLabel: 'Tom Wilson', intensity: 'strong', confidence: 0.95, category: 'person' },
-    { subjectId: 'sarah-001', subjectName: 'Sarah Miller', relationType: 'OWNS', objectLabel: 'golden retriever', intensity: 'strong', confidence: 0.9, category: 'pet' },
-    { subjectId: 'sarah-001', subjectName: 'Sarah Miller', relationType: 'USED_TO_BE', objectLabel: 'on keto diet', intensity: 'medium', confidence: 0.75, category: 'diet', status: 'past' },
+    {
+      subjectId: 'sarah-001',
+      subjectName: 'Sarah Miller',
+      relationType: 'KNOWS',
+      objectLabel: 'Tom Wilson',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'person',
+    },
+    {
+      subjectId: 'sarah-001',
+      subjectName: 'Sarah Miller',
+      relationType: 'OWNS',
+      objectLabel: 'golden retriever',
+      intensity: 'strong',
+      confidence: 0.9,
+      category: 'pet',
+    },
+    {
+      subjectId: 'sarah-001',
+      subjectName: 'Sarah Miller',
+      relationType: 'USED_TO_BE',
+      objectLabel: 'on keto diet',
+      intensity: 'medium',
+      confidence: 0.75,
+      category: 'diet',
+      status: 'past',
+    },
 
     // Mike Thompson (mike-002)
-    { subjectId: 'mike-002', subjectName: 'Mike Thompson', relationType: 'SENSITIVE_TO', objectLabel: 'peanuts', intensity: 'very_strong', confidence: 0.85, category: 'allergy' },
-    { subjectId: 'mike-002', subjectName: 'Mike Thompson', relationType: 'FEARS', objectLabel: 'dogs', intensity: 'strong', confidence: 0.95, category: 'phobia' },
-    { subjectId: 'mike-002', subjectName: 'Mike Thompson', relationType: 'KNOWS', objectLabel: 'Sarah Miller', intensity: 'very_strong', confidence: 1.0, category: 'person' },
+    {
+      subjectId: 'mike-002',
+      subjectName: 'Mike Thompson',
+      relationType: 'SENSITIVE_TO',
+      objectLabel: 'peanuts',
+      intensity: 'very_strong',
+      confidence: 0.85,
+      category: 'allergy',
+    },
+    {
+      subjectId: 'mike-002',
+      subjectName: 'Mike Thompson',
+      relationType: 'FEARS',
+      objectLabel: 'dogs',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'phobia',
+    },
+    {
+      subjectId: 'mike-002',
+      subjectName: 'Mike Thompson',
+      relationType: 'KNOWS',
+      objectLabel: 'Sarah Miller',
+      intensity: 'very_strong',
+      confidence: 1.0,
+      category: 'person',
+    },
 
     // Tom Wilson (tom-004)
-    { subjectId: 'tom-004', subjectName: 'Tom Wilson', relationType: 'USED_TO_BE', objectLabel: 'Thai food lover', intensity: 'strong', confidence: 0.9, category: 'food', status: 'past' },
-    { subjectId: 'tom-004', subjectName: 'Tom Wilson', relationType: 'REGULARLY_DOES', objectLabel: 'marathon training', intensity: 'strong', confidence: 0.9, category: 'activity' },
-    { subjectId: 'tom-004', subjectName: 'Tom Wilson', relationType: 'LIKES', objectLabel: 'bland chicken and rice meal prep', intensity: 'medium', confidence: 0.8, category: 'food' },
+    {
+      subjectId: 'tom-004',
+      subjectName: 'Tom Wilson',
+      relationType: 'USED_TO_BE',
+      objectLabel: 'Thai food lover',
+      intensity: 'strong',
+      confidence: 0.9,
+      category: 'food',
+      status: 'past',
+    },
+    {
+      subjectId: 'tom-004',
+      subjectName: 'Tom Wilson',
+      relationType: 'REGULARLY_DOES',
+      objectLabel: 'marathon training',
+      intensity: 'strong',
+      confidence: 0.9,
+      category: 'activity',
+    },
+    {
+      subjectId: 'tom-004',
+      subjectName: 'Tom Wilson',
+      relationType: 'LIKES',
+      objectLabel: 'bland chicken and rice meal prep',
+      intensity: 'medium',
+      confidence: 0.8,
+      category: 'food',
+    },
 
     // Sarah Thompson (NEW - sister)
-    { subjectId: 'NEW-sarah-sister', subjectName: 'Sarah Thompson', relationType: 'IS', objectLabel: 'vegan', intensity: 'strong', confidence: 0.95, category: 'diet' },
-    { subjectId: 'NEW-sarah-sister', subjectName: 'Sarah Thompson', relationType: 'IS', objectLabel: 'medical student at Harvard', intensity: 'strong', confidence: 0.95, category: 'education' },
-    { subjectId: 'NEW-sarah-sister', subjectName: 'Sarah Thompson', relationType: 'KNOWS', objectLabel: 'Mike Thompson', intensity: 'very_strong', confidence: 1.0, category: 'person' },
+    {
+      subjectId: 'NEW-sarah-sister',
+      subjectName: 'Sarah Thompson',
+      relationType: 'IS',
+      objectLabel: 'vegan',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'diet',
+    },
+    {
+      subjectId: 'NEW-sarah-sister',
+      subjectName: 'Sarah Thompson',
+      relationType: 'IS',
+      objectLabel: 'medical student at Harvard',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'education',
+    },
+    {
+      subjectId: 'NEW-sarah-sister',
+      subjectName: 'Sarah Thompson',
+      relationType: 'KNOWS',
+      objectLabel: 'Mike Thompson',
+      intensity: 'very_strong',
+      confidence: 1.0,
+      category: 'person',
+    },
 
     // Mike Rodriguez (NEW - chef)
-    { subjectId: 'NEW-mike-chef', subjectName: 'Mike Rodriguez', relationType: 'IS', objectLabel: 'professional chef', intensity: 'strong', confidence: 0.95, category: 'profession' },
-    { subjectId: 'NEW-mike-chef', subjectName: 'Mike Rodriguez', relationType: 'HAS_SKILL', objectLabel: 'French cuisine', intensity: 'strong', confidence: 0.95, category: 'cooking' },
-    { subjectId: 'NEW-mike-chef', subjectName: 'Mike Rodriguez', relationType: 'DISLIKES', objectLabel: 'vegan diet', intensity: 'medium', confidence: 0.7, category: 'diet' },
+    {
+      subjectId: 'NEW-mike-chef',
+      subjectName: 'Mike Rodriguez',
+      relationType: 'IS',
+      objectLabel: 'professional chef',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'profession',
+    },
+    {
+      subjectId: 'NEW-mike-chef',
+      subjectName: 'Mike Rodriguez',
+      relationType: 'HAS_SKILL',
+      objectLabel: 'French cuisine',
+      intensity: 'strong',
+      confidence: 0.95,
+      category: 'cooking',
+    },
+    {
+      subjectId: 'NEW-mike-chef',
+      subjectName: 'Mike Rodriguez',
+      relationType: 'DISLIKES',
+      objectLabel: 'vegan diet',
+      intensity: 'medium',
+      confidence: 0.7,
+      category: 'diet',
+    },
   ],
   conflicts: [
     {
@@ -215,9 +414,10 @@ const _expectedOutput = {
       description: 'Peanut allergy attribution conflict',
       existingInfo: 'Tom Wilson was marked as SENSITIVE_TO peanuts',
       newInfo: 'Story explicitly states Mike Thompson has the peanut allergy, not Tom',
-      reasoning: 'Story says "it\'s her brother Mike who has the severe peanut allergy - not Tom! I always thought Tom was allergic" - directly corrects previous assumption',
+      reasoning:
+        'Story says "it\'s her brother Mike who has the severe peanut allergy - not Tom! I always thought Tom was allergic" - directly corrects previous assumption',
       severity: 'HIGH',
-      recommendation: 'REQUIRES USER REVIEW: Remove Tom\'s peanut sensitivity, add Mike\'s instead',
+      recommendation: "REQUIRES USER REVIEW: Remove Tom's peanut sensitivity, add Mike's instead",
       confidence: 0.85,
     },
     {
@@ -242,10 +442,10 @@ const _expectedOutput = {
     },
     {
       type: 'potential_duplicate',
-      description: 'Sarah (Tom\'s ex) may match existing Sarah',
+      description: "Sarah (Tom's ex) may match existing Sarah",
       existingInfo: 'Sarah Miller (sarah-001) or Sarah Chen (sarah-003)',
       newInfo: 'New Sarah who works at Google and dated Tom',
-      reasoning: 'We have limited info about existing Sarahs\' dating history',
+      reasoning: "We have limited info about existing Sarahs' dating history",
       severity: 'MEDIUM',
       recommendation: 'Create as new person but flag potential duplicate for user review',
       confidence: 0.7,
@@ -262,25 +462,29 @@ const _actions = [
     priority: 'HIGH',
     action: 'Review peanut allergy conflict',
     reason: 'Medical information must be accurate',
-    userPrompt: 'Story says Mike Thompson has peanut allergy, not Tom Wilson. We have Tom marked as allergic. Which is correct?',
+    userPrompt:
+      'Story says Mike Thompson has peanut allergy, not Tom Wilson. We have Tom marked as allergic. Which is correct?',
   },
   {
     priority: 'HIGH',
     action: 'Disambiguate duplicate people',
     reason: 'Multiple Sarahs and Mikes - need to maintain separate profiles',
-    userPrompt: 'We found 4 different Sarahs mentioned. Please confirm: Sarah Miller (girlfriend), Sarah Chen (vegetarian), Sarah Thompson (Mike\'s sister), Sarah from Google (Tom\'s ex). Are these all different people?',
+    userPrompt:
+      "We found 4 different Sarahs mentioned. Please confirm: Sarah Miller (girlfriend), Sarah Chen (vegetarian), Sarah Thompson (Mike's sister), Sarah from Google (Tom's ex). Are these all different people?",
   },
   {
     priority: 'MEDIUM',
     action: 'Update temporal relations',
-    reason: 'Tom\'s preferences changed - need to preserve history',
-    implementation: 'Set old LIKES Thai food to status=past, validTo=now. Add new preferences with status=current',
+    reason: "Tom's preferences changed - need to preserve history",
+    implementation:
+      'Set old LIKES Thai food to status=past, validTo=now. Add new preferences with status=current',
   },
   {
     priority: 'LOW',
     action: 'Add new people with context',
     reason: 'New people need full context for future deduplication',
-    implementation: 'Store extraction context: "Mike Thompson\'s sister Sarah" to distinguish from other Sarahs',
+    implementation:
+      'Store extraction context: "Mike Thompson\'s sister Sarah" to distinguish from other Sarahs',
   },
 ];
 
@@ -305,7 +509,7 @@ const _insights = [
   '4. CONFIDENCE SCORING: High confidence (0.9+) for explicit statements, lower (0.7-0.8) for inferences.',
   '5. USER REVIEW QUEUE: Some decisions (medical info corrections) MUST have human verification.',
   '6. DUPLICATE SCORING: Same name ≠ same person. Use multiple signals: relationship, profession, location.',
-  '7. RELATIONSHIP MAPPING: Person-to-person connections help disambiguate (Mike\'s sister ≠ Mike\'s girlfriend)',
+  "7. RELATIONSHIP MAPPING: Person-to-person connections help disambiguate (Mike's sister ≠ Mike's girlfriend)",
 ];
 
 _insights.forEach((_insight) => {

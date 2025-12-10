@@ -5,11 +5,11 @@ export interface RelationshipColorMap {
 }
 
 export const DEFAULT_COLORS: RelationshipColorMap = {
-  friend: '#81C784',      // Soft green (less saturated)
-  family: '#F06292',      // Soft pink (less saturated)
-  colleague: '#64B5F6',   // Soft blue (less saturated)
+  friend: '#81C784', // Soft green (less saturated)
+  family: '#F06292', // Soft pink (less saturated)
+  colleague: '#64B5F6', // Soft blue (less saturated)
   acquaintance: '#B0BEC5', // Soft grey
-  partner: '#E57373',     // Soft red (less saturated)
+  partner: '#E57373', // Soft red (less saturated)
 };
 
 export const AVAILABLE_COLORS = [

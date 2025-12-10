@@ -132,7 +132,8 @@ export function useCreateGiftIdea() {
           objectLabel: data.item,
           category: 'gift_idea',
           metadata: JSON.stringify(metadata),
-          intensity: data.priority === 'high' ? 'strong' : data.priority === 'low' ? 'weak' : 'medium',
+          intensity:
+            data.priority === 'high' ? 'strong' : data.priority === 'low' ? 'weak' : 'medium',
           confidence: 1.0,
           source: 'manual',
           status: 'current',
@@ -184,7 +185,11 @@ export function useUpdateGiftIdea() {
         updates.validTo = givenDate || new Date();
       }
 
-      const result = (await db.update(relations).set(updates).where(eq(relations.id, id)).returning()) as any[];
+      const result = (await db
+        .update(relations)
+        .set(updates)
+        .where(eq(relations.id, id))
+        .returning()) as any[];
 
       return result[0];
     },

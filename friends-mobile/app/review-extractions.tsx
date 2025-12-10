@@ -56,7 +56,10 @@ export default function ReviewExtractionsScreen() {
               await rejectMutation.mutateAsync({ extractionId: extraction.id });
             } catch (error) {
               Alert.alert('Error', 'Failed to reject extraction');
-              devLogger.error('Failed to reject extraction', { error, extractionId: extraction.id });
+              devLogger.error('Failed to reject extraction', {
+                error,
+                extractionId: extraction.id,
+              });
             }
           },
         },
@@ -253,7 +256,7 @@ export default function ReviewExtractionsScreen() {
             <SegmentedButtons
               value={editedIntensity}
               onValueChange={setEditedIntensity}
-              buttons={INTENSITY_OPTIONS.map(option => ({
+              buttons={INTENSITY_OPTIONS.map((option) => ({
                 value: option.value,
                 label: option.label,
               }))}

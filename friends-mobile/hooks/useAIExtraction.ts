@@ -79,7 +79,12 @@ export function useExtractRelations() {
       );
 
       // 5. Process results
-      const processedResults = await processExtractionResults(userId, storyId, result, result.rawResponse);
+      const processedResults = await processExtractionResults(
+        userId,
+        storyId,
+        result,
+        result.rawResponse
+      );
 
       // 6. Mark story as processed
       await db

@@ -48,10 +48,7 @@ export function getUniqueMentionedPeople(text: string): string[] {
 /**
  * Get mention with surrounding context for disambiguation
  */
-export function getMentionsWithContext(
-  text: string,
-  contextLength: number = 50
-): MentionContext[] {
+export function getMentionsWithContext(text: string, contextLength: number = 50): MentionContext[] {
   const mentions = extractMentions(text);
 
   return mentions.map((mention) => {

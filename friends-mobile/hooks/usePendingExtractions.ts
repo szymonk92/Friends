@@ -75,7 +75,9 @@ export function useApprovePendingExtraction() {
 
       // Validate relation type is allowed
       if (!ALLOWED_RELATION_TYPES.includes(extraction.relationType as any)) {
-        throw new Error(`Invalid relation type: ${extraction.relationType}. This relation type is not supported.`);
+        throw new Error(
+          `Invalid relation type: ${extraction.relationType}. This relation type is not supported.`
+        );
       }
 
       // Check for duplicate relations
@@ -95,7 +97,9 @@ export function useApprovePendingExtraction() {
       // Validate status is allowed (if provided)
       const allowedStatuses = ['current', 'past', 'future', 'aspiration'];
       if (extraction.status && !allowedStatuses.includes(extraction.status)) {
-        throw new Error(`Invalid status: ${extraction.status}. Must be one of: ${allowedStatuses.join(', ')}`);
+        throw new Error(
+          `Invalid status: ${extraction.status}. Must be one of: ${allowedStatuses.join(', ')}`
+        );
       }
 
       // Create the relation

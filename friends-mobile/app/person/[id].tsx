@@ -11,7 +11,12 @@ import {
 import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson } from '@/hooks/usePeople';
-import { usePersonPhotos, useTakePhoto, useSetProfilePhoto, useAddPhotoToPerson } from '@/hooks/usePhotos';
+import {
+  usePersonPhotos,
+  useTakePhoto,
+  useSetProfilePhoto,
+  useAddPhotoToPerson,
+} from '@/hooks/usePhotos';
 
 // Components
 import PersonHeader from '@/components/person/PersonHeader';
@@ -97,9 +102,7 @@ export default function PersonProfileScreen() {
   };
 
   // Get the profile photo path for the menu check
-  const profilePhoto = person?.photoId
-    ? personPhotos.find((p) => p.id === person.photoId)
-    : null;
+  const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
   if (personLoading) {
     return (

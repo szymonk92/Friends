@@ -42,16 +42,16 @@ export function useConnections() {
         .from(connections)
         .where(and(eq(connections.userId, userId), isNull(connections.deletedAt)))
         .orderBy(desc(connections.createdAt));
-      
+
       console.log('[useConnections] Fetched connections:', {
         count: result.length,
-        sample: result.slice(0, 3).map(c => ({
+        sample: result.slice(0, 3).map((c) => ({
           id: c.id,
           person1Id: c.person1Id,
           person2Id: c.person2Id,
         })),
       });
-      
+
       return result;
     },
   });
