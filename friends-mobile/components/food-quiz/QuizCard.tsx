@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, Animated, Dimensions } from 'react-native';
 import { Card, Text, Chip } from 'react-native-paper';
 

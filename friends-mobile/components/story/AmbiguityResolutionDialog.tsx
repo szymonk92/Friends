@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, ScrollView } from 'react-native';
 import { Portal, Dialog, Button, Text, RadioButton, Avatar, List } from 'react-native-paper';
 
 interface AmbiguityMatch {

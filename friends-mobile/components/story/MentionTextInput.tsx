@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Keyboard } from 'react-native';
 import { TextInput, Text, Card, Chip, useTheme } from 'react-native-paper';
 import { db, getCurrentUserId } from '@/lib/db';

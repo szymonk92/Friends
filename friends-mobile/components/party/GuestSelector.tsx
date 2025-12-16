@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, View, ScrollView, Image } from 'react-native';
 import { Card, Text, Searchbar, Chip, Divider, List } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';

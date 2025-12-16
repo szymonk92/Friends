@@ -7,7 +7,7 @@ import { useConnections } from '@/hooks/useConnections';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router, useFocusEffect, Stack } from 'expo-router';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import {
   getRelationshipColors,
@@ -16,8 +16,8 @@ import {
 } from '@/lib/settings/relationship-colors';
 import { Text, Button, IconButton, Chip, Searchbar } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
-import ForceDirectedGraph from '@/components/ForceDirectedGraph';
-import NetworkPersonDetails from '@/components/NetworkPersonDetails';
+import ForceDirectedGraph from '@/components/graph/ForceDirectedGraph';
+import NetworkPersonDetails from '@/components/graph/NetworkPersonDetails';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

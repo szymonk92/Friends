@@ -21,11 +21,11 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import * as Clipboard from 'expo-clipboard';
-import MentionTextInput from '@/components/MentionTextInput';
+import MentionTextInput from '@/components/story/MentionTextInput';
 import { devLogger } from '@/lib/utils/devLogger';
-import PersonSelector from '@/components/PersonSelector';
-import AmbiguityResolutionDialog from '@/components/AmbiguityResolutionDialog';
-import { Chip, IconButton, Avatar } from 'react-native-paper';
+import PersonSelector from '@/components/story/PersonSelector';
+import AmbiguityResolutionDialog from '@/components/story/AmbiguityResolutionDialog';
+import { Chip, Avatar } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
 
 export default function StoryInputScreen() {

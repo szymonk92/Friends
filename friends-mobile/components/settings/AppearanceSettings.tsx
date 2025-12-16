@@ -1,6 +1,11 @@
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, Button } from 'react-native-paper';
-import { THEME_COLORS, AVAILABLE_FONTS, type ThemeColor, type FontFamily } from '@/store/useSettings';
+import {
+  THEME_COLORS,
+  AVAILABLE_FONTS,
+  type ThemeColor,
+  type FontFamily,
+} from '@/store/useSettings';
 import { useTranslation } from 'react-i18next';
 
 interface AppearanceSettingsProps {

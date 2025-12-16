@@ -27,24 +27,14 @@ const SWIPE_THRESHOLD = width * 0.25;
 
 // Common food items to ask about
 const FOOD_QUESTIONS = [
-  { item: 'Tomatoes', category: 'vegetable' },
-  { item: 'Mushrooms', category: 'vegetable' },
   { item: 'Cilantro', category: 'herb' },
   { item: 'Spicy Food', category: 'taste' },
   { item: 'Seafood', category: 'protein' },
-  { item: 'Sushi', category: 'cuisine' },
-  { item: 'Olives', category: 'vegetable' },
-  { item: 'Blue Cheese', category: 'dairy' },
-  { item: 'Avocado', category: 'fruit' },
   { item: 'Coffee', category: 'beverage' },
   { item: 'Wine', category: 'beverage' },
   { item: 'Beer', category: 'beverage' },
   { item: 'Garlic', category: 'vegetable' },
-  { item: 'Onions', category: 'vegetable' },
-  { item: 'Chocolate', category: 'dessert' },
   { item: 'Peanuts', category: 'nuts' },
-  { item: 'Shellfish', category: 'seafood' },
-  { item: 'Eggs', category: 'protein' },
   { item: 'Dairy', category: 'food_group' },
   { item: 'Gluten', category: 'food_group' },
 ] as const;

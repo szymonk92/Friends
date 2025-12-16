@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Card, Text, TextInput, SegmentedButtons } from 'react-native-paper';
 

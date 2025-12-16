@@ -238,7 +238,9 @@ export default function DevScreen() {
               </Text>
               <Divider style={styles.divider} />
 
-              <Text variant="titleMedium" style={{ marginBottom: 8 }}>Font Family</Text>
+              <Text variant="titleMedium" style={{ marginBottom: 8 }}>
+                Font Family
+              </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {(Object.keys(AVAILABLE_FONTS) as FontFamily[]).map((font) => (
                   <Button

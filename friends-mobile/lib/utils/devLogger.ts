@@ -1,5 +1,4 @@
 import { Paths, File as ExpoFile, Directory } from 'expo-file-system';
-import { Platform } from 'react-native';
 
 /**
  * Development Logger - Saves logs to a file for later investigation
@@ -46,7 +45,7 @@ const formatLogEntry = (entry: LogEntry): string => {
   if (entry.data) {
     try {
       logLine += '\n  Data: ' + JSON.stringify(entry.data, null, 2);
-    } catch (e) {
+    } catch {
       logLine += '\n  Data: [Unable to stringify]';
     }
   }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ActivityIndicator, View, StyleSheet } from 'react-native';
 import {
   Canvas,
@@ -11,7 +11,6 @@ import {
   vec,
   Skia,
   Line,
-  Path,
 } from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as d3 from 'd3-force';
