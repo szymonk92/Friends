@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons } from 'react-native-paper';
+import { Text, TextInput, Button, SegmentedButtons, Chip } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
@@ -12,9 +12,12 @@ export default function AddPersonModal() {
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
+  const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
 
   const createPerson = useCreatePerson();
 
@@ -32,6 +35,17 @@ export default function AddPersonModal() {
       return new Date(parts[0], parts[1] - 1, parts[2]);
     }
     return null;
+  };
+
+  const handleRelationshipChange = (value: string) => {
+    setRelationshipType(value);
+    if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(value)) {
+      setPersonType('primary');
+    } else if (value === 'acquaintance') {
+      setPersonType('mentioned');
+    } else {
+      setPersonType('primary');
+    }
   };
 
   const handleSubmit = async () => {
@@ -61,7 +75,7 @@ export default function AddPersonModal() {
         relationshipType: relationshipType as any,
         dateOfBirth: parsedBirthday || undefined,
         notes: notes.trim() || undefined,
-        personType: 'primary',
+        personType: personType,
         dataCompleteness: 'partial',
         addedBy: 'user',
         status: 'active',
@@ -96,9 +110,6 @@ export default function AddPersonModal() {
     >
       <ScrollView style={styles.container}>
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            {t('person.addTitle')}
-          </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
             {t('person.addSubtitle')}
           </Text>
@@ -125,12 +136,32 @@ export default function AddPersonModal() {
             maxLength={255}
           />
 
-          <Text variant="titleSmall" style={styles.label}>
-            {t('person.relationshipType')}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text variant="titleSmall" style={styles.label}>
+              {t('person.relationshipType')}
+            </Text>
+            {!ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+              <Chip
+                compact
+                style={{ 
+                  backgroundColor: personType === 'primary' ? '#e3f2fd' : '#fff3e0',
+                  borderColor: personType === 'primary' ? '#2196f3' : '#ff9800',
+                  borderWidth: 1,
+                }}
+                textStyle={{ 
+                  fontSize: 10, 
+                  marginVertical: 0, 
+                  marginHorizontal: 4, 
+                  color: personType === 'primary' ? '#0d47a1' : '#e65100',
+                }}
+              >
+                {personType.toUpperCase()}
+              </Chip>
+            )}
+          </View>
           <SegmentedButtons
             value={relationshipType}
-            onValueChange={setRelationshipType}
+            onValueChange={handleRelationshipChange}
             buttons={[
               { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
               { value: 'family', label: t('person.family'), icon: 'home-heart' },
@@ -140,13 +171,42 @@ export default function AddPersonModal() {
           />
           <SegmentedButtons
             value={relationshipType}
-            onValueChange={setRelationshipType}
+            onValueChange={handleRelationshipChange}
             buttons={[
               { value: 'acquaintance', label: t('person.acquaintance') },
               { value: 'partner', label: t('person.partner'), icon: 'heart' },
             ]}
             style={styles.segmented}
           />
+
+          {!ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+            <View style={{ marginBottom: 16 }}>
+              <Text variant="titleSmall" style={styles.label}>
+                Person Type
+              </Text>
+              <SegmentedButtons
+                value={personType}
+                onValueChange={value => setPersonType(value as 'primary' | 'mentioned')}
+                buttons={[
+                  {
+                    value: 'primary',
+                    label: 'Primary',
+                    icon: 'account',
+                  },
+                  {
+                    value: 'mentioned',
+                    label: 'Mentioned',
+                    icon: 'account-outline',
+                  },
+                ]}
+              />
+              <Text variant="bodySmall" style={{ marginTop: 8, color: '#666' }}>
+                {personType === 'primary' 
+                  ? 'Visible in main lists and search.' 
+                  : 'Hidden from main lists, used for context only.'}
+              </Text>
+            </View>
+          )}
 
           <TextInput
             mode="outlined"

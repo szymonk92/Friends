@@ -22,6 +22,7 @@ import {
   Chip,
   List,
   Checkbox,
+  IconButton,
 } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
@@ -30,7 +31,13 @@ import {
   useUpdateConnection,
   useDeleteConnection,
 } from '@/hooks/useConnections';
-import { usePerson, usePeople, useMePerson, PersonWithPhoto } from '@/hooks/usePeople';
+import {
+  usePerson,
+  usePeople,
+  useMePerson,
+  useCreatePerson,
+  PersonWithPhoto,
+} from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { db } from '@/lib/db';
@@ -55,6 +62,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const createConnection = useCreateConnection();
   const updateConnection = useUpdateConnection();
   const deleteConnection = useDeleteConnection();
+  const createPerson = useCreatePerson();
 
   // Edit mode state
   const [connection, setConnection] = useState<any>(null);
@@ -69,7 +77,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [qualifier, setQualifier] = useState('');
   const [notes, setNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingPersonName, setPendingPersonName] = useState<string | null>(null);
+  const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
 
   // Animation refs for scroll indicators
   const relationshipTypeScrollAnim = useRef(new Animated.Value(0)).current;
@@ -219,17 +231,39 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setSinglePersonMode(true);
     setSelectedPersonIds([]);
   };
-
   const backToMultiMode = () => {
     setSinglePersonMode(false);
     setSinglePersonId(null);
+    setPendingPersonName(null);
     setRelationshipType('friend');
+    setPersonType('primary');
     setStatus('active');
     setQualifier('');
     setNotes('');
   };
 
-  const selectedSinglePerson = allPeople.find((p) => p.id === singlePersonId);
+  const handleCreateAndSelectPerson = () => {
+    if (!searchQuery.trim()) return;
+    setPendingPersonName(searchQuery.trim());
+    setSinglePersonMode(true);
+    setPersonType('primary'); // Default to primary, user can change
+    setSearchQuery('');
+  };
+
+  const selectedSinglePerson = useMemo(() => {
+    if (singlePersonId) {
+      return allPeople.find((p) => p.id === singlePersonId);
+    }
+    if (pendingPersonName) {
+      return {
+        id: 'pending',
+        name: pendingPersonName,
+        personType: personType,
+        relationshipType: 'friend',
+      } as any;
+    }
+    return null;
+  }, [singlePersonId, pendingPersonName, allPeople, personType]);
 
   const handleSubmit = async () => {
     if (mode === 'edit') {
@@ -257,30 +291,46 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
     // Add mode - create new connection
     // Single person mode
-    if (singlePersonMode && singlePersonId) {
-      // Check if connection already exists with same relationship type
-      const duplicateConnection = existingConnections.find(
-        (conn) =>
-          ((conn.person1Id === personId && conn.person2Id === singlePersonId) ||
-            (conn.person2Id === personId && conn.person1Id === singlePersonId)) &&
-          conn.relationshipType === relationshipType
-      );
+    if (singlePersonMode && (singlePersonId || pendingPersonName)) {
+      let targetPersonId = singlePersonId;
 
-      if (duplicateConnection) {
-        Alert.alert(
-          'Duplicate Connection',
-          `A ${relationshipType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
-          [{ text: 'OK' }]
+      // Check if connection already exists with same relationship type (only if we have an ID)
+      if (targetPersonId) {
+        const duplicateConnection = existingConnections.find(
+          (conn) =>
+            ((conn.person1Id === personId && conn.person2Id === targetPersonId) ||
+              (conn.person2Id === personId && conn.person1Id === targetPersonId)) &&
+            conn.relationshipType === relationshipType
         );
-        return;
+
+        if (duplicateConnection) {
+          Alert.alert(
+            'Duplicate Connection',
+            `A ${relationshipType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
+            [{ text: 'OK' }]
+          );
+          return;
+        }
       }
 
       setIsSubmitting(true);
 
       try {
+        // If pending person, create them first
+        if (!targetPersonId && pendingPersonName) {
+           const newPerson = await createPerson.mutateAsync({
+            name: pendingPersonName,
+            personType: personType,
+            relationshipType: 'friend', // Default
+          });
+          targetPersonId = newPerson.id;
+        }
+
+        if (!targetPersonId) throw new Error('Failed to identify person');
+
         await createConnection.mutateAsync({
           person1Id: personId!,
-          person2Id: singlePersonId,
+          person2Id: targetPersonId,
           relationshipType: relationshipType as any,
           status: status as any,
           qualifier: qualifier.trim() || undefined,
@@ -514,12 +564,62 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                               "{selectedSinglePerson.nickname}"
                             </Text>
                           )}
+                          {(selectedSinglePerson.personType || (pendingPersonName && personType)) && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+                            <Chip
+                              style={{ 
+                                alignSelf: 'flex-start', 
+                                marginTop: 4, 
+                                backgroundColor: (selectedSinglePerson.personType || personType) === 'primary' ? '#e3f2fd' : '#fff3e0',
+                                borderColor: (selectedSinglePerson.personType || personType) === 'primary' ? '#2196f3' : '#ff9800',
+                                borderWidth: 1
+                              }}
+                              textStyle={{ 
+                                fontSize: 11, 
+                                marginVertical: 2, 
+                                marginHorizontal: 8, 
+                                color: (selectedSinglePerson.personType || personType) === 'primary' ? '#0d47a1' : '#e65100' 
+                              }}
+                            >
+                              {(selectedSinglePerson.personType || personType).toUpperCase()}
+                            </Chip>
+                          )}
                         </View>
                       </View>
                     </Card.Content>
                   </Card>
                 </Card.Content>
               </Card>
+
+              {pendingPersonName && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+                <Card style={styles.card}>
+                  <Card.Content>
+                    <Text variant="titleSmall" style={styles.label}>
+                      Person Type
+                    </Text>
+                    <SegmentedButtons
+                      value={personType}
+                      onValueChange={value => setPersonType(value as 'primary' | 'mentioned')}
+                      buttons={[
+                        {
+                          value: 'primary',
+                          label: 'Primary',
+                          icon: 'account',
+                        },
+                        {
+                          value: 'mentioned',
+                          label: 'Mentioned',
+                          icon: 'account-outline',
+                        },
+                      ]}
+                    />
+                    <Text variant="bodySmall" style={{ marginTop: 8, color: '#666' }}>
+                      {personType === 'primary' 
+                        ? 'Visible in main lists and search.' 
+                        : 'Hidden from main lists, used for context only.'}
+                    </Text>
+                  </Card.Content>
+                </Card>
+              )}
 
               <Card style={styles.card}>
                 <Card.Content>
@@ -541,7 +641,20 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                           <Button
                             key={type.value}
                             mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                            onPress={() => setRelationshipType(type.value)}
+                            onPress={() => {
+                              setRelationshipType(type.value);
+                              // Auto-select person type for new people
+                              if (pendingPersonName) {
+                                if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
+                                  setPersonType('primary');
+                                } else if (type.value === 'acquaintance') {
+                                  setPersonType('mentioned');
+                                } else {
+                                  // For colleague or others, default to primary but allow change
+                                  setPersonType('primary');
+                                }
+                              }
+                            }}
                             icon={type.icon}
                             style={styles.typeButton}
                             compact
@@ -552,6 +665,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                       </View>
                     </Animated.View>
                   </ScrollView>
+                  {pendingPersonName && personType === 'mentioned' && (
+                    <Text variant="bodySmall" style={{ color: '#f57c00', marginTop: 8, fontStyle: 'italic' }}>
+                      Note: This person will be created as "Mentioned" (hidden).
+                    </Text>
+                  )}
                 </Card.Content>
               </Card>
 
@@ -710,83 +828,101 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               )}
             </>
           )}
+              {mode === 'add' && (
+                <Card style={styles.card}>
+                  <Card.Content>
+                    <Text variant="titleSmall" style={styles.label}>
+                      Select People
+                    </Text>
 
-          {mode === 'add' && !singlePersonMode && (
-            // Multi-select mode (add only)
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Select People to Connect ({selectedPersonIds.length} selected)
-                </Text>
-                <TextInput
-                  placeholder="Search people..."
-                  onChangeText={setSearchQuery}
-                  value={searchQuery}
-                  style={styles.searchbar}
-                  mode="outlined"
-                />
-                <Text variant="titleSmall" style={styles.label}>
-                  Selecting multiple, adds them as friends
-                </Text>
+                    <TextInput
+                      mode="outlined"
+                      placeholder="Search people..."
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      style={styles.searchbar}
+                      left={<TextInput.Icon icon="magnify" />}
+                    />
 
-                {loadingPeople && (
-                  <CenteredContainer style={styles.centered}>
-                    <ActivityIndicator />
-                  </CenteredContainer>
-                )}
+                    {loadingPeople && (
+                      <CenteredContainer style={styles.centered}>
+                        <ActivityIndicator />
+                      </CenteredContainer>
+                    )}
 
-                {selectedPersonIds.length > 0 && (
-                  <View style={styles.selectedChipsContainer}>
-                    {selectedPersonIds.map((id) => {
-                      const person = allPeople.find((p) => p.id === id);
-                      return person ? (
-                        <Chip
-                          key={id}
-                          onClose={() => togglePersonSelection(id)}
-                          style={styles.selectedChip}
-                        >
-                          {person.name}
-                        </Chip>
-                      ) : null;
-                    })}
-                  </View>
-                )}
-
-                {availablePeople.length === 0 && !loadingPeople && (
-                  <Text style={styles.emptyText}>
-                    No other people found. Add more people first.
-                  </Text>
-                )}
-
-                {availablePeople.length > 0 && (
-                  <ScrollView style={styles.peopleList} nestedScrollEnabled>
-                    {availablePeople.map((p) => (
+                    {searchQuery.trim().length > 0 && (
                       <List.Item
-                        key={p.id}
-                        title={p.name}
-                        description={p.nickname || p.relationshipType}
+                        title={`Add "${searchQuery}"`}
+                        description="Create new person and connect"
                         left={(props) => (
-                          <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                            <View style={[styles.listAvatar, props.style]}>
-                              <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
-                            </View>
-                          </TouchableOpacity>
+                          <View
+                            style={[
+                              styles.listAvatar,
+                              { backgroundColor: '#4caf50' },
+                              props.style,
+                            ]}
+                          >
+                            <IconButton icon="plus" iconColor="white" size={20} />
+                          </View>
                         )}
-                        right={(props) => (
-                          <Checkbox
-                            status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                            {...props}
-                          />
-                        )}
-                        onPress={() => togglePersonSelection(p.id)}
+                        onPress={handleCreateAndSelectPerson}
                         style={styles.listItem}
                       />
-                    ))}
-                  </ScrollView>
-                )}
-              </Card.Content>
-            </Card>
-          )}
+                    )}
+
+                    {selectedPersonIds.length > 0 && (
+                      <View style={styles.selectedChipsContainer}>
+                        {selectedPersonIds.map((id) => {
+                          const person = allPeople.find((p) => p.id === id);
+                          return person ? (
+                            <Chip
+                              key={id}
+                              onClose={() => togglePersonSelection(id)}
+                              style={styles.selectedChip}
+                            >
+                              {person.name}
+                            </Chip>
+                          ) : null;
+                        })}
+                      </View>
+                    )}
+
+                    {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
+                      <Text style={styles.emptyText}>
+                        No other people found. Add more people first.
+                      </Text>
+                    )}
+
+                    {availablePeople.length > 0 && (
+                      <ScrollView style={styles.peopleList} nestedScrollEnabled>
+                        {availablePeople.map((p) => (
+                          <List.Item
+                            key={p.id}
+                            title={p.name}
+                            description={p.nickname || p.relationshipType}
+                            left={(props) => (
+                              <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
+                                <View style={[styles.listAvatar, props.style]}>
+                                  <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            )}
+                            right={(props) => (
+                              <Checkbox
+                                status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
+                                {...props}
+                              />
+                            )}
+                            onPress={() => togglePersonSelection(p.id)}
+                            style={styles.listItem}
+                          />
+                        ))}
+                      </ScrollView>
+                    )}
+                  </Card.Content>
+                </Card>
+              )}
+          ){'}'}
 
           <Button
             mode="contained"
