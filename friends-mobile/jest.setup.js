@@ -70,6 +70,9 @@ jest.mock('react-native', () => ({
   },
 }));
 
+// Add __DEV__ global for React Native development checks
+global.__DEV__ = true;
+
 // Suppress console warnings in tests
 global.console = {
   ...console,
