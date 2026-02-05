@@ -19,18 +19,20 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "ci": "npm run typecheck && npm run lint && npm run test:ci"
+    "ci": "npm run typecheck && npm run lint && npm run test:ci",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.68.0",
+    "@anthropic-ai/sdk": "^0.72.1",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.1.8",
     "@tanstack/react-query": "^5.90.7",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.1",
     "expo": "~54.0.23",
     "expo-constants": "~18.0.10",
-    "expo-crypto": "^15.0.7",
+    "expo-crypto": "^15.0.8",
     "expo-document-picker": "^14.0.7",
     "expo-file-system": "^19.0.17",
     "expo-font": "~14.0.9",
@@ -39,7 +41,7 @@
     "expo-image-picker": "^17.0.8",
     "expo-linking": "~8.0.8",
     "expo-router": "~6.0.14",
-    "expo-secure-store": "^15.0.7",
+    "expo-secure-store": "^15.0.8",
     "expo-splash-screen": "~31.0.10",
     "expo-sqlite": "^16.0.9",
     "expo-status-bar": "~3.0.8",
@@ -83,5 +85,9 @@
       ]
     }
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "glob": "^10.5.0",
+    "lodash": "^4.17.21"
+  }
 }
