@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AIModel } from '@/store/useSettings';
+export type { AIModel } from '@/store/useSettings';
+
 
 export interface AIServiceConfig {
   model: AIModel;
@@ -207,10 +209,10 @@ export async function callAISession(
     const tokenUsage =
       result.tokensUsed !== undefined
         ? {
-            totalTokens: result.tokensUsed,
-            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-          }
+          totalTokens: result.tokensUsed,
+          inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+          outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+        }
         : undefined;
 
     const debugInfo: AIDebugInfo = {
@@ -336,7 +338,7 @@ export function getAggregatedAnalytics(): {
   const avgResponseTime =
     totalRequests > 0
       ? activeAnalytics.reduce((sum, a) => sum + a.avgResponseTime * a.totalRequests, 0) /
-        totalRequests
+      totalRequests
       : 0;
 
   return {
@@ -355,22 +357,28 @@ export function getAggregatedAnalytics(): {
  */
 function calculateCost(model: AIModel, tokensUsed: number): number {
   // Pricing as of Nov 2024 (per 1M tokens)
-  const pricing = {
+  // Pricing as of Nov 2024 (per 1M tokens)
+  const pricing: Record<string, { input: number; output: number }> = {
     anthropic: {
       input: 3.0, // $3 per 1M input tokens
       output: 15.0, // $15 per 1M output tokens
-      // NOTE: Claude pricing TBD — update when official paid-tier pricing is determined
     },
     // Gemini (paid tier) pricing per 1M tokens (USD)
-    // - input: $0.075
-    // - output: $0.30
-    gemini: {
+    gemini: { // 2.0 Flash Lite (assumed similar to 1.5 Flash for now)
       input: 0.075,
       output: 0.3,
     },
+    'gemini-1.5-flash': {
+      input: 0.075,
+      output: 0.3,
+    },
+    'gemini-1.5-pro': {
+      input: 3.5,
+      output: 10.5,
+    },
   };
 
-  const modelPricing = pricing[model];
+  const modelPricing = pricing[model] || pricing['gemini']; // Default to gemini pricing if unknown
   if (!modelPricing) return 0;
 
   // Rough approximation: assume 1/3 output tokens, 2/3 input tokens
@@ -427,7 +435,7 @@ async function callAIWithHistory(
   if (config.model === 'anthropic') {
     return await callAnthropicWithHistory(config.apiKey, messages);
   } else {
-    return await callGeminiWithHistory(config.apiKey, messages);
+    return await callGeminiWithHistory(config.apiKey, messages, config.model);
   }
 }
 
@@ -479,10 +487,10 @@ export async function callAI(
       const tokenUsage =
         result.tokensUsed !== undefined
           ? {
-              totalTokens: result.tokensUsed,
-              inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-              outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-            }
+            totalTokens: result.tokensUsed,
+            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+          }
           : undefined;
 
       return {
@@ -499,15 +507,15 @@ export async function callAI(
         },
       };
     } else {
-      const result = await callGemini(config.apiKey, prompt);
+      const result = await callGemini(config.apiKey, prompt, config.model);
       const cost = calculateCost(config.model, result.tokensUsed || 0);
       const tokenUsage =
         result.tokensUsed !== undefined
           ? {
-              totalTokens: result.tokensUsed,
-              inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
-              outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
-            }
+            totalTokens: result.tokensUsed,
+            inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+            outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+          }
           : undefined;
 
       return {
@@ -630,14 +638,24 @@ async function callAnthropicWithHistory(
 
 async function callGemini(
   apiKey: string,
-  prompt: string
+  prompt: string,
+  modelName: AIModel = 'gemini'
 ): Promise<{ response: string; tokensUsed?: number; debugInfo?: AIDebugInfo }> {
   const genAI = new GoogleGenerativeAI(apiKey);
+
+  // Map internal model name to Gemini API model name
+  let apiModelName = 'gemini-2.0-flash-lite'; // Default 2.0 Flash Lite
+  if (modelName === 'gemini-1.5-flash') {
+    apiModelName = 'gemini-1.5-flash';
+  } else if (modelName === 'gemini-1.5-pro') {
+    apiModelName = 'gemini-1.5-pro';
+  }
+
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
+    model: apiModelName,
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 4000,
+      maxOutputTokens: 8192, // Increased for Pro models
       responseMimeType: 'application/json',
     },
   });
@@ -671,14 +689,24 @@ async function callGemini(
 
 async function callGeminiWithHistory(
   apiKey: string,
-  messages: AIMessage[]
+  messages: AIMessage[],
+  modelName: AIModel = 'gemini'
 ): Promise<{ response: string; tokensUsed?: number; debugDetails?: Partial<AIDebugInfo> }> {
   const genAI = new GoogleGenerativeAI(apiKey);
+
+  // Map internal model name to Gemini API model name
+  let apiModelName = 'gemini-2.0-flash-lite'; // Default 2.0 Flash Lite
+  if (modelName === 'gemini-1.5-flash') {
+    apiModelName = 'gemini-1.5-flash';
+  } else if (modelName === 'gemini-1.5-pro') {
+    apiModelName = 'gemini-1.5-pro';
+  }
+
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
+    model: apiModelName,
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 4000,
+      maxOutputTokens: 8192,
       responseMimeType: 'application/json',
     },
   });

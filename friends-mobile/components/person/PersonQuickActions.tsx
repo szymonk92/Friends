@@ -2,6 +2,7 @@ import { StyleSheet, View, Alert } from 'react-native';
 import { Text, Chip, useTheme } from 'react-native-paper';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
 import { useCreateContactReminder } from '@/hooks/useReminders';
+import type { NewContactEvent } from '@/lib/db/schema';
 
 interface PersonQuickActionsProps {
   personId: string;
@@ -13,11 +14,11 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
   const createContactEvent = useCreateContactEvent();
   const createContactReminder = useCreateContactReminder();
 
-  const handleQuickAction = async (eventType: string, label: string) => {
+  const handleQuickAction = async (eventType: NewContactEvent['eventType'], label: string) => {
     try {
       await createContactEvent.mutateAsync({
         personId,
-        eventType: eventType as any,
+        eventType,
         eventDate: new Date(),
         notes: `Quick logged: ${label}`,
       });
@@ -68,7 +69,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
       <View style={styles.quickActionsRow}>
         <Chip
           icon="account-check"
-          onPress={() => handleQuickAction('met', 'Met')}
+          onPress={() => handleQuickAction('in_person', 'Met')}
           style={styles.quickActionChip}
           mode="outlined"
           compact
@@ -77,7 +78,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         </Chip>
         <Chip
           icon="phone"
-          onPress={() => handleQuickAction('called', 'Called')}
+          onPress={() => handleQuickAction('phone', 'Called')}
           style={styles.quickActionChip}
           mode="outlined"
           compact
@@ -86,7 +87,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         </Chip>
         <Chip
           icon="message"
-          onPress={() => handleQuickAction('messaged', 'Messaged')}
+          onPress={() => handleQuickAction('message', 'Messaged')}
           style={styles.quickActionChip}
           mode="outlined"
           compact
@@ -97,7 +98,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
       <View style={styles.quickActionsRow}>
         <Chip
           icon="coffee"
-          onPress={() => handleQuickAction('hung_out', 'Hung out')}
+          onPress={() => handleQuickAction('in_person', 'Hung out')}
           style={styles.quickActionChip}
           mode="outlined"
           compact
@@ -106,7 +107,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         </Chip>
         <Chip
           icon="star"
-          onPress={() => handleQuickAction('special', 'Special event')}
+          onPress={() => handleQuickAction('social_media', 'Special event')}
           style={styles.quickActionChip}
           mode="outlined"
           compact

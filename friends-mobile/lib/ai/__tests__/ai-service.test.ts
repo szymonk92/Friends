@@ -123,7 +123,7 @@ describe('AI Service', () => {
         model: 'gemini-2.0-flash-lite',
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 4000,
+          maxOutputTokens: 8192,
           responseMimeType: 'application/json',
         },
       });

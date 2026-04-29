@@ -11,7 +11,8 @@ export type ThemeColor =
   | 'inkWash'
   | 'cherry'
   | 'lavender';
-export type AIModel = 'anthropic' | 'gemini';
+export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
+
 
 export interface ColorPalette {
   primary: string;
@@ -91,8 +92,16 @@ export const AI_MODELS: Record<AIModel, { name: string; description: string }> =
     description: 'Anthropic Claude - High quality analysis',
   },
   gemini: {
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'Google Gemini - Fast and efficient',
+    name: 'Gemini 2.0 Flash Lite',
+    description: 'Google Gemini - Newest fast model',
+  },
+  'gemini-1.5-flash': {
+    name: 'Gemini 1.5 Flash',
+    description: 'Google Gemini - Fast and cost-effective',
+  },
+  'gemini-1.5-pro': {
+    name: 'Gemini 1.5 Pro',
+    description: 'Google Gemini - High reasoning capability',
   },
 };
 

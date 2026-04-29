@@ -35,7 +35,7 @@ async function runTest() {
   }
 
   const config: AIServiceConfig = {
-    model: ANTHROPIC_KEY ? 'claude-3-5-sonnet-20241022' : 'gemini-2.0-flash-exp',
+    model: ANTHROPIC_KEY ? 'anthropic' : 'gemini',
     apiKey: ANTHROPIC_KEY || GEMINI_KEY,
   };
 

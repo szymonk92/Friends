@@ -1,20 +1,46 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { Text, IconButton, Menu, useTheme } from 'react-native-paper';
+import { Text, IconButton, Menu, useTheme, type MD3Theme } from 'react-native-paper';
 import { router } from 'expo-router';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import SectionDivider from '@/components/SectionDivider';
+import type { PersonWithPhoto } from '@/hooks/usePeople';
+
+/** Shape of all timeline items after merging contact events, birthdays, party events etc. */
+export interface TimelineEvent {
+  id: string;
+  personId: string | null;
+  eventType: string;
+  eventDate: Date | string | null;
+  notes?: string | null;
+  location?: string | null;
+  duration?: number | null;
+  // synthetic event flags
+  isBirthday?: boolean;
+  isImportantDate?: boolean;
+  isPartyEvent?: boolean;
+  partyDetails?: {
+    id: string;
+    name?: string | null;
+    eventType?: string | null;
+    eventDate?: Date | string | null;
+    location?: string | null;
+    guestIds?: string | null;
+  };
+  guestCount?: number;
+  guestNames?: string[];
+}
 
 interface TimelineEventItemProps {
-  item: any;
+  item: TimelineEvent;
   index: number;
-  filteredEvents: any[];
-  people: any[];
+  filteredEvents: TimelineEvent[];
+  people: PersonWithPhoto[];
   relationshipColors: Record<string, string>;
-  theme: any;
+  theme: MD3Theme;
   eventMenuVisible: string | null;
   setEventMenuVisible: (id: string | null) => void;
-  handleEditEvent: (event: any) => void;
+  handleEditEvent: (event: TimelineEvent) => void;
   handleDeleteEvent: (id: string) => void;
   getPersonName: (id: string) => string;
   getEventLabel: (type: string) => string;
@@ -36,7 +62,7 @@ export default function TimelineEventItem({
 }: TimelineEventItemProps) {
   const personName = item.isPartyEvent
     ? item.partyDetails?.name || 'Party'
-    : getPersonName(item.personId);
+    : getPersonName(item.personId ?? '');
   const person = people.find((p) => p.id === item.personId);
   const isBirthday = item.isBirthday || item.eventType === 'birthday';
   const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';

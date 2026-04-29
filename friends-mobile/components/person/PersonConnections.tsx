@@ -10,9 +10,10 @@ import {
 } from 'react-native-paper';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
-import { usePeople } from '@/hooks/usePeople';
+import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
 import { useCommonStyles } from '@/styles/common';
+import type { Connection } from '@/lib/db/schema';
 
 interface PersonConnectionsProps {
   personId: string;
@@ -22,10 +23,10 @@ interface PersonConnectionsProps {
 export default function PersonConnections({ personId, personName }: PersonConnectionsProps) {
   const theme = useTheme();
   const commonStyles = useCommonStyles();
-  const { data: personConnections, isLoading: connectionsLoading } = usePersonConnections(personId);
+  const { data: personConnections = [], isLoading: connectionsLoading } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
 
-  const getConnectedPerson = (connection: any) => {
+  const getConnectedPerson = (connection: Connection): PersonWithPhoto | undefined => {
     const connectedId =
       connection.person1Id === personId ? connection.person2Id : connection.person1Id;
     return allPeople.find((p) => p.id === connectedId);
@@ -35,7 +36,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
     <View style={commonStyles.section}>
       <View style={commonStyles.sectionHeader}>
         <Text variant="titleLarge" style={commonStyles.sectionTitle}>
-          Connections ({personConnections?.length || 0})
+          Connections ({personConnections.length})
         </Text>
         <View style={commonStyles.sectionHeaderButtons}>
           <IconButton
@@ -57,7 +58,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
         </View>
       )}
 
-      {!connectionsLoading && personConnections && personConnections.length === 0 && (
+      {!connectionsLoading && personConnections.length === 0 && (
         <View style={styles.emptyState}>
           <Text variant="bodyMedium" style={commonStyles.emptyStateText}>
             No connections yet. Add connections to show how {personName} relates to other people.
@@ -72,8 +73,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
         </View>
       )}
 
-      {personConnections &&
-        personConnections.map((connection) => {
+      {personConnections.map((connection) => {
           const connectedPerson = getConnectedPerson(connection);
           if (!connectedPerson) return null;
 
@@ -114,7 +114,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
           );
         })}
 
-      {personConnections && personConnections.length > 0 && (
+      {personConnections.length > 0 && (
         <Button
           mode="contained"
           icon="plus"

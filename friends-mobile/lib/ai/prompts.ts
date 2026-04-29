@@ -32,8 +32,8 @@ export function createExtractionPrompt(context: ExtractionContext): string {
   const taggedPeopleList =
     explicitlyTaggedPeople && explicitlyTaggedPeople.length > 0
       ? explicitlyTaggedPeople
-          .map((p) => `- ${p.name} (ID: ${p.id}) [CONFIRMED PRESENT]`)
-          .join('\n')
+        .map((p) => `- ${p.name} (ID: ${p.id}) [CONFIRMED PRESENT]`)
+        .join('\n')
       : 'None';
 
   const newPeopleList =
@@ -44,8 +44,8 @@ export function createExtractionPrompt(context: ExtractionContext): string {
   const existingRelationsList =
     existingRelations && existingRelations.length > 0
       ? existingRelations
-          .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
-          .join('\n')
+        .map((r) => `- ${r.subjectName}: ${r.relationType} "${r.objectLabel}"`)
+        .join('\n')
       : 'None yet';
 
   return `You are an AI assistant that extracts structured relationship data from stories about people.
@@ -300,10 +300,16 @@ RESPOND WITH JSON:
 /**
  * Create the system prompt for session-based extraction
  */
-export function createSystemPrompt(): string {
-  return `You are an AI assistant that extracts structured relationship data from stories about people.
+export function createSystemPrompt(variant: 'default' | 'strict' | 'creative' = 'default'): string {
+  let prompt = `You are an AI assistant that extracts structured relationship data from stories about people.`;
 
-RELATION TYPES (use exactly these):
+  if (variant === 'strict') {
+    prompt += `\n\nSTRICT MODE ENABLED: Be extremely conservative. Do not infer relationships unless explicitly stated.`;
+  } else if (variant === 'creative') {
+    prompt += `\n\nCREATIVE MODE ENABLED: Infer potential relationships and hidden context where possible.`;
+  }
+
+  prompt += `\n\nRELATION TYPES (use exactly these):
 - KNOWS: knows a person/place/thing
 - LIKES: enjoys, prefers, loves
 - DISLIKES: dislikes, hates, avoids
@@ -495,4 +501,7 @@ IMPORTANT:
 - CRITICAL: Common names (David, Mike, Sarah, Ola, etc.) WITHOUT @ or explicit context should be flagged as AMBIGUOUS
 - CRITICAL: Add ambiguous names to ambiguousMatches, NOT to people array
 - CRITICAL: Do NOT create relations for ambiguous people - wait for user clarification`;
+
+  return prompt;
 }
+

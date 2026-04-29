@@ -1,6 +1,6 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Text, Card, Button, Divider } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
+import { Text, Card, Button, Divider, List } from 'react-native-paper';
+import { Stack, router, Link } from 'expo-router';
 import {
   useExportData,
   useExportStats,
@@ -148,6 +148,18 @@ export default function MenuScreen() {
           importLoading={importLoading}
           importDataPending={importData.isPending}
         />
+
+        <List.Section>
+          <List.Subheader>Developer</List.Subheader>
+          {/* @ts-ignore - Route exists but types might not be generated yet */}
+          <Link href="/developer/playground" asChild>
+            <List.Item
+              title="AI Playground"
+              left={(props) => <List.Icon {...props} icon="test-tube" />}
+              right={(props) => <List.Icon {...props} icon="chevron-right" />}
+            />
+          </Link>
+        </List.Section>
 
         <View style={styles.spacer} />
       </ScrollView>

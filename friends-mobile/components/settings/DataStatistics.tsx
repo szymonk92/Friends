@@ -1,8 +1,16 @@
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, ActivityIndicator } from 'react-native-paper';
 
+interface DataStats {
+  people: number;
+  relations: number;
+  connections: number;
+  stories: number;
+  events: number;
+}
+
 interface DataStatisticsProps {
-  stats: any;
+  stats: DataStats | undefined;
   loading: boolean;
 }
 

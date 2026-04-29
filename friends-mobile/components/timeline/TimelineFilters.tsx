@@ -1,6 +1,13 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Chip, Menu, useTheme, Icon } from 'react-native-paper';
+import type { PersonWithPhoto } from '@/hooks/usePeople';
+
+interface EventTypeOption {
+  value: string;
+  label: string;
+  icon: string;
+}
 
 interface TimelineFiltersProps {
   filtersVisible: boolean;
@@ -10,8 +17,8 @@ interface TimelineFiltersProps {
   setFilterEventType: (type: string | null) => void;
   personMenuVisible: boolean;
   setPersonMenuVisible: (visible: boolean) => void;
-  people: any[];
-  eventTypes: any[];
+  people: PersonWithPhoto[];
+  eventTypes: EventTypeOption[];
   getPersonName: (id: string) => string;
 }
 

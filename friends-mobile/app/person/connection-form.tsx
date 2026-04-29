@@ -41,10 +41,17 @@ import {
 import { getInitials } from '@/lib/utils/format';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { db } from '@/lib/db';
-import { connections } from '@/lib/db/schema';
+import { connections, type Connection } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 type ConnectionFormMode = 'add' | 'edit';
+type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
+type ConnectionStatus = NonNullable<Connection['status']>;
+
+type SelectablePerson = Pick<
+  PersonWithPhoto,
+  'id' | 'name' | 'nickname' | 'personType' | 'relationshipType'
+>;
 
 interface ConnectionFormProps {
   mode: ConnectionFormMode;
@@ -65,15 +72,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const createPerson = useCreatePerson();
 
   // Edit mode state
-  const [connection, setConnection] = useState<any>(null);
+  const [connection, setConnection] = useState<Connection | null>(null);
   const [isLoading, setIsLoading] = useState(mode === 'edit');
 
   // Form state
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [singlePersonMode, setSinglePersonMode] = useState(false);
   const [singlePersonId, setSinglePersonId] = useState<string | null>(null);
-  const [relationshipType, setRelationshipType] = useState<string>('friend');
-  const [status, setStatus] = useState<string>('active');
+  const [relationshipType, setRelationshipType] = useState<ConnectionRelationshipType>('friend');
+  const [status, setStatus] = useState<ConnectionStatus>('active');
   const [qualifier, setQualifier] = useState('');
   const [notes, setNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,7 +88,27 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
+  const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = ['partner', 'friend', 'family'];
+  const RELATIONSHIP_TYPE_VALUES = useMemo(
+    () => new Set(RELATIONSHIP_TYPES.map((type) => type.value as ConnectionRelationshipType)),
+    []
+  );
+  const CONNECTION_STATUS_VALUES = useMemo(
+    () => new Set(CONNECTION_STATUSES.map((connectionStatus) => connectionStatus.value as ConnectionStatus)),
+    []
+  );
+
+  const handleRelationshipTypeChange = (value: string) => {
+    if (RELATIONSHIP_TYPE_VALUES.has(value as ConnectionRelationshipType)) {
+      setRelationshipType(value as ConnectionRelationshipType);
+    }
+  };
+
+  const handleStatusChange = (value: string) => {
+    if (CONNECTION_STATUS_VALUES.has(value as ConnectionStatus)) {
+      setStatus(value as ConnectionStatus);
+    }
+  };
 
   // Animation refs for scroll indicators
   const relationshipTypeScrollAnim = useRef(new Animated.Value(0)).current;
@@ -107,9 +134,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           const conn = result[0];
           setConnection(conn);
 
-          setRelationshipType((conn.relationshipType as any) || 'friend');
+          setRelationshipType(conn.relationshipType || 'friend');
           setQualifier(conn.qualifier || '');
-          setStatus((conn.status as any) || 'active');
+          setStatus(conn.status || 'active');
           setNotes(conn.notes || '');
         } catch (error) {
           devLogger.error('Failed to load connection for editing', { error, connectionId });
@@ -250,7 +277,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setSearchQuery('');
   };
 
-  const selectedSinglePerson = useMemo(() => {
+  const selectedSinglePerson = useMemo<SelectablePerson | null>(() => {
     if (singlePersonId) {
       return allPeople.find((p) => p.id === singlePersonId);
     }
@@ -258,9 +285,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       return {
         id: 'pending',
         name: pendingPersonName,
+        nickname: null,
         personType: personType,
         relationshipType: 'friend',
-      } as any;
+      };
     }
     return null;
   }, [singlePersonId, pendingPersonName, allPeople, personType]);
@@ -274,15 +302,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       try {
         await updateConnection.mutateAsync({
           id: connectionId!,
-          relationshipType: relationshipType as any,
+          relationshipType,
           qualifier: qualifier.trim() || null,
-          status: status as any,
+          status,
         });
 
         Alert.alert('Success', 'Connection updated successfully!');
         router.back();
-      } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to update connection');
+      } catch (error) {
+        Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update connection');
       } finally {
         setIsSubmitting(false);
       }
@@ -331,8 +359,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         await createConnection.mutateAsync({
           person1Id: personId!,
           person2Id: targetPersonId,
-          relationshipType: relationshipType as any,
-          status: status as any,
+          relationshipType,
+          status,
           qualifier: qualifier.trim() || undefined,
           notes: notes.trim() || undefined,
           strength: 0.5,
@@ -423,8 +451,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           createConnection.mutateAsync({
             person1Id: personId!,
             person2Id: selectedPersonId,
-            relationshipType: relationshipType as any,
-            status: status as any,
+            relationshipType,
+            status,
             qualifier: qualifier.trim() || undefined,
             notes: notes.trim() || undefined,
             strength: 0.5,
@@ -475,7 +503,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     const connectedPerson = allPeople.find(
       (p) =>
         p.id ===
-        (connection.person1Id === connection.person1Id
+        (connection.person1Id === personId
           ? connection.person2Id
           : connection.person1Id)
     );
@@ -493,8 +521,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               await deleteConnection.mutateAsync(connectionId!);
               Alert.alert('Success', 'Connection deleted successfully!');
               router.back();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete connection');
+            } catch (error) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
             }
           },
         },
@@ -746,7 +774,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                           <Button
                             key={type.value}
                             mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                            onPress={() => setRelationshipType(type.value)}
+                            onPress={() => handleRelationshipTypeChange(type.value)}
                             icon={type.icon}
                             style={styles.typeButton}
                             compact
@@ -777,7 +805,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     >
                       <SegmentedButtons
                         value={status}
-                        onValueChange={setStatus}
+                        onValueChange={handleStatusChange}
                         buttons={CONNECTION_STATUSES}
                         style={styles.segmented}
                       />

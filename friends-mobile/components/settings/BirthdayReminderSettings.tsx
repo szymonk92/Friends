@@ -2,12 +2,23 @@ import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, List, Switch, SegmentedButtons } from 'react-native-paper';
 import { router } from 'expo-router';
 import { type BirthdayReminderSettings } from '@/lib/notifications/birthday-reminders';
+import type { Person } from '@/lib/db/schema';
+
+interface UpcomingBirthday {
+  person: Person;
+  daysUntil: number;
+  nextBirthday: Date;
+  age: number;
+}
 
 interface BirthdayReminderSettingsProps {
   birthdaySettings: BirthdayReminderSettings | null;
   savingBirthdaySettings: boolean;
-  handleBirthdaySettingChange: (key: keyof BirthdayReminderSettings, value: any) => void;
-  upcomingBirthdays: any[];
+  handleBirthdaySettingChange: <K extends keyof BirthdayReminderSettings>(
+    key: K,
+    value: BirthdayReminderSettings[K]
+  ) => void;
+  upcomingBirthdays: UpcomingBirthday[];
 }
 
 export default function BirthdayReminderSettings({

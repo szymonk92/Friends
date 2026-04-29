@@ -15,9 +15,10 @@ import { useUpdatePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 import { useCommonStyles } from '@/styles/common';
+import type { Person } from '@/lib/db/schema';
 
 interface PersonImportantDatesProps {
-  person: any;
+  person: Person;
 }
 
 export default function PersonImportantDates({ person }: PersonImportantDatesProps) {
@@ -41,11 +42,33 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     const trimmed = input.trim();
     const parts = trimmed.split('-').map((p) => parseInt(p, 10));
 
+    const isValidDate = (year: number, month: number, day: number) => {
+      const date = new Date(year, month - 1, day);
+      return (
+        date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+      );
+    };
+
     if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
       return new Date(parts[0], 0, 1);
-    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
+    } else if (
+      parts.length === 2 &&
+      parts[0] >= 1900 &&
+      parts[0] <= 2100 &&
+      parts[1] >= 1 &&
+      parts[1] <= 12
+    ) {
       return new Date(parts[0], parts[1] - 1, 1);
-    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
+    } else if (
+      parts.length === 3 &&
+      parts[0] >= 1900 &&
+      parts[0] <= 2100 &&
+      parts[1] >= 1 &&
+      parts[1] <= 12 &&
+      parts[2] >= 1 &&
+      parts[2] <= 31 &&
+      isValidDate(parts[0], parts[1], parts[2])
+    ) {
       return new Date(parts[0], parts[1] - 1, parts[2]);
     }
     return null;
@@ -98,7 +121,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
         // Add as regular important date (with special handling for anniversaries)
         await createRelation.mutateAsync({
           subjectId: person.id,
-          relationType: 'HAS_IMPORTANT_DATE',
+          relationType: HAS_IMPORTANT_DATE,
           objectLabel: isAnniversary ? `Anniversary: ${dateName.trim()}` : dateName.trim(),
           validFrom: parsedDate,
           category: 'important_date',

@@ -7,9 +7,10 @@ import {
   useSetProfilePhoto,
   useAddPhotoToPerson,
 } from '@/hooks/usePhotos';
+import type { Person } from '@/lib/db/schema';
 
 interface PersonHeaderProps {
-  person: any;
+  person: Person;
   onAvatarPress?: () => void;
 }
 
@@ -19,6 +20,11 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
   const takePhoto = useTakePhoto();
   const setProfilePhoto = useSetProfilePhoto();
   const addPhotoToPerson = useAddPhotoToPerson();
+
+  const isCanceledError = (error: unknown) => {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+    return message.includes('cancelled') || message.includes('canceled');
+  };
 
   // Get the profile photo path
   const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
@@ -41,9 +47,12 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
               const result = await takePhoto.mutateAsync({ personId: person.id });
               await setProfilePhoto.mutateAsync({ personId: person.id, photoId: result.id });
               Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: any) {
-              if (!error.message.includes('cancelled')) {
-                Alert.alert('Error', error.message || 'Failed to take photo');
+            } catch (error) {
+              if (!isCanceledError(error)) {
+                Alert.alert(
+                  'Error',
+                  error instanceof Error ? error.message : 'Failed to take photo'
+                );
               }
             }
           },
@@ -55,9 +64,12 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
               const result = await addPhotoToPerson.mutateAsync({ personId: person.id });
               await setProfilePhoto.mutateAsync({ personId: person.id, photoId: result.id });
               Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: any) {
-              if (!error.message.includes('cancelled')) {
-                Alert.alert('Error', error.message || 'Failed to add photo');
+            } catch (error) {
+              if (!isCanceledError(error)) {
+                Alert.alert(
+                  'Error',
+                  error instanceof Error ? error.message : 'Failed to add photo'
+                );
               }
             }
           },
