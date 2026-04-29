@@ -5,6 +5,13 @@ import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { usePerson, useUpdatePerson } from '@/hooks/usePeople';
 import { devLogger } from '@/lib/utils/devLogger';
+import MetLocationInput from '@/components/person/MetLocationInput';
+import SocialLinksEditor from '@/components/person/SocialLinksEditor';
+import {
+  parseSocialLinksJson,
+  serializeSocialLinks,
+  type SocialLink,
+} from '@/lib/social/socialLinks';
 
 export default function EditPersonScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
@@ -15,6 +22,9 @@ export default function EditPersonScreen() {
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [metDate, setMetDate] = useState('');
+  const [metLocation, setMetLocation] = useState('');
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [notes, setNotes] = useState('');
   const [personType, setPersonType] = useState<string>('primary');
   const [importanceToUser, setImportanceToUser] = useState<string>('unknown');
@@ -29,6 +39,9 @@ export default function EditPersonScreen() {
       setDateOfBirth(
         person.dateOfBirth ? new Date(person.dateOfBirth).toISOString().split('T')[0] : ''
       );
+      setMetDate(person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '');
+      setMetLocation(person.metLocation || '');
+      setSocialLinks(parseSocialLinksJson(person.socialLinks));
       setNotes(person.notes || '');
       setPersonType(person.personType || 'primary');
       setImportanceToUser(person.importanceToUser || 'unknown');
@@ -61,6 +74,7 @@ export default function EditPersonScreen() {
 
     try {
       const parsedBirthday = parseFlexibleDate(dateOfBirth);
+      const parsedMetDate = parseFlexibleDate(metDate);
 
       await updatePerson.mutateAsync({
         id: personId!,
@@ -68,6 +82,9 @@ export default function EditPersonScreen() {
         nickname: nickname.trim() || null,
         relationshipType: relationshipType as any,
         dateOfBirth: parsedBirthday || undefined,
+        metDate: parsedMetDate || null,
+        metLocation: metLocation.trim() || null,
+        socialLinks: serializeSocialLinks(socialLinks),
         notes: notes.trim() || null,
         personType: personType as any,
         importanceToUser: importanceToUser as any,
@@ -186,6 +203,22 @@ export default function EditPersonScreen() {
             <Text variant="labelSmall" style={styles.birthdayHint}>
               Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
             </Text>
+
+            <TextInput
+              mode="outlined"
+              label="When you met (optional)"
+              placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+              value={metDate}
+              onChangeText={setMetDate}
+              style={styles.input}
+            />
+            <Text variant="labelSmall" style={styles.birthdayHint}>
+              Year alone is fine, e.g. 2024.
+            </Text>
+
+            <MetLocationInput value={metLocation} onChangeText={setMetLocation} />
+
+            <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
 
             <Text variant="titleSmall" style={styles.label}>
               Person Type

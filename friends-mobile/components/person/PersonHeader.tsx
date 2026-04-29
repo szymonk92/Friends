@@ -8,10 +8,20 @@ import {
   useAddPhotoToPerson,
 } from '@/hooks/usePhotos';
 import type { Person } from '@/lib/db/schema';
+import SocialLinksStrip from './SocialLinksStrip';
+import { parseSocialLinksJson } from '@/lib/social/socialLinks';
 
 interface PersonHeaderProps {
   person: Person;
   onAvatarPress?: () => void;
+}
+
+function formatMetLine(metDate: Date | null | undefined, metLocation: string | null | undefined): string {
+  const datePart = metDate ? formatShortDate(new Date(metDate)) : '';
+  const locationPart = metLocation?.trim() || '';
+  if (datePart && locationPart) return `Met in ${locationPart} · ${datePart}`;
+  if (locationPart) return `Met in ${locationPart}`;
+  return `Met ${datePart}`;
 }
 
 export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProps) {
@@ -133,14 +143,16 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         )}
       </View>
 
-      {person.metDate && (
+      {(person.metDate || person.metLocation) && (
         <Text
           variant="bodySmall"
           style={[styles.metDate, { color: theme.colors.onSurfaceVariant }]}
         >
-          Met on {formatShortDate(new Date(person.metDate))}
+          {formatMetLine(person.metDate, person.metLocation)}
         </Text>
       )}
+
+      <SocialLinksStrip links={parseSocialLinksJson(person.socialLinks)} />
 
       {person.notes && (
         <View style={styles.notesSection}>

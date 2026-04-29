@@ -89,6 +89,8 @@ export const people = sqliteTable(
       enum: ['friend', 'family', 'colleague', 'acquaintance', 'partner'],
     }),
     metDate: integer('met_date', { mode: 'timestamp' }),
+    metLocation: text('met_location'),
+    socialLinks: text('social_links'),
 
     // Person Classification & Management
     personType: text('person_type', {

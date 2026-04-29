@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { socialLinksSchema } from '@/lib/social/socialLinks';
 
 /**
  * Validation schemas for the Friends app
@@ -27,6 +28,8 @@ export const newPersonSchema = z.object({
   nickname: z.string().optional(),
   relationshipType: relationshipTypeEnum.optional(),
   metDate: z.date().optional(),
+  metLocation: z.string().trim().max(120).optional().nullable(),
+  socialLinks: socialLinksSchema.optional().nullable(),
   personType: personTypeEnum.default('placeholder'),
   dataCompleteness: dataCompletenessEnum.default('minimal'),
   addedBy: addedByEnum.default('user'),

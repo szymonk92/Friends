@@ -6,6 +6,9 @@ import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
 import { useTranslation } from 'react-i18next';
 import { devLogger } from '@/lib/utils/devLogger';
+import MetLocationInput from '@/components/person/MetLocationInput';
+import SocialLinksEditor from '@/components/person/SocialLinksEditor';
+import { serializeSocialLinks, type SocialLink } from '@/lib/social/socialLinks';
 
 export default function AddPersonModal() {
   const { t } = useTranslation();
@@ -14,6 +17,9 @@ export default function AddPersonModal() {
   const [relationshipType, setRelationshipType] = useState<string>('friend');
   const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [metDate, setMetDate] = useState('');
+  const [metLocation, setMetLocation] = useState('');
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,12 +74,16 @@ export default function AddPersonModal() {
 
     try {
       const parsedBirthday = parseFlexibleDate(dateOfBirth);
+      const parsedMetDate = parseFlexibleDate(metDate);
 
       await createPerson.mutateAsync({
         name: name.trim(),
         nickname: nickname.trim() || undefined,
         relationshipType: relationshipType as any,
         dateOfBirth: parsedBirthday || undefined,
+        metDate: parsedMetDate || undefined,
+        metLocation: metLocation.trim() || undefined,
+        socialLinks: serializeSocialLinks(socialLinks) || undefined,
         notes: notes.trim() || undefined,
         personType: personType,
         dataCompleteness: 'partial',
@@ -219,6 +229,22 @@ export default function AddPersonModal() {
           <Text variant="labelSmall" style={styles.birthdayHint}>
             {t('person.birthdayHint')}
           </Text>
+
+          <TextInput
+            mode="outlined"
+            label="When you met (optional)"
+            placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+            value={metDate}
+            onChangeText={setMetDate}
+            style={styles.input}
+          />
+          <Text variant="labelSmall" style={styles.birthdayHint}>
+            Year alone is fine, e.g. 2024.
+          </Text>
+
+          <MetLocationInput value={metLocation} onChangeText={setMetLocation} />
+
+          <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
 
           <TextInput
             mode="outlined"

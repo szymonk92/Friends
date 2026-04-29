@@ -75,6 +75,8 @@ export async function initializeDatabase() {
         photo_id TEXT,
         relationship_type TEXT,
         met_date INTEGER,
+        met_location TEXT,
+        social_links TEXT,
         person_type TEXT DEFAULT 'placeholder',
         data_completeness TEXT DEFAULT 'minimal',
         added_by TEXT DEFAULT 'auto_created',
@@ -111,6 +113,20 @@ export async function initializeDatabase() {
     // Migration: Add user_sentiment column to people table
     try {
       expoDb.execSync("ALTER TABLE people ADD COLUMN user_sentiment TEXT DEFAULT 'neutral';");
+    } catch {
+      // Column already exists
+    }
+
+    // Migration: Add met_location column to people table
+    try {
+      expoDb.execSync('ALTER TABLE people ADD COLUMN met_location TEXT;');
+    } catch {
+      // Column already exists
+    }
+
+    // Migration: Add social_links column to people table (JSON-encoded SocialLink[])
+    try {
+      expoDb.execSync('ALTER TABLE people ADD COLUMN social_links TEXT;');
     } catch {
       // Column already exists
     }

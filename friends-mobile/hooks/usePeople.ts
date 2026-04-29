@@ -1,9 +1,10 @@
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, files, type NewPerson, type Person } from '@/lib/db/schema';
+import { people, files, events, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
+import { COUNTRIES } from '@/lib/data/countries';
 
 /**
  * Extended Person type that includes photoPath from file system
@@ -240,5 +241,105 @@ export function useDeletePerson() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
     },
+  });
+}
+
+export type MetLocationSuggestion = {
+  value: string;
+  source: 'history' | 'trip' | 'country';
+  count?: number;
+  trip?: { id: string; name: string };
+};
+
+/**
+ * Returns place suggestions for the "where I met them" input, ranked:
+ *   1. Distinct met_location values from this user's people (frequency-ranked)
+ *   2. Trip events (eventType = 'trip') with a location set
+ *   3. Built-in country list
+ *
+ * The input is always free text — these are just suggestions.
+ */
+export function useMetLocationSuggestions(query: string) {
+  const trimmed = query.trim();
+  return useQuery<MetLocationSuggestion[]>({
+    queryKey: ['metLocationSuggestions', trimmed.toLowerCase()],
+    queryFn: async () => {
+      const userId = await getCurrentUserId();
+      const lowered = trimmed.toLowerCase();
+
+      // Source 1: previous met_location values
+      const historyRows = await db
+        .select({
+          value: people.metLocation,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(people)
+        .where(
+          and(
+            eq(people.userId, userId),
+            isNull(people.deletedAt),
+            sql`${people.metLocation} IS NOT NULL AND TRIM(${people.metLocation}) != ''`
+          )
+        )
+        .groupBy(people.metLocation)
+        .orderBy(sql`COUNT(*) DESC`)
+        .limit(20);
+
+      const history: MetLocationSuggestion[] = historyRows
+        .filter((r) => r.value && (!lowered || r.value.toLowerCase().includes(lowered)))
+        .map((r) => ({ value: r.value as string, source: 'history' as const, count: r.count }));
+
+      // Source 2: trip events with a location
+      const tripRows = await db
+        .select({
+          id: events.id,
+          name: events.name,
+          location: events.location,
+        })
+        .from(events)
+        .where(
+          and(
+            eq(events.userId, userId),
+            eq(events.eventType, 'trip'),
+            isNull(events.deletedAt),
+            sql`${events.location} IS NOT NULL AND TRIM(${events.location}) != ''`
+          )
+        )
+        .orderBy(desc(events.eventDate))
+        .limit(20);
+
+      const trips: MetLocationSuggestion[] = tripRows
+        .filter(
+          (r) =>
+            !lowered ||
+            (r.location && r.location.toLowerCase().includes(lowered)) ||
+            (r.name && r.name.toLowerCase().includes(lowered))
+        )
+        .map((r) => ({
+          value: r.location as string,
+          source: 'trip' as const,
+          trip: { id: r.id, name: r.name },
+        }));
+
+      // Source 3: built-in country list
+      const countries: MetLocationSuggestion[] = COUNTRIES.filter(
+        (c) => !lowered || c.toLowerCase().includes(lowered)
+      )
+        .slice(0, 8)
+        .map((c) => ({ value: c, source: 'country' as const }));
+
+      // Dedupe — prefer history > trip > country
+      const seen = new Set<string>();
+      const out: MetLocationSuggestion[] = [];
+      for (const s of [...history, ...trips, ...countries]) {
+        const key = s.value.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(s);
+        if (out.length >= 8) break;
+      }
+      return out;
+    },
+    staleTime: 30_000,
   });
 }
