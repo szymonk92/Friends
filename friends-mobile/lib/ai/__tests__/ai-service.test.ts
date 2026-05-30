@@ -120,7 +120,7 @@ describe('AI Service', () => {
 
       expect(GoogleGenerativeAI).toHaveBeenCalledWith('test-gemini-key');
       expect(mockGetGenerativeModel).toHaveBeenCalledWith({
-        model: 'gemini-2.0-flash-lite',
+        model: 'gemini-2.5-flash-lite',
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 8192,

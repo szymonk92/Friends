@@ -11,7 +11,7 @@
  * - GEMINI_API_KEY (if using gemini)
  */
 
-import { extractRelationsFromStorySession, ExtractionResult } from '../extraction';
+import { extractRelationsFromStorySession  } from '../extraction';
 import { TEST_CORPUS, StoryTestCase } from './test-corpus';
 import { AIServiceConfig, AIModel } from '../ai-service';
 
