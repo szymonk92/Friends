@@ -24,6 +24,7 @@ import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 import TimelineEventItem from '@/components/timeline/TimelineEventItem';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
+import { parseFlexibleDate } from '@/lib/utils/dates';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -165,23 +166,6 @@ export default function TimelineScreen() {
   const getEventLabel = (type: string) => {
     const eventConfig = EVENT_TYPES.find((e) => e.value === type);
     return eventConfig?.label || type;
-  };
-
-  const parseFlexibleDate = (input: string): Date | null => {
-    const trimmed = input.trim();
-    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
-
-    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
-      // Year only: YYYY -> Jan 1st of that year
-      return new Date(parts[0], 0, 1);
-    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
-      // Year-Month: YYYY-MM -> 1st of that month
-      return new Date(parts[0], parts[1] - 1, 1);
-    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
-      // Full date: YYYY-MM-DD
-      return new Date(parts[0], parts[1] - 1, parts[2]);
-    }
-    return null;
   };
 
   const handleAddEvent = async () => {

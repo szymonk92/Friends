@@ -10,6 +10,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { useState } from 'react';
+import { parseFlexibleDate } from '@/lib/utils/dates';
 import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';
 import { useUpdatePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
@@ -37,42 +38,6 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   // Get important dates from relations
   const importantDates =
     personRelations?.filter((r) => r.relationType === HAS_IMPORTANT_DATE) || [];
-
-  const parseFlexibleDate = (input: string): Date | null => {
-    const trimmed = input.trim();
-    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
-
-    const isValidDate = (year: number, month: number, day: number) => {
-      const date = new Date(year, month - 1, day);
-      return (
-        date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-      );
-    };
-
-    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
-      return new Date(parts[0], 0, 1);
-    } else if (
-      parts.length === 2 &&
-      parts[0] >= 1900 &&
-      parts[0] <= 2100 &&
-      parts[1] >= 1 &&
-      parts[1] <= 12
-    ) {
-      return new Date(parts[0], parts[1] - 1, 1);
-    } else if (
-      parts.length === 3 &&
-      parts[0] >= 1900 &&
-      parts[0] <= 2100 &&
-      parts[1] >= 1 &&
-      parts[1] <= 12 &&
-      parts[2] >= 1 &&
-      parts[2] <= 31 &&
-      isValidDate(parts[0], parts[1], parts[2])
-    ) {
-      return new Date(parts[0], parts[1] - 1, parts[2]);
-    }
-    return null;
-  };
 
   const handleAddImportantDate = async () => {
     if (!dateName.trim()) {

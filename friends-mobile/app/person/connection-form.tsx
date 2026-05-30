@@ -114,6 +114,17 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const relationshipTypeScrollAnim = useRef(new Animated.Value(0)).current;
   const statusScrollAnim = useRef(new Animated.Value(0)).current;
 
+  // Pre-select relationship type from query (e.g. PartnerBadge deep-link)
+  useEffect(() => {
+    if (mode !== 'add') return;
+    const requested = typeof params.relationshipType === 'string' ? params.relationshipType : undefined;
+    if (requested && RELATIONSHIP_TYPE_VALUES.has(requested as ConnectionRelationshipType)) {
+      setRelationshipType(requested as ConnectionRelationshipType);
+    }
+    // run only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load connection data for edit mode
   useEffect(() => {
     if (mode === 'edit' && connectionId) {
@@ -279,7 +290,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
   const selectedSinglePerson = useMemo<SelectablePerson | null>(() => {
     if (singlePersonId) {
-      return allPeople.find((p) => p.id === singlePersonId);
+      return allPeople.find((p) => p.id === singlePersonId) ?? null;
     }
     if (pendingPersonName) {
       return {

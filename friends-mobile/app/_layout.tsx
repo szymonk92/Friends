@@ -121,11 +121,18 @@ export default Sentry.wrap(function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { themeColor, loadThemeColor, fontFamily, loadFontFamily } = useSettings();
+  const {
+    themeColor, loadThemeColor,
+    fontFamily, loadFontFamily,
+    loadApiKey, loadGeminiApiKey, loadSelectedModel,
+  } = useSettings();
 
   useEffect(() => {
     loadThemeColor();
     loadFontFamily();
+    loadApiKey();
+    loadGeminiApiKey();
+    loadSelectedModel();
   }, []);
 
   const paperTheme = createTheme(themeColor, fontFamily, colorScheme === 'dark');

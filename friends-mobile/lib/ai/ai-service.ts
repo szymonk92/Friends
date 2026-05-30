@@ -7,6 +7,10 @@ export type { AIModel } from '@/store/useSettings';
 export interface AIServiceConfig {
   model: AIModel;
   apiKey: string;
+  /** Optional system prompt. When set, passed as a dedicated system instruction
+   *  (Gemini: systemInstruction, Anthropic: system param) rather than prepended
+   *  to the user message — improves extraction quality significantly. */
+  systemPrompt?: string;
 }
 
 // Session management interfaces
@@ -481,7 +485,7 @@ export async function callAI(
 ): Promise<{ response: string; tokensUsed?: number; debugInfo?: AIDebugInfo }> {
   try {
     if (config.model === 'anthropic') {
-      const result = await callAnthropic(config.apiKey, prompt);
+      const result = await callAnthropic(config.apiKey, prompt, config.systemPrompt);
       // compute cost and token usage
       const cost = calculateCost(config.model, result.tokensUsed || 0);
       const tokenUsage =
@@ -507,7 +511,7 @@ export async function callAI(
         },
       };
     } else {
-      const result = await callGemini(config.apiKey, prompt, config.model);
+      const result = await callGemini(config.apiKey, prompt, config.model, config.systemPrompt);
       const cost = calculateCost(config.model, result.tokensUsed || 0);
       const tokenUsage =
         result.tokensUsed !== undefined
@@ -553,7 +557,8 @@ export async function callAI(
 
 async function callAnthropic(
   apiKey: string,
-  prompt: string
+  prompt: string,
+  systemPrompt?: string
 ): Promise<{ response: string; tokensUsed: number; debugInfo?: AIDebugInfo }> {
   const anthropic = new Anthropic({
     apiKey,
@@ -565,6 +570,7 @@ async function callAnthropic(
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       temperature: 0.3,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: [
         {
           role: 'user',
@@ -639,13 +645,18 @@ async function callAnthropicWithHistory(
 async function callGemini(
   apiKey: string,
   prompt: string,
-  modelName: AIModel = 'gemini'
+  modelName: AIModel = 'gemini',
+  systemPrompt?: string
 ): Promise<{ response: string; tokensUsed?: number; debugInfo?: AIDebugInfo }> {
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // Map internal model name to Gemini API model name
-  let apiModelName = 'gemini-2.0-flash-lite'; // Default 2.0 Flash Lite
-  if (modelName === 'gemini-1.5-flash') {
+  let apiModelName = 'gemini-2.5-flash-lite'; // Default: stable, fast, cost-efficient
+  if (modelName === 'gemini-2.5-flash-lite') {
+    apiModelName = 'gemini-2.5-flash-lite';
+  } else if (modelName === 'gemini-3.1-flash-lite') {
+    apiModelName = 'gemini-3.1-flash-lite-preview';
+  } else if (modelName === 'gemini-1.5-flash') {
     apiModelName = 'gemini-1.5-flash';
   } else if (modelName === 'gemini-1.5-pro') {
     apiModelName = 'gemini-1.5-pro';
@@ -653,6 +664,7 @@ async function callGemini(
 
   const model = genAI.getGenerativeModel({
     model: apiModelName,
+    ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
     generationConfig: {
       temperature: 0.3,
       maxOutputTokens: 8192, // Increased for Pro models
@@ -695,8 +707,12 @@ async function callGeminiWithHistory(
   const genAI = new GoogleGenerativeAI(apiKey);
 
   // Map internal model name to Gemini API model name
-  let apiModelName = 'gemini-2.0-flash-lite'; // Default 2.0 Flash Lite
-  if (modelName === 'gemini-1.5-flash') {
+  let apiModelName = 'gemini-2.5-flash-lite'; // Default: stable, fast, cost-efficient
+  if (modelName === 'gemini-2.5-flash-lite') {
+    apiModelName = 'gemini-2.5-flash-lite';
+  } else if (modelName === 'gemini-3.1-flash-lite') {
+    apiModelName = 'gemini-3.1-flash-lite-preview';
+  } else if (modelName === 'gemini-1.5-flash') {
     apiModelName = 'gemini-1.5-flash';
   } else if (modelName === 'gemini-1.5-pro') {
     apiModelName = 'gemini-1.5-pro';
@@ -766,13 +782,8 @@ function classifyError(error: any, _model: AIModel): AIError {
     errorMessage.includes('resource exhausted')
   ) {
     aiError.type = AIErrorType.RATE_LIMIT;
-    aiError.retryable = true;
+    aiError.retryable = false; // Don't retry — quota may be exhausted; retrying burns more quota
     aiError.statusCode = 429;
-    // Extract retry-after if available, otherwise use exponential backoff
-    const retryAfterMatch = errorMessage.match(/retry[- ]after[:\s]+(\d+)/i);
-    if (retryAfterMatch) {
-      aiError.retryAfter = parseInt(retryAfterMatch[1]) * 1000;
-    }
     return aiError;
   }
 
@@ -788,13 +799,16 @@ function classifyError(error: any, _model: AIModel): AIError {
     return aiError;
   }
 
-  // Invalid API key (401/403)
+  // Invalid API key (400/401/403 + Gemini 'API key not valid')
   if (
+    errorMessage.includes('400') ||
     errorMessage.includes('401') ||
     errorMessage.includes('403') ||
     errorMessage.includes('unauthorized') ||
     errorMessage.includes('forbidden') ||
     errorMessage.includes('invalid api key') ||
+    errorMessage.includes('api key not valid') ||
+    errorMessage.includes('api_key_invalid') ||
     errorMessage.includes('authentication')
   ) {
     aiError.type = AIErrorType.INVALID_API_KEY;
@@ -899,9 +913,9 @@ function createUserFriendlyError(error: AIError, model: AIModel): Error {
 
   switch (error.type) {
     case AIErrorType.RATE_LIMIT:
-      message = `${modelName} rate limit reached. Please wait a moment and try again.`;
+      message = `${modelName} rate limit reached (${error.message}).`;
       suggestion =
-        'Tip: Try again in a few minutes, or consider upgrading your API plan for higher limits.';
+        'If this was your first request, your free-tier quota may be exhausted. Check your API quota at console.cloud.google.com or aistudio.google.com.';
       break;
 
     case AIErrorType.QUOTA_EXCEEDED:
@@ -915,8 +929,8 @@ function createUserFriendlyError(error: AIError, model: AIModel): Error {
       break;
 
     case AIErrorType.NETWORK_ERROR:
-      message = 'Network connection error. Please check your internet connection.';
-      suggestion = 'Tip: Make sure you have a stable internet connection and try again.';
+      message = `Network error (${error.message})`;
+      suggestion = 'Check your internet connection. If it is working, the API endpoint may be unreachable.';
       break;
 
     case AIErrorType.TIMEOUT:

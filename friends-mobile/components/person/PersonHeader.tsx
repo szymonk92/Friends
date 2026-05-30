@@ -1,4 +1,6 @@
-import { StyleSheet, View, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Image, Alert, Linking } from 'react-native';
+import { useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import { Text, Chip, IconButton, useTheme } from 'react-native-paper';
 import { getInitials, formatRelativeTime, formatShortDate } from '@/lib/utils/format';
 import {
@@ -9,7 +11,9 @@ import {
 } from '@/hooks/usePhotos';
 import type { Person } from '@/lib/db/schema';
 import SocialLinksStrip from './SocialLinksStrip';
+import PartnerBadge from './PartnerBadge';
 import { parseSocialLinksJson } from '@/lib/social/socialLinks';
+import { parseLanguagesJson } from '@/lib/utils/languages';
 
 interface PersonHeaderProps {
   person: Person;
@@ -22,6 +26,101 @@ function formatMetLine(metDate: Date | null | undefined, metLocation: string | n
   if (datePart && locationPart) return `Met in ${locationPart} · ${datePart}`;
   if (locationPart) return `Met in ${locationPart}`;
   return `Met ${datePart}`;
+}
+
+function ContactQuickRow({
+  phone,
+  email,
+  primaryColor,
+}: {
+  phone: string | null | undefined;
+  email: string | null | undefined;
+  primaryColor: string;
+}) {
+  if (!phone && !email) return null;
+
+  const callOrText = async (value: string, scheme: 'tel:' | 'mailto:') => {
+    const url = `${scheme}${value}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+      else Alert.alert(scheme === 'tel:' ? 'Phone' : 'Email', value);
+    } catch {
+      Alert.alert(scheme === 'tel:' ? 'Phone' : 'Email', value);
+    }
+  };
+
+  const copy = async (value: string, label: string) => {
+    await Clipboard.setStringAsync(value);
+    Alert.alert('Copied', `${label} copied to clipboard`);
+  };
+
+  return (
+    <View style={styles.contactRow}>
+      {phone && (
+        <IconButton
+          icon="phone"
+          mode="contained-tonal"
+          size={18}
+          onPress={() => callOrText(phone, 'tel:')}
+          onLongPress={() => copy(phone, 'Phone')}
+          accessibilityLabel={`Call ${phone}`}
+          iconColor={primaryColor}
+          style={styles.contactIcon}
+        />
+      )}
+      {email && (
+        <IconButton
+          icon="email"
+          mode="contained-tonal"
+          size={18}
+          onPress={() => callOrText(email, 'mailto:')}
+          onLongPress={() => copy(email, 'Email')}
+          accessibilityLabel={`Email ${email}`}
+          iconColor={primaryColor}
+          style={styles.contactIcon}
+        />
+      )}
+    </View>
+  );
+}
+
+const NOTES_PREVIEW_CHARS = 220;
+
+function PersonNotes({ text }: { text: string }) {
+  const theme = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const overflow = text.length > NOTES_PREVIEW_CHARS;
+  const visible = !overflow || expanded ? text : `${text.slice(0, NOTES_PREVIEW_CHARS).trimEnd()}…`;
+  return (
+    <View style={styles.notesSection}>
+      <Text variant="bodyMedium" style={[styles.notes, { color: theme.colors.onSurface }]}>
+        {visible}
+      </Text>
+      {overflow && (
+        <Text
+          variant="labelSmall"
+          onPress={() => setExpanded((v) => !v)}
+          style={[styles.notesToggle, { color: theme.colors.primary }]}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function LanguagesChips({ languages }: { languages: string[] }) {
+  if (!languages.length) return null;
+  return (
+    <View style={styles.languagesRow}>
+      {languages.map((lang) => (
+        <Chip key={lang} compact icon="translate" style={styles.languageChip}>
+          {lang}
+        </Chip>
+      ))}
+    </View>
+  );
 }
 
 export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProps) {
@@ -152,15 +251,28 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         </Text>
       )}
 
+      {person.homeLocation && (
+        <Text
+          variant="bodySmall"
+          style={[styles.metDate, { color: theme.colors.onSurfaceVariant }]}
+        >
+          Lives in {person.homeLocation}
+        </Text>
+      )}
+
+      <PartnerBadge personId={person.id} />
+
+      <ContactQuickRow
+        phone={person.phone}
+        email={person.email}
+        primaryColor={theme.colors.primary}
+      />
+
       <SocialLinksStrip links={parseSocialLinksJson(person.socialLinks)} />
 
-      {person.notes && (
-        <View style={styles.notesSection}>
-          <Text variant="bodyMedium" style={[styles.notes, { color: theme.colors.onSurface }]}>
-            {person.notes}
-          </Text>
-        </View>
-      )}
+      <LanguagesChips languages={parseLanguagesJson(person.languages)} />
+
+      {person.notes && <PersonNotes text={person.notes} />}
 
       <Text variant="bodySmall" style={[styles.meta, { color: theme.colors.outline }]}>
         Last updated {formatRelativeTime(new Date(person.updatedAt))}
@@ -249,5 +361,28 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 12,
     textAlign: 'center',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  contactIcon: {
+    margin: 0,
+  },
+  languagesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 6,
+  },
+  languageChip: {
+    marginRight: 4,
+  },
+  notesToggle: {
+    marginTop: 6,
+    fontWeight: '600',
   },
 });

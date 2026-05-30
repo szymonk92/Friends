@@ -77,6 +77,10 @@ export async function initializeDatabase() {
         met_date INTEGER,
         met_location TEXT,
         social_links TEXT,
+        phone TEXT,
+        email TEXT,
+        home_location TEXT,
+        languages TEXT,
         person_type TEXT DEFAULT 'placeholder',
         data_completeness TEXT DEFAULT 'minimal',
         added_by TEXT DEFAULT 'auto_created',
@@ -129,6 +133,21 @@ export async function initializeDatabase() {
       expoDb.execSync('ALTER TABLE people ADD COLUMN social_links TEXT;');
     } catch {
       // Column already exists
+    }
+
+    // Migration: Add PII contact columns (phone/email) and home_location, languages
+    const piiMigrations = [
+      'ALTER TABLE people ADD COLUMN phone TEXT;',
+      'ALTER TABLE people ADD COLUMN email TEXT;',
+      'ALTER TABLE people ADD COLUMN home_location TEXT;',
+      'ALTER TABLE people ADD COLUMN languages TEXT;',
+    ];
+    for (const stmt of piiMigrations) {
+      try {
+        expoDb.execSync(stmt);
+      } catch {
+        // Column already exists
+      }
     }
 
     // Create stories table
@@ -195,6 +214,7 @@ export async function initializeDatabase() {
         valid_from INTEGER,
         valid_to INTEGER,
         status TEXT DEFAULT 'current',
+        assertion TEXT DEFAULT 'asserted',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         deleted_at INTEGER,
@@ -202,6 +222,13 @@ export async function initializeDatabase() {
         last_synced_at INTEGER
       );
     `);
+
+    // Migration: add assertion column to relations
+    try {
+      expoDb.execSync("ALTER TABLE relations ADD COLUMN assertion TEXT DEFAULT 'asserted';");
+    } catch {
+      // already exists
+    }
 
     // Create contact_events table
     expoDb.execSync(`

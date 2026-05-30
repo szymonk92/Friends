@@ -1,5 +1,10 @@
 {
   "android": {
     "package": "com.szymonk92.friends"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "79352f9b-e255-499b-82ce-fccaf7541f17"
+    }
   }
 }

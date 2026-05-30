@@ -7,16 +7,87 @@ import { usePerson, useUpdatePerson } from '@/hooks/usePeople';
 import { devLogger } from '@/lib/utils/devLogger';
 import MetLocationInput from '@/components/person/MetLocationInput';
 import SocialLinksEditor from '@/components/person/SocialLinksEditor';
+import LanguagesEditor from '@/components/person/LanguagesEditor';
+import BrainDumpSection, { type AppliedBrainDump } from '@/components/person/BrainDumpSection';
+import { usePersonRelations } from '@/hooks/useRelations';
+import { usePersonConnections } from '@/hooks/useConnections';
+import { usePeople } from '@/hooks/usePeople';
+import type { ExistingPersonState } from '@/lib/ai/brain-dump-diff';
 import {
   parseSocialLinksJson,
   serializeSocialLinks,
   type SocialLink,
 } from '@/lib/social/socialLinks';
+import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
+import { isValidEmail, isValidPhone, normalizePhone } from '@/lib/utils/pii';
+import { pickContact, isContactPickerAvailable } from '@/lib/utils/contactsPicker';
+import { useCreatePerson } from '@/hooks/usePeople';
+import { useCreateConnection } from '@/hooks/useConnections';
+import { useCreateRelations, useUpdateRelation } from '@/hooks/useRelations';
+import { useUpdateConnection } from '@/hooks/useConnections';
+import { parseFlexibleDate } from '@/lib/utils/dates';
+
+function buildExistingState(args: {
+  metLocation: string;
+  metDate: string;
+  homeLocation: string;
+  phone: string;
+  email: string;
+  socialLinks: SocialLink[];
+  languages: string[];
+  personRelations: { id: string; relationType: string; objectLabel: string; status?: string | null }[];
+  personConnections: { id: string; person1Id: string; person2Id: string; relationshipType: string | null; status: string | null }[];
+  allPeople: { id: string; name: string }[];
+  personId: string;
+}): ExistingPersonState {
+  const activePartnerConn = args.personConnections.find(
+    (c) => c.relationshipType === 'partner' && c.status !== 'ended'
+  );
+  let activePartner: ExistingPersonState['activePartner'];
+  if (activePartnerConn) {
+    const otherId =
+      activePartnerConn.person1Id === args.personId
+        ? activePartnerConn.person2Id
+        : activePartnerConn.person1Id;
+    const partner = args.allPeople.find((p) => p.id === otherId);
+    if (partner) {
+      activePartner = {
+        id: activePartnerConn.id,
+        partnerName: partner.name,
+        status: activePartnerConn.status,
+      };
+    }
+  }
+  return {
+    metLocation: args.metLocation || null,
+    metDate: args.metDate || null,
+    homeLocation: args.homeLocation || null,
+    phone: args.phone || null,
+    email: args.email || null,
+    socialLinks: args.socialLinks,
+    languages: args.languages,
+    activePartner,
+    attributes: args.personRelations.map((r) => ({
+      id: r.id,
+      relationType: r.relationType,
+      objectLabel: r.objectLabel,
+      status: r.status ?? null,
+    })),
+  };
+}
 
 export default function EditPersonScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person, isLoading } = usePerson(personId!);
   const updatePerson = useUpdatePerson();
+  const createPerson = useCreatePerson();
+  const createConnection = useCreateConnection();
+  const updateConnection = useUpdateConnection();
+  const createRelations = useCreateRelations();
+  const updateRelation = useUpdateRelation();
+  const { data: personRelations = [] } = usePersonRelations(personId!);
+  const { data: personConnections = [] } = usePersonConnections(personId!);
+  const { data: allPeople = [] } = usePeople();
 
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -24,6 +95,10 @@ export default function EditPersonScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [metDate, setMetDate] = useState('');
   const [metLocation, setMetLocation] = useState('');
+  const [homeLocation, setHomeLocation] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [notes, setNotes] = useState('');
   const [personType, setPersonType] = useState<string>('primary');
@@ -41,6 +116,10 @@ export default function EditPersonScreen() {
       );
       setMetDate(person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '');
       setMetLocation(person.metLocation || '');
+      setHomeLocation(person.homeLocation || '');
+      setPhone(person.phone || '');
+      setEmail(person.email || '');
+      setLanguages(parseLanguagesJson(person.languages));
       setSocialLinks(parseSocialLinksJson(person.socialLinks));
       setNotes(person.notes || '');
       setPersonType(person.personType || 'primary');
@@ -48,25 +127,115 @@ export default function EditPersonScreen() {
     }
   }, [person]);
 
-  const parseFlexibleDate = (input: string): Date | null => {
-    const trimmed = input.trim();
-    if (!trimmed) return null;
+  const handlePickFromContacts = async () => {
+    const picked = await pickContact();
+    if (!picked) return;
+    if (picked.phone) setPhone(picked.phone);
+    if (picked.email) setEmail(picked.email);
+    if (picked.name && !name.trim()) setName(picked.name);
+  };
 
-    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
+  const handleBrainDumpApply = async (applied: AppliedBrainDump) => {
+    if (applied.metLocation) setMetLocation(applied.metLocation);
+    if (applied.metDate) setMetDate(applied.metDate);
+    if (applied.homeLocation) setHomeLocation(applied.homeLocation);
+    if (applied.phone) setPhone(applied.phone);
+    if (applied.email) setEmail(applied.email);
 
-    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
-      return new Date(parts[0], 0, 1);
-    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
-      return new Date(parts[0], parts[1] - 1, 1);
-    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
-      return new Date(parts[0], parts[1] - 1, parts[2]);
+    if (applied.socialHandles.length) {
+      const existingKeys = new Set(socialLinks.map((s) => `${s.platform}:${s.handle.toLowerCase()}`));
+      const additions = applied.socialHandles.filter(
+        (s) => !existingKeys.has(`${s.platform}:${s.handle.toLowerCase()}`)
+      );
+      if (additions.length) setSocialLinks([...socialLinks, ...additions]);
     }
-    return null;
+
+    if (applied.languages.length) {
+      const existing = new Set(languages.map((l) => l.toLowerCase()));
+      const additions = applied.languages.filter((l) => !existing.has(l.toLowerCase()));
+      if (additions.length) setLanguages([...languages, ...additions]);
+    }
+
+    const appendedNote = [notes.trim(), applied.rawText].filter(Boolean).join('\n\n');
+    setNotes(appendedNote);
+
+    // Side-effect writes (require a saved person + the AI key flow that just ran)
+    try {
+      // 1) Archive existing relations that the user accepted as UPDATE
+      if (applied.archiveRelationIds.length) {
+        const now = new Date();
+        await Promise.all(
+          applied.archiveRelationIds.map((id) =>
+            updateRelation.mutateAsync({ id, status: 'past', validTo: now })
+          )
+        );
+      }
+
+      // 2) End the old partner connection if the user accepted a new partner
+      if (applied.endsPartnerConnectionId) {
+        await updateConnection.mutateAsync({
+          id: applied.endsPartnerConnectionId,
+          status: 'ended',
+          endDate: new Date(),
+          endReason: 'breakup',
+        });
+      }
+
+      if (applied.partnerName && personId) {
+        const partner = await createPerson.mutateAsync({
+          name: applied.partnerName,
+          personType: 'primary',
+          dataCompleteness: 'minimal',
+          addedBy: 'ai_extraction',
+          status: 'active',
+          relationshipType: 'partner',
+        });
+        if (partner?.id) {
+          await createConnection.mutateAsync({
+            person1Id: personId,
+            person2Id: partner.id,
+            relationshipType: 'partner',
+            status: 'active',
+          });
+        }
+      }
+
+      if (applied.attributes.length && personId) {
+        await createRelations.mutateAsync(
+          applied.attributes.map((a) => ({
+            subjectId: personId,
+            subjectType: 'person',
+            relationType: a.relationType,
+            objectLabel: a.objectLabel,
+            confidence: a.confidence,
+            source: 'ai_extraction',
+            // Aspirations are tense-future; speculations/reported are still about the present.
+            status: a.assertion === 'aspiration' ? 'aspiration' : 'current',
+            assertion: a.assertion,
+          }))
+        );
+      }
+    } catch (e) {
+      Alert.alert(
+        'Some side-effects failed',
+        e instanceof Error ? e.message : 'Could not write partner or attributes.'
+      );
+    }
   };
 
   const handleSubmit = async () => {
     if (name.trim().length < 2) {
       Alert.alert('Invalid Name', 'Please enter a name with at least 2 characters');
+      return;
+    }
+    const trimmedPhone = normalizePhone(phone);
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      Alert.alert('Invalid phone', 'Phone may include digits, spaces, +, ( ), - and . only.');
+      return;
+    }
+    const trimmedEmail = email.trim();
+    if (trimmedEmail && !isValidEmail(trimmedEmail)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
 
@@ -84,6 +253,10 @@ export default function EditPersonScreen() {
         dateOfBirth: parsedBirthday || undefined,
         metDate: parsedMetDate || null,
         metLocation: metLocation.trim() || null,
+        homeLocation: homeLocation.trim() || null,
+        phone: trimmedPhone || null,
+        email: trimmedEmail || null,
+        languages: serializeLanguages(languages),
         socialLinks: serializeSocialLinks(socialLinks),
         notes: notes.trim() || null,
         personType: personType as any,
@@ -150,6 +323,24 @@ export default function EditPersonScreen() {
               Update information for {person.name}
             </Text>
 
+            <BrainDumpSection
+              personName={person.name}
+              existing={buildExistingState({
+                metLocation,
+                metDate,
+                homeLocation,
+                phone,
+                email,
+                socialLinks,
+                languages,
+                personRelations,
+                personConnections,
+                allPeople,
+                personId: personId!,
+              })}
+              onApply={handleBrainDumpApply}
+            />
+
             <TextInput
               mode="outlined"
               label="Name *"
@@ -194,7 +385,7 @@ export default function EditPersonScreen() {
 
             <TextInput
               mode="outlined"
-              label="Birthday (optional)"
+              label="Birthday"
               placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
               value={dateOfBirth}
               onChangeText={setDateOfBirth}
@@ -206,7 +397,7 @@ export default function EditPersonScreen() {
 
             <TextInput
               mode="outlined"
-              label="When you met (optional)"
+              label="When you met"
               placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
               value={metDate}
               onChangeText={setMetDate}
@@ -216,7 +407,54 @@ export default function EditPersonScreen() {
               Year alone is fine, e.g. 2024.
             </Text>
 
-            <MetLocationInput value={metLocation} onChangeText={setMetLocation} />
+            <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
+
+            <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
+
+            <View style={styles.phoneRow}>
+              <TextInput
+                mode="outlined"
+                label="Phone"
+                placeholder="+1 555 123 4567"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                autoCorrect={false}
+                style={styles.phoneInput}
+                maxLength={32}
+              />
+              {isContactPickerAvailable() && (
+                <Button
+                  mode="outlined"
+                  icon="contacts"
+                  onPress={handlePickFromContacts}
+                  style={styles.pickButton}
+                  compact
+                >
+                  Pick
+                </Button>
+              )}
+            </View>
+            {isContactPickerAvailable() && (
+              <Text variant="labelSmall" style={styles.birthdayHint}>
+                Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
+              </Text>
+            )}
+
+            <TextInput
+              mode="outlined"
+              label="Email"
+              placeholder="name@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              maxLength={254}
+            />
+
+            <LanguagesEditor value={languages} onChange={setLanguages} />
 
             <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
 
@@ -372,5 +610,17 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: 8,
     marginTop: -4,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  pickButton: {
+    alignSelf: 'center',
   },
 });

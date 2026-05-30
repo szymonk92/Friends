@@ -23,17 +23,31 @@ export const relationshipTypeEnum = z.enum([
   'partner',
 ]);
 
+export const phoneSchema = z
+  .string()
+  .trim()
+  .max(32)
+  .regex(/^[+\d][\d\s().-]{2,31}$/u, 'Invalid phone number');
+
+export const emailSchema = z.string().trim().max(254).email('Invalid email');
+
+export const languagesSchema = z.array(z.string().trim().min(1).max(40)).max(20);
+
 export const newPersonSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  nickname: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be 100 characters or fewer'),
+  nickname: z.string().trim().max(60, 'Nickname must be 60 characters or fewer').optional(),
   relationshipType: relationshipTypeEnum.optional(),
   metDate: z.date().optional(),
   metLocation: z.string().trim().max(120).optional().nullable(),
   socialLinks: socialLinksSchema.optional().nullable(),
+  phone: phoneSchema.optional().nullable(),
+  email: emailSchema.optional().nullable(),
+  homeLocation: z.string().trim().max(120).optional().nullable(),
+  languages: languagesSchema.optional().nullable(),
   personType: personTypeEnum.default('placeholder'),
   dataCompleteness: dataCompletenessEnum.default('minimal'),
   addedBy: addedByEnum.default('user'),
-  notes: z.string().optional(),
+  notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer').optional(),
 });
 
 export type NewPersonFormData = z.infer<typeof newPersonSchema>;
@@ -78,8 +92,8 @@ export const sourceEnum = z.enum([
 export const newRelationSchema = z.object({
   subjectId: z.string().uuid('Invalid person ID'),
   relationType: relationTypeEnum,
-  objectLabel: z.string().min(1, 'Object label is required'),
-  objectType: z.string().optional(),
+  objectLabel: z.string().min(1, 'Object label is required').max(200, 'Object label must be 200 characters or fewer'),
+  objectType: z.string().trim().max(60).optional(),
   intensity: intensityEnum.optional(),
   confidence: z.number().min(0).max(1).default(1.0),
   category: z.string().optional(),
@@ -97,8 +111,8 @@ export type NewRelationFormData = z.infer<typeof newRelationSchema>;
 // ============================================================================
 
 export const newStorySchema = z.object({
-  title: z.string().optional(),
-  content: z.string().min(10, 'Story must be at least 10 characters'),
+  title: z.string().trim().max(200, 'Title must be 200 characters or fewer').optional(),
+  content: z.string().min(10, 'Story must be at least 10 characters').max(20000, 'Story must be 20000 characters or fewer'),
   storyDate: z.date().optional(),
 });
 

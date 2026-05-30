@@ -25,7 +25,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -58,6 +61,7 @@
       "eas": {
         "projectId": "fdef4f42-54da-4660-942c-f46428d8ecf9"
       }
-    }
+    },
+    "owner": "szymonk92"
   }
 }

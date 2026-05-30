@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { List, Text, TextInput, useTheme } from 'react-native-paper';
-import { useMetLocationSuggestions } from '@/hooks/usePeople';
+import { useLocationSuggestions, type LocationKind, type LocationSuggestion } from '@/hooks/usePeople';
 
 type Props = {
   value: string;
   onChangeText: (next: string) => void;
+  kind?: LocationKind;
   label?: string;
   placeholder?: string;
 };
@@ -13,16 +14,23 @@ type Props = {
 export default function MetLocationInput({
   value,
   onChangeText,
-  label = 'Where you met',
-  placeholder = 'e.g. Chile, Krakow wedding, Vietnam hostel',
+  kind = 'met',
+  label,
+  placeholder,
 }: Props) {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
-  const { data: suggestions = [] } = useMetLocationSuggestions(value);
+  const { data: suggestions = [] } = useLocationSuggestions(value, kind);
+
+  const resolvedLabel = label ?? (kind === 'home' ? 'Where they live' : 'Where you met');
+  const resolvedPlaceholder =
+    placeholder ??
+    (kind === 'home'
+      ? 'e.g. London, Krakow, Bay Area'
+      : 'e.g. Chile, Krakow wedding, Vietnam hostel');
 
   const visibleSuggestions = useMemo(() => {
     const trimmed = value.trim().toLowerCase();
-    // hide the dropdown when the only match is exactly what's already typed
     if (!focused) return [];
     if (!suggestions.length) return [];
     if (
@@ -39,13 +47,12 @@ export default function MetLocationInput({
     <View style={styles.wrapper}>
       <TextInput
         mode="outlined"
-        label={label}
-        placeholder={placeholder}
+        label={resolvedLabel}
+        placeholder={resolvedPlaceholder}
         value={value}
         onChangeText={onChangeText}
         onFocus={() => setFocused(true)}
         onBlur={() => {
-          // small delay so taps on suggestions register before blur hides them
           setTimeout(() => setFocused(false), 120);
         }}
         autoCapitalize="words"
@@ -91,10 +98,7 @@ export default function MetLocationInput({
   );
 }
 
-function describe(s: { source: 'history' | 'trip' | 'country'; count?: number; trip?: { name: string } }): {
-  icon: string;
-  subtitle?: string;
-} {
+function describe(s: LocationSuggestion): { icon: string; subtitle?: string } {
   if (s.source === 'history') {
     return {
       icon: 'history',

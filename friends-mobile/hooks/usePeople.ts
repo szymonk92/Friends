@@ -1,7 +1,7 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, files, events, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
 import { COUNTRIES } from '@/lib/data/countries';
@@ -18,19 +18,14 @@ export type PersonWithPhoto = Person & {
  */
 async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = name.trim().toLowerCase();
-  const existingPeople = await db
-    .select()
-    .from(people)
-    .where(
-      and(
-        eq(people.userId, userId),
-        sql`lower(${people.name}) = ${normalizedName}`,
-        isNull(people.deletedAt),
-        ne(people.status, 'merged'),
-        excludeId ? ne(people.id, excludeId) : sql`1=1`
-      )
-    )
-    .limit(1);
+  const conditions = [
+    eq(people.userId, userId),
+    sql`lower(${people.name}) = ${normalizedName}`,
+    isNull(people.deletedAt),
+    ne(people.status, 'merged'),
+    ...(excludeId ? [ne(people.id, excludeId)] : []),
+  ];
+  const existingPeople = await db.select().from(people).where(and(...conditions)).limit(1);
   return existingPeople.length > 0;
 }
 
@@ -70,17 +65,6 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
 
       peopleLogger.info('People fetched', { count: peopleResults.length });
 
-      console.log('[usePeople] Fetched people:', {
-        count: peopleResults.length,
-        sample: peopleResults.slice(0, 3).map((p) => ({
-          id: p.id,
-          name: p.name,
-          relationshipType: p.relationshipType,
-          personType: p.personType,
-          hasPhotoId: !!p.photoId,
-        })),
-      });
-
       // Then try to get photo paths for people with photoId
       const photoIds = peopleResults.filter((p) => p.photoId).map((p) => p.photoId as string);
 
@@ -90,12 +74,7 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
           const photosResults = await db
             .select({ id: files.id, filePath: files.filePath })
             .from(files)
-            .where(
-              sql`${files.id} IN (${sql.join(
-                photoIds.map((id) => sql`${id}`),
-                sql`, `
-              )})`
-            );
+            .where(inArray(files.id, photoIds));
 
           for (const photo of photosResults) {
             photoMap[photo.id] = photo.filePath;
@@ -172,17 +151,11 @@ export function useCreatePerson() {
         throw new Error(`A person named "${data.name}" already exists`);
       }
 
-      const result = (await db
-        .insert(people)
-        .values({
-          ...data,
-          userId,
-          id: randomUUID(),
-        })
-        .returning()) as any[];
+      const newPerson: NewPerson = { ...data, userId, id: randomUUID() };
+      const [created] = (await db.insert(people).values(newPerson).returning()) as Person[];
 
-      perf.end(true, { personId: result[0]?.id, name: data.name });
-      return result[0];
+      perf.end(true, { personId: created?.id, name: data.name });
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
@@ -210,14 +183,14 @@ export function useUpdatePerson() {
         }
       }
 
-      const result = (await db
+      const [updated] = (await db
         .update(people)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(people.id, id))
-        .returning()) as any[];
+        .returning()) as Person[];
 
       perf.end(true, { personId: id });
-      return result[0];
+      return updated;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
@@ -244,33 +217,34 @@ export function useDeletePerson() {
   });
 }
 
-export type MetLocationSuggestion = {
+export type LocationSuggestionSource = 'history' | 'trip' | 'country';
+
+export type LocationSuggestion = {
   value: string;
-  source: 'history' | 'trip' | 'country';
+  source: LocationSuggestionSource;
   count?: number;
   trip?: { id: string; name: string };
 };
 
+export type LocationKind = 'met' | 'home';
+
 /**
- * Returns place suggestions for the "where I met them" input, ranked:
- *   1. Distinct met_location values from this user's people (frequency-ranked)
- *   2. Trip events (eventType = 'trip') with a location set
- *   3. Built-in country list
- *
- * The input is always free text — these are just suggestions.
+ * Returns place suggestions for either the "where I met them" or "where they live"
+ * inputs. Ranked: history (own data) > trips (only for 'met') > countries.
+ * Free text always wins — these are just suggestions, never a constraint.
  */
-export function useMetLocationSuggestions(query: string) {
+export function useLocationSuggestions(query: string, kind: LocationKind = 'met') {
   const trimmed = query.trim();
-  return useQuery<MetLocationSuggestion[]>({
-    queryKey: ['metLocationSuggestions', trimmed.toLowerCase()],
+  return useQuery<LocationSuggestion[]>({
+    queryKey: ['locationSuggestions', kind, trimmed.toLowerCase()],
     queryFn: async () => {
       const userId = await getCurrentUserId();
       const lowered = trimmed.toLowerCase();
+      const column = kind === 'met' ? people.metLocation : people.homeLocation;
 
-      // Source 1: previous met_location values
       const historyRows = await db
         .select({
-          value: people.metLocation,
+          value: column,
           count: sql<number>`COUNT(*)`,
         })
         .from(people)
@@ -278,59 +252,59 @@ export function useMetLocationSuggestions(query: string) {
           and(
             eq(people.userId, userId),
             isNull(people.deletedAt),
-            sql`${people.metLocation} IS NOT NULL AND TRIM(${people.metLocation}) != ''`
+            sql`${column} IS NOT NULL AND TRIM(${column}) != ''`
           )
         )
-        .groupBy(people.metLocation)
+        .groupBy(column)
         .orderBy(sql`COUNT(*) DESC`)
         .limit(20);
 
-      const history: MetLocationSuggestion[] = historyRows
+      const history: LocationSuggestion[] = historyRows
         .filter((r) => r.value && (!lowered || r.value.toLowerCase().includes(lowered)))
         .map((r) => ({ value: r.value as string, source: 'history' as const, count: r.count }));
 
-      // Source 2: trip events with a location
-      const tripRows = await db
-        .select({
-          id: events.id,
-          name: events.name,
-          location: events.location,
-        })
-        .from(events)
-        .where(
-          and(
-            eq(events.userId, userId),
-            eq(events.eventType, 'trip'),
-            isNull(events.deletedAt),
-            sql`${events.location} IS NOT NULL AND TRIM(${events.location}) != ''`
+      let trips: LocationSuggestion[] = [];
+      if (kind === 'met') {
+        const tripRows = await db
+          .select({
+            id: events.id,
+            name: events.name,
+            location: events.location,
+          })
+          .from(events)
+          .where(
+            and(
+              eq(events.userId, userId),
+              eq(events.eventType, 'trip'),
+              isNull(events.deletedAt),
+              sql`${events.location} IS NOT NULL AND TRIM(${events.location}) != ''`
+            )
           )
-        )
-        .orderBy(desc(events.eventDate))
-        .limit(20);
+          .orderBy(desc(events.eventDate))
+          .limit(20);
 
-      const trips: MetLocationSuggestion[] = tripRows
-        .filter(
-          (r) =>
-            !lowered ||
-            (r.location && r.location.toLowerCase().includes(lowered)) ||
-            (r.name && r.name.toLowerCase().includes(lowered))
-        )
-        .map((r) => ({
-          value: r.location as string,
-          source: 'trip' as const,
-          trip: { id: r.id, name: r.name },
-        }));
+        trips = tripRows
+          .filter(
+            (r) =>
+              !lowered ||
+              (r.location && r.location.toLowerCase().includes(lowered)) ||
+              (r.name && r.name.toLowerCase().includes(lowered))
+          )
+          .map((r) => ({
+            value: r.location as string,
+            source: 'trip' as const,
+            trip: { id: r.id, name: r.name },
+          }));
+      }
 
-      // Source 3: built-in country list
-      const countries: MetLocationSuggestion[] = COUNTRIES.filter(
+      const countries: LocationSuggestion[] = COUNTRIES.filter(
         (c) => !lowered || c.toLowerCase().includes(lowered)
       )
         .slice(0, 8)
         .map((c) => ({ value: c, source: 'country' as const }));
 
-      // Dedupe — prefer history > trip > country
       const seen = new Set<string>();
-      const out: MetLocationSuggestion[] = [];
+      const out: LocationSuggestion[] = [];
       for (const s of [...history, ...trips, ...countries]) {
         const key = s.value.toLowerCase();
         if (seen.has(key)) continue;
@@ -343,3 +317,8 @@ export function useMetLocationSuggestions(query: string) {
     staleTime: 30_000,
   });
 }
+
+/** @deprecated kept for backwards compatibility — use useLocationSuggestions(query, 'met') */
+export const useMetLocationSuggestions = (query: string) => useLocationSuggestions(query, 'met');
+/** @deprecated kept for backwards compatibility */
+export type MetLocationSuggestion = LocationSuggestion;

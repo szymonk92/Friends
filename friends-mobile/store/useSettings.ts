@@ -11,7 +11,7 @@ export type ThemeColor =
   | 'inkWash'
   | 'cherry'
   | 'lavender';
-export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
+export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-3.1-flash-lite';
 
 
 export interface ColorPalette {
@@ -92,8 +92,16 @@ export const AI_MODELS: Record<AIModel, { name: string; description: string }> =
     description: 'Anthropic Claude - High quality analysis',
   },
   gemini: {
-    name: 'Gemini 2.0 Flash Lite',
-    description: 'Google Gemini - Newest fast model',
+    name: 'Gemini 2.5 Flash-Lite',
+    description: 'Google Gemini - Fast, budget-friendly (default)',
+  },
+  'gemini-2.5-flash-lite': {
+    name: 'Gemini 2.5 Flash-Lite',
+    description: 'Google Gemini - Stable, fast, cost-efficient',
+  },
+  'gemini-3.1-flash-lite': {
+    name: 'Gemini 3.1 Flash-Lite',
+    description: 'Google Gemini - Frontier class, preview',
   },
   'gemini-1.5-flash': {
     name: 'Gemini 1.5 Flash',
@@ -233,8 +241,9 @@ export const useSettings = create<SettingsState>((set, get) => ({
   loadSelectedModel: async () => {
     try {
       const model = await AsyncStorage.getItem(SELECTED_MODEL_STORAGE_KEY);
-      if (model === 'anthropic' || model === 'gemini') {
-        set({ selectedModel: model });
+      const valid: AIModel[] = ['anthropic', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite'];
+      if (model && valid.includes(model as AIModel)) {
+        set({ selectedModel: model as AIModel });
       }
     } catch (error) {
       console.error('Failed to load selected model:', error);

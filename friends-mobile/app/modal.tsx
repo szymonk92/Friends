@@ -8,7 +8,17 @@ import { useTranslation } from 'react-i18next';
 import { devLogger } from '@/lib/utils/devLogger';
 import MetLocationInput from '@/components/person/MetLocationInput';
 import SocialLinksEditor from '@/components/person/SocialLinksEditor';
+import LanguagesEditor from '@/components/person/LanguagesEditor';
+import BrainDumpSection, { type AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import { serializeSocialLinks, type SocialLink } from '@/lib/social/socialLinks';
+import { serializeLanguages } from '@/lib/utils/languages';
+import { isValidEmail, isValidPhone, normalizePhone } from '@/lib/utils/pii';
+import { pickContact, isContactPickerAvailable } from '@/lib/utils/contactsPicker';
+import { useCreatePerson as useCreatePartnerPerson } from '@/hooks/usePeople';
+import { useCreateConnection } from '@/hooks/useConnections';
+import { useCreateRelations } from '@/hooks/useRelations';
+import type { BrainDumpAttribute } from '@/lib/ai/brain-dump';
+import { parseFlexibleDate } from '@/lib/utils/dates';
 
 export default function AddPersonModal() {
   const { t } = useTranslation();
@@ -19,28 +29,60 @@ export default function AddPersonModal() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [metDate, setMetDate] = useState('');
   const [metLocation, setMetLocation] = useState('');
+  const [homeLocation, setHomeLocation] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [notes, setNotes] = useState('');
+  const [pendingPartnerName, setPendingPartnerName] = useState<string | null>(null);
+  const [pendingAttributes, setPendingAttributes] = useState<BrainDumpAttribute[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handlePickFromContacts = async () => {
+    const picked = await pickContact();
+    if (!picked) return;
+    if (picked.phone) setPhone(picked.phone);
+    if (picked.email) setEmail(picked.email);
+    if (picked.name && !name.trim()) setName(picked.name);
+  };
 
   const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
 
   const createPerson = useCreatePerson();
+  const createPartnerPerson = useCreatePartnerPerson();
+  const createConnection = useCreateConnection();
+  const createRelations = useCreateRelations();
 
-  const parseFlexibleDate = (input: string): Date | null => {
-    const trimmed = input.trim();
-    if (!trimmed) return null;
+  const handleBrainDumpApply = (applied: AppliedBrainDump) => {
+    if (applied.metLocation) setMetLocation(applied.metLocation);
+    if (applied.metDate) setMetDate(applied.metDate);
+    if (applied.homeLocation) setHomeLocation(applied.homeLocation);
+    if (applied.phone) setPhone(applied.phone);
+    if (applied.email) setEmail(applied.email);
 
-    const parts = trimmed.split('-').map((p) => parseInt(p, 10));
-
-    if (parts.length === 1 && parts[0] >= 1900 && parts[0] <= 2100) {
-      return new Date(parts[0], 0, 1);
-    } else if (parts.length === 2 && parts[0] >= 1900 && parts[1] >= 1 && parts[1] <= 12) {
-      return new Date(parts[0], parts[1] - 1, 1);
-    } else if (parts.length === 3 && parts[0] >= 1900 && parts[1] >= 1 && parts[2] >= 1) {
-      return new Date(parts[0], parts[1] - 1, parts[2]);
+    if (applied.socialHandles.length) {
+      const existingKeys = new Set(socialLinks.map((s) => `${s.platform}:${s.handle.toLowerCase()}`));
+      const additions = applied.socialHandles.filter(
+        (s) => !existingKeys.has(`${s.platform}:${s.handle.toLowerCase()}`)
+      );
+      if (additions.length) setSocialLinks([...socialLinks, ...additions]);
     }
-    return null;
+
+    if (applied.languages.length) {
+      const existing = new Set(languages.map((l) => l.toLowerCase()));
+      const additions = applied.languages.filter((l) => !existing.has(l.toLowerCase()));
+      if (additions.length) setLanguages([...languages, ...additions]);
+    }
+
+    const appendedNote = [notes.trim(), applied.rawText].filter(Boolean).join('\n\n');
+    setNotes(appendedNote);
+
+    // Side-effects need a personId — defer until after createPerson resolves
+    if (applied.partnerName) setPendingPartnerName(applied.partnerName);
+    if (applied.attributes.length) {
+      setPendingAttributes((prev) => [...prev, ...applied.attributes]);
+    }
   };
 
   const handleRelationshipChange = (value: string) => {
@@ -70,19 +112,34 @@ export default function AddPersonModal() {
       return;
     }
 
+    const trimmedPhone = normalizePhone(phone);
+    if (trimmedPhone && !isValidPhone(trimmedPhone)) {
+      Alert.alert('Invalid phone', 'Phone may include digits, spaces, +, ( ), - and . only.');
+      return;
+    }
+    const trimmedEmail = email.trim();
+    if (trimmedEmail && !isValidEmail(trimmedEmail)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const parsedBirthday = parseFlexibleDate(dateOfBirth);
       const parsedMetDate = parseFlexibleDate(metDate);
 
-      await createPerson.mutateAsync({
+      const created = await createPerson.mutateAsync({
         name: name.trim(),
         nickname: nickname.trim() || undefined,
         relationshipType: relationshipType as any,
         dateOfBirth: parsedBirthday || undefined,
         metDate: parsedMetDate || undefined,
         metLocation: metLocation.trim() || undefined,
+        homeLocation: homeLocation.trim() || undefined,
+        phone: trimmedPhone || undefined,
+        email: trimmedEmail || undefined,
+        languages: serializeLanguages(languages) || undefined,
         socialLinks: serializeSocialLinks(socialLinks) || undefined,
         notes: notes.trim() || undefined,
         personType: personType,
@@ -90,6 +147,46 @@ export default function AddPersonModal() {
         addedBy: 'user',
         status: 'active',
       });
+
+      // Apply brain-dump side-effects (partner + attributes) now that we have an ID
+      if (created?.id) {
+        try {
+          if (pendingPartnerName) {
+            const partner = await createPartnerPerson.mutateAsync({
+              name: pendingPartnerName,
+              personType: 'primary',
+              dataCompleteness: 'minimal',
+              addedBy: 'ai_extraction',
+              status: 'active',
+              relationshipType: 'partner',
+            });
+            if (partner?.id) {
+              await createConnection.mutateAsync({
+                person1Id: created.id,
+                person2Id: partner.id,
+                relationshipType: 'partner',
+                status: 'active',
+              });
+            }
+          }
+          if (pendingAttributes.length) {
+            await createRelations.mutateAsync(
+              pendingAttributes.map((a) => ({
+                subjectId: created.id,
+                subjectType: 'person',
+                relationType: a.relationType,
+                objectLabel: a.objectLabel,
+                confidence: a.confidence,
+                source: 'ai_extraction',
+                status: a.assertion === 'aspiration' ? 'aspiration' : 'current',
+                assertion: a.assertion,
+              }))
+            );
+          }
+        } catch (sideEffectError) {
+          devLogger.error('Brain-dump side-effects failed', { sideEffectError });
+        }
+      }
 
       Alert.alert(t('common.success'), t('person.successAdded', { name }), [
         {
@@ -123,6 +220,8 @@ export default function AddPersonModal() {
           <Text variant="bodyMedium" style={styles.subtitle}>
             {t('person.addSubtitle')}
           </Text>
+
+          <BrainDumpSection personName={name} onApply={handleBrainDumpApply} />
 
           <TextInput
             mode="outlined"
@@ -232,7 +331,7 @@ export default function AddPersonModal() {
 
           <TextInput
             mode="outlined"
-            label="When you met (optional)"
+            label="When you met"
             placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
             value={metDate}
             onChangeText={setMetDate}
@@ -242,7 +341,54 @@ export default function AddPersonModal() {
             Year alone is fine, e.g. 2024.
           </Text>
 
-          <MetLocationInput value={metLocation} onChangeText={setMetLocation} />
+          <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
+
+          <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
+
+          <View style={styles.phoneRow}>
+            <TextInput
+              mode="outlined"
+              label="Phone"
+              placeholder="+1 555 123 4567"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              autoCorrect={false}
+              style={styles.phoneInput}
+              maxLength={32}
+            />
+            {isContactPickerAvailable() && (
+              <Button
+                mode="outlined"
+                icon="contacts"
+                onPress={handlePickFromContacts}
+                style={styles.pickButton}
+                compact
+              >
+                Pick
+              </Button>
+            )}
+          </View>
+          {isContactPickerAvailable() && (
+            <Text variant="labelSmall" style={styles.birthdayHint}>
+              Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
+            </Text>
+          )}
+
+          <TextInput
+            mode="outlined"
+            label="Email"
+            placeholder="name@example.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+            maxLength={254}
+          />
+
+          <LanguagesEditor value={languages} onChange={setLanguages} />
 
           <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
 
@@ -315,5 +461,17 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: -12,
     marginBottom: 16,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  pickButton: {
+    alignSelf: 'center',
   },
 });
