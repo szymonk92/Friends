@@ -4,6 +4,7 @@ module.exports = {
   testMatch: [
     '**/lib/**/__tests__/**/*.test.[jt]s?(x)',
     '**/lib/**/?(*.)+(spec|test).[jt]s?(x)',
+    '**/store/**/__tests__/**/*.test.[jt]s?(x)',
     '**/components/**/__tests__/**/*-test.tsx',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],

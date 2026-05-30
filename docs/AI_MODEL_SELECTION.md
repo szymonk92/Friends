@@ -143,7 +143,7 @@ API keys and model selection are stored securely:
 - Best for: Complex analysis, nuanced understanding
 
 **Google Gemini 2.5 Flash Lite:**
-- Model ID: `gemini-2.0-flash-lite`
+- Model ID: `gemini-2.5-flash-lite`
 - Max tokens: 4000
 - Temperature: 0.3
 - Best for: Fast processing, cost efficiency
@@ -232,7 +232,7 @@ Potential improvements for future versions:
 
 - All API keys are stored locally on your device
 - Keys are never sent to any server except the respective AI provider
-- AsyncStorage provides secure storage on both iOS and Android
+- AsyncStorage is plain-text local storage (not encrypted). Consider migrating to `expo-secure-store` for keys in a future security hardening pass.
 - No keys are logged or exposed in error messages
 
 ## Support

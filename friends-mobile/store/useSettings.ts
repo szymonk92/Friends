@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export type ThemeColor =
   | 'violet'
@@ -162,7 +163,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   setApiKey: async (key: string) => {
     try {
-      await AsyncStorage.setItem(API_KEY_STORAGE_KEY, key);
+      await SecureStore.setItemAsync(API_KEY_STORAGE_KEY, key);
       set({ apiKey: key });
     } catch (error) {
       console.error('Failed to save API key:', error);
@@ -172,7 +173,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   clearApiKey: async () => {
     try {
-      await AsyncStorage.removeItem(API_KEY_STORAGE_KEY);
+      await SecureStore.deleteItemAsync(API_KEY_STORAGE_KEY);
       set({ apiKey: null });
     } catch (error) {
       console.error('Failed to clear API key:', error);
@@ -182,7 +183,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   loadApiKey: async () => {
     try {
-      const key = await AsyncStorage.getItem(API_KEY_STORAGE_KEY);
+      const key = await SecureStore.getItemAsync(API_KEY_STORAGE_KEY);
       set({ apiKey: key });
     } catch (error) {
       console.error('Failed to load API key:', error);
@@ -196,7 +197,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   setGeminiApiKey: async (key: string) => {
     try {
-      await AsyncStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, key);
+      await SecureStore.setItemAsync(GEMINI_API_KEY_STORAGE_KEY, key);
       set({ geminiApiKey: key });
     } catch (error) {
       console.error('Failed to save Gemini API key:', error);
@@ -206,7 +207,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   clearGeminiApiKey: async () => {
     try {
-      await AsyncStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+      await SecureStore.deleteItemAsync(GEMINI_API_KEY_STORAGE_KEY);
       set({ geminiApiKey: null });
     } catch (error) {
       console.error('Failed to clear Gemini API key:', error);
@@ -216,7 +217,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   loadGeminiApiKey: async () => {
     try {
-      const key = await AsyncStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+      const key = await SecureStore.getItemAsync(GEMINI_API_KEY_STORAGE_KEY);
       set({ geminiApiKey: key });
     } catch (error) {
       console.error('Failed to load Gemini API key:', error);
