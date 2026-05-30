@@ -40,7 +40,7 @@ All app code lives in `friends-mobile/` within the workspace root.
 ## Key Files
 | File | Purpose |
 |------|---------|
-| `lib/db/schema.ts` | 12-table Drizzle schema |
+| `lib/db/schema.ts` | 15-table Drizzle schema |
 | `lib/db/index.ts` | DB singleton + all CRUD operations |
 | `lib/ai/ai-service.ts` | AI extraction — supports Claude + Gemini |
 | `lib/ai/prompts.ts` | All AI prompt templates |
@@ -51,8 +51,10 @@ All app code lives in `friends-mobile/` within the workspace root.
 | `app/person/[id].tsx` | Person detail screen |
 | `constants/` | Theme, relation types, colors |
 
-## Database Schema (12 tables)
-`people`, `stories`, `story_people`, `relations`, `relation_metadata`, `preferences`, `connections`, `topics`, `story_topics`, `secrets`, `person_secrets`, `onboarding_state`
+## Database Schema (15 tables)
+**Auth**: `users`, `magic_link_tokens`, `sessions`
+**Core**: `people`, `connections`, `relations`, `stories`, `secrets`, `contact_events`, `relationship_history`, `events`, `files`, `pending_extractions`
+**App state**: `quiz_dismissals`, `reminders`
 
 - Schema defined with Drizzle's `sqliteTable`
 - All migrations generated with `drizzle-kit generate`, applied with `drizzle-kit migrate`

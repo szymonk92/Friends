@@ -1,237 +1,66 @@
-# FriendZ
+# FriendZ — Documentation
 
-AI-powered relationship tracker - Remember everything about everyone you care about.
+AI-powered social memory manager. All app code lives in `friends-mobile/`.
+
+---
 
 ## Quick Start
 
 ```bash
-# Install dependencies
+cd friends-mobile
 npm install
-
-# Start development server
-npm start
-
-# Run on specific platform
-npm run ios        # iOS (macOS only)
-npm run android    # Android
-npm run web        # Web browser
+npm run android     # or ios / web
+npm run ci          # typecheck + lint + test before committing
 ```
 
-## Features
+---
 
-### Phase 1 MVP (Complete ✅)
+## Active Docs
 
-- ✅ **People Management** - Add, view, edit, and delete people in your network
-- ✅ **Manual Relation Management** - Add, edit, and delete relations without AI
-- ✅ **AI Story Extraction** - Share stories and Claude automatically extracts key information
-- ✅ **Relations Tracking** - Automatic extraction of 20+ relation types (LIKES, IS, FEARS, etc.)
-- ✅ **Person Profiles** - View detailed profiles with all relations grouped by type
-- ✅ **Search** - Find people quickly by name
-- ✅ **API Key Management** - Secure storage of your Anthropic API key
-- ✅ **Auto-Accept Logic** - High-confidence relations saved automatically
-- ✅ **Local-First** - All data stored locally in SQLite
+### Database & Storage
+| Doc | Purpose |
+|-----|---------|
+| [DATABASE_SCHEMA_FINAL.md](DATABASE_SCHEMA_FINAL.md) | Table overview (source of truth: `lib/db/schema.ts`) |
+| [DATABASE_CONSTRAINTS.md](DATABASE_CONSTRAINTS.md) | Validation rules and business logic |
+| [SQLITE_DRIZZLE_GUIDE.md](SQLITE_DRIZZLE_GUIDE.md) | SQLite + Drizzle ORM patterns |
 
-### Core Screens
+### AI & Extraction
+| Doc | Purpose |
+|-----|---------|
+| [AI_EXTRACTION_STRATEGY.md](AI_EXTRACTION_STRATEGY.md) | Pipeline design: cost, speed, accuracy |
+| [AI_MODEL_SELECTION.md](AI_MODEL_SELECTION.md) | Claude vs Gemini — how to configure models |
+| [AI_ERROR_HANDLING.md](AI_ERROR_HANDLING.md) | Retry strategy and user-facing error messages |
+| [QUICK_START_AI_MODELS.md](QUICK_START_AI_MODELS.md) | 3-step guide for setting up AI keys in the app |
+| [CONFLICT_DETECTION.md](CONFLICT_DETECTION.md) | Conflict detection for relation extractions |
 
-1. **People List** (`/(tabs)/index`)
-   - Browse all people with search
-   - View relationship types and importance
-   - Tap to view full profile
+### Relations & Relationships
+| Doc | Purpose |
+|-----|---------|
+| [RELATION_USAGE_GUIDE.md](RELATION_USAGE_GUIDE.md) | Decision trees for choosing the right relation type |
+| [RELATION_METADATA_SCHEMAS.md](RELATION_METADATA_SCHEMAS.md) | Metadata structure for all 20 relation types |
+| [RELATIONSHIP_LIFECYCLE.md](RELATIONSHIP_LIFECYCLE.md) | Handling breakups, archival, status changes |
+| [CONNECTIONS.md](CONNECTIONS.md) | Person-to-person connection model |
+| [EXAMPLE_STORIES_AND_RELATIONS.md](EXAMPLE_STORIES_AND_RELATIONS.md) | Real-world examples of all relation types |
+| [VISUALIZATION_AND_EXAMPLES.md](VISUALIZATION_AND_EXAMPLES.md) | Visualization architecture and examples |
+| [AGENT_MENTION_REFERENCE.md](AGENT_MENTION_REFERENCE.md) | @mention syntax for people in stories |
 
-2. **Add Story** (`/(tabs)/two`)
-   - Share stories about people you know
-   - AI extracts relations automatically (with your API key)
-   - Cost estimation ($0.02/story)
-   - Auto-creates people mentioned in stories
-   - Auto-saves high-confidence relations
+### Build & Testing
+| Doc | Purpose |
+|-----|---------|
+| [BUILD_GUIDE.md](BUILD_GUIDE.md) | Building APK/IPA for device distribution |
+| [QUICK_BUILD.md](QUICK_BUILD.md) | EAS cloud build cheat sheet |
+| [TEST_STRATEGY.md](TEST_STRATEGY.md) | Test coverage approach and priorities |
+| [SECURITY_REPORT.md](SECURITY_REPORT.md) | SQL injection test results |
+| [PERFORMANCE_BENCHMARKS.md](PERFORMANCE_BENCHMARKS.md) | Query performance on 10k+ records |
 
-3. **Person Profile** (`/person/[id]`)
-   - View person details
-   - See all relations grouped by type
-   - Edit/delete person
-   - Edit/delete individual relations
-   - Add new relations
+### Design
+| Doc | Purpose |
+|-----|---------|
+| [FIGMA_DESIGN_GUIDE.md](FIGMA_DESIGN_GUIDE.md) | Wireframes and design system |
+| [COMPETITIVE_ANALYSIS.md](COMPETITIVE_ANALYSIS.md) | Market landscape and differentiation |
 
-4. **Add Person** (`/modal`)
-   - Manually add people
-   - Set relationship type
-   - Add notes
+---
 
-5. **Edit Person** (`/person/edit`)
-   - Update person details
-   - Change relationship type
-   - Edit notes
+## Archive
 
-6. **Add Relation** (`/person/add-relation`)
-   - Manually add relations to a person
-   - 10 common relation types
-   - Set intensity and category
-
-7. **Edit Relation** (`/person/edit-relation`)
-   - Update existing relation
-   - Change type, intensity, category
-
-8. **Dev Tools** (`/dev`)
-   - Seed sample data for testing
-   - Clear all data
-   - Quick navigation
-
-## Database Schema
-
-- **12 tables** with complete relationships
-- **20 relation types**: LIKES, DISLIKES, IS, BELIEVES, FEARS, CARES_FOR, etc.
-- **Person classification**: primary, mentioned, placeholder
-- **Importance tracking**: unknown, peripheral, important, very_important
-- **Temporal tracking**: validFrom, validTo, status (current/past/future)
-
-## Tech Stack
-
-- **Platform**: Expo + React Native 0.81
-- **Language**: TypeScript 5.9
-- **UI**: React Native Paper 5 (Material Design 3)
-- **Navigation**: Expo Router (file-based)
-- **Database**: SQLite + Drizzle ORM
-- **State**: TanStack Query + Zustand
-- **AI**: Anthropic Claude 3.5 Sonnet
-- **Forms**: React Hook Form + Zod validation
-
-## Project Structure
-
-```
-friends-mobile/
-├── app/                    # Expo Router screens
-│   ├── (tabs)/            # Main tabs (People, Add Story)
-│   ├── person/[id].tsx    # Person profile
-│   ├── modal.tsx          # Add Person form
-│   └── dev.tsx            # Dev tools
-├── lib/
-│   ├── db/                # Database (schema, migrations, seed)
-│   ├── ai/                # AI extraction service
-│   ├── validation/        # Zod schemas
-│   └── utils/             # Formatting helpers
-├── hooks/                 # Custom React hooks
-│   ├── usePeople.ts
-│   ├── useStories.ts
-│   └── useRelations.ts
-└── components/            # Reusable components
-```
-
-## Development
-
-### Seed Sample Data
-
-Visit `/dev` in the app or run:
-
-```typescript
-import { seedSampleData } from '@/lib/db/seed';
-await seedSampleData();
-```
-
-Creates:
-
-- 3 people (Emma, Mike, Sarah)
-- 8 relations (likes, skills, fears)
-- 1 story
-
-### Database Migrations
-
-Migrations run automatically on app start. To generate new migrations:
-
-```bash
-npm run db:generate
-```
-
-### Type Checking
-
-```bash
-npx tsc --noEmit
-```
-
-### Linting
-
-```bash
-npm run lint
-```
-
-## API Key Setup
-
-**Option 1: In-App (Recommended)**
-
-1. Open the app and go to "Add Story" tab
-2. Tap "Set API Key" button
-3. Enter your Anthropic API key
-4. Your key is securely stored locally
-
-**Option 2: Environment Variables**
-Create `.env` file:
-
-```bash
-# Optional - can also set in-app
-ANTHROPIC_API_KEY=your_api_key_here
-```
-
-Get your API key from: https://console.anthropic.com
-
-## Cost Optimization
-
-**Lightweight Context Strategy:**
-
-- Only sends person names to AI (not full profiles)
-- ~1,500 tokens per extraction vs ~50,000
-- **97% cost reduction**: $0.02 vs $1.50 per story
-- 10x faster processing
-
-## How to Use
-
-1. **Seed Sample Data** (recommended for first time)
-   - Navigate to `/dev` screen
-   - Tap "Seed Sample Data"
-   - Explore Emma, Mike, and Sarah's profiles
-
-2. **Set Your API Key**
-   - Go to "Add Story" tab
-   - Tap "Set API Key"
-   - Enter your Anthropic API key from https://console.anthropic.com
-
-3. **Add a Story**
-   - Write about someone you know
-   - Example: "Had lunch with Alex. He's a software engineer who loves hiking and hates spicy food."
-   - AI will automatically extract:
-     - Person: Alex (created automatically)
-     - Relations: HAS_SKILL "software engineering", LIKES "hiking", DISLIKES "spicy food"
-
-4. **View Results**
-   - Check "People" tab to see Alex
-   - Tap Alex's profile to see extracted relations
-   - Relations are grouped by type (LIKES, DISLIKES, HAS_SKILL, etc.)
-
-## Future Enhancements (Phase 2+)
-
-- [x] Review screen for low-confidence relations (manual approval)
-- [ ] Conflict detection UI (contradictions between stories)
-- [ ] Duplicate person merging (intelligent de-duplication)
-- [x] Import/export data (backup & restore)
-- [ ] Contact frequency tracking (relationship health)
-- [x] Birthday reminders
-- [ ] Voice note support
-
-## Troubleshooting
-
-**Build errors:**
-
-- Run `npm install` to ensure all dependencies are installed
-- Clear cache: `npx expo start -c`
-
-**Database issues:**
-
-- Use `/dev` screen to clear and reseed data
-- Delete `friends.db` from app storage and restart
-
-**TypeScript errors:**
-
-- Run `npx tsc --noEmit` to check for issues
-- Most warnings are from Expo templates and can be ignored
-
-## License
-
-Private - All Rights Reserved
+Historical planning and session notes live in [`archive/`](archive/). Not actively maintained.

@@ -114,8 +114,10 @@ Use `@friendz` for all FriendZ-specific work — it has full codebase context.
 
 ## Database
 
-- **Schema**: `lib/db/schema.ts` — 12 tables
+- **Schema**: `lib/db/schema.ts` — 15 tables
 - **Instance**: `lib/db/index.ts` — singleton, never import `expo-sqlite` in components
 - **Migrations**: generated via `drizzle-kit`, stored in `drizzle/` directory
 
-**Tables**: `people`, `stories`, `story_people`, `relations`, `relation_metadata`, `preferences`, `connections`, `topics`, `story_topics`, `secrets`, `person_secrets`, `onboarding_state`
+**Tables (auth):** `users`, `magic_link_tokens`, `sessions`  
+**Tables (core):** `people`, `connections`, `relations`, `stories`, `secrets`, `contact_events`, `relationship_history`, `events`, `files`, `pending_extractions`  
+**Tables (app state):** `quiz_dismissals`, `reminders`

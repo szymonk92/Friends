@@ -51,7 +51,7 @@ Instead of technical errors, users see:
 **Before:**
 ```
 Error: [GoogleGenerativeAI Error]: Error fetching from 
-https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent: 
+https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: 
 [429] Resource exhausted...
 ```
 
