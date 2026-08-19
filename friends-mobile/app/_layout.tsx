@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,12 +10,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FloatingDevTools } from '@react-buoy/core';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import ChainLockSplash from '@/components/ChainLockSplash';
 import { runMigrations } from '@/lib/db/migrate';
 import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
 import { useSettings } from '@/store/useSettings';
 import { createTheme } from '@/lib/theme';
+import { fz } from '@/lib/design/tokens';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -54,6 +55,16 @@ export {
   ErrorBoundary,
 } from 'expo-router';
 
+// Shared Stack header styling — paper bg, ink title, Space Grotesk.
+// Forces the light FriendZ header on modal/story/quiz screens regardless of
+// the system dark theme (which was rendering these headers black).
+const fzHeader = {
+  headerStyle: { backgroundColor: fz.paper },
+  headerTintColor: fz.ink,
+  headerTitleStyle: { fontFamily: fz.font, fontWeight: '600' as const, fontSize: 18 },
+  headerShadowVisible: false,
+};
+
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
@@ -67,6 +78,7 @@ export default Sentry.wrap(function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     InstrumentSans: require('../lib/fonts/InstrumentSans-VariableFont_wdth,wght.ttf'),
     Inter: require('../lib/fonts/Inter-VariableFont_opsz,wght.ttf'),
+    SpaceGrotesk: require('../lib/fonts/SpaceGrotesk-VariableFont.ttf'),
     PlayfairDisplay: require('../lib/fonts/PlayfairDisplay-VariableFont_wght.ttf'),
     ...FontAwesome.font,
   });
@@ -81,6 +93,9 @@ export default Sentry.wrap(function RootLayout() {
     if (loaded) {
       const perf = logPerformance(appLogger, 'appInitialization');
       appLogger.info('App starting', { fontsLoaded: true });
+
+      // Reveal the animated loader while migrations/onboarding check run.
+      SplashScreen.hideAsync();
 
       // Run database migrations on app start
       runMigrations()
@@ -101,26 +116,26 @@ export default Sentry.wrap(function RootLayout() {
 
           perf.end(true);
           setAppReady(true);
-          SplashScreen.hideAsync();
         })
         .catch((err) => {
           appLogger.error('Migration failed', { error: err });
           perf.end(false);
           setAppReady(true);
-          SplashScreen.hideAsync();
         });
     }
   }, [loaded]);
 
-  if (!loaded || !appReady) {
+  if (!loaded) {
     return null;
+  }
+  if (!appReady) {
+    return <ChainLockSplash />;
   }
 
   return <RootLayoutNav />;
 });
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
   const {
     themeColor, loadThemeColor,
     fontFamily, loadFontFamily,
@@ -135,22 +150,33 @@ function RootLayoutNav() {
     loadSelectedModel();
   }, []);
 
-  const paperTheme = createTheme(themeColor, fontFamily, colorScheme === 'dark');
+  // Force light themes: the app is redesigned to a light B&W FriendZ design
+  // (fz.paper surfaces). Following the system dark mode left Paper inputs /
+  // dialogs dark-on-light and unreadable. Keep everything light regardless of
+  // the OS theme until color support is intentionally added.
+  const paperTheme = createTheme(themeColor, fontFamily, false);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={paperTheme}>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemeProvider value={DefaultTheme}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="person" options={{ headerShown: false }} />
+              <Stack.Screen name="import-contacts" options={{ headerShown: false }} />
               <Stack.Screen
                 name="modal"
-                options={{ presentation: 'modal', title: 'Add a Person' }}
+                options={{
+                  presentation: 'modal',
+                  title: 'Add a Person',
+                  ...fzHeader,
+                }}
               />
+              <Stack.Screen name="story/[id]" options={{ ...fzHeader }} />
+              <Stack.Screen name="story/addStory" options={{ ...fzHeader }} />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-              <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
             </Stack>
             <FloatingDevTools environment="local" userRole="admin" />
           </ThemeProvider>
