@@ -6,32 +6,31 @@ import {
   RefreshControl,
   Image,
   TouchableOpacity,
+  TextInput,
   StatusBar,
 } from 'react-native';
-import {
-  Text,
-  Searchbar,
-  Chip,
-  ActivityIndicator,
-  Button,
-  IconButton,
-  Menu,
-  Divider,
-} from 'react-native-paper';
+import { Text, ActivityIndicator, Button, Menu, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo } from 'react';
-import { router, useFocusEffect } from 'expo-router';
-import { getInitials } from '@/lib/utils/format';
+import { router } from 'expo-router';
+import { getInitials, formatRelationType, formatRelativeShort } from '@/lib/utils/format';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import {
-  getRelationshipColors,
-  type RelationshipColorMap,
-  DEFAULT_COLORS,
-} from '@/lib/settings/relationship-colors';
-import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
-import SectionDivider from '@/components/SectionDivider';
 import { useTranslation } from 'react-i18next';
+import { fz, fzText } from '@/lib/design/tokens';
+import { ChainLogo } from '@/components/ChainLogo';
+import { IconCircle } from '@/components/IconCircle';
+import { Pill } from '@/components/Pill';
+
+function getDaysUntilBirthday(dateOfBirth: Date | null | undefined): number | null {
+  if (!dateOfBirth) return null;
+  const today = new Date();
+  const dob = new Date(dateOfBirth);
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+  if (nextBirthday < todayStart) nextBirthday.setFullYear(today.getFullYear() + 1);
+  return Math.round((nextBirthday.getTime() - todayStart.getTime()) / 86400000);
+}
 
 export default function PeopleListScreen() {
   const { t } = useTranslation();
@@ -46,22 +45,12 @@ export default function PeopleListScreen() {
   const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
-  const [relationshipColors, setRelationshipColors] =
-    useState<RelationshipColorMap>(DEFAULT_COLORS);
   const {
     data: people = [],
     isLoading,
     error,
     refetch,
-  } = usePeople({
-    type: viewMode === 'network' ? 'primary' : 'all',
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      getRelationshipColors().then(setRelationshipColors);
-    }, [])
-  );
+  } = usePeople({ type: viewMode === 'network' ? 'primary' : 'all' });
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -70,170 +59,81 @@ export default function PeopleListScreen() {
   }, [refetch]);
   const { data: allTags = [] } = useAllTags();
 
-  // Get unique relationship types from people
   const relationshipTypes = Array.from(
     new Set(people.map((p) => p.relationshipType).filter(Boolean))
   ).sort();
 
   const filteredPeople = useMemo(() => {
-    console.log('[People] Recomputing filtered people, sortBy:', sortBy);
     return people
       .filter((person) => {
-        // Filter by search query with scoring
         let searchScore = 0;
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
           const name = person.name.toLowerCase();
-
-          if (name === query) {
-            searchScore = 3; // Exact match - highest priority
-          } else if (name.startsWith(query)) {
-            searchScore = 2; // Starts with - medium priority
-          } else if (name.includes(query)) {
-            searchScore = 1; // Contains - lowest priority
-          } else {
-            return false; // No match at all
-          }
-        } else {
-          searchScore = 0; // No search query
+          if (name === query) searchScore = 3;
+          else if (name.startsWith(query)) searchScore = 2;
+          else if (name.includes(query)) searchScore = 1;
+          else return false;
         }
-
-        // Store search score for sorting
         (person as any)._searchScore = searchScore;
-
-        // Filter by selected tags (person must have ALL selected tags)
         const personTags = parseTags(person.tags);
         const matchesTags =
           selectedTags.length === 0 || selectedTags.every((tag) => personTags.includes(tag));
-
-        // Filter by relationship type
         const matchesRelationType =
           selectedRelationTypes.length === 0 ||
           (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
-
         return matchesTags && matchesRelationType;
       })
       .sort((a, b) => {
-        // First sort by search score (higher score = better match)
         const aScore = (a as any)._searchScore || 0;
         const bScore = (b as any)._searchScore || 0;
-        if (aScore !== bScore) {
-          return bScore - aScore; // Higher score first
-        }
-
-        // Then apply the selected sort criteria
-        console.log('[People] Sorting by:', sortBy);
+        if (aScore !== bScore) return bScore - aScore;
         switch (sortBy) {
           case 'name':
-            console.log('[People] Name sort:', a.name, 'vs', b.name);
             return a.name.localeCompare(b.name);
           case 'importance': {
-            // Relationship type weights (higher = more important)
-            const relationshipWeights: Record<string, number> = {
-              partner: 5,
-              family: 4,
-              friend: 3,
-              colleague: 2,
-              acquaintance: 1,
+            const weights: Record<string, number> = {
+              partner: 5, family: 4, friend: 3, colleague: 2, acquaintance: 1,
             };
-
-            const importanceOrder = ['very_important', 'important', 'peripheral', 'unknown'];
-
-            // First sort by relationship type (primary criteria)
-            const aRelWeight = relationshipWeights[a.relationshipType || ''] || 0;
-            const bRelWeight = relationshipWeights[b.relationshipType || ''] || 0;
-
-            if (aRelWeight !== bRelWeight) {
-              console.log(
-                '[People] Using relationship weight:',
-                a.name,
-                a.relationshipType,
-                aRelWeight,
-                'vs',
-                b.name,
-                b.relationshipType,
-                bRelWeight
-              );
-              return bRelWeight - aRelWeight; // Higher weight first
-            }
-
-            // If relationship types are same, use explicit importance as tiebreaker
-            const aImportance = a.importanceToUser || 'unknown';
-            const bImportance = b.importanceToUser || 'unknown';
-            const aImportanceIndex = importanceOrder.indexOf(aImportance);
-            const bImportanceIndex = importanceOrder.indexOf(bImportance);
-
-            console.log(
-              '[People] Importance tiebreaker:',
-              a.name,
-              aImportance,
-              `(${aImportanceIndex})`,
-              'vs',
-              b.name,
-              bImportance,
-              `(${bImportanceIndex})`
-            );
-
-            if (aImportanceIndex !== bImportanceIndex) {
-              return aImportanceIndex - bImportanceIndex; // Lower index (higher importance) first
-            }
-
-            // Finally sort by name
+            const order = ['very_important', 'important', 'peripheral', 'unknown'];
+            const aw = weights[a.relationshipType || ''] || 0;
+            const bw = weights[b.relationshipType || ''] || 0;
+            if (aw !== bw) return bw - aw;
+            const ai = order.indexOf(a.importanceToUser || 'unknown');
+            const bi = order.indexOf(b.importanceToUser || 'unknown');
+            if (ai !== bi) return ai - bi;
             return a.name.localeCompare(b.name);
           }
           case 'date':
           default:
-            console.log(
-              '[People] Date sort:',
-              a.name,
-              new Date(a.updatedAt).toISOString(),
-              'vs',
-              b.name,
-              new Date(b.updatedAt).toISOString()
-            );
             return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         }
       });
   }, [people, searchQuery, selectedTags, selectedRelationTypes, sortBy]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
-  const toggleRelationType = (type: string) => {
-    setSelectedRelationTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
-
+  const toggleTag = (tag: string) =>
+    setSelectedTags((p) => (p.includes(tag) ? p.filter((x) => x !== tag) : [...p, tag]));
+  const toggleRelationType = (type: string) =>
+    setSelectedRelationTypes((p) => (p.includes(type) ? p.filter((x) => x !== type) : [...p, type]));
   const clearAllFilters = () => {
     setSelectedTags([]);
     setSelectedRelationTypes([]);
     setSearchQuery('');
   };
 
-  const clearTagFilters = () => {
-    setSelectedTags([]);
-  };
-
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>{t('people.loading')}</Text>
+      <View style={s.centered}>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>{t('people.loading')}</Text>
       </View>
     );
   }
-
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{t('people.error')}</Text>
-        <Button mode="contained" onPress={() => refetch()}>
-          {t('common.retry')}
-        </Button>
+      <View style={s.centered}>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('people.error')}</Text>
+        <Button mode="contained" onPress={() => refetch()}>{t('common.retry')}</Button>
       </View>
     );
   }
@@ -242,451 +142,293 @@ export default function PeopleListScreen() {
     searchQuery || selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      {/* Custom Header - Android Contacts Style */}
-      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
-        <View style={headerStyles.headerContent}>
-          {!searchVisible ? (
-            <>
-              <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-                {t('people.title')}
-              </Text>
-              <View style={headerStyles.headerActions}>
-                <IconButton
-                  icon="account-plus"
-                  size={HEADER_ICON_SIZE}
-                  style={headerStyles.headerIcon}
-                  onPress={() => router.push('/modal')}
-                />
-                <IconButton
-                  icon="magnify"
-                  size={HEADER_ICON_SIZE}
-                  style={headerStyles.headerIcon}
-                  onPress={() => setSearchVisible(true)}
-                />
-                <Menu
-                  key={menuKey}
-                  visible={menuVisible}
-                  onDismiss={() => {
-                    console.log('[People] Menu dismissed');
-                    setMenuVisible(false);
-                    setMenuKey((prev) => prev + 1);
-                  }}
-                  anchor={
-                    <IconButton
-                      icon="dots-vertical"
-                      size={HEADER_ICON_SIZE}
-                      onPress={() => {
-                        console.log('[People] Menu button pressed, current visible:', menuVisible);
-                        setMenuVisible(!menuVisible);
-                        if (!menuVisible) {
-                          setMenuKey((prev) => prev + 1);
-                        }
-                      }}
-                    />
-                  }
-                >
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      router.push('/menu');
-                    }}
-                    title={t('common.moreOptions') || 'More Options'}
-                    leadingIcon="dots-horizontal"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      router.push('/settings');
-                    }}
-                    title={t('navigation.settings')}
-                    leadingIcon="cog"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      console.log('[People] Menu: Sort by name clicked');
-                      setSortBy('name');
-                      setMenuVisible(false);
-                    }}
-                    title={t('people.sortByName')}
-                    leadingIcon={sortBy === 'name' ? 'check' : 'sort-alphabetical-ascending'}
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      console.log('[People] Menu: Sort by date clicked');
-                      setSortBy('date');
-                      setMenuVisible(false);
-                    }}
-                    title={t('people.sortByRecent')}
-                    leadingIcon={sortBy === 'date' ? 'check' : 'clock-outline'}
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      console.log('[People] Menu: Sort by importance clicked');
-                      setSortBy('importance');
-                      setMenuVisible(false);
-                    }}
-                    title={t('people.sortByImportance')}
-                    leadingIcon={sortBy === 'importance' ? 'check' : 'star'}
-                  />
-                  <Divider />
-                  <Menu.Item
-                    onPress={() => {
-                      setShowCategoryDividers(!showCategoryDividers);
-                      setMenuVisible(false);
-                    }}
-                    title={
-                      showCategoryDividers
-                        ? t('people.hideCategoryDividers')
-                        : t('people.showCategoryDividers')
-                    }
-                    leadingIcon={showCategoryDividers ? 'eye-off' : 'eye'}
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      clearAllFilters();
-                    }}
-                    title={t('people.clearFilters')}
-                    leadingIcon="filter-remove"
-                    disabled={!hasActiveFilters}
-                  />
-                </Menu>
-              </View>
-            </>
-          ) : (
-            <View style={styles.searchContainer}>
-              <Searchbar
-                placeholder={t('people.searchPlaceholder')}
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchbar}
-                autoFocus
-                icon="arrow-left"
-                onIconPress={() => {
-                  setSearchVisible(false);
-                  setSearchQuery('');
+    <View style={s.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+
+      {/* App bar */}
+      <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
+        {!searchVisible ? (
+          <View style={s.appBarRow}>
+            <View style={s.brand}>
+              <ChainLogo size={30} strokeWidth={8} />
+              <Text style={fzText.title}>{t('people.title')}</Text>
+            </View>
+            <View style={s.appBarActions}>
+              <IconCircle icon="search" onPress={() => setSearchVisible(true)} />
+              <IconCircle icon="plus" onPress={() => router.push('/modal')} />
+              <Menu
+                key={menuKey}
+                visible={menuVisible}
+                onDismiss={() => {
+                  setMenuVisible(false);
+                  setMenuKey((p) => p + 1);
                 }}
+                anchor={
+                  <IconCircle
+                    icon="more"
+                    fill="transparent"
+                    onPress={() => {
+                      setMenuVisible(!menuVisible);
+                      if (!menuVisible) setMenuKey((p) => p + 1);
+                    }}
+                  />
+                }
+              >
+                <Menu.Item
+                  onPress={() => { setMenuVisible(false); router.push('/menu'); }}
+                  title={t('common.moreOptions') || 'More Options'}
+                  leadingIcon="dots-horizontal"
+                />
+                <Menu.Item
+                  onPress={() => { setMenuVisible(false); router.push('/settings'); }}
+                  title={t('navigation.settings')}
+                  leadingIcon="cog"
+                />
+                <Menu.Item
+                  onPress={() => { setMenuVisible(false); router.push('/import-contacts'); }}
+                  title="Import from contacts"
+                  leadingIcon="contacts"
+                />
+                <Divider />
+                <Menu.Item
+                  onPress={() => { setSortBy('name'); setMenuVisible(false); }}
+                  title={t('people.sortByName')}
+                  leadingIcon={sortBy === 'name' ? 'check' : 'sort-alphabetical-ascending'}
+                />
+                <Menu.Item
+                  onPress={() => { setSortBy('date'); setMenuVisible(false); }}
+                  title={t('people.sortByRecent')}
+                  leadingIcon={sortBy === 'date' ? 'check' : 'clock-outline'}
+                />
+                <Menu.Item
+                  onPress={() => { setSortBy('importance'); setMenuVisible(false); }}
+                  title={t('people.sortByImportance')}
+                  leadingIcon={sortBy === 'importance' ? 'check' : 'star'}
+                />
+                <Divider />
+                <Menu.Item
+                  onPress={() => { setShowCategoryDividers(!showCategoryDividers); setMenuVisible(false); }}
+                  title={showCategoryDividers ? t('people.hideCategoryDividers') : t('people.showCategoryDividers')}
+                  leadingIcon={showCategoryDividers ? 'eye-off' : 'eye'}
+                />
+                <Menu.Item
+                  onPress={() => { setMenuVisible(false); clearAllFilters(); }}
+                  title={t('people.clearFilters')}
+                  leadingIcon="filter-remove"
+                  disabled={!hasActiveFilters}
+                />
+              </Menu>
+            </View>
+          </View>
+        ) : (
+          <View style={s.searchRow}>
+            <IconCircle
+              icon="back"
+              onPress={() => { setSearchVisible(false); setSearchQuery(''); }}
+            />
+            <View style={s.searchInput}>
+              <TextInput
+                placeholder={t('people.searchPlaceholder')}
+                placeholderTextColor={fz.textMute}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+                style={s.searchText}
               />
             </View>
-          )}
-        </View>
-
-        {/* Filter Chips Row */}
-        {(selectedTags.length > 0 || selectedRelationTypes.length > 0) && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterChipsRow}
-            contentContainerStyle={styles.filterChipsContent}
-          >
-            {selectedRelationTypes.map((type) => (
-              <Chip
-                key={type}
-                onClose={() => toggleRelationType(type)}
-                style={styles.activeFilterChip}
-                compact
-              >
-                {type}
-              </Chip>
-            ))}
-            {selectedTags.map((tag) => (
-              <Chip
-                key={tag}
-                onClose={() => toggleTag(tag)}
-                style={styles.activeFilterChip}
-                compact
-                icon="tag"
-              >
-                {tag}
-              </Chip>
-            ))}
-          </ScrollView>
+          </View>
         )}
 
-        {/* View Toggle Chips */}
-        <View style={styles.viewToggleContainer}>
-          <Chip
+        {/* meta */}
+        <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
+          {people.length} {people.length === 1 ? 'person' : 'people'} you keep close
+        </Text>
+
+        {/* pill filters */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.chipsRow}
+          contentContainerStyle={s.chipsContent}
+        >
+          <Pill
+            label="My Network"
             selected={viewMode === 'network'}
             onPress={() => setViewMode('network')}
-            showSelectedOverlay
-            style={styles.viewToggleChip}
-          >
-            My Network
-          </Chip>
-          <Chip
+          />
+          <Pill
+            label="All People"
             selected={viewMode === 'all'}
             onPress={() => setViewMode('all')}
-            showSelectedOverlay
-            style={styles.viewToggleChip}
-          >
-            All People
-          </Chip>
-        </View>
+          />
+          {relationshipTypes.map((type) => (
+            <Pill
+              key={type}
+              label={formatRelationType(type)}
+              selected={selectedRelationTypes.includes(type)}
+              onPress={() => toggleRelationType(type)}
+            />
+          ))}
+          {allTags.map((tag) => (
+            <Pill
+              key={tag}
+              label={tag}
+              icon="tag"
+              selected={selectedTags.includes(tag)}
+              onPress={() => toggleTag(tag)}
+            />
+          ))}
+          {hasActiveFilters && (
+            <Pill label="Clear" icon="filterRemove" variant="surface" onPress={clearAllFilters} />
+          )}
+        </ScrollView>
       </View>
 
-      {filteredPeople && filteredPeople.length === 0 && !searchQuery && (
-        <View style={styles.emptyState}>
-          <Text variant="headlineSmall" style={styles.emptyTitle}>
-            {t('people.noPeople')}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+      {/* empty states */}
+      {filteredPeople.length === 0 && !searchQuery && (
+        <View style={s.empty}>
+          <Text style={fzText.title}>{t('people.noPeople')}</Text>
+          <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24 }]}>
             {t('people.noPeopleDesc')}
           </Text>
-          <Button mode="contained" onPress={() => router.push('/modal')} style={styles.emptyButton}>
-            {t('people.addPerson')}
-          </Button>
+          <TouchableOpacity
+            style={s.primaryBtn}
+            onPress={() => router.push('/modal')}
+            activeOpacity={0.8}
+          >
+            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
+              {t('people.addPerson')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.secondaryBtn}
+            onPress={() => router.push('/import-contacts')}
+            activeOpacity={0.8}
+          >
+            <Text style={fzText.btnOutline}>Import from contacts</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {filteredPeople.length === 0 && searchQuery && (
+        <View style={s.empty}>
+          <Text style={fzText.sub}>{t('people.noResults', { query: searchQuery })}</Text>
         </View>
       )}
 
-      {filteredPeople && filteredPeople.length === 0 && searchQuery && (
-        <View style={styles.emptyState}>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {t('people.noResults', { query: searchQuery })}
-          </Text>
-        </View>
-      )}
-
+      {/* list */}
       <FlatList
         data={filteredPeople}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={
-          filteredPeople.length > 0 ? (
-            <View style={styles.sectionHeader}>
-              <Text variant="labelSmall" style={styles.sectionHeaderText}>
-                {selectedTags.length > 0 || selectedRelationTypes.length > 0 || searchQuery
-                  ? `${filteredPeople.length} ${filteredPeople.length === 1 ? 'contact' : 'contacts'}`
-                  : `${people.length} ${people.length === 1 ? 'contact' : 'contacts'}`}
-              </Text>
-            </View>
-          ) : null
-        }
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#6200ee']} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={[fz.ink]} />
         }
+        contentContainerStyle={{ paddingBottom: 110 }}
         renderItem={({ item, index }) => {
-          const avatarColor = item.relationshipType
-            ? relationshipColors[item.relationshipType] || '#6200ee'
-            : '#6200ee';
-
-          // Check if we need to show category divider
           const currentCategory = item.relationshipType || 'Other';
           const previousCategory =
             index > 0 ? filteredPeople[index - 1].relationshipType || 'Other' : null;
-          const nextCategory =
-            index < filteredPeople.length - 1
-              ? filteredPeople[index + 1].relationshipType || 'Other'
-              : null;
           const showCategoryHeader =
             showCategoryDividers && (index === 0 || currentCategory !== previousCategory);
-          const isLastInCategory = nextCategory !== currentCategory;
 
           return (
-            <>
+            <View>
               {showCategoryHeader && (
-                <SectionDivider
-                  label={currentCategory}
-                  variant="labelMedium"
-                  textStyle="uppercase"
-                  marginVertical={16}
-                />
+                <View style={s.categoryHeader}>
+                  <Text style={fzText.label}>{formatRelationType(currentCategory)}</Text>
+                </View>
               )}
               <TouchableOpacity
-                style={[styles.listItem, { borderLeftWidth: 3, borderLeftColor: avatarColor }]}
+                style={s.row}
                 onPress={() => router.push(`/person/${item.id}`)}
                 activeOpacity={0.7}
               >
                 {item.photoPath ? (
-                  <View style={styles.avatarWithBorder}>
-                    <Image source={{ uri: item.photoPath }} style={styles.avatarImage} />
-                    <View style={[styles.avatarIndicator, { backgroundColor: avatarColor }]} />
+                  <View style={s.avatarWrap}>
+                    <Image source={{ uri: item.photoPath }} style={s.avatar} />
+                    <View style={[s.avatarDot, { backgroundColor: fz.ink }]} />
                   </View>
                 ) : (
-                  <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-                    <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+                  <View style={[s.avatar, { backgroundColor: fz.surface }]}>
+                    <Text style={[s.avatarText, { color: fz.ink }]}>{getInitials(item.name)}</Text>
                   </View>
                 )}
-                <View style={styles.listItemContent}>
-                  <View style={styles.nameRow}>
-                    <Text variant="titleMedium" style={styles.name}>
-                      {item.name}
-                    </Text>
+                <View style={s.rowBody}>
+                  <View style={s.nameRow}>
+                    <Text style={fzText.name} numberOfLines={1}>{item.name}</Text>
+                    {(() => {
+                      const days = getDaysUntilBirthday(item.dateOfBirth);
+                      if (days === null || days > 7) return null;
+                      return (
+                        <View style={s.bday}>
+                          <Text style={s.bdayText}>🎂 {days === 0 ? 'Today!' : `${days}d`}</Text>
+                        </View>
+                      );
+                    })()}
                   </View>
-                  {item.relationshipType && (
-                    <Text variant="bodySmall" style={[styles.subtitle, { color: avatarColor }]}>
-                      {item.relationshipType}
-                      {item.nickname && (
-                        <Text style={styles.subtitleNickname}> • "{item.nickname}"</Text>
-                      )}
-                    </Text>
-                  )}
-                  {!item.relationshipType && item.nickname && (
-                    <Text variant="bodySmall" style={styles.subtitle}>
-                      "{item.nickname}"
-                    </Text>
-                  )}
+                  <Text
+                    style={fzText.sub}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {item.relationshipType
+                      ? `${formatRelationType(item.relationshipType)}${item.nickname ? ` · "${item.nickname}"` : ''}`
+                      : item.nickname
+                        ? `"${item.nickname}"`
+                        : ''}
+                  </Text>
                 </View>
+                <Text style={fzText.time}>{formatRelativeShort(new Date(item.updatedAt))}</Text>
               </TouchableOpacity>
-              {!isLastInCategory && <View style={styles.separator} />}
-            </>
+            </View>
           );
         }}
-        contentContainerStyle={styles.listContent}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: fz.paper },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper },
+  appBarRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingLeft: fz.s.edge, paddingRight: fz.s.md, paddingBottom: 2,
   },
-  searchContainer: {
-    flex: 1,
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: fz.s.edge, paddingBottom: 6 },
+  searchInput: {
+    flex: 1, height: 42, borderRadius: fz.rPill, backgroundColor: fz.surface,
+    paddingHorizontal: 16, justifyContent: 'center',
   },
-  searchbar: {
-    elevation: 0,
-    backgroundColor: 'transparent',
+  searchText: { fontFamily: fz.font, fontSize: 15, color: fz.ink, padding: 0 },
+  chipsRow: { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md },
+  chipsContent: { gap: 8, paddingRight: fz.s.edge },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  primaryBtn: {
+    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
+    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
   },
-  filterChipsRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+  secondaryBtn: {
+    height: 50, borderRadius: fz.rButton, paddingHorizontal: 28,
+    justifyContent: 'center', alignItems: 'center', marginTop: 12,
+    borderWidth: 1.5, borderColor: fz.ink,
   },
-  filterChipsContent: {
-    gap: 8,
+  categoryHeader: { paddingHorizontal: fz.s.edge, paddingTop: 18, paddingBottom: 6 },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 11, paddingHorizontal: fz.s.edge,
   },
-  activeFilterChip: {
-    marginRight: 8,
+  avatarWrap: { position: 'relative' },
+  avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
+  avatarDot: {
+    position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
+    borderRadius: 6, borderWidth: 2, borderColor: fz.paper,
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  errorText: {
-    marginBottom: 16,
-    color: '#d32f2f',
-  },
-  filterChip: {
-    marginRight: 8,
-  },
-  tagChip: {
-    backgroundColor: '#e0e0e0',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    marginBottom: 24,
-    textAlign: 'center',
-    opacity: 0.7,
-  },
-  emptyButton: {
-    marginTop: 8,
-  },
-  listContent: {
-    paddingBottom: 16,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  listItemContent: {
-    flex: 1,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginLeft: 72,
-  },
-
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#6200ee',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  avatarWithBorder: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  avatarIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  name: {
-    fontWeight: '500',
-    fontSize: 16,
-    color: '#202124',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  subtitleNickname: {
-    fontSize: 14,
-    color: '#5f6368',
-    fontWeight: '400',
-  },
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f8f9fa',
-  },
-  sectionHeaderText: {
-    fontSize: 12,
-    color: '#5f6368',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  viewToggleContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  viewToggleChip: {
-    flex: 1,
-  },
+  avatarText: { color: '#fff', fontSize: 18, fontWeight: '600', fontFamily: fz.font },
+  rowBody: { flex: 1, minWidth: 0 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
+  bday: { backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  bdayText: { fontSize: 11, fontWeight: '600', color: '#E65100', fontFamily: fz.font },
 });

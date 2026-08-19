@@ -1,11 +1,10 @@
-import { StyleSheet, View, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Alert, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Text, List, IconButton, Divider, ActivityIndicator, Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
 import { usePeople } from '@/hooks/usePeople';
-import { formatRelativeTime } from '@/lib/utils/format';
-import { getInitials } from '@/lib/utils/format';
-import { getRelationshipColor } from '@/lib/utils/format';
+import { formatRelativeTime, getInitials } from '@/lib/utils/format';
+import { fz } from '@/lib/design/tokens';
 
 export default function ManageConnectionsScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
@@ -83,37 +82,20 @@ export default function ManageConnectionsScreen() {
                 <List.Item
                   title={connectedPerson.name}
                   description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''} • ${formatRelativeTime(new Date(connection.createdAt))}`}
-                  left={() =>
-                    connectedPerson.photoPath ? (
-                      <TouchableOpacity
-                        onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                        style={styles.avatarTouchable}
-                      >
-                        <View
-                          style={[
-                            styles.avatar,
-                            { backgroundColor: getRelationshipColor(connection.relationshipType) },
-                          ]}
-                        >
+                  left={() => (
+                    <TouchableOpacity
+                      onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                      style={styles.avatarTouchable}
+                    >
+                      {connectedPerson.photoPath ? (
+                        <Image source={{ uri: connectedPerson.photoPath }} style={styles.avatar} />
+                      ) : (
+                        <View style={styles.avatar}>
                           <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
                         </View>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                        style={styles.avatarTouchable}
-                      >
-                        <View
-                          style={[
-                            styles.avatar,
-                            { backgroundColor: getRelationshipColor(connection.relationshipType) },
-                          ]}
-                        >
-                          <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    )
-                  }
+                      )}
+                    </TouchableOpacity>
+                  )}
                   right={() => (
                     <View style={styles.actions}>
                       <IconButton
@@ -147,7 +129,7 @@ export default function ManageConnectionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: fz.paper,
   },
   centered: {
     flex: 1,
@@ -173,7 +155,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#6200ee',
+    backgroundColor: fz.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -182,7 +164,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   avatarText: {
-    color: 'white',
+    color: fz.ink,
     fontSize: 14,
     fontWeight: 'bold',
   },
