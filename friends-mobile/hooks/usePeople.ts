@@ -5,6 +5,7 @@ import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
 import { COUNTRIES } from '@/lib/data/countries';
+import { entityConstraintFor, type EntityTypeFilter } from '@/lib/people/entityFilter';
 
 /**
  * Extended Person type that includes photoPath from file system
@@ -32,9 +33,12 @@ async function checkNameExists(userId: string, name: string, excludeId?: string)
 /**
  * Hook to fetch all people
  */
-export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
+export function usePeople(filter?: {
+  type?: 'primary' | 'mentioned' | 'all';
+  entityType?: EntityTypeFilter;
+}) {
   return useQuery<PersonWithPhoto[]>({
-    queryKey: ['people', filter?.type || 'all'],
+    queryKey: ['people', filter?.type || 'all', filter?.entityType || 'person'],
     queryFn: async (): Promise<PersonWithPhoto[]> => {
       const perf = logPerformance(peopleLogger, 'fetchAllPeople');
       const userId = await getCurrentUserId();
@@ -56,6 +60,11 @@ export function usePeople(filter?: { type?: 'primary' | 'mentioned' | 'all' }) {
         whereConditions.push(sql`${people.personType} IN ('mentioned', 'placeholder')`);
       }
       // 'all' includes everyone (except self, handled above)
+
+      const entityConstraint = entityConstraintFor(filter?.entityType);
+      if (entityConstraint) {
+        whereConditions.push(eq(people.entityType, entityConstraint));
+      }
 
       const peopleResults = (await db
         .select()
