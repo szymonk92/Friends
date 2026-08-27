@@ -58,10 +58,18 @@ export default function PersonConnections({ personId, personName }: PersonConnec
         if (!connectedPerson) return null;
         const isPet = connectedPerson.entityType === 'pet';
         const isChild = connection.relationshipType === 'child';
+        // Connections are directional: person1Id is who the connection was created from
+        // (the owner/parent). If that isn't the profile we're on, we're viewing the
+        // pet/child and looking back at the owner/parent.
+        const viewingConnectedEntity = connection.person1Id !== personId;
         const description = isPet
-          ? `🐾 ${connectedPerson.species?.trim() || 'Pet'}`
+          ? viewingConnectedEntity
+            ? 'Owner'
+            : `🐾 ${connectedPerson.species?.trim() || 'Pet'}`
           : isChild
-            ? `Child${connection.qualifier ? ` • ${connection.qualifier}` : ''}`
+            ? viewingConnectedEntity
+              ? 'Parent'
+              : `Child${connection.qualifier ? ` • ${connection.qualifier}` : ''}`
             : `${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`;
         return (
           <TouchableOpacity

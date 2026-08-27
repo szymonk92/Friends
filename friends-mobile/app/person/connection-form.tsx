@@ -266,7 +266,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   }, [singlePersonId, pendingPersonName, allPeople, personType]);
 
   const buildNewPersonPayload = (name: string) => {
-    const dob = birthdayText.trim() ? parseFlexibleDate(birthdayText.trim()) : null;
+    const t = birthdayText.trim();
+    const dob = t ? parseFlexibleDate(t) : null;
     if (newEntityKind === 'pet') {
       return {
         name,
@@ -335,6 +336,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             `A ${relationshipType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
             [{ text: 'OK' }]
           );
+          return;
+        }
+      }
+
+      // New pet/child: reject an unparseable birthday before creating anything
+      if (pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child')) {
+        const trimmedBirthday = birthdayText.trim();
+        if (trimmedBirthday && !parseFlexibleDate(trimmedBirthday)) {
+          Alert.alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
           return;
         }
       }

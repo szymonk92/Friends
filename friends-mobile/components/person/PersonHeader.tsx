@@ -223,10 +223,12 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         </View>
       </View>
 
-      <PartnerBadge
-        personId={person.id}
-        isOwnerPartner={person.relationshipType === 'partner'}
-      />
+      {!isPet && (
+        <PartnerBadge
+          personId={person.id}
+          isOwnerPartner={person.relationshipType === 'partner'}
+        />
+      )}
 
       {!isPet && <ContactQuickRow phone={person.phone} email={person.email} />}
 

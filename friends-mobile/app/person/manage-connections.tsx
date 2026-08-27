@@ -8,7 +8,7 @@ import { fz } from '@/lib/design/tokens';
 
 export default function ManageConnectionsScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
-  const { data: allPeople = [] } = usePeople();
+  const { data: allPeople = [] } = usePeople({ entityType: 'all' });
   const { data: connections = [], isLoading } = usePersonConnections(personId!);
 
   const getConnectedPerson = (connection: any) => {
