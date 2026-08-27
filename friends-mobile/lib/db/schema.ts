@@ -176,7 +176,7 @@ export const connections = sqliteTable(
       .notNull()
       .references(() => people.id, { onDelete: 'cascade' }),
     relationshipType: text('relationship_type', {
-      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance', 'parent', 'child', 'sibling', 'pet'],
+      enum: ['friend', 'family', 'colleague', 'partner', 'ex-partner', 'acquaintance', 'parent', 'child', 'sibling', 'pet'],
     }).notNull(),
     status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] })
       .notNull()

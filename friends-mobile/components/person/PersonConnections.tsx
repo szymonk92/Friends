@@ -1,12 +1,13 @@
-import { StyleSheet, View, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
-import { getInitials } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
+import { describeConnection } from '@/lib/connections/describeConnection';
 import type { Connection } from '@/lib/db/schema';
 
 interface PersonConnectionsProps {
@@ -56,35 +57,20 @@ export default function PersonConnections({ personId, personName }: PersonConnec
       {personConnections.map((connection) => {
         const connectedPerson = getConnectedPerson(connection);
         if (!connectedPerson) return null;
-        const isPet = connectedPerson.entityType === 'pet';
-        const isChild = connection.relationshipType === 'child';
-        // Connections are directional: person1Id is who the connection was created from
-        // (the owner/parent). If that isn't the profile we're on, we're viewing the
-        // pet/child and looking back at the owner/parent.
-        const viewingConnectedEntity = connection.person1Id !== personId;
-        const description = isPet
-          ? viewingConnectedEntity
-            ? 'Owner'
-            : `🐾 ${connectedPerson.species?.trim() || 'Pet'}`
-          : isChild
-            ? viewingConnectedEntity
-              ? 'Parent'
-              : `Child${connection.qualifier ? ` • ${connection.qualifier}` : ''}`
-            : `${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`;
+        const isPet = connection.relationshipType === 'pet';
+        const description = describeConnection(connection, connectedPerson, personId);
         return (
           <TouchableOpacity
             key={connection.id}
             style={styles.row}
             activeOpacity={0.7}
-            onPress={() => router.replace(`/person/${connectedPerson.id}`)}
+            onPress={() =>
+              router.push(
+                `/person/edit-connection?connectionId=${connection.id}&fromPersonId=${personId}`
+              )
+            }
           >
-            {connectedPerson.photoPath ? (
-              <Image source={{ uri: connectedPerson.photoPath }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
-              </View>
-            )}
+            <Avatar name={connectedPerson.name} photoPath={connectedPerson.photoPath} size={42} variant="ink" />
             <View style={styles.rowBody}>
               <Text style={fzText.name} numberOfLines={1}>{connectedPerson.name}</Text>
               <Text style={fzText.sub} numberOfLines={1}>{description}</Text>
@@ -126,25 +112,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 10,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-  avatarFallback: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: fz.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-    fontFamily: fz.font,
   },
   rowBody: {
     flex: 1,

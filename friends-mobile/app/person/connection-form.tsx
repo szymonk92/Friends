@@ -1,4 +1,5 @@
 import CenteredContainer from '@/components/CenteredContainer';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
@@ -32,7 +33,6 @@ import {
   useCreatePerson,
   PersonWithPhoto,
 } from '@/hooks/usePeople';
-import { getInitials } from '@/lib/utils/format';
 import { parseFlexibleDate } from '@/lib/utils/dates';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { db } from '@/lib/db';
@@ -43,6 +43,9 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { LineIcon } from '@/components/LineIcon';
 import { FormSection, FormInput } from '@/components/FormKit';
+import { Avatar } from '@/components/Avatar';
+import { describeConnection } from '@/lib/connections/describeConnection';
+import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -50,7 +53,7 @@ type ConnectionStatus = NonNullable<Connection['status']>;
 
 type SelectablePerson = Pick<
   PersonWithPhoto,
-  'id' | 'name' | 'nickname' | 'personType' | 'relationshipType'
+  'id' | 'name' | 'nickname' | 'personType' | 'relationshipType' | 'photoPath'
 >;
 
 interface ConnectionFormProps {
@@ -63,8 +66,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const connectionId = mode === 'edit' ? (params.connectionId as string) : undefined;
 
+  const fromPersonId =
+    mode === 'edit' && typeof params.fromPersonId === 'string' ? params.fromPersonId : undefined;
+
   const { data: person } = usePerson(personId!);
-  const { data: regularPeople = [], isLoading: loadingPeople } = usePeople();
+  // 'all' so pets and mentioned people are also connectable / findable in the list.
+  const { data: everyone = [], isLoading: loadingPeople } = usePeople({ entityType: 'all' });
   const { data: mePerson } = useMePerson();
   const { data: existingConnections = [] } = usePersonConnections(personId!);
   const createConnection = useCreateConnection();
@@ -92,7 +99,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [birthdayText, setBirthdayText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = ['partner', 'friend', 'family'];
+  const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = [
+    'partner',
+    'ex-partner',
+    'friend',
+    'family',
+  ];
   const RELATIONSHIP_TYPE_VALUES = useMemo(
     () => new Set(RELATIONSHIP_TYPES.map((type) => type.value as ConnectionRelationshipType)),
     []
@@ -164,7 +176,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
   // Combine regular people with ME
   const allPeople = useMemo(() => {
-    const combined = [...regularPeople];
+    const combined = [...everyone];
     if (mePerson) {
       combined.push({
         ...mePerson,
@@ -172,7 +184,17 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       } as PersonWithPhoto);
     }
     return combined;
-  }, [regularPeople, mePerson]);
+  }, [everyone, mePerson]);
+
+  // Edit mode: the person on the other side of this connection, for the header card
+  const editConnectedPerson = useMemo(() => {
+    if (mode !== 'edit' || !connection) return null;
+    const otherId =
+      fromPersonId && connection.person2Id === fromPersonId
+        ? connection.person1Id
+        : connection.person2Id;
+    return everyone.find((p) => p.id === otherId) ?? null;
+  }, [mode, connection, fromPersonId, everyone]);
 
   // Filter out the current person and filter by search with ranking
   const availablePeople = allPeople
@@ -260,6 +282,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         nickname: null,
         personType: personType,
         relationshipType: 'friend',
+        photoPath: null,
       };
     }
     return null;
@@ -317,23 +340,28 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
 
     // Add mode - create new connection
+    // A connection to a pet is always a 'pet' link, whatever relationship pill is shown.
+    const relTypeFor = (id: string | null | undefined) =>
+      allPeople.find((p) => p.id === id)?.entityType === 'pet' ? 'pet' : relationshipType;
+
     // Single person mode
     if (singlePersonMode && (singlePersonId || pendingPersonName)) {
       let targetPersonId = singlePersonId;
 
       // Check if connection already exists with same relationship type (only if we have an ID)
       if (targetPersonId) {
+        const dupRelType = relTypeFor(targetPersonId);
         const duplicateConnection = existingConnections.find(
           (conn) =>
             ((conn.person1Id === personId && conn.person2Id === targetPersonId) ||
               (conn.person2Id === personId && conn.person1Id === targetPersonId)) &&
-            conn.relationshipType === relationshipType
+            conn.relationshipType === dupRelType
         );
 
         if (duplicateConnection) {
           Alert.alert(
             'Duplicate Connection',
-            `A ${relationshipType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
+            `A ${dupRelType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
             [{ text: 'OK' }]
           );
           return;
@@ -352,18 +380,27 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       setIsSubmitting(true);
 
       try {
-        // If pending person, create them first
+        // If pending person, reuse an existing entity of the same name or create one.
         if (!targetPersonId && pendingPersonName) {
-          const newPerson = await createPerson.mutateAsync(buildNewPersonPayload(pendingPersonName));
-          targetPersonId = newPerson.id;
+          const existing = everyone.find(
+            (p) => p.name.trim().toLowerCase() === pendingPersonName.trim().toLowerCase()
+          );
+          if (existing) {
+            targetPersonId = existing.id;
+          } else {
+            const newPerson = await createPerson.mutateAsync(buildNewPersonPayload(pendingPersonName));
+            targetPersonId = newPerson.id;
+          }
         }
 
         if (!targetPersonId) throw new Error('Failed to identify person');
 
+        const effectiveRelType = relTypeFor(targetPersonId);
+
         await createConnection.mutateAsync({
           person1Id: personId!,
           person2Id: targetPersonId,
-          relationshipType,
+          relationshipType: effectiveRelType,
           status,
           qualifier: qualifier.trim() || undefined,
           notes: notes.trim() || undefined,
@@ -372,7 +409,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
         Alert.alert(
           'Success!',
-          `Connection added: ${person?.name} ↔️ ${selectedSinglePerson?.name} (${relationshipType})`,
+          `Connection added: ${person?.name} ↔️ ${selectedSinglePerson?.name} (${effectiveRelType})`,
           [
             {
               text: 'Add Another',
@@ -404,7 +441,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           fromPersonId: personId,
           toPersonId: singlePersonId,
         });
-        Alert.alert('Error', 'Failed to create connection. Please try again.');
+        Alert.alert(
+          'Error',
+          error instanceof Error ? error.message : 'Failed to create connection. Please try again.'
+        );
       } finally {
         setIsSubmitting(false);
       }
@@ -424,7 +464,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         (conn) =>
           ((conn.person1Id === personId && conn.person2Id === selectedPersonId) ||
             (conn.person2Id === personId && conn.person1Id === selectedPersonId)) &&
-          conn.relationshipType === relationshipType
+          conn.relationshipType === relTypeFor(selectedPersonId)
       );
       if (dupConn) {
         const selectedPerson = allPeople.find((p) => p.id === selectedPersonId);
@@ -450,7 +490,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             (conn) =>
               ((conn.person1Id === personId && conn.person2Id === selectedPersonId) ||
                 (conn.person2Id === personId && conn.person1Id === selectedPersonId)) &&
-              conn.relationshipType === relationshipType
+              conn.relationshipType === relTypeFor(selectedPersonId)
           );
           return !isDuplicate;
         })
@@ -458,7 +498,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           createConnection.mutateAsync({
             person1Id: personId!,
             person2Id: selectedPersonId,
-            relationshipType,
+            relationshipType: relTypeFor(selectedPersonId),
             status,
             qualifier: qualifier.trim() || undefined,
             notes: notes.trim() || undefined,
@@ -518,26 +558,19 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           : connection.person1Id)
     );
 
-    Alert.alert(
-      'Delete Connection',
-      `Are you sure you want to delete the connection with ${connectedPerson?.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteConnection.mutateAsync(connectionId!);
-              Alert.alert('Success', 'Connection deleted successfully!');
-              router.back();
-            } catch (error) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete Connection',
+      message: `Are you sure you want to delete the connection with ${connectedPerson?.name}?`,
+      onConfirm: async () => {
+        try {
+          await deleteConnection.mutateAsync(connectionId!);
+          Alert.alert('Success', 'Connection deleted successfully!');
+          router.back();
+        } catch (error) {
+          Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
+        }
+      },
+    });
   };
 
   if (isLoading) {
@@ -579,7 +612,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       >
         <View style={styles.content}>
           <Text style={fzText.titleLg}>
-            {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
+            {mode === 'add' ? 'Add Connection' : 'Edit Connection'}
+            {(person?.name ?? editConnectedPerson?.name)
+              ? ` for ${person?.name ?? editConnectedPerson?.name}`
+              : ''}
           </Text>
           <Text style={[fzText.sub, styles.headerSub]}>
             {mode === 'add'
@@ -596,9 +632,13 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
               <View style={styles.selectedCard}>
                 <View style={styles.selectedPerson}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{getInitials(selectedSinglePerson.name)}</Text>
-                  </View>
+                  <Avatar
+                    name={selectedSinglePerson.name}
+                    photoPath={selectedSinglePerson.photoPath}
+                    size={48}
+                    variant="ink"
+                    style={styles.cardAvatar}
+                  />
                   <View style={styles.personInfo}>
                     <Text style={fzText.name}>{selectedSinglePerson.name}</Text>
                     {selectedSinglePerson.nickname && (
@@ -691,27 +731,22 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
               {newEntityKind === 'person' && (
                 <FormSection title="Relationship Type">
-                  <View style={styles.pillRow}>
-                    {RELATIONSHIP_TYPES.map((type) => (
-                      <Pill
-                        key={type.value}
-                        label={type.label}
-                        selected={relationshipType === type.value}
-                        onPress={() => {
-                          setRelationshipType(type.value);
-                          if (pendingPersonName) {
-                            if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
-                              setPersonType('primary');
-                            } else if (type.value === 'acquaintance') {
-                              setPersonType('mentioned');
-                            } else {
-                              setPersonType('primary');
-                            }
-                          }
-                        }}
-                      />
-                    ))}
-                  </View>
+                  <RelationshipTypePicker
+                    value={relationshipType}
+                    onChange={(v) => {
+                      const next = v as ConnectionRelationshipType;
+                      setRelationshipType(next);
+                      if (pendingPersonName) {
+                        if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(next)) {
+                          setPersonType('primary');
+                        } else if (next === 'acquaintance') {
+                          setPersonType('mentioned');
+                        } else {
+                          setPersonType('primary');
+                        }
+                      }
+                    }}
+                  />
                   {pendingPersonName && personType === 'mentioned' && (
                     <Text style={[fzText.sub, styles.pillHint]}>
                       This person will be created as "Mentioned" (hidden).
@@ -749,18 +784,45 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           ) : (
             // Form mode (edit) or multi-select mode (add)
             <>
-              <FormSection title="Relationship Type">
-                <View style={styles.pillRow}>
-                  {RELATIONSHIP_TYPES.map((type) => (
-                    <Pill
-                      key={type.value}
-                      label={type.label}
-                      selected={relationshipType === type.value}
-                      onPress={() => handleRelationshipTypeChange(type.value)}
+              {mode === 'edit' && editConnectedPerson && (
+                <TouchableOpacity
+                  style={styles.selectedCard}
+                  activeOpacity={0.7}
+                  onPress={() => router.push(`/person/${editConnectedPerson.id}`)}
+                >
+                  <View style={styles.selectedPerson}>
+                    <Avatar
+                      name={editConnectedPerson.name}
+                      photoPath={editConnectedPerson.photoPath}
+                      size={48}
+                      variant="ink"
+                      style={styles.cardAvatar}
                     />
-                  ))}
-                </View>
-              </FormSection>
+                    <View style={styles.personInfo}>
+                      <Text style={fzText.name}>{editConnectedPerson.name}</Text>
+                      <Text style={[fzText.sub, styles.nicknameText]}>
+                        {connection
+                          ? describeConnection(
+                              connection,
+                              editConnectedPerson,
+                              fromPersonId ?? connection.person1Id
+                            )
+                          : `${relationshipType}${qualifier ? ` • ${qualifier}` : ''}`}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {/* Pet connections aren't human relationship types — no pill picker */}
+              {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
+                <FormSection title="Relationship Type">
+                  <RelationshipTypePicker
+                    value={relationshipType}
+                    onChange={handleRelationshipTypeChange}
+                  />
+                </FormSection>
+              )}
 
               <FormSection title="Connection Status">
                 <View style={styles.pillRow}>
@@ -813,14 +875,20 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             </>
           )}
 
-          {mode === 'add' && (
+          {mode === 'add' && !singlePersonMode && (
             <FormSection title="Select People">
               <FormInput
-                placeholder="Search people..."
+                placeholder="Search, or type a new name to add…"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 left={<TextInput.Icon icon="magnify" />}
               />
+
+              {searchQuery.trim().length === 0 && (
+                <Text style={[fzText.sub, styles.searchHint]}>
+                  Type a name that isn't in the list to add a new person or pet.
+                </Text>
+              )}
 
               {loadingPeople && (
                 <CenteredContainer style={styles.centered}>
@@ -835,7 +903,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                   </View>
                   <View style={styles.listRowBody}>
                     <Text style={fzText.name}>Add "{searchQuery}"</Text>
-                    <Text style={fzText.sub}>Create new person and connect</Text>
+                    <Text style={fzText.sub}>New person or pet — connect now</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -867,9 +935,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                       onPress={() => togglePersonSelection(p.id)}
                     >
                       <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                        <View style={styles.listAvatarFallback}>
-                          <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
-                        </View>
+                        <Avatar name={p.name} photoPath={p.photoPath} />
                       </TouchableOpacity>
                       <View style={styles.listRowBody}>
                         <Text style={fzText.name}>{p.name}</Text>
@@ -946,20 +1012,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: fz.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardAvatar: {
     marginRight: 12,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: fz.font,
   },
   personInfo: {
     flex: 1,
@@ -991,6 +1045,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 16,
   },
+  searchHint: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
   peopleList: {
     maxHeight: 320,
     marginTop: fz.s.sm,
@@ -1011,20 +1069,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  listAvatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: fz.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listAvatarText: {
-    color: fz.ink,
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: fz.font,
   },
   submitButton: {
     marginTop: 8,

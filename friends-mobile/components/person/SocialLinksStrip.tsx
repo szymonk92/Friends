@@ -1,4 +1,4 @@
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { IconButton, useTheme } from 'react-native-paper';
 import {
@@ -36,7 +36,7 @@ export default function SocialLinksStrip({ links }: Props) {
   };
 
   return (
-    <View style={styles.row}>
+    <>
       {links.map((link, idx) => (
         <IconButton
           key={`${link.platform}-${idx}`}
@@ -50,19 +50,11 @@ export default function SocialLinksStrip({ links }: Props) {
           style={styles.icon}
         />
       ))}
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-    gap: 4,
-  },
   icon: {
     margin: 0,
   },

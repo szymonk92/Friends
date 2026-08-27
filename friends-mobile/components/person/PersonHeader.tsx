@@ -52,7 +52,7 @@ function ContactQuickRow({
   };
 
   return (
-    <View style={styles.contactRow}>
+    <>
       {phone && (
         <IconCircle
           icon="phone"
@@ -69,7 +69,7 @@ function ContactQuickRow({
           onPress={() => callOrText(email, 'mailto:')}
         />
       )}
-    </View>
+    </>
   );
 }
 
@@ -158,6 +158,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
   };
 
   const isPet = person.entityType === 'pet';
+  const socialLinks = parseSocialLinksJson(person.socialLinks);
 
   const hasChips =
     person.relationshipType ||
@@ -230,9 +231,12 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         />
       )}
 
-      {!isPet && <ContactQuickRow phone={person.phone} email={person.email} />}
-
-      {!isPet && <SocialLinksStrip links={parseSocialLinksJson(person.socialLinks)} />}
+      {!isPet && (person.phone || person.email || socialLinks.length > 0) && (
+        <View style={styles.contactRow}>
+          <ContactQuickRow phone={person.phone} email={person.email} />
+          <SocialLinksStrip links={socialLinks} />
+        </View>
+      )}
 
       {!isPet && parseLanguagesJson(person.languages).length > 0 && (
         <View style={styles.languagesRow}>
@@ -251,7 +255,7 @@ const styles = StyleSheet.create({
   headerSection: {
     paddingHorizontal: fz.s.edge,
     paddingTop: 16,
-    paddingBottom: 18,
+    paddingBottom: 12,
     alignItems: 'stretch',
     backgroundColor: fz.paper,
   },
@@ -273,21 +277,21 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: fz.ink,
   },
   avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
   },
   avatarText: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '600',
     fontFamily: fz.font,
   },
@@ -320,8 +324,10 @@ const styles = StyleSheet.create({
   },
   contactRow: {
     flexDirection: 'row',
-    marginTop: 12,
-    gap: 10,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 10,
+    gap: 8,
   },
   languagesRow: {
     flexDirection: 'row',

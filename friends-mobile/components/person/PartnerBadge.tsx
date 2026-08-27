@@ -19,25 +19,28 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
   const { data: personConnections = [] } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
 
-  const partner = useMemo<PersonWithPhoto | null>(() => {
-    const partnerLink = personConnections.find(
-      (c) => c.relationshipType === 'partner' && c.status !== 'ended'
-    );
-    if (!partnerLink) return null;
-    const otherId = partnerLink.person1Id === personId ? partnerLink.person2Id : partnerLink.person1Id;
-    return allPeople.find((p) => p.id === otherId) ?? null;
+  // A person can have more than one partner — show them all.
+  const partners = useMemo<PersonWithPhoto[]>(() => {
+    return personConnections
+      .filter((c) => c.relationshipType === 'partner' && c.status !== 'ended')
+      .map((link) => {
+        const otherId = link.person1Id === personId ? link.person2Id : link.person1Id;
+        return allPeople.find((p) => p.id === otherId) ?? null;
+      })
+      .filter((p): p is PersonWithPhoto => p !== null);
   }, [personConnections, allPeople, personId]);
 
-  if (!partner) {
+  const addPartner = () =>
+    router.push(`/person/add-connection?personId=${personId}&relationshipType=partner`);
+
+  if (partners.length === 0) {
     if (isOwnerPartner) return null;
     return (
       <Button
         mode="text"
         compact
         icon="heart-outline"
-        onPress={() =>
-          router.push(`/person/add-connection?personId=${personId}&relationshipType=partner`)
-        }
+        onPress={addPartner}
         style={styles.addButton}
         textColor={theme.colors.onSurfaceVariant}
       >
@@ -46,26 +49,40 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
     );
   }
 
+  // Partners exist — just show them. Don't prompt to add more.
   return (
-    <Pressable onPress={() => router.push(`/person/${partner.id}`)} style={styles.row}>
-      <HeartIcon size={14} color={theme.colors.onSurface} weight="bold" />
-      {partner.photoPath ? (
-        <Image source={{ uri: partner.photoPath }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatarFallback, { backgroundColor: theme.colors.secondary }]}>
-          <Text style={[styles.initials, { color: theme.colors.onSecondary }]}>
-            {getInitials(partner.name)}
+    <View style={styles.stack}>
+      {partners.map((partner) => (
+        <Pressable
+          key={partner.id}
+          onPress={() => router.push(`/person/${partner.id}`)}
+          style={styles.row}
+        >
+          <HeartIcon size={14} color={theme.colors.onSurface} weight="bold" />
+          {partner.photoPath ? (
+            <Image source={{ uri: partner.photoPath }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatarFallback, { backgroundColor: theme.colors.secondary }]}>
+              <Text style={[styles.initials, { color: theme.colors.onSecondary }]}>
+                {getInitials(partner.name)}
+              </Text>
+            </View>
+          )}
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+            {partner.name}
           </Text>
-        </View>
-      )}
-      <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-        {partner.name}
-      </Text>
-    </Pressable>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  stack: {
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -396,7 +396,7 @@ const s = StyleSheet.create({
     paddingLeft: fz.s.edge, paddingRight: fz.s.md, paddingBottom: 2,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: fz.s.edge, paddingBottom: 6 },
   searchInput: {
     flex: 1, height: 42, borderRadius: fz.rPill, backgroundColor: fz.surface,

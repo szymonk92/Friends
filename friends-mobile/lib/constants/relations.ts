@@ -134,11 +134,21 @@ export const RELATIONSHIP_TYPES = [
   { label: 'Family', value: 'family', icon: 'home-heart' },
   { label: 'Colleague', value: 'colleague', icon: 'briefcase' },
   { label: 'Partner', value: 'partner', icon: 'heart' },
+  { label: 'Ex-Partner', value: 'ex-partner', icon: 'heart-broken' },
   { label: 'Acquaintance', value: 'acquaintance', icon: 'account' },
   { label: 'Parent', value: 'parent', icon: 'account-child' },
   { label: 'Child', value: 'child', icon: 'baby-face-outline' },
   { label: 'Sibling', value: 'sibling', icon: 'account-multiple' },
 ] as const;
+
+// Picker layout: `family` is a wrapper — Parent/Child/Sibling only appear once it's chosen.
+export const FAMILY_SUBTYPE_VALUES = ['parent', 'child', 'sibling'] as const;
+export const RELATIONSHIP_TOP_LEVEL = RELATIONSHIP_TYPES.filter(
+  (t) => !(FAMILY_SUBTYPE_VALUES as readonly string[]).includes(t.value)
+);
+export const FAMILY_SUBTYPES = RELATIONSHIP_TYPES.filter((t) =>
+  (FAMILY_SUBTYPE_VALUES as readonly string[]).includes(t.value)
+);
 
 /**
  * Constants for connection statuses used in connection management

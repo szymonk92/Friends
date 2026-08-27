@@ -1,9 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, List, IconButton, Divider, ActivityIndicator, Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople } from '@/hooks/usePeople';
-import { formatRelativeTime, getInitials } from '@/lib/utils/format';
+import { formatRelativeTime } from '@/lib/utils/format';
+import { describeConnection } from '@/lib/connections/describeConnection';
+import { Avatar } from '@/components/Avatar';
 import { fz } from '@/lib/design/tokens';
 
 export default function ManageConnectionsScreen() {
@@ -63,19 +65,13 @@ export default function ManageConnectionsScreen() {
               <View key={connection.id}>
                 <List.Item
                   title={connectedPerson.name}
-                  description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''} • ${formatRelativeTime(new Date(connection.createdAt))}`}
+                  description={`${describeConnection(connection, connectedPerson, personId!)} • ${formatRelativeTime(new Date(connection.createdAt))}`}
                   left={() => (
                     <TouchableOpacity
                       onPress={() => router.push(`/person/${connectedPerson.id}`)}
                       style={styles.avatarTouchable}
                     >
-                      {connectedPerson.photoPath ? (
-                        <Image source={{ uri: connectedPerson.photoPath }} style={styles.avatar} />
-                      ) : (
-                        <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
-                        </View>
-                      )}
+                      <Avatar name={connectedPerson.name} photoPath={connectedPerson.photoPath} />
                     </TouchableOpacity>
                   )}
                   right={() => (
@@ -83,7 +79,9 @@ export default function ManageConnectionsScreen() {
                       icon="pencil"
                       size={24}
                       onPress={() =>
-                        router.push(`/person/edit-connection?connectionId=${connection.id}`)
+                        router.push(
+                          `/person/edit-connection?connectionId=${connection.id}&fromPersonId=${personId}`
+                        )
                       }
                     />
                   )}
@@ -125,22 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     paddingVertical: 8,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: fz.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
   avatarTouchable: {
     marginLeft: 8,
-  },
-  avatarText: {
-    color: fz.ink,
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   spacer: {
     height: 40,

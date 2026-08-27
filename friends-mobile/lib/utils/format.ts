@@ -83,12 +83,13 @@ export function truncate(text: string, maxLength: number): string {
  * Get initials from name
  */
 export function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  // Spread to iterate by code point so emoji/accents aren't sliced mid-surrogate.
+  const firstChars = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => [...word][0]);
+  const letters = firstChars.filter((ch) => /[\p{L}\p{N}]/u.test(ch));
+  return (letters.length ? letters : firstChars).slice(0, 2).join('').toUpperCase();
 }
 
 /**

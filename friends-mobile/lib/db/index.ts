@@ -216,6 +216,21 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Repair: any connection touching a pet must be a 'pet' link. Legacy rows were
+    // saved with the human relationship type (e.g. 'friend') before that was enforced.
+    try {
+      expoDb.execSync(`
+        UPDATE connections SET relationship_type = 'pet'
+        WHERE relationship_type != 'pet'
+          AND (
+            person1_id IN (SELECT id FROM people WHERE entity_type = 'pet')
+            OR person2_id IN (SELECT id FROM people WHERE entity_type = 'pet')
+          );
+      `);
+    } catch {
+      // nothing to repair
+    }
+
     // Create relations table
     expoDb.execSync(`
       CREATE TABLE IF NOT EXISTS relations (

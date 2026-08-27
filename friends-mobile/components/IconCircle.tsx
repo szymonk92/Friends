@@ -9,7 +9,7 @@ export function IconCircle({
   size = 38,
   iconSize = 18,
   color = fz.ink,
-  fill = fz.surface,
+  fill = 'transparent',
   onPress,
   style,
 }: {
