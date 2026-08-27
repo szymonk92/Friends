@@ -16,7 +16,7 @@ interface PersonConnectionsProps {
 
 export default function PersonConnections({ personId, personName }: PersonConnectionsProps) {
   const { data: personConnections = [], isLoading: connectionsLoading } = usePersonConnections(personId);
-  const { data: allPeople = [] } = usePeople();
+  const { data: allPeople = [] } = usePeople({ entityType: 'all' });
 
   const getConnectedPerson = (connection: Connection): PersonWithPhoto | undefined => {
     const connectedId =
@@ -56,7 +56,13 @@ export default function PersonConnections({ personId, personName }: PersonConnec
       {personConnections.map((connection) => {
         const connectedPerson = getConnectedPerson(connection);
         if (!connectedPerson) return null;
-        const description = `${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`;
+        const isPet = connectedPerson.entityType === 'pet';
+        const isChild = connection.relationshipType === 'child';
+        const description = isPet
+          ? `🐾 ${connectedPerson.species?.trim() || 'Pet'}`
+          : isChild
+            ? `Child${connection.qualifier ? ` • ${connection.qualifier}` : ''}`
+            : `${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`;
         return (
           <TouchableOpacity
             key={connection.id}
@@ -78,7 +84,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
                 <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
               ) : null}
             </View>
-            <Pill label={connection.status} variant="soft" />
+            {!isPet && <Pill label={connection.status} variant="soft" />}
           </TouchableOpacity>
         );
       })}
