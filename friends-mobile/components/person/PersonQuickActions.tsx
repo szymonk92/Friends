@@ -1,4 +1,4 @@
-import { StyleSheet, View, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 import { Text, Button, Portal, Dialog, TextInput } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
@@ -8,7 +8,6 @@ import type { NewContactEvent } from '@/lib/db/schema';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
-import { LineIcon } from '@/components/LineIcon';
 import type { LineIconName } from '@/components/LineIcon';
 
 interface PersonQuickActionsProps {
@@ -95,16 +94,10 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
 
   return (
     <>
-      <ProfileSection label="Quick Actions">
-        <TouchableOpacity
-          style={styles.noteButton}
-          activeOpacity={0.8}
-          onPress={() => router.push(`/story/addStory?personId=${personId}`)}
-        >
-          <LineIcon name="plus" size={16} color="#fff" />
-          <Text style={styles.noteButtonText}>Add note</Text>
-        </TouchableOpacity>
-
+      <ProfileSection
+        label="Quick Actions"
+        onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
+      >
         <Text style={styles.subtitle}>One-tap logging for today</Text>
         <View style={styles.row}>
           {ACTIONS_ROW_1.map((a) => (
@@ -160,22 +153,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 8,
-  },
-  noteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 46,
-    borderRadius: fz.rButton,
-    backgroundColor: fz.ink,
-    marginBottom: 14,
-  },
-  noteButtonText: {
-    fontFamily: fz.font,
-    fontWeight: '600',
-    fontSize: 15,
-    color: '#fff',
   },
   dialog: {
     borderRadius: fz.rCard,

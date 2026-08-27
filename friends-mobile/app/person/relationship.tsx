@@ -66,12 +66,26 @@ export default function RelationshipScreen() {
   const otherIdOf = (c: { person1Id: string; person2Id: string }, selfId: string) =>
     c.person1Id === selfId ? c.person2Id : c.person1Id;
 
+  const peopleById = useMemo(() => {
+    const m = new Map(allPeople.map((p) => [p.id, p]));
+    if (me) m.set(me.id, me);
+    return m;
+  }, [allPeople, me]);
+
   const mutualConnectionIds = useMemo(() => {
     if (!other) return new Set<string>();
+    const theirs = new Set(
+      theirConnections
+        .map((c) => otherIdOf(c, personId!))
+        .filter((id) => id !== personId && id !== other.id)
+    );
+    // Comparing to yourself: everyone this person is connected to is someone you know.
+    if (isComparingToSelf) return theirs;
     const mine = new Set(otherConnections.map((c) => otherIdOf(c, other.id)));
-    const theirs = theirConnections.map((c) => otherIdOf(c, personId!));
-    return new Set(theirs.filter((id) => mine.has(id) && id !== personId && id !== other.id));
-  }, [otherConnections, theirConnections, other, personId]);
+    const mutual = new Set([...theirs].filter((id) => mine.has(id)));
+    if (me) mutual.add(me.id); // You know both people being compared.
+    return mutual;
+  }, [otherConnections, theirConnections, other, personId, isComparingToSelf, me]);
 
   // Direct edge between the two people being compared, if one exists.
   const directConnection = useMemo(() => {
@@ -81,13 +95,19 @@ export default function RelationshipScreen() {
 
   const isConnected = isComparingToSelf || !!directConnection;
 
-  const inCommon = useMemo(() => {
-    const mine = new Set(
-      otherRelations.filter((r) => r.relationType === LIKES).map((r) => r.objectLabel.toLowerCase())
-    );
-    return theirRelations
-      .filter((r) => r.relationType === LIKES && mine.has(r.objectLabel.toLowerCase()))
-      .map((r) => r.objectLabel);
+  const likes = useMemo(() => {
+    const likeLabels = (rs: typeof otherRelations) =>
+      rs.filter((r) => r.relationType === LIKES).map((r) => r.objectLabel);
+    const otherLikes = likeLabels(otherRelations);
+    const personLikes = likeLabels(theirRelations);
+    const otherSet = new Set(otherLikes.map((l) => l.toLowerCase()));
+    const common = personLikes.filter((l) => otherSet.has(l.toLowerCase()));
+    const commonSet = new Set(common.map((l) => l.toLowerCase()));
+    return {
+      common,
+      otherOnly: otherLikes.filter((l) => !commonSet.has(l.toLowerCase())),
+      personOnly: personLikes.filter((l) => !commonSet.has(l.toLowerCase())),
+    };
   }, [otherRelations, theirRelations]);
 
   if (personLoading || compareLoading || !person || !other) {
@@ -98,7 +118,13 @@ export default function RelationshipScreen() {
     );
   }
 
-  const yearsKnown = person.metDate ? formatYearsKnown(new Date(person.metDate)) : null;
+  const yearsKnown = isComparingToSelf
+    ? person.metDate
+      ? formatYearsKnown(new Date(person.metDate))
+      : null
+    : directConnection?.startDate
+      ? formatYearsKnown(new Date(directConnection.startDate))
+      : null;
 
   return (
     <>
@@ -146,10 +172,12 @@ export default function RelationshipScreen() {
               <Text style={styles.statValue}>{yearsKnown ?? '—'}</Text>
               <Text style={styles.statLabel}>known</Text>
             </View>
-            <View style={styles.statTile}>
-              <Text style={styles.statValue}>{contactEvents.length}</Text>
-              <Text style={styles.statLabel}>notes</Text>
-            </View>
+            {isComparingToSelf && (
+              <View style={styles.statTile}>
+                <Text style={styles.statValue}>{contactEvents.length}</Text>
+                <Text style={styles.statLabel}>notes</Text>
+              </View>
+            )}
             <View style={styles.statTile}>
               <Text style={styles.statValue}>{mutualConnectionIds.size}</Text>
               <Text style={styles.statLabel}>mutuals</Text>
@@ -157,9 +185,9 @@ export default function RelationshipScreen() {
           </View>
 
           {/* how you met */}
-          {(person.metDate || person.metLocation) && (
+          {isComparingToSelf && (person.metDate || person.metLocation) && (
             <View style={styles.card}>
-              <Text style={fzText.label}>{isComparingToSelf ? 'How you met' : `How you met ${person.name.split(' ')[0]}`}</Text>
+              <Text style={fzText.label}>How you met</Text>
               <Text style={styles.cardBody}>
                 {[
                   person.metLocation ? `Met in ${person.metLocation}` : null,
@@ -170,16 +198,51 @@ export default function RelationshipScreen() {
               </Text>
             </View>
           )}
-
-          {/* in common */}
-          {inCommon.length > 0 && (
+          {!isComparingToSelf && directConnection && (directConnection.qualifier || directConnection.notes) && (
             <View style={styles.card}>
-              <Text style={fzText.label}>In common</Text>
-              <View style={styles.chips}>
-                {inCommon.map((label) => (
-                  <Pill key={label} label={label} variant="surface" />
-                ))}
-              </View>
+              <Text style={fzText.label}>How they know each other</Text>
+              <Text style={styles.cardBody}>
+                {[directConnection.qualifier, directConnection.notes].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+          )}
+
+          {/* interests */}
+          {(likes.common.length > 0 || likes.otherOnly.length > 0 || likes.personOnly.length > 0) && (
+            <View style={styles.card}>
+              <Text style={fzText.label}>Interests</Text>
+              {likes.common.length > 0 && (
+                <>
+                  <Text style={styles.likesWho}>In common</Text>
+                  <View style={styles.chips}>
+                    {likes.common.map((label) => (
+                      <Pill key={`c-${label}`} label={label} variant="surface" />
+                    ))}
+                  </View>
+                </>
+              )}
+              {likes.otherOnly.length > 0 && (
+                <>
+                  <Text style={styles.likesWho}>
+                    {isComparingToSelf ? 'You like' : `${other.name.split(' ')[0]} likes`}
+                  </Text>
+                  <View style={styles.chips}>
+                    {likes.otherOnly.map((label) => (
+                      <Pill key={`o-${label}`} label={label} variant="surface" />
+                    ))}
+                  </View>
+                </>
+              )}
+              {likes.personOnly.length > 0 && (
+                <>
+                  <Text style={styles.likesWho}>{person.name.split(' ')[0]} likes</Text>
+                  <View style={styles.chips}>
+                    {likes.personOnly.map((label) => (
+                      <Pill key={`p-${label}`} label={label} variant="surface" />
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -191,17 +254,19 @@ export default function RelationshipScreen() {
             ) : (
               <View style={styles.mutualsRow}>
                 {[...mutualConnectionIds].slice(0, 6).map((id, i) => {
-                  const mutual = allPeople.find((p) => p.id === id);
+                  const mutual = peopleById.get(id);
                   if (!mutual) return null;
                   return (
                     <View key={id} style={[styles.mutualAvatar, i > 0 && styles.mutualOverlap]}>
-                      <Text style={styles.mutualInitials}>{getInitials(mutual.name)}</Text>
+                      <Text style={styles.mutualInitials}>
+                        {id === me?.id ? 'You' : getInitials(mutual.name)}
+                      </Text>
                     </View>
                   );
                 })}
                 <Text style={styles.mutualNames} numberOfLines={1}>
                   {[...mutualConnectionIds]
-                    .map((id) => allPeople.find((p) => p.id === id)?.name)
+                    .map((id) => (id === me?.id ? 'You' : peopleById.get(id)?.name))
                     .filter(Boolean)
                     .join(', ')}
                 </Text>
@@ -281,6 +346,7 @@ const styles = StyleSheet.create({
   },
   cardBody: { ...fzText.body, marginTop: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  likesWho: { ...fzText.sub, marginTop: 10, marginBottom: 2 },
   emptyText: { ...fzText.sub, fontStyle: 'italic', marginTop: 6 },
   mutualsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   mutualAvatar: {
