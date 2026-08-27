@@ -1,6 +1,7 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
 import { Text, Card, Button, List, Divider, Portal, Dialog, TextInput } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useExportStats } from '@/hooks/useDataExport';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -180,35 +181,27 @@ export default function SettingsScreen() {
   };
 
   const handleClearApiKey = () => {
-    Alert.alert(
-      'Clear Anthropic API Key',
-      'Are you sure you want to remove your Anthropic API key?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await clearApiKey();
-            Alert.alert('Success', 'Anthropic API key cleared.');
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Clear Anthropic API Key',
+      message: 'Are you sure you want to remove your Anthropic API key?',
+      confirmLabel: 'Clear',
+      onConfirm: async () => {
+        await clearApiKey();
+        Alert.alert('Success', 'Anthropic API key cleared.');
+      },
+    });
   };
 
   const handleClearGeminiApiKey = () => {
-    Alert.alert('Clear Gemini API Key', 'Are you sure you want to remove your Gemini API key?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await clearGeminiApiKey();
-          Alert.alert('Success', 'Gemini API key cleared.');
-        },
+    confirmDestructive({
+      title: 'Clear Gemini API Key',
+      message: 'Are you sure you want to remove your Gemini API key?',
+      confirmLabel: 'Clear',
+      onConfirm: async () => {
+        await clearGeminiApiKey();
+        Alert.alert('Success', 'Gemini API key cleared.');
       },
-    ]);
+    });
   };
 
   const handleSaveOllamaApiKey = async () => {
@@ -228,17 +221,15 @@ export default function SettingsScreen() {
   };
 
   const handleClearOllamaApiKey = () => {
-    Alert.alert('Clear Ollama API Key', 'Are you sure you want to remove your Ollama API key?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await clearOllamaApiKey();
-          Alert.alert('Success', 'Ollama API key cleared.');
-        },
+    confirmDestructive({
+      title: 'Clear Ollama API Key',
+      message: 'Are you sure you want to remove your Ollama API key?',
+      confirmLabel: 'Clear',
+      onConfirm: async () => {
+        await clearOllamaApiKey();
+        Alert.alert('Success', 'Ollama API key cleared.');
       },
-    ]);
+    });
   };
 
   return (

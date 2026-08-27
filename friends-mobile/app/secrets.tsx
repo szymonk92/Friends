@@ -3,6 +3,7 @@ import { StyleSheet, View, Alert, ActivityIndicator, StatusBar, Text as RNText }
 import { Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { IconCircle } from '@/components/IconCircle';
@@ -228,25 +229,18 @@ export default function SecretsScreen() {
   };
 
   const handleDeleteSecret = (secretId: string, title: string) => {
-    Alert.alert(
-      'Delete Secret',
-      `Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSecret.mutateAsync(secretId);
-              Alert.alert('Deleted', 'Secret has been deleted');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete secret');
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete Secret',
+      message: `Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await deleteSecret.mutateAsync(secretId);
+          Alert.alert('Deleted', 'Secret has been deleted');
+        } catch (error) {
+          Alert.alert('Error', 'Failed to delete secret');
+        }
+      },
+    });
   };
 
   const AppBar = ({ title, onAdd }: { title: string; onAdd?: () => void }) => (

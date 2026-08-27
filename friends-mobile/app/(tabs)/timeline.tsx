@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, StatusBar, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { Text, Button } from 'react-native-paper';
 import {
   useContactEvents,
@@ -243,18 +244,11 @@ export default function TimelineScreen() {
     const deleteFunction = isPartyEvent ? deletePartyEvent : deleteEvent;
     const actualEventId = isPartyEvent ? eventId.replace('party-', '') : eventId;
 
-    Alert.alert(
-      `Delete ${eventType === 'party' ? 'Party' : 'Event'}`,
-      `Are you sure you want to remove this ${eventType}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteFunction.mutateAsync(actualEventId),
-        },
-      ]
-    );
+    confirmDestructive({
+      title: `Delete ${eventType === 'party' ? 'Party' : 'Event'}`,
+      message: `Are you sure you want to remove this ${eventType}?`,
+      onConfirm: () => deleteFunction.mutateAsync(actualEventId),
+    });
   };
 
   if (isLoading) {

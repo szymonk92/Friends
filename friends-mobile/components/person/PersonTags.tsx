@@ -1,4 +1,5 @@
 import { StyleSheet, View, Alert } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import {
   Text,
   Button,
@@ -53,14 +54,12 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
   };
 
   const handleRemoveTag = (tag: string) => {
-    Alert.alert('Remove Tag', `Remove "${tag}" from ${personName}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => removeTagFromPerson.mutateAsync({ personId, tag }),
-      },
-    ]);
+    confirmDestructive({
+      title: 'Remove Tag',
+      message: `Remove "${tag}" from ${personName}?`,
+      confirmLabel: 'Remove',
+      onConfirm: () => removeTagFromPerson.mutateAsync({ personId, tag }),
+    });
   };
 
   return (

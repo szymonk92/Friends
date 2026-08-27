@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { fz } from '@/lib/design/tokens';
 import { FormSection, FormInput } from '@/components/FormKit';
-import { Pill } from '@/components/Pill';
+import { PillGroup } from '@/components/PillGroup';
 
 interface PartyDetailsFormProps {
   name: string;
@@ -39,16 +39,7 @@ export default function PartyDetailsForm({
         placeholder="e.g., Summer BBQ, Birthday Dinner"
       />
 
-      <View style={styles.pillRow}>
-        {TYPES.map((opt) => (
-          <Pill
-            key={opt.value}
-            label={opt.label}
-            selected={type === opt.value}
-            onPress={() => setType(opt.value)}
-          />
-        ))}
-      </View>
+      <PillGroup value={type} onChange={setType} options={TYPES} style={styles.pillRow} />
 
       <FormInput
         label="Date (YYYY-MM-DD)"
@@ -70,8 +61,6 @@ export default function PartyDetailsForm({
 
 const styles = StyleSheet.create({
   pillRow: {
-    flexDirection: 'row',
-    gap: 8,
     marginBottom: fz.s.md,
   },
   lastInput: {

@@ -1,4 +1,5 @@
-import { StyleSheet, View, Alert, ScrollView, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { StyleSheet, View, ScrollView, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonGiftIdeas, useDeleteGiftIdea } from '@/hooks/useGifts';
@@ -17,16 +18,11 @@ export default function ManageGiftsScreen() {
   const deleteGift = useDeleteGiftIdea();
 
   const handleDelete = (giftId: string, item: string) => {
-    Alert.alert('Delete Gift Idea', `Are you sure you want to delete "${item}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteGift.mutateAsync(giftId);
-        },
-      },
-    ]);
+    confirmDestructive({
+      title: 'Delete Gift Idea',
+      message: `Are you sure you want to delete "${item}"?`,
+      onConfirm: () => deleteGift.mutateAsync(giftId),
+    });
   };
 
   const AppBar = () => (

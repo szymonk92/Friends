@@ -10,6 +10,7 @@ import {
   useAcceptBothConflict,
 } from '@/hooks/useAIExtraction';
 import { formatRelationType } from '@/lib/utils/format';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
 import { RelationIcon } from '@/components/RelationIcon';
 import { WarningIcon, CheckCircleIcon } from 'phosphor-react-native';
@@ -52,28 +53,22 @@ export default function ReviewExtractionsScreen() {
   };
 
   const handleReject = (extraction: any) => {
-    Alert.alert(
-      'Reject Extraction',
-      `Are you sure you want to reject this relation?\n\n${extraction.subjectName} ${formatRelationType(extraction.relationType).toLowerCase()} "${extraction.objectLabel}"`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await rejectMutation.mutateAsync({ extractionId: extraction.id });
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reject extraction');
-              devLogger.error('Failed to reject extraction', {
-                error,
-                extractionId: extraction.id,
-              });
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Reject Extraction',
+      message: `Are you sure you want to reject this relation?\n\n${extraction.subjectName} ${formatRelationType(extraction.relationType).toLowerCase()} "${extraction.objectLabel}"`,
+      confirmLabel: 'Reject',
+      onConfirm: async () => {
+        try {
+          await rejectMutation.mutateAsync({ extractionId: extraction.id });
+        } catch (error) {
+          Alert.alert('Error', 'Failed to reject extraction');
+          devLogger.error('Failed to reject extraction', {
+            error,
+            extractionId: extraction.id,
+          });
+        }
+      },
+    });
   };
 
   const handleEdit = (extraction: any) => {

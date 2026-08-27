@@ -58,10 +58,7 @@ export default function LanguagesEditor({ value, onChange }: Props) {
   return (
     <View style={styles.container}>
       <Text style={fzText.label}>Languages spoken</Text>
-      <Text style={[fzText.sub, styles.hint]}>
-        Tap a suggestion or type a custom language and press return. Tap a language
-        to make it the primary one; tap ✕ to remove it.
-      </Text>
+      <Text style={[fzText.sub, styles.hint]}>Tap a language to make it primary.</Text>
 
       {value.length > 0 && (
         <View style={styles.chipsRow}>

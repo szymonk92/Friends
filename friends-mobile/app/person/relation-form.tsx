@@ -16,7 +16,7 @@ import {
 } from '@/lib/constants/relations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz, fzText } from '@/lib/design/tokens';
-import { Pill } from '@/components/Pill';
+import { PillGroup } from '@/components/PillGroup';
 import { FormSection, FormInput } from '@/components/FormKit';
 
 type RelationFormMode = 'add' | 'edit';
@@ -226,16 +226,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
             </Text>
 
             <FormSection title="Type">
-              <View style={styles.pillRow}>
-                {RELATION_TYPE_OPTIONS.map((type) => (
-                  <Pill
-                    key={type.value}
-                    label={type.label}
-                    selected={relationType === type.value}
-                    onPress={() => setRelationType(type.value)}
-                  />
-                ))}
-              </View>
+              <PillGroup value={relationType} onChange={setRelationType} options={RELATION_TYPE_OPTIONS} />
             </FormSection>
 
             <FormSection>
@@ -257,30 +248,12 @@ export default function RelationForm({ mode }: RelationFormProps) {
             </FormSection>
 
             <FormSection title="When">
-              <View style={styles.pillRow}>
-                {STATUS_OPTIONS.map((option) => (
-                  <Pill
-                    key={option.value}
-                    label={option.label}
-                    selected={status === option.value}
-                    onPress={() => setStatus(option.value)}
-                  />
-                ))}
-              </View>
+              <PillGroup value={status} onChange={setStatus} options={STATUS_OPTIONS} />
             </FormSection>
 
             {!TYPES_WITHOUT_INTENSITY.includes(relationType) && (
               <FormSection title="Intensity">
-                <View style={styles.pillRow}>
-                  {INTENSITY_OPTIONS.map((option) => (
-                    <Pill
-                      key={option.value}
-                      label={option.label}
-                      selected={intensity === option.value}
-                      onPress={() => setIntensity(option.value)}
-                    />
-                  ))}
-                </View>
+                <PillGroup value={intensity} onChange={setIntensity} options={INTENSITY_OPTIONS} />
               </FormSection>
             )}
 
@@ -337,12 +310,6 @@ const styles = StyleSheet.create({
   headerSub: {
     marginTop: 6,
     marginBottom: fz.s.lg,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
   },
   lastInput: {
     marginBottom: 0,

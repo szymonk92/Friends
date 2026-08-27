@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -267,28 +268,21 @@ export default function StoryDetailScreen() {
   const handleDelete = () => {
     const hasExtractions = extractions.length > 0 || story?.aiProcessed;
 
-    Alert.alert(
-      'Delete Story',
-      hasExtractions
+    confirmDestructive({
+      title: 'Delete Story',
+      message: hasExtractions
         ? 'Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.'
         : 'Are you sure you want to delete this story?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteStory.mutateAsync(id!);
-              Alert.alert('Success', 'Story deleted successfully');
-              router.back();
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete story. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+      onConfirm: async () => {
+        try {
+          await deleteStory.mutateAsync(id!);
+          Alert.alert('Success', 'Story deleted successfully');
+          router.back();
+        } catch (err) {
+          Alert.alert('Error', 'Failed to delete story. Please try again.');
+        }
+      },
+    });
   };
 
   const handleApproveExtraction = async (extractionId: string) => {

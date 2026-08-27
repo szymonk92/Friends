@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { Text } from 'react-native-paper';
 import { useStories, useDeleteStory } from '@/hooks/useStories';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
@@ -26,21 +27,18 @@ export default function StoriesListScreen() {
       ? 'Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.'
       : 'Are you sure you want to delete this story?';
 
-    Alert.alert('Delete Story', message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteStory.mutateAsync(storyId);
-            Alert.alert('Success', 'Story deleted successfully');
-          } catch (err) {
-            Alert.alert('Error', 'Failed to delete story. Please try again.');
-          }
-        },
+    confirmDestructive({
+      title: 'Delete Story',
+      message,
+      onConfirm: async () => {
+        try {
+          await deleteStory.mutateAsync(storyId);
+          Alert.alert('Success', 'Story deleted successfully');
+        } catch (err) {
+          Alert.alert('Error', 'Failed to delete story. Please try again.');
+        }
       },
-    ]);
+    });
   };
 
   if (isLoading) {

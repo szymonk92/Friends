@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { Text, Button, Card, Chip } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import * as Sharing from 'expo-sharing';
@@ -48,17 +49,15 @@ export default function DevLogsScreen() {
   };
 
   const handleClear = () => {
-    Alert.alert('Clear Logs?', 'Are you sure you want to delete all development logs?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-          devLogger.clearLogs();
-          loadLogs();
-        },
+    confirmDestructive({
+      title: 'Clear Logs?',
+      message: 'Are you sure you want to delete all development logs?',
+      confirmLabel: 'Clear',
+      onConfirm: () => {
+        devLogger.clearLogs();
+        loadLogs();
       },
-    ]);
+    });
   };
 
   return (

@@ -1,6 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, TextInput, type TextInputProps } from 'react-native-paper';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fz, fzText } from '@/lib/design/tokens';
 
 // Shared fz-styled form shell — flat bordered card + rounded input, used by
@@ -23,6 +25,34 @@ export function FormSection({
       {hint && <Text style={[fzText.sub, styles.hint]}>{hint}</Text>}
       <View style={title || hint ? styles.body : undefined}>{children}</View>
     </View>
+  );
+}
+
+// Tap-to-expand header + collapsible body. Used for optional sections that
+// should stay out of the way until wanted (e.g. the brain-dump on add/edit).
+export function Foldable({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={styles.foldHeader}
+        accessibilityRole="button"
+      >
+        <Text style={fzText.label}>{title}</Text>
+        <Text style={fzText.sub}>{open ? t('common.hide') : t('common.show')}</Text>
+      </Pressable>
+      {open && children}
+    </>
   );
 }
 
@@ -61,6 +91,13 @@ const styles = StyleSheet.create({
   },
   hint: {
     marginTop: 2,
+  },
+  foldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: fz.s.md,
+    marginBottom: fz.s.sm,
   },
   body: {
     marginTop: fz.s.md,

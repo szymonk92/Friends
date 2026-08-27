@@ -1,4 +1,5 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import {
   Text,
   ActivityIndicator,
@@ -43,21 +44,14 @@ export default function PersonProfileScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Person',
-      `Are you sure you want to delete ${person?.name}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deletePerson.mutateAsync(id!);
-            router.back();
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete Person',
+      message: `Are you sure you want to delete ${person?.name}? This cannot be undone.`,
+      onConfirm: async () => {
+        await deletePerson.mutateAsync(id!);
+        router.back();
+      },
+    });
   };
 
   const handleAvatarPress = () => {

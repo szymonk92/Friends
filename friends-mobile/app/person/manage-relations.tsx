@@ -1,4 +1,5 @@
-import { StyleSheet, View, Alert, ScrollView, ActivityIndicator, StatusBar, Text as RNText, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, ActivityIndicator, StatusBar, Text as RNText, TouchableOpacity } from 'react-native';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
@@ -42,16 +43,11 @@ export default function ManageRelationsScreen() {
   const deleteRelation = useDeleteRelation();
 
   const handleDelete = (relationId: string, objectLabel: string) => {
-    Alert.alert('Delete Relation', `Are you sure you want to delete "${objectLabel}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteRelation.mutateAsync(relationId);
-        },
-      },
-    ]);
+    confirmDestructive({
+      title: 'Delete Relation',
+      message: `Are you sure you want to delete "${objectLabel}"?`,
+      onConfirm: () => deleteRelation.mutateAsync(relationId),
+    });
   };
 
   // Group relations by type

@@ -1,6 +1,7 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import { Text, Button, Card, Divider, TextInput } from 'react-native-paper';
 import { router, Stack } from 'expo-router';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { resetOnboarding } from './onboarding';
@@ -51,29 +52,23 @@ export default function DevScreen() {
   };
 
   const handleClearData = () => {
-    Alert.alert(
-      'Clear All Data?',
-      'This will delete ALL people, relations, and stories. This cannot be undone!',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              await clearAllData();
-              Alert.alert('Success', 'All data has been cleared.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear data. Check console for details.');
-              devLogger.error('Failed to clear all data', error);
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Clear All Data?',
+      message: 'This will delete ALL people, relations, and stories. This cannot be undone!',
+      confirmLabel: 'Clear All',
+      onConfirm: async () => {
+        setIsLoading(true);
+        try {
+          await clearAllData();
+          Alert.alert('Success', 'All data has been cleared.');
+        } catch (error) {
+          Alert.alert('Error', 'Failed to clear data. Check console for details.');
+          devLogger.error('Failed to clear all data', error);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
   };
 
   const handleHighLoadTest = async () => {
@@ -116,30 +111,25 @@ export default function DevScreen() {
   };
 
   const handleClearTestData = async () => {
-    Alert.alert(
-      'Clear Test Data Only?',
-      'This will delete only the high load test data (people with addedBy="test_seed"). Your manually added data will be preserved.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Test Data',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              await clearTestData();
-              setLoadTestResult(null);
-              Alert.alert('Success', 'Test data has been cleared. Your real data is preserved.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear test data');
-              devLogger.error('Failed to clear test data', error);
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Clear Test Data Only?',
+      message:
+        'This will delete only the high load test data (people with addedBy="test_seed"). Your manually added data will be preserved.',
+      confirmLabel: 'Clear Test Data',
+      onConfirm: async () => {
+        setIsLoading(true);
+        try {
+          await clearTestData();
+          setLoadTestResult(null);
+          Alert.alert('Success', 'Test data has been cleared. Your real data is preserved.');
+        } catch (error) {
+          Alert.alert('Error', 'Failed to clear test data');
+          devLogger.error('Failed to clear test data', error);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
   };
 
   const handleTestPromptGeneration = async () => {
