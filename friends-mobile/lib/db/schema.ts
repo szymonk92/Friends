@@ -95,6 +95,8 @@ export const people = sqliteTable(
     email: text('email'),
     homeLocation: text('home_location'),
     languages: text('languages'), // JSON array of language strings
+    entityType: text('entity_type', { enum: ['person', 'pet'] }).default('person'),
+    species: text('species'),
 
     // Person Classification & Management
     personType: text('person_type', {
@@ -174,7 +176,7 @@ export const connections = sqliteTable(
       .notNull()
       .references(() => people.id, { onDelete: 'cascade' }),
     relationshipType: text('relationship_type', {
-      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance', 'parent', 'child', 'sibling'],
+      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance', 'parent', 'child', 'sibling', 'pet'],
     }).notNull(),
     status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] })
       .notNull()

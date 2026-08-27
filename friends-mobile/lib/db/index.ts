@@ -81,6 +81,8 @@ export async function initializeDatabase() {
         email TEXT,
         home_location TEXT,
         languages TEXT,
+        entity_type TEXT DEFAULT 'person',
+        species TEXT,
         person_type TEXT DEFAULT 'placeholder',
         data_completeness TEXT DEFAULT 'minimal',
         added_by TEXT DEFAULT 'auto_created',
@@ -149,6 +151,19 @@ export async function initializeDatabase() {
       'ALTER TABLE people ADD COLUMN languages TEXT;',
     ];
     for (const stmt of piiMigrations) {
+      try {
+        expoDb.execSync(stmt);
+      } catch {
+        // Column already exists
+      }
+    }
+
+    // Migration: Add pet/child entity columns (see spec 2026-08-27-pet-and-child-connections)
+    const entityMigrations = [
+      "ALTER TABLE people ADD COLUMN entity_type TEXT DEFAULT 'person';",
+      'ALTER TABLE people ADD COLUMN species TEXT;',
+    ];
+    for (const stmt of entityMigrations) {
       try {
         expoDb.execSync(stmt);
       } catch {

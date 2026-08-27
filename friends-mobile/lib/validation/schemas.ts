@@ -14,6 +14,7 @@ export const personTypeEnum = z.enum(['primary', 'mentioned', 'placeholder']);
 export const dataCompletenessEnum = z.enum(['minimal', 'partial', 'complete']);
 export const addedByEnum = z.enum(['user', 'ai_extraction', 'auto_created', 'import']);
 export const importanceEnum = z.enum(['unknown', 'peripheral', 'important', 'very_important']);
+export const entityTypeEnum = z.enum(['person', 'pet']);
 export const personStatusEnum = z.enum(['active', 'archived', 'deceased', 'placeholder', 'merged']);
 export const relationshipTypeEnum = z.enum([
   'friend',
@@ -45,6 +46,8 @@ export const newPersonSchema = z.object({
   homeLocation: z.string().trim().max(120).optional().nullable(),
   languages: languagesSchema.optional().nullable(),
   personType: personTypeEnum.default('placeholder'),
+  entityType: entityTypeEnum.default('person'),
+  species: z.string().trim().max(40, 'Species must be 40 characters or fewer').optional().nullable(),
   dataCompleteness: dataCompletenessEnum.default('minimal'),
   addedBy: addedByEnum.default('user'),
   notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer').optional(),
