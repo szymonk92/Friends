@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Button, useTheme } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useCreateEvent, useEvents, useUpdateEvent } from '@/hooks/useEvents';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
-import { getRelationshipColors, DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
 import { devLogger } from '@/lib/utils/devLogger';
+import { fz } from '@/lib/design/tokens';
 
 import PartyDetailsForm from '@/components/party/PartyDetailsForm';
 import GuestSelector from '@/components/party/GuestSelector';
@@ -21,7 +21,6 @@ interface Guest {
 }
 
 export default function PartyPlannerScreen() {
-  const theme = useTheme();
   const params = useLocalSearchParams();
   const eventId = params.eventId as string | undefined;
   const initialMode = (params.mode as string) === 'party';
@@ -38,11 +37,7 @@ export default function PartyPlannerScreen() {
   const [partyDate, setPartyDate] = useState('');
   const [partyLocation, setPartyLocation] = useState('');
   const [partyType, setPartyType] = useState<'dinner' | 'party' | 'gathering'>('dinner');
-  const [relationshipColors, setRelationshipColors] = useState(DEFAULT_COLORS);
 
-  useEffect(() => {
-    getRelationshipColors().then(setRelationshipColors);
-  }, []);
 
   // Load existing event if eventId provided
   useEffect(() => {
@@ -312,8 +307,16 @@ export default function PartyPlannerScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: eventId ? 'Update Party' : 'Plan a Party' }} />
-      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Stack.Screen
+        options={{
+          title: eventId ? 'Update Party' : 'Plan a Party',
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+          headerShadowVisible: false,
+        }}
+      />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <PartyDetailsForm
           name={partyName}
           setName={setPartyName}
@@ -331,7 +334,6 @@ export default function PartyPlannerScreen() {
           people={filteredPeople}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          relationshipColors={relationshipColors}
         />
 
         {selectedGuests.length >= 2 && (
@@ -346,8 +348,11 @@ export default function PartyPlannerScreen() {
         {/* Create Button */}
         <Button
           mode="contained"
+          buttonColor={fz.ink}
+          textColor={fz.paper}
           onPress={handleCreateParty}
           style={styles.createButton}
+          labelStyle={styles.createButtonLabel}
           loading={createEvent.isPending || updateEvent.isPending}
           disabled={
             createEvent.isPending ||
@@ -369,12 +374,21 @@ export default function PartyPlannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: fz.paper,
+  },
+  content: {
+    padding: fz.s.edge,
   },
   createButton: {
-    margin: 16,
-    paddingVertical: 8,
+    borderRadius: fz.rButton,
+    marginTop: fz.s.sm,
+  },
+  createButtonLabel: {
+    fontFamily: fz.font,
+    fontWeight: '600',
+    fontSize: 15,
   },
   spacer: {
-    height: 40,
+    height: fz.s.xxl,
   },
 });

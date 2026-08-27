@@ -85,7 +85,6 @@ export async function initializeDatabase() {
         data_completeness TEXT DEFAULT 'minimal',
         added_by TEXT DEFAULT 'auto_created',
         importance_to_user TEXT DEFAULT 'unknown',
-        user_sentiment TEXT DEFAULT 'neutral',
         potential_duplicates TEXT,
         canonical_id TEXT REFERENCES people(id),
         merged_from TEXT,
@@ -114,9 +113,16 @@ export async function initializeDatabase() {
       // Column already exists
     }
 
-    // Migration: Add user_sentiment column to people table
+    // Migration: Add gender column to people table
     try {
-      expoDb.execSync("ALTER TABLE people ADD COLUMN user_sentiment TEXT DEFAULT 'neutral';");
+      expoDb.execSync('ALTER TABLE people ADD COLUMN gender TEXT;');
+    } catch {
+      // Column already exists
+    }
+
+    // Migration: Add life_milestones column to people table
+    try {
+      expoDb.execSync("ALTER TABLE people ADD COLUMN life_milestones TEXT DEFAULT '{}';");
     } catch {
       // Column already exists
     }
@@ -228,6 +234,21 @@ export async function initializeDatabase() {
       expoDb.execSync("ALTER TABLE relations ADD COLUMN assertion TEXT DEFAULT 'asserted';");
     } catch {
       // already exists
+    }
+
+    // Migration: add conflict tracking columns to pending_extractions
+    const conflictMigrations = [
+      'ALTER TABLE pending_extractions ADD COLUMN is_conflict INTEGER DEFAULT 0;',
+      'ALTER TABLE pending_extractions ADD COLUMN conflict_type TEXT;',
+      'ALTER TABLE pending_extractions ADD COLUMN conflicting_relation_id TEXT;',
+      'ALTER TABLE pending_extractions ADD COLUMN conflict_description TEXT;',
+    ];
+    for (const stmt of conflictMigrations) {
+      try {
+        expoDb.execSync(stmt);
+      } catch {
+        // already exists
+      }
     }
 
     // Create contact_events table

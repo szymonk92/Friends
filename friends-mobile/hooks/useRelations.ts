@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { relationsLogger, logPerformance } from '@/lib/logger';
+import { findDirectContradiction } from '@/lib/constants/relations';
 
 /**
  * Hook to fetch relations for a specific person
@@ -62,6 +63,31 @@ export function useCreateRelation() {
       });
 
       const userId = await getCurrentUserId();
+
+      // ponytail: block simultaneous-current preference contradictions on manual
+      // add — the one case the AI flow can't guard (no model in the loop).
+      // Ingredient/dietary conflicts stay AI-side; this only catches like-vs-dislike.
+      const existingForSubject = await db
+        .select({
+          relationType: relations.relationType,
+          objectLabel: relations.objectLabel,
+          status: relations.status,
+        })
+        .from(relations)
+        .where(
+          and(
+            eq(relations.userId, userId),
+            eq(relations.subjectId, data.subjectId),
+            isNull(relations.deletedAt)
+          )
+        );
+      const contradiction = findDirectContradiction(
+        data.relationType,
+        data.objectLabel,
+        existingForSubject
+      );
+      if (contradiction) throw new Error(contradiction);
+
       const result = (await db
         .insert(relations)
         .values({

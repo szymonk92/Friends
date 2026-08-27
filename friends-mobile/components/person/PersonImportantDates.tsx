@@ -1,13 +1,10 @@
 import { StyleSheet, View, Alert } from 'react-native';
 import {
   Text,
-  Chip,
   Button,
-  IconButton,
   Portal,
   Dialog,
   TextInput as PaperInput,
-  useTheme,
 } from 'react-native-paper';
 import { useState } from 'react';
 import { parseFlexibleDate } from '@/lib/utils/dates';
@@ -15,16 +12,17 @@ import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hook
 import { useUpdatePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
-import { useCommonStyles } from '@/styles/common';
 import type { Person } from '@/lib/db/schema';
+import { ProfileSection } from './ProfileSection';
+import { Pill } from '@/components/Pill';
+import { IconCircle } from '@/components/IconCircle';
+import { fz, fzText } from '@/lib/design/tokens';
 
 interface PersonImportantDatesProps {
   person: Person;
 }
 
 export default function PersonImportantDates({ person }: PersonImportantDatesProps) {
-  const theme = useTheme();
-  const commonStyles = useCommonStyles();
   const { data: personRelations } = usePersonRelations(person.id);
   const deleteRelation = useDeleteRelation();
   const createRelation = useCreateRelation();
@@ -35,7 +33,6 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   const [dateValue, setDateValue] = useState('');
   const [isAddingDate, setIsAddingDate] = useState(false);
 
-  // Get important dates from relations
   const importantDates =
     personRelations?.filter((r) => r.relationType === HAS_IMPORTANT_DATE) || [];
 
@@ -50,21 +47,13 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
       return;
     }
 
-    // Check if this is a birthday
     const birthdayKeywords = [
-      'birthday',
-      'b-day',
-      'bday',
-      'birth day',
-      'birth-day',
-      'dob',
-      'date of birth',
+      'birthday', 'b-day', 'bday', 'birth day', 'birth-day', 'dob', 'date of birth',
     ];
     const isBirthday = birthdayKeywords.some((keyword) =>
       dateName.trim().toLowerCase().includes(keyword)
     );
 
-    // Check if this is an anniversary
     const anniversaryKeywords = ['anniversary', 'wedding', 'married'];
     const isAnniversary = anniversaryKeywords.some((keyword) =>
       dateName.trim().toLowerCase().includes(keyword)
@@ -73,17 +62,12 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     setIsAddingDate(true);
     try {
       if (isBirthday) {
-        // Update the person's dateOfBirth field
-        await updatePerson.mutateAsync({
-          id: person.id,
-          dateOfBirth: parsedDate,
-        });
+        await updatePerson.mutateAsync({ id: person.id, dateOfBirth: parsedDate });
         setAddDateDialogVisible(false);
         setDateName('');
         setDateValue('');
         Alert.alert('Success', `Birthday set to ${formatShortDate(parsedDate)}!`);
       } else {
-        // Add as regular important date (with special handling for anniversaries)
         await createRelation.mutateAsync({
           subjectId: person.id,
           relationType: HAS_IMPORTANT_DATE,
@@ -106,53 +90,45 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     }
   };
 
+  const count = (person.dateOfBirth ? 1 : 0) + importantDates.length;
+
   return (
     <>
-      <View style={commonStyles.section}>
-        <View style={commonStyles.sectionHeader}>
-          <Text variant="titleMedium" style={commonStyles.sectionTitle}>
-            Important Dates
-          </Text>
-          <IconButton icon="plus" size={20} onPress={() => setAddDateDialogVisible(true)} />
-        </View>
-
+      <ProfileSection label="Important Dates" count={count || null} onAdd={() => setAddDateDialogVisible(true)}>
         {person.dateOfBirth && (
-          <View style={styles.importantDateItem}>
-            <Chip icon="cake-variant" compact style={styles.dateChip}>
-              Birthday
-            </Chip>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-              {formatShortDate(new Date(person.dateOfBirth))}
-            </Text>
+          <View style={styles.dateItem}>
+            <Pill label="Birthday" icon="cake" variant="soft" />
+            <Text style={styles.dateText}>{formatShortDate(new Date(person.dateOfBirth))}</Text>
           </View>
         )}
 
         {importantDates.map((date) => (
-          <View key={date.id} style={styles.importantDateItem}>
-            <Chip icon="calendar-star" compact style={styles.dateChip}>
-              {date.objectLabel}
-            </Chip>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+          <View key={date.id} style={styles.dateItem}>
+            <Pill label={date.objectLabel} variant="soft" />
+            <Text style={styles.dateText}>
               {date.validFrom ? formatShortDate(new Date(date.validFrom)) : 'No date'}
             </Text>
-            <IconButton
-              icon="delete-outline"
-              size={18}
+            <IconCircle
+              icon="trash"
+              size={28}
+              iconSize={14}
               onPress={() => deleteRelation.mutateAsync(date.id)}
             />
           </View>
         ))}
 
         {!person.dateOfBirth && importantDates.length === 0 && (
-          <Text variant="bodySmall" style={commonStyles.emptyStateText}>
-            No important dates added yet
-          </Text>
+          <Text style={styles.empty}>No important dates added yet</Text>
         )}
-      </View>
+      </ProfileSection>
 
       <Portal>
-        <Dialog visible={addDateDialogVisible} onDismiss={() => setAddDateDialogVisible(false)}>
-          <Dialog.Title>Add Important Date</Dialog.Title>
+        <Dialog
+          visible={addDateDialogVisible}
+          onDismiss={() => setAddDateDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>Add Important Date</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
@@ -160,7 +136,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               placeholder="e.g., Wedding Anniversary, First Met"
               value={dateName}
               onChangeText={setDateName}
-              style={{ marginBottom: 16 }}
+              style={[{ marginBottom: 16 }, styles.dialogFont]}
             />
             <PaperInput
               mode="outlined"
@@ -168,14 +144,22 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
               value={dateValue}
               onChangeText={setDateValue}
+              style={styles.dialogFont}
             />
-            <Text variant="labelSmall" style={{ opacity: 0.6, marginTop: 4 }}>
+            <Text variant="labelSmall" style={[{ opacity: 0.6, marginTop: 4 }, styles.dialogFont]}>
               Enter year only (2020), year-month (2020-06), or full date (2020-06-15)
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setAddDateDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddImportantDate} loading={isAddingDate} disabled={isAddingDate}>
+            <Button labelStyle={styles.dialogFont} onPress={() => setAddDateDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button
+              labelStyle={styles.dialogFont}
+              onPress={handleAddImportantDate}
+              loading={isAddingDate}
+              disabled={isAddingDate}
+            >
               Add
             </Button>
           </Dialog.Actions>
@@ -186,12 +170,28 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
 }
 
 const styles = StyleSheet.create({
-  importantDateItem: {
+  dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 10,
+    marginBottom: 10,
   },
-  dateChip: {
-    marginRight: 8,
+  dateText: {
+    ...fzText.body,
+    flex: 1,
+  },
+  empty: {
+    ...fzText.sub,
+    fontStyle: 'italic',
+  },
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
   },
 });

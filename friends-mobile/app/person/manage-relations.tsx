@@ -1,19 +1,15 @@
-import { StyleSheet, View, Alert, ScrollView } from 'react-native';
-import {
-  Text,
-  List,
-  IconButton,
-  Divider,
-  ActivityIndicator,
-  Button,
-  Chip,
-} from 'react-native-paper';
+import { StyleSheet, View, Alert, ScrollView, ActivityIndicator, StatusBar, Text as RNText, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonRelations, useDeleteRelation } from '@/hooks/useRelations';
 import { usePerson } from '@/hooks/usePeople';
-import { formatRelationType, getRelationEmoji, formatRelativeTime } from '@/lib/utils/format';
-import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
-import { spacing } from '@/styles/spacing';
+import { formatRelationType, formatRelativeTime } from '@/lib/utils/format';
+import { INTENSITY_OPTIONS, TYPES_WITHOUT_INTENSITY } from '@/lib/constants/relations';
+import { RelationIcon } from '@/components/RelationIcon';
+import { fz, fzText } from '@/lib/design/tokens';
+import { HeaderBack } from '@/components/HeaderBack';
+import { IconCircle } from '@/components/IconCircle';
+import { Pill } from '@/components/Pill';
 
 // Helper function to get intensity label
 const getIntensityLabel = (intensity: string) => {
@@ -23,29 +19,23 @@ const getIntensityLabel = (intensity: string) => {
 
 // Priority order for relation types (higher priority = shown first)
 const RELATION_TYPE_PRIORITY: Record<string, number> = {
-  CARES_FOR: 100,
-  DEPENDS_ON: 95,
-  STRUGGLES_WITH: 90,
-  FEARS: 85,
-  WANTS_TO_ACHIEVE: 80,
-  IS: 75,
-  HAS_SKILL: 70,
-  REGULARLY_DOES: 65,
-  KNOWS: 60,
-  BELIEVES: 55,
-  LIKES: 50,
-  PREFERS_OVER: 45,
-  ASSOCIATED_WITH: 40,
-  EXPERIENCED: 35,
-  OWNS: 30,
-  UNCOMFORTABLE_WITH: 25,
-  SENSITIVE_TO: 20,
-  DISLIKES: 10,
-  USED_TO_BE: 5,
-  UNKNOWN: 0,
+  STRUGGLES_WITH: 100,
+  AVOIDS: 95,
+  WANTS: 90,
+  LIVES_IN: 85,
+  IS: 80,
+  CAN: 75,
+  DOES: 70,
+  KNOWS: 65,
+  LIKES: 60,
+  HAS: 55,
+  DID: 50,
+  DISLIKES: 45,
+  HAS_IMPORTANT_DATE: 40,
 };
 
 export default function ManageRelationsScreen() {
+  const insets = useSafeAreaInsets();
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person } = usePerson(personId!);
   const { data: relations = [], isLoading } = usePersonRelations(personId!);
@@ -80,167 +70,155 @@ export default function ManageRelationsScreen() {
     (a, b) => (RELATION_TYPE_PRIORITY[b] || 0) - (RELATION_TYPE_PRIORITY[a] || 0)
   );
 
+  const AppBar = () => (
+    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.appBarRow}>
+        <HeaderBack onPress={() => router.back()} />
+        <RNText style={fzText.screenTitle} numberOfLines={1}>
+          {person?.name ? `${person.name} · Relations` : 'Relations'}
+        </RNText>
+        <IconCircle
+          icon="plus"
+          onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+        />
+      </View>
+    </View>
+  );
+
   if (isLoading) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Manage Relations' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={fz.ink} />
         </View>
-      </>
+      </View>
     );
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: `${person?.name || 'Person'} - Relations`,
-          headerRight: () => (
-            <View style={{ marginRight: spacing.xs }}>
-              <IconButton
-                icon="plus"
-                onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-              />
-            </View>
-          ),
-        }}
-      />
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <AppBar />
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {relations.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge" style={styles.emptyText}>
-              No relations yet
-            </Text>
-            <Button
-              mode="contained"
+            <RNText style={[fzText.sub, { marginBottom: fz.s.lg }]}>No relations yet</RNText>
+            <TouchableOpacity
+              style={styles.primaryBtn}
               onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+              activeOpacity={0.8}
             >
-              Add Relation
-            </Button>
+              <RNText style={fzText.btn}>Add Relation</RNText>
+            </TouchableOpacity>
           </View>
         ) : (
           sortedTypes.map((type) => (
-            <View key={type}>
-              <List.Subheader style={styles.typeHeader}>
-                {getRelationEmoji(type)} {formatRelationType(type)} ({relationsByType[type].length})
-              </List.Subheader>
+            <View key={type} style={styles.typeGroup}>
+              <View style={styles.typeHeader}>
+                <RelationIcon type={type} size={14} />
+                <RNText style={styles.typeHeaderText}>
+                  {formatRelationType(type)} ({relationsByType[type].length})
+                </RNText>
+              </View>
               {relationsByType[type].map((relation) => (
-                <List.Item
-                  key={relation.id}
-                  title={relation.objectLabel}
-                  description={
+                <View key={relation.id} style={styles.relationCard}>
+                  <View style={styles.relationMain}>
+                    <RNText style={fzText.name} numberOfLines={2}>
+                      {relation.objectLabel}
+                    </RNText>
                     <View style={styles.descriptionRow}>
-                      {relation.category && (
-                        <Chip
-                          compact
-                          style={styles.categoryChip}
-                          textStyle={styles.categoryChipText}
-                        >
-                          {relation.category}
-                        </Chip>
-                      )}
-                      {relation.intensity && (
-                        <Chip
-                          compact
-                          style={styles.intensityChip}
-                          textStyle={styles.intensityChipText}
-                        >
-                          {getIntensityLabel(relation.intensity)}
-                        </Chip>
-                      )}
-                      <Text variant="bodySmall" style={styles.dateText}>
+                      {relation.category && <Pill label={relation.category} variant="soft" />}
+                      {relation.intensity &&
+                        !TYPES_WITHOUT_INTENSITY.includes(relation.relationType) && (
+                          <Pill label={getIntensityLabel(relation.intensity)} variant="outline" />
+                        )}
+                      <RNText style={styles.dateText}>
                         {formatRelativeTime(new Date(relation.createdAt))}
-                      </Text>
+                      </RNText>
                     </View>
-                  }
-                  right={() => (
-                    <View style={styles.actions}>
-                      <IconButton
-                        icon="pencil"
-                        size={20}
-                        onPress={() =>
-                          router.push(`/person/edit-relation?relationId=${relation.id}`)
-                        }
-                      />
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        iconColor="#d32f2f"
-                        onPress={() => handleDelete(relation.id, relation.objectLabel)}
-                      />
-                    </View>
-                  )}
-                  style={styles.listItem}
-                />
+                  </View>
+                  <View style={styles.actions}>
+                    <IconCircle
+                      icon="pencil"
+                      size={32}
+                      iconSize={15}
+                      onPress={() =>
+                        router.push(`/person/edit-relation?relationId=${relation.id}`)
+                      }
+                    />
+                    <IconCircle
+                      icon="trash"
+                      size={32}
+                      iconSize={15}
+                      onPress={() => handleDelete(relation.id, relation.objectLabel)}
+                    />
+                  </View>
+                </View>
               ))}
-              <Divider />
             </View>
           ))
         )}
-        <View style={styles.spacer} />
+        <View style={{ height: 60 }} />
       </ScrollView>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { flex: 1, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: fz.s.sm,
   },
-  centered: {
-    flex: 1,
+  scroll: { flex: 1 },
+  scrollInner: { paddingBottom: 60 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { padding: 32, alignItems: 'center' },
+  primaryBtn: {
+    backgroundColor: fz.ink,
+    height: 48,
+    borderRadius: fz.rButton,
+    paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyContainer: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginBottom: 16,
-    opacity: 0.7,
-  },
+  typeGroup: { marginBottom: fz.s.md },
   typeHeader: {
-    backgroundColor: '#e3f2fd',
-    fontWeight: 'bold',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: fz.s.edge,
+    paddingVertical: fz.s.md,
   },
-  listItem: {
-    backgroundColor: 'white',
-    paddingVertical: 8,
+  typeHeaderText: { ...fzText.label },
+  relationCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: fz.card,
+    borderRadius: fz.rRow,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.md,
+    marginHorizontal: fz.s.edge,
+    marginBottom: fz.s.sm,
   },
+  relationMain: { flex: 1, marginRight: fz.s.sm },
   descriptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 4,
+    marginTop: fz.s.xs,
+    flexWrap: 'wrap',
   },
-  categoryChip: {
-    marginVertical: 4,
-    height: 32,
-  },
-  categoryChipText: {
-    fontSize: 12,
-    lineHeight: 20,
-  },
-  intensityChip: {
-    height: 32,
-    paddingHorizontal: 8,
-  },
-  intensityChipText: {
-    fontSize: 12,
-    lineHeight: 20,
-  },
-  dateText: {
-    opacity: 0.6,
-    marginLeft: 4,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  spacer: {
-    height: 40,
-  },
+  dateText: { ...fzText.time, marginLeft: 4 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

@@ -1,21 +1,23 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef } from 'react';
-import { router } from 'expo-router';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import {
   View,
   Image,
   StyleSheet,
   FlatList,
+  TouchableOpacity,
+  Text as RNText,
   useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { Card, Text, Button } from 'react-native-paper';
+import { BookOpenIcon, UserIcon, LockIcon, RocketIcon } from 'phosphor-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { devLogger } from '@/lib/utils/devLogger';
+import { fz, fzText } from '@/lib/design/tokens';
 
 const ONBOARDING_COMPLETE_KEY = 'onboarding_completed';
 
@@ -139,45 +141,43 @@ export default function OnboardingScreen() {
   const renderItem = ({ item }: { item: OnboardingStep }) => (
     <View style={[styles.slide, { width }]}>
       <CenteredContainer style={styles.content}>
-        <Card style={styles.card}>
-          <Card.Content style={styles.cardContent}>
+        <View style={styles.card}>
+          <View style={styles.cardContent}>
             <View style={styles.iconContainer}>
-              {item.icon === 'account-group' ? (
+              {item.icon === 'account-group' && (
                 <Image
                   source={require('@/assets/images/icon.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-              ) : (
-                <Text variant="displaySmall" style={styles.icon}>
-                  {item.icon === 'book-open-page-variant' && '📖'}
-                  {item.icon === 'account-details' && '👤'}
-                  {item.icon === 'shield-lock' && '🔒'}
-                  {item.icon === 'rocket-launch' && '🚀'}
-                </Text>
+              )}
+              {item.icon === 'book-open-page-variant' && (
+                <BookOpenIcon size={56} color={fz.ink} weight="bold" />
+              )}
+              {item.icon === 'account-details' && (
+                <UserIcon size={56} color={fz.ink} weight="bold" />
+              )}
+              {item.icon === 'shield-lock' && (
+                <LockIcon size={56} color={fz.ink} weight="bold" />
+              )}
+              {item.icon === 'rocket-launch' && (
+                <RocketIcon size={56} color={fz.ink} weight="bold" />
               )}
             </View>
 
-            <Text variant="headlineMedium" style={styles.title}>
-              {item.title}
-            </Text>
-
-            <Text variant="bodyLarge" style={styles.description}>
-              {item.description}
-            </Text>
+            <RNText style={styles.title}>{item.title}</RNText>
+            <RNText style={styles.description}>{item.description}</RNText>
 
             <View style={styles.featureList}>
               {item.features.map((feature, index) => (
                 <View key={index} style={styles.featureItem}>
-                  <Text style={styles.featureBullet}>•</Text>
-                  <Text variant="bodyMedium" style={styles.featureText}>
-                    {feature}
-                  </Text>
+                  <RNText style={styles.featureBullet}>•</RNText>
+                  <RNText style={styles.featureText}>{feature}</RNText>
                 </View>
               ))}
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </View>
       </CenteredContainer>
     </View>
   );
@@ -193,9 +193,9 @@ export default function OnboardingScreen() {
       >
         {/* Skip button */}
         {!isLastStep && (
-          <Button mode="text" onPress={handleSkip} style={styles.skipButton}>
-            {t('onboarding.skip')}
-          </Button>
+          <TouchableOpacity onPress={handleSkip} style={styles.skipButton} hitSlop={12} activeOpacity={0.6}>
+            <RNText style={fzText.label}>{t('onboarding.skip')}</RNText>
+          </TouchableOpacity>
         )}
 
         {/* Progress indicator */}
@@ -224,27 +224,39 @@ export default function OnboardingScreen() {
         {/* Navigation */}
         <View style={styles.navigation}>
           {currentStep > 0 ? (
-            <Button mode="outlined" onPress={handlePrevious} style={styles.navButton}>
-              {t('common.previous')}
-            </Button>
+            <TouchableOpacity
+              onPress={handlePrevious}
+              style={[styles.navButton, styles.navButtonOutline]}
+              activeOpacity={0.7}
+            >
+              <RNText style={fzText.btnOutline}>{t('common.previous')}</RNText>
+            </TouchableOpacity>
           ) : (
             <View style={styles.navButton} />
           )}
 
           {isLastStep ? (
-            <Button mode="contained" onPress={handleComplete} style={styles.navButton}>
-              {t('common.getStarted')}
-            </Button>
+            <TouchableOpacity
+              onPress={handleComplete}
+              style={[styles.navButton, styles.navButtonSolid]}
+              activeOpacity={0.8}
+            >
+              <RNText style={fzText.btn}>{t('common.getStarted')}</RNText>
+            </TouchableOpacity>
           ) : (
-            <Button mode="contained" onPress={handleNext} style={styles.navButton}>
-              {t('common.next')}
-            </Button>
+            <TouchableOpacity
+              onPress={handleNext}
+              style={[styles.navButton, styles.navButtonSolid]}
+              activeOpacity={0.8}
+            >
+              <RNText style={fzText.btn}>{t('common.next')}</RNText>
+            </TouchableOpacity>
           )}
         </View>
 
-        <Text variant="bodySmall" style={styles.stepIndicator}>
+        <RNText style={styles.stepIndicator}>
           {t('onboarding.stepIndicator', { current: currentStep + 1, total: steps.length })}
-        </Text>
+        </RNText>
       </View>
     </>
   );
@@ -270,12 +282,12 @@ export async function resetOnboarding(): Promise<void> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.paper,
   },
   skipButton: {
     position: 'absolute',
     top: 10,
-    right: 16,
+    right: fz.s.edge,
     zIndex: 10,
   },
   logoImage: {
@@ -286,17 +298,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: fz.s.lg,
     marginTop: 40, // Added to clear the skip button area
   },
   progressDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#ccc',
+    backgroundColor: fz.lineDim,
   },
   progressDotActive: {
-    backgroundColor: '#6200ee',
+    backgroundColor: fz.ink,
     width: 24,
   },
   flatList: {
@@ -308,11 +320,15 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingBottom: fz.s.lg,
     width: '100%',
   },
   card: {
-    padding: 16,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.lg,
     width: '100%',
   },
   cardContent: {
@@ -322,24 +338,17 @@ const styles = StyleSheet.create({
     height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  icon: {
-    fontSize: 56,
-    lineHeight: 70,
-    textAlign: 'center',
+    marginBottom: fz.s.lg,
   },
   title: {
+    ...fzText.titleLg,
     textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: 'bold',
-    fontSize: 24,
+    marginBottom: fz.s.sm,
   },
   description: {
+    ...fzText.body,
     textAlign: 'center',
-    opacity: 0.8,
     marginBottom: 20,
-    fontSize: 16,
   },
   featureList: {
     width: '100%',
@@ -350,28 +359,41 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   featureBullet: {
+    ...fzText.body,
     fontSize: 18,
     marginRight: 8,
-    color: '#6200ee',
-    fontWeight: 'bold',
+    color: fz.ink,
+    fontWeight: '700',
   },
   featureText: {
+    ...fzText.body,
     flex: 1,
     lineHeight: 20,
-    fontSize: 14,
   },
   navigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    marginTop: 16,
+    marginTop: fz.s.lg,
   },
   navButton: {
+    height: 48,
     minWidth: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: fz.rButton,
+    paddingHorizontal: 24,
+  },
+  navButtonOutline: {
+    borderWidth: 1.5,
+    borderColor: fz.outline,
+  },
+  navButtonSolid: {
+    backgroundColor: fz.ink,
   },
   stepIndicator: {
+    ...fzText.time,
     textAlign: 'center',
-    marginTop: 12,
-    opacity: 0.6,
+    marginTop: fz.s.md,
   },
 });

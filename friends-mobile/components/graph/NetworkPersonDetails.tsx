@@ -1,15 +1,16 @@
-import { View, StyleSheet, Image } from 'react-native';
-import { Text, Card, Chip, Divider, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Image, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getInitials } from '@/lib/utils/format';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { RelationIcon } from '@/components/RelationIcon';
 import {
   LIKES,
   DISLIKES,
-  HAS_SKILL,
-  REGULARLY_DOES,
-  PREFERS_OVER,
-  FEARS,
-  WANTS_TO_ACHIEVE,
-  VERY_STRONG,
+  AVOIDS,
+  CAN,
+  DOES,
+  WANTS,
   STRONG,
 } from '@/lib/constants/relations';
 
@@ -29,211 +30,154 @@ interface NetworkPersonDetailsProps {
     relationshipType?: string | null;
   };
   relations: Relation[];
-  relationshipColor: string;
   connectionCount: number;
 }
+
+const SECTION_META = [
+  { titleKey: 'network.sections.likes', type: LIKES },
+  { titleKey: 'network.sections.dislikes', type: DISLIKES },
+  { titleKey: 'network.sections.avoids', type: AVOIDS },
+  { titleKey: 'network.sections.skills', type: CAN },
+  { titleKey: 'network.sections.activities', type: DOES },
+  { titleKey: 'network.sections.goals', type: WANTS },
+] as const;
 
 export default function NetworkPersonDetails({
   person,
   relations,
-  relationshipColor,
   connectionCount,
 }: NetworkPersonDetailsProps) {
-  const theme = useTheme();
-
-  // Group relations by category
-  const groupedRelations = {
-    likes: relations.filter((r) => r.relationType === LIKES),
-    dislikes: relations.filter((r) => r.relationType === DISLIKES),
-    skills: relations.filter((r) => r.relationType === HAS_SKILL),
-    activities: relations.filter((r) => r.relationType === REGULARLY_DOES),
-    preferences: relations.filter((r) => r.relationType === PREFERS_OVER),
-    fears: relations.filter((r) => r.relationType === FEARS),
-    goals: relations.filter((r) => r.relationType === WANTS_TO_ACHIEVE),
-  };
-
-  const renderSection = (title: string, icon: string, items: Relation[], color: string) => {
-    if (!items || items.length === 0) return null;
-
-    return (
-      <View style={styles.section} key={title}>
-        <View style={styles.sectionHeader}>
-          <Text
-            variant="labelLarge"
-            style={[styles.sectionTitle, { color: theme.colors.onSurface }]}
-          >
-            {icon} {title}
-          </Text>
-        </View>
-        <View style={styles.chipsContainer}>
-          {items.map((item) => (
-            <Chip
-              key={item.id}
-              compact
-              style={[styles.chip, { backgroundColor: `${color}15` }]}
-              textStyle={{ color: color, fontSize: 12 }}
-            >
-              {item.objectLabel}
-              {item.intensity === VERY_STRONG && ' 💪'}
-              {item.intensity === STRONG && ' +'}
-            </Chip>
-          ))}
-        </View>
-      </View>
-    );
-  };
+  const { t } = useTranslation();
 
   return (
-    <Card style={styles.container} mode="elevated">
-      <Card.Content>
-        {/* Header with avatar */}
-        <View style={styles.header}>
-          {person.photoPath ? (
-            <Image source={{ uri: person.photoPath }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: relationshipColor }]}>
-              <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-            </View>
-          )}
-          <View style={styles.headerInfo}>
-            <Text variant="titleLarge" style={styles.name}>
-              {person.name}
+    <View style={styles.container}>
+      {/* Header with avatar */}
+      <View style={styles.header}>
+        {person.photoPath ? (
+          <Image source={{ uri: person.photoPath }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+          </View>
+        )}
+        <View style={styles.headerInfo}>
+          <Text style={fzText.name}>{person.name}</Text>
+          {person.nickname && (
+            <Text style={[fzText.sub, { fontStyle: 'italic', marginTop: 2 }]}>
+              &ldquo;{person.nickname}&rdquo;
             </Text>
-            {person.nickname && (
-              <Text variant="bodyMedium" style={styles.nickname}>
-                "{person.nickname}"
-              </Text>
+          )}
+          <View style={styles.metaRow}>
+            {person.relationshipType && (
+              <Pill label={person.relationshipType} variant="surface" />
             )}
-            <View style={styles.metaRow}>
-              {person.relationshipType && (
-                <Chip
-                  compact
-                  style={[styles.typeChip, { backgroundColor: `${relationshipColor}20` }]}
-                  textStyle={{ color: relationshipColor }}
-                >
-                  {person.relationshipType}
-                </Chip>
-              )}
-              <Chip compact icon="account-network" style={styles.connectionChip}>
-                {connectionCount} connection{connectionCount !== 1 ? 's' : ''}
-              </Chip>
-            </View>
+            <Pill
+              label={t('network.connectionCount', { count: connectionCount })}
+              variant="soft"
+            />
           </View>
         </View>
+      </View>
 
-        <Divider style={styles.divider} />
+      <View style={styles.divider} />
 
-        {/* Content - Just Views, relying on Parent ScrollView */}
-        <View style={styles.contentWrapper}>
-          {renderSection('Likes', '❤️', groupedRelations.likes, '#4caf50')}
-          {renderSection('Dislikes', '👎', groupedRelations.dislikes, '#f44336')}
-          {renderSection('Skills', '🎯', groupedRelations.skills, '#2196f3')}
-          {renderSection('Activities', '🏃', groupedRelations.activities, '#ff9800')}
-          {renderSection('Prefers', '⭐', groupedRelations.preferences, '#9c27b0')}
-          {renderSection('Fears', '😰', groupedRelations.fears, '#ff5722')}
-          {renderSection('Goals', '🏆', groupedRelations.goals, '#009688')}
-
-          {relations.length === 0 && (
-            <View style={styles.emptyState}>
-              <Text variant="bodyMedium" style={styles.emptyText}>
-                No detailed information available yet.
-              </Text>
+      <View style={styles.contentWrapper}>
+        {SECTION_META.map((s) => {
+          const items = relations.filter((r) => r.relationType === s.type);
+          if (items.length === 0) return null;
+          return (
+            <View style={styles.section} key={s.titleKey}>
+              <View style={styles.sectionHeader}>
+                <RelationIcon type={s.type} size={13} color={fz.ink} />
+                <Text style={fzText.label}>
+                  {t(s.titleKey)} ({items.length})
+                </Text>
+              </View>
+              <View style={styles.chipsContainer}>
+                {items.map((item) => {
+                  const label =
+                    item.objectLabel + (item.intensity === STRONG ? ' +' : '');
+                  return <Pill key={item.id} label={label} variant="surface" />;
+                })}
+              </View>
             </View>
-          )}
-        </View>
-      </Card.Content>
-    </Card>
+          );
+        })}
+        {relations.length === 0 && (
+          <Text style={[fzText.sub, { fontStyle: 'italic', textAlign: 'center', paddingVertical: 24 }]}>
+            {t('network.noDetails')}
+          </Text>
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 32, // Extra space at bottom for scrolling
-    backgroundColor: 'white',
+    marginHorizontal: fz.s.edge,
+    marginTop: fz.s.md,
+    marginBottom: fz.s.xxl,
+    padding: fz.s.lg,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: fz.s.md,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
-    backgroundColor: '#eee',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: fz.s.md,
+    backgroundColor: fz.surface,
   },
   avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: fz.s.md,
+    backgroundColor: fz.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    color: 'white',
-    fontSize: 24,
+    color: fz.paper,
+    fontSize: 20,
     fontWeight: '700',
+    fontFamily: fz.font,
   },
   headerInfo: {
     flex: 1,
-  },
-  name: {
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  nickname: {
-    opacity: 0.6,
-    marginBottom: 8,
-    fontStyle: 'italic',
   },
   metaRow: {
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap',
-  },
-  typeChip: {
-    height: 26,
-  },
-  connectionChip: {
-    height: 26,
-    backgroundColor: '#f5f5f5',
+    marginTop: 6,
   },
   divider: {
-    marginVertical: 12,
+    height: 1,
+    backgroundColor: fz.hairline,
+    marginVertical: fz.s.md,
   },
-  contentWrapper: {
-    // No fixed height, let it grow
-  },
+  contentWrapper: {},
   section: {
-    marginBottom: 16,
+    marginBottom: fz.s.lg,
   },
   sectionHeader: {
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontWeight: '600',
-    fontSize: 13,
-    textTransform: 'uppercase',
-    opacity: 0.8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  chip: {
-    height: 28,
-  },
-  emptyState: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    opacity: 0.5,
-    fontStyle: 'italic',
+    marginTop: 8,
   },
 });

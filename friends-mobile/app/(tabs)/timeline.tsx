@@ -1,9 +1,9 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useMemo, useCallback } from 'react';
-import { useFocusEffect, router } from 'expo-router';
+import { useState, useMemo } from 'react';
+import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, StatusBar, Alert, ActivityIndicator, FlatList } from 'react-native';
-import { Text, Button, IconButton, useTheme } from 'react-native-paper';
+import { Text, Button } from 'react-native-paper';
 import {
   useContactEvents,
   useCreateContactEvent,
@@ -13,18 +13,14 @@ import {
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
-import {
-  getRelationshipColors,
-  type RelationshipColorMap,
-  DEFAULT_COLORS,
-} from '@/lib/settings/relationship-colors';
-import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 
 import TimelineEventItem from '@/components/timeline/TimelineEventItem';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
 import { parseFlexibleDate } from '@/lib/utils/dates';
+import { fz, fzText } from '@/lib/design/tokens';
+import { IconCircle } from '@/components/IconCircle';
 
 const EVENT_TYPES = [
   { value: 'met', label: 'Met', icon: 'account-check' },
@@ -40,8 +36,8 @@ const EVENT_TYPES = [
 ];
 
 export default function TimelineScreen() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { filterPersonId: initialFilterPersonId } = useLocalSearchParams<{ filterPersonId?: string }>();
   const { data: events = [], isLoading, error, refetch } = useContactEvents();
   const { data: people = [] } = usePeople();
   const { data: allRelations = [] } = useRelations();
@@ -53,28 +49,18 @@ export default function TimelineScreen() {
 
   const [addDialogVisible, setAddDialogVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
-  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [eventType, setEventType] = useState('met');
   const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
-  const [filterPersonId, setFilterPersonId] = useState<string | null>(null);
+  const [filterPersonId, setFilterPersonId] = useState<string | null>(initialFilterPersonId ?? null);
   const [filterEventType, setFilterEventType] = useState<string | null>(null);
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
   const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
-
-  // Relationship colors
-  const [relationshipColors, setRelationshipColors] =
-    useState<RelationshipColorMap>(DEFAULT_COLORS);
-
-  useFocusEffect(
-    useCallback(() => {
-      getRelationshipColors().then(setRelationshipColors);
-    }, [])
-  );
 
   // Generate birthday events from people with birthday
   const birthdayEvents = useMemo(() => {
@@ -168,9 +154,15 @@ export default function TimelineScreen() {
     return eventConfig?.label || type;
   };
 
+  const togglePersonId = (id: string) => {
+    setSelectedPersonIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
   const handleAddEvent = async () => {
-    if (!selectedPersonId) {
-      Alert.alert('Select Person', 'Please select a person for this event');
+    if (selectedPersonIds.length === 0) {
+      Alert.alert('Select Person', 'Please select at least one person for this event');
       return;
     }
 
@@ -185,19 +177,23 @@ export default function TimelineScreen() {
       if (editingEvent) {
         await updateEvent.mutateAsync({
           id: editingEvent.id,
-          personId: selectedPersonId,
+          personId: selectedPersonIds[0],
           eventType: eventType as any,
           notes: notes.trim() || undefined,
           eventDate: parsedDate,
         });
         Alert.alert('Success', 'Event updated!');
       } else {
-        await createEvent.mutateAsync({
-          personId: selectedPersonId,
-          eventType: eventType as any,
-          notes: notes.trim() || undefined,
-          eventDate: parsedDate,
-        });
+        await Promise.all(
+          selectedPersonIds.map((personId) =>
+            createEvent.mutateAsync({
+              personId,
+              eventType: eventType as any,
+              notes: notes.trim() || undefined,
+              eventDate: parsedDate,
+            })
+          )
+        );
         Alert.alert('Success', 'Event added to timeline!');
       }
 
@@ -212,7 +208,7 @@ export default function TimelineScreen() {
   const closeDialog = () => {
     setAddDialogVisible(false);
     setEditingEvent(null);
-    setSelectedPersonId(null);
+    setSelectedPersonIds([]);
     setEventType('met');
     setDateInput(new Date().toISOString().split('T')[0]);
     setNotes('');
@@ -227,7 +223,7 @@ export default function TimelineScreen() {
     } else {
       // Regular contact event - show dialog
       setEditingEvent(event);
-      setSelectedPersonId(event.personId);
+      setSelectedPersonIds(event.personId ? [event.personId] : []);
       setEventType(event.eventType);
       setDateInput(
         event.eventDate
@@ -264,8 +260,8 @@ export default function TimelineScreen() {
   if (isLoading) {
     return (
       <CenteredContainer style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading timeline...</Text>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading timeline...</Text>
       </CenteredContainer>
     );
   }
@@ -273,12 +269,8 @@ export default function TimelineScreen() {
   if (error) {
     return (
       <CenteredContainer style={styles.centered}>
-        <Text variant="bodyLarge" style={styles.errorText}>
-          Failed to load timeline
-        </Text>
-        <Button mode="contained" onPress={() => refetch()}>
-          Retry
-        </Button>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>Failed to load timeline</Text>
+        <Button mode="contained" onPress={() => refetch()}>Retry</Button>
       </CenteredContainer>
     );
   }
@@ -287,29 +279,25 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      {/* Custom Header - Android Contacts Style */}
-      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
-        <View style={headerStyles.headerContent}>
-          <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-            Timeline
-          </Text>
-          <View style={headerStyles.headerActions}>
-            <IconButton
-              icon="plus"
-              size={HEADER_ICON_SIZE}
-              style={headerStyles.headerIcon}
-              onPress={() => setAddDialogVisible(true)}
-            />
-            <IconButton
-              icon={filtersVisible ? 'filter-variant' : 'filter-variant-remove'}
-              size={HEADER_ICON_SIZE}
+      {/* App bar */}
+      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.appBarRow}>
+          <Text style={fzText.screenTitle}>Timeline</Text>
+          <View style={styles.appBarActions}>
+            <IconCircle icon="plus" onPress={() => setAddDialogVisible(true)} />
+            <IconCircle
+              icon={filtersVisible ? 'filterRemove' : 'filter'}
+              fill={hasActiveFilters ? fz.ink : fz.surface}
+              color={hasActiveFilters ? '#fff' : fz.ink}
               onPress={() => setFiltersVisible(!filtersVisible)}
-              iconColor={hasActiveFilters ? '#6200ee' : undefined}
             />
           </View>
         </View>
+        <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
+          {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
+        </Text>
       </View>
 
       <TimelineFilters
@@ -327,10 +315,10 @@ export default function TimelineScreen() {
 
       {filteredEvents.length === 0 ? (
         <CenteredContainer style={styles.emptyState}>
-          <Text variant="titleLarge" style={styles.emptyTitle}>
+          <Text style={fzText.title}>
             {filterPersonId || filterEventType ? 'No matching events' : 'No events yet'}
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyDescription}>
+          <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
             {filterPersonId || filterEventType
               ? 'Try adjusting your filters or add new events.'
               : 'Start tracking when you meet, call, or interact with people in your network.'}
@@ -343,6 +331,7 @@ export default function TimelineScreen() {
           {(filterPersonId || filterEventType) && (
             <Button
               mode="outlined"
+              textColor={fz.ink}
               onPress={() => {
                 setFilterPersonId(null);
                 setFilterEventType(null);
@@ -361,8 +350,6 @@ export default function TimelineScreen() {
               index={index}
               filteredEvents={filteredEvents}
               people={people}
-              relationshipColors={relationshipColors}
-              theme={theme}
               eventMenuVisible={eventMenuVisible}
               setEventMenuVisible={setEventMenuVisible}
               handleEditEvent={handleEditEvent}
@@ -380,10 +367,9 @@ export default function TimelineScreen() {
         visible={addDialogVisible}
         onDismiss={closeDialog}
         editingEvent={editingEvent}
-        selectedPersonId={selectedPersonId}
-        setSelectedPersonId={setSelectedPersonId}
+        selectedPersonIds={selectedPersonIds}
+        togglePersonId={togglePersonId}
         people={people}
-        getPersonName={getPersonName}
         eventType={eventType}
         setEventType={setEventType}
         eventTypes={EVENT_TYPES}
@@ -401,32 +387,34 @@ export default function TimelineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: fz.paper,
   },
   centered: {
     padding: 20,
+    backgroundColor: fz.paper,
   },
-  loadingText: {
-    marginTop: 12,
+  appBar: {
+    backgroundColor: fz.paper,
   },
-  errorText: {
-    marginBottom: 16,
-    color: '#d32f2f',
+  appBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: 2,
+  },
+  appBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   list: {
-    padding: 16,
-    paddingBottom: 80,
+    paddingHorizontal: fz.s.edge,
+    paddingTop: 4,
+    paddingBottom: 110,
   },
   emptyState: {
     padding: 24,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 24,
+    backgroundColor: fz.paper,
   },
 });

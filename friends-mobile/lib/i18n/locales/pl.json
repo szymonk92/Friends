@@ -26,6 +26,9 @@
     "back": "Wstecz",
     "moreOptions": "Więcej opcji"
   },
+  "splash": {
+    "connecting": "Łączenie z Twoim kręgiem…"
+  },
   "navigation": {
     "people": "Osoby",
     "network": "Sieć",
@@ -52,6 +55,34 @@
     "showCategoryDividers": "Pokaż separatory kategorii",
     "hideCategoryDividers": "Ukryj separatory kategorii",
     "clearFilters": "Wyczyść filtry"
+  },
+  "network": {
+    "title": "Sieć",
+    "loading": "Ładowanie sieci...",
+    "searchPlaceholder": "Szukaj osób...",
+    "empty": {
+      "title": "Brak sieci",
+      "description": "Dodaj osoby i połączenia, aby zobaczyć graf swojej sieci społecznej.",
+      "addPeople": "Dodaj osoby"
+    },
+    "tags": "Tagi",
+    "hint": "Dotknij węzła, aby sprawdzić • uszczypnij, aby powiększyć • przeciągnij, aby przesunąć",
+    "stats": {
+      "people": "Osoby",
+      "links": "Połączenia",
+      "avg": "Śr"
+    },
+    "sections": {
+      "likes": "Lubi",
+      "dislikes": "Nie lubi",
+      "avoids": "Unika",
+      "skills": "Umiejętności",
+      "activities": "Aktywności",
+      "goals": "Cele"
+    },
+    "connectionCount_one": "{{count}} połączenie",
+    "connectionCount_other": "{{count}} połączeń",
+    "noDetails": "Brak szczegółowych informacji."
   },
   "person": {
     "addTitle": "Dodaj osobę",

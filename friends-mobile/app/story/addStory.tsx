@@ -7,15 +7,15 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Platform,
+  Text as RNText,
 } from 'react-native';
 import { Text, TextInput, Button, Dialog, Portal } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
 import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
-import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useNavigation, useLocalSearchParams } from 'expo-router';
 import { createExtractionPrompt } from '@/lib/ai/prompts';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
@@ -26,11 +26,12 @@ import { devLogger } from '@/lib/utils/devLogger';
 import PersonSelector from '@/components/story/PersonSelector';
 import AmbiguityResolutionDialog from '@/components/story/AmbiguityResolutionDialog';
 import { Chip, Avatar } from 'react-native-paper';
-import { usePeople } from '@/hooks/usePeople';
+import { usePeople, usePerson } from '@/hooks/usePeople';
+import { fz, fzText } from '@/lib/design/tokens';
 
 export default function StoryInputScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { personId: prefillPersonId } = useLocalSearchParams<{ personId?: string }>();
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
@@ -44,7 +45,9 @@ export default function StoryInputScreen() {
 
   // @+ Feature State
   const [personSelectorVisible, setPersonSelectorVisible] = useState(false);
-  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>(
+    prefillPersonId ? [prefillPersonId] : []
+  );
 
   // Ambiguity Resolution State
   const [ambiguityDialogVisible, setAmbiguityDialogVisible] = useState(false);
@@ -55,6 +58,7 @@ export default function StoryInputScreen() {
   const createStory = useCreateStory();
   const extractStory = useExtractStory();
   const { data: allPeople } = usePeople();
+  const { data: prefillPerson } = usePerson(prefillPersonId ?? '');
   const {
     selectedModel,
     getActiveApiKey,
@@ -74,10 +78,19 @@ export default function StoryInputScreen() {
 
   // Set navigation options
   useEffect(() => {
-    navigation.setOptions({
-      title: 'Tell a Story',
-    });
-  }, [navigation]);
+    navigation.setOptions(
+      prefillPerson
+        ? {
+            headerTitle: () => (
+              <RNText style={styles.headerTitle} numberOfLines={1}>
+                Quick note ·{' '}
+                <RNText style={styles.headerTitleName}>{prefillPerson.name}</RNText>
+              </RNText>
+            ),
+          }
+        : { title: 'Tell a Story' }
+    );
+  }, [navigation, prefillPerson]);
 
   // Handle back button and unsaved changes
   useFocusEffect(
@@ -148,7 +161,11 @@ export default function StoryInputScreen() {
       });
 
       Alert.alert('Story Saved!', 'Your story has been saved (without AI extraction).', [
-        { text: 'View People', onPress: () => router.push('/') },
+        {
+          text: prefillPerson ? 'Back to Profile' : 'View People',
+          onPress: () =>
+            prefillPerson ? router.push(`/person/${prefillPerson.id}`) : router.push('/'),
+        },
         { text: 'Add Another', onPress: () => setStoryText('') },
       ]);
     } catch (error) {
@@ -218,7 +235,13 @@ ${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts det
 
 Tokens used: ${result.tokensUsed || 'N/A'}`;
 
-      const buttons = [{ text: 'View People', onPress: () => router.push('/stories') }];
+      const buttons = [
+        {
+          text: prefillPerson ? 'Back to Profile' : 'View People',
+          onPress: () =>
+            prefillPerson ? router.push(`/person/${prefillPerson.id}`) : router.push('/stories'),
+        },
+      ];
 
       if (result.pendingReview > 0) {
         buttons.unshift({
@@ -342,18 +365,20 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={[styles.statusBarSpacer, { height: insets.top }]} />
-
         <ScrollView style={styles.scrollContent} contentContainerStyle={styles.content}>
           {/* Main Input */}
           <MentionTextInput
-            placeholder="Had dinner with @Sarah last night. She's now vegan and really into yoga..."
+            placeholder={
+              prefillPerson
+                ? `How was it with ${prefillPerson.name}? Just say it — I'll sort it into their profile.`
+                : "Had dinner with @Sarah last night. She's now vegan and really into yoga..."
+            }
             value={storyText}
             onChangeText={setStoryText}
             numberOfLines={16}
@@ -363,7 +388,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           {/* Explicitly Tagged People Chips */}
           {selectedPersonIds.length > 0 && (
             <View style={styles.chipsContainer}>
-              <Text variant="labelSmall" style={styles.chipsLabel}>
+              <Text style={[fzText.label, { marginRight: 8 }]}>
                 Tagged:
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -379,6 +404,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
                     }
                     onClose={() => handleRemovePerson(person.id)}
                     style={styles.chip}
+                    textStyle={styles.chipText}
                   >
                     {person.name}
                   </Chip>
@@ -389,28 +415,16 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
           {/* Stats Bar */}
           <View style={styles.statsBar}>
-            <Text variant="bodySmall" style={styles.statsText}>
-              {wordCount} words
-            </Text>
-            <Text variant="bodySmall" style={styles.statsDivider}>
-              •
-            </Text>
-            <Text variant="bodySmall" style={styles.statsText}>
-              ~{estimatedCost}
-            </Text>
+            <Text style={fzText.meta}>{wordCount} words</Text>
+            <Text style={[fzText.meta, { opacity: 0.4 }]}>•</Text>
+            <Text style={fzText.meta}>~{estimatedCost}</Text>
           </View>
 
           {/* Examples Hint */}
           <View style={styles.examplesSection}>
-            <Text variant="labelMedium" style={styles.examplesTitle}>
-              Quick examples
-            </Text>
-            <Text variant="bodySmall" style={styles.example}>
-              "Met @Emma for coffee. She's training for a marathon"
-            </Text>
-            <Text variant="bodySmall" style={styles.example}>
-              "Had lunch with @Ola and met her friend @+Fabian"
-            </Text>
+            <Text style={fzText.label}>Quick examples</Text>
+            <Text style={styles.example}>"Met @Emma for coffee. She's training for a marathon"</Text>
+            <Text style={styles.example}>"Had lunch with @Ola and met her friend @+Fabian"</Text>
           </View>
 
           <View style={styles.spacer} />
@@ -421,6 +435,8 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           <View style={styles.actionRow}>
             <Button
               mode="contained"
+              buttonColor={fz.ink}
+              textColor={fz.paper}
               onPress={handleSubmit}
               loading={isProcessing}
               disabled={isProcessing || storyText.trim().length < 10}
@@ -447,13 +463,17 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
       {/* API Key Dialog */}
       <Portal>
-        <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
-          <Dialog.Title>Set Anthropic API Key</Dialog.Title>
+        <Dialog
+          visible={apiKeyDialogVisible}
+          onDismiss={() => setApiKeyDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>Set Anthropic API Key</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
+            <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
               Enter your Anthropic API key to enable AI extraction.
             </Text>
-            <Text variant="bodySmall" style={styles.dialogHelper}>
+            <Text variant="bodySmall" style={[styles.dialogHelper, styles.dialogFont]}>
               Get your key from: https://console.anthropic.com
             </Text>
             <TextInput
@@ -463,12 +483,16 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
               value={tempApiKey}
               onChangeText={setTempApiKey}
               secureTextEntry
-              style={styles.apiKeyInput}
+              style={[styles.apiKeyInput, styles.dialogFont]}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleSaveApiKey}>Save</Button>
+            <Button labelStyle={styles.dialogFont} onPress={() => setApiKeyDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button labelStyle={styles.dialogFont} onPress={handleSaveApiKey}>
+              Save
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -478,9 +502,9 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
         <Dialog
           visible={promptPreviewDialogVisible}
           onDismiss={() => setPromptPreviewDialogVisible(false)}
-          style={styles.promptDialog}
+          style={[styles.dialog, styles.promptDialog]}
         >
-          <Dialog.Title>AI Extraction Prompt</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>AI Extraction Prompt</Dialog.Title>
           <Dialog.ScrollArea style={styles.promptScrollArea}>
             <ScrollView>
               <Text variant="bodySmall" style={styles.promptText}>
@@ -489,26 +513,30 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             </ScrollView>
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button onPress={handleCopyPrompt} icon="content-copy">
+            <Button labelStyle={styles.dialogFont} onPress={handleCopyPrompt} icon="content-copy">
               Copy
             </Button>
-            <Button onPress={() => setPromptPreviewDialogVisible(false)}>Close</Button>
+            <Button labelStyle={styles.dialogFont} onPress={() => setPromptPreviewDialogVisible(false)}>
+              Close
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       {/* Unsaved Changes Dialog */}
       <Portal>
-        <Dialog visible={unsavedDialogVisible} onDismiss={handleCancelDiscard}>
-          <Dialog.Title>Unsaved Story</Dialog.Title>
+        <Dialog visible={unsavedDialogVisible} onDismiss={handleCancelDiscard} style={styles.dialog}>
+          <Dialog.Title style={styles.dialogTitle}>Unsaved Story</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" style={styles.dialogFont}>
               You have unsaved text. If you leave now, your story will be lost.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={handleCancelDiscard}>Cancel</Button>
-            <Button onPress={handleDiscard} textColor="#d32f2f">
+            <Button labelStyle={styles.dialogFont} onPress={handleCancelDiscard}>
+              Cancel
+            </Button>
+            <Button labelStyle={styles.dialogFont} onPress={handleDiscard} textColor="#d32f2f">
               Discard
             </Button>
           </Dialog.Actions>
@@ -520,14 +548,14 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
         <Dialog
           visible={debugDialogVisible}
           onDismiss={() => setDebugDialogVisible(false)}
-          style={styles.promptDialog}
+          style={[styles.dialog, styles.promptDialog]}
         >
-          <Dialog.Title>AI Debug Info</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>AI Debug Info</Dialog.Title>
           <Dialog.ScrollArea style={styles.promptScrollArea}>
             <ScrollView>
               {debugInfo && (
                 <View>
-                  <Text variant="labelLarge" style={styles.debugLabel}>
+                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
                     Model & Cost
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
@@ -538,21 +566,21 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
                     Cost: ${debugInfo.cost?.toFixed(6) || 'N/A'}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>
+                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
                     System Prompt
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.systemPrompt || 'N/A'}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>
+                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
                     User Prompt (Story)
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.userPrompt}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>
+                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
                     Response Status
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
@@ -561,7 +589,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
                     Headers: {JSON.stringify(debugInfo.requestHeaders || {}, null, 2)}
                   </Text>
 
-                  <Text variant="labelLarge" style={styles.debugLabel}>
+                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
                     Raw Response
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
@@ -573,6 +601,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Dialog.ScrollArea>
           <Dialog.Actions>
             <Button
+              labelStyle={styles.dialogFont}
               onPress={() => {
                 Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
                 Alert.alert('Copied', 'Debug info copied to clipboard');
@@ -580,7 +609,9 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             >
               Copy All
             </Button>
-            <Button onPress={() => setDebugDialogVisible(false)}>Close</Button>
+            <Button labelStyle={styles.dialogFont} onPress={() => setDebugDialogVisible(false)}>
+              Close
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -608,54 +639,39 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fafafa',
-  },
-  statusBarSpacer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: fz.paper,
   },
   scrollContent: {
     flex: 1,
   },
   content: {
-    padding: 16,
-    paddingTop: 12,
+    padding: fz.s.edge,
+    paddingTop: fz.s.md,
     paddingBottom: 140,
   },
   input: {
     minHeight: 280,
     textAlignVertical: 'top',
-    backgroundColor: '#fff',
+    backgroundColor: fz.card,
     fontSize: 16,
     lineHeight: 24,
   },
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    gap: 8,
+    marginTop: fz.s.md,
     paddingHorizontal: 4,
   },
-  statsText: {
-    opacity: 0.5,
-    fontSize: 12,
-  },
-  statsDivider: {
-    opacity: 0.3,
-    marginHorizontal: 8,
-  },
   examplesSection: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-  },
-  examplesTitle: {
-    marginBottom: 8,
-    opacity: 0.7,
-    fontWeight: '600',
+    marginTop: fz.s.lg,
+    padding: fz.s.lg,
+    backgroundColor: fz.surfaceSoft,
+    borderRadius: fz.rCard,
   },
   example: {
+    ...fzText.sub,
     marginBottom: 6,
-    opacity: 0.6,
     lineHeight: 20,
     fontStyle: 'italic',
   },
@@ -664,11 +680,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: fz.paper,
+    padding: fz.s.lg,
     paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: fz.hairline,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
@@ -686,7 +702,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: fz.rButton,
   },
   submitButtonContent: {
     paddingVertical: 8, // Reduced slightly to align with icon button
@@ -704,6 +720,20 @@ const styles = StyleSheet.create({
   },
   chip: {
     marginRight: 8,
+    borderRadius: fz.rPill,
+  },
+  chipText: {
+    fontFamily: fz.font,
+  },
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
   },
   devButton: {
     opacity: 0.5,
@@ -737,7 +767,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 4,
     fontWeight: 'bold',
-    color: '#666',
+    color: fz.textBody,
   },
   debugValue: {
     fontFamily: 'monospace',
@@ -752,5 +782,17 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 4,
     marginBottom: 8,
+  },
+  headerTitle: {
+    fontFamily: fz.font,
+    fontWeight: '500',
+    fontSize: 18,
+    color: fz.ink,
+  },
+  headerTitleName: {
+    fontFamily: fz.font,
+    fontWeight: '700',
+    fontSize: 18,
+    color: fz.ink,
   },
 });

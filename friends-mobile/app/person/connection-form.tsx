@@ -1,28 +1,22 @@
 import CenteredContainer from '@/components/CenteredContainer';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   View,
   ScrollView,
   StyleSheet,
-  Animated,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import {
-  Card,
   Text,
   Button,
-  SegmentedButtons,
   TextInput,
   ActivityIndicator,
-  Chip,
-  List,
   Checkbox,
-  IconButton,
 } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
@@ -43,6 +37,10 @@ import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relatio
 import { db } from '@/lib/db';
 import { connections, type Connection } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { LineIcon } from '@/components/LineIcon';
+import { FormSection, FormInput } from '@/components/FormKit';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -110,10 +108,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
   };
 
-  // Animation refs for scroll indicators
-  const relationshipTypeScrollAnim = useRef(new Animated.Value(0)).current;
-  const statusScrollAnim = useRef(new Animated.Value(0)).current;
-
   // Pre-select relationship type from query (e.g. PartnerBadge deep-link)
   useEffect(() => {
     if (mode !== 'add') return;
@@ -173,48 +167,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
     return combined;
   }, [regularPeople, mePerson]);
-
-  // Scroll indicator animation effect
-  useEffect(() => {
-    if ((mode === 'add' && person && !loadingPeople) || (mode === 'edit' && !isLoading)) {
-      // Small delay to ensure component is fully rendered
-      const timer = setTimeout(() => {
-        // Animate relationship type scroll indicator
-        Animated.sequence([
-          Animated.timing(relationshipTypeScrollAnim, {
-            toValue: -20, // Move left slightly
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.spring(relationshipTypeScrollAnim, {
-            toValue: 0, // Bounce back
-            friction: 3,
-            tension: 40,
-            useNativeDriver: true,
-          }),
-        ]).start();
-
-        // Animate status scroll indicator with slight delay
-        setTimeout(() => {
-          Animated.sequence([
-            Animated.timing(statusScrollAnim, {
-              toValue: -20, // Move left slightly
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.spring(statusScrollAnim, {
-              toValue: 0, // Bounce back
-              friction: 3,
-              tension: 40,
-              useNativeDriver: true,
-            }),
-          ]).start();
-        }, 200);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [mode, person, loadingPeople, isLoading, relationshipTypeScrollAnim, statusScrollAnim]);
 
   // Filter out the current person and filter by search with ranking
   const availablePeople = allPeople
@@ -318,7 +270,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           status,
         });
 
-        Alert.alert('Success', 'Connection updated successfully!');
         router.back();
       } catch (error) {
         Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update connection');
@@ -558,410 +509,281 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
-      <ScrollView style={styles.container}>
+    <>
+      <Stack.Screen
+        options={{
+          title: mode === 'add' ? 'Add Connection' : 'Edit Connection',
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+          headerShadowVisible: false,
+        }}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="headlineSmall" style={styles.title}>
-                {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
-              </Text>
-              <Text variant="bodyMedium" style={styles.subtitle}>
-                {mode === 'add'
-                  ? 'Select multiple people (checkbox) or tap avatar for detailed single connection'
-                  : 'Update connection details'}
-              </Text>
-            </Card.Content>
-          </Card>
+          <Text style={fzText.titleLg}>
+            {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
+          </Text>
+          <Text style={[fzText.sub, styles.headerSub]}>
+            {mode === 'add'
+              ? 'Select multiple people or tap one for a detailed connection'
+              : 'Update connection details'}
+          </Text>
 
           {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
             // Single person detailed mode (add only)
             <>
-              <Card style={styles.card}>
-                <Card.Content>
-                  <View style={styles.singlePersonHeader}>
-                    <Button mode="text" icon="arrow-left" onPress={backToMultiMode}>
-                      Back to Multi-Select
-                    </Button>
+              <Button mode="text" icon="arrow-left" onPress={backToMultiMode} style={styles.backLink}>
+                Back to Multi-Select
+              </Button>
+
+              <View style={styles.selectedCard}>
+                <View style={styles.selectedPerson}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{getInitials(selectedSinglePerson.name)}</Text>
                   </View>
-                  <Card style={styles.selectedCard} mode="outlined">
-                    <Card.Content>
-                      <View style={styles.selectedPerson}>
-                        <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>
-                            {getInitials(selectedSinglePerson.name)}
-                          </Text>
-                        </View>
-                        <View style={styles.personInfo}>
-                          <Text variant="titleMedium">{selectedSinglePerson.name}</Text>
-                          {selectedSinglePerson.nickname && (
-                            <Text variant="bodySmall" style={styles.nickname}>
-                              "{selectedSinglePerson.nickname}"
-                            </Text>
-                          )}
-                          {(selectedSinglePerson.personType || (pendingPersonName && personType)) && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-                            <Chip
-                              style={{ 
-                                alignSelf: 'flex-start', 
-                                marginTop: 4, 
-                                backgroundColor: (selectedSinglePerson.personType || personType) === 'primary' ? '#e3f2fd' : '#fff3e0',
-                                borderColor: (selectedSinglePerson.personType || personType) === 'primary' ? '#2196f3' : '#ff9800',
-                                borderWidth: 1
-                              }}
-                              textStyle={{ 
-                                fontSize: 11, 
-                                marginVertical: 2, 
-                                marginHorizontal: 8, 
-                                color: (selectedSinglePerson.personType || personType) === 'primary' ? '#0d47a1' : '#e65100' 
-                              }}
-                            >
-                              {(selectedSinglePerson.personType || personType).toUpperCase()}
-                            </Chip>
-                          )}
-                        </View>
-                      </View>
-                    </Card.Content>
-                  </Card>
-                </Card.Content>
-              </Card>
+                  <View style={styles.personInfo}>
+                    <Text style={fzText.name}>{selectedSinglePerson.name}</Text>
+                    {selectedSinglePerson.nickname && (
+                      <Text style={[fzText.sub, styles.nicknameText]}>
+                        "{selectedSinglePerson.nickname}"
+                      </Text>
+                    )}
+                    {(selectedSinglePerson.personType || (pendingPersonName && personType)) &&
+                      !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+                        <Pill
+                          label={(selectedSinglePerson.personType || personType).toUpperCase()}
+                          variant={(selectedSinglePerson.personType || personType) === 'primary' ? 'solid' : 'surface'}
+                          style={styles.personTypePill}
+                        />
+                      )}
+                  </View>
+                </View>
+              </View>
 
               {pendingPersonName && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text variant="titleSmall" style={styles.label}>
-                      Person Type
-                    </Text>
-                    <SegmentedButtons
-                      value={personType}
-                      onValueChange={value => setPersonType(value as 'primary' | 'mentioned')}
-                      buttons={[
-                        {
-                          value: 'primary',
-                          label: 'Primary',
-                          icon: 'account',
-                        },
-                        {
-                          value: 'mentioned',
-                          label: 'Mentioned',
-                          icon: 'account-outline',
-                        },
-                      ]}
+                <FormSection title="Person Type">
+                  <View style={styles.pillRow}>
+                    <Pill
+                      label="Primary"
+                      selected={personType === 'primary'}
+                      onPress={() => setPersonType('primary')}
                     />
-                    <Text variant="bodySmall" style={{ marginTop: 8, color: '#666' }}>
-                      {personType === 'primary' 
-                        ? 'Visible in main lists and search.' 
-                        : 'Hidden from main lists, used for context only.'}
-                    </Text>
-                  </Card.Content>
-                </Card>
+                    <Pill
+                      label="Mentioned"
+                      selected={personType === 'mentioned'}
+                      onPress={() => setPersonType('mentioned')}
+                    />
+                  </View>
+                  <Text style={[fzText.sub, styles.pillHint]}>
+                    {personType === 'primary'
+                      ? 'Visible in main lists and search.'
+                      : 'Hidden from main lists, used for context only.'}
+                  </Text>
+                </FormSection>
               )}
 
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text variant="titleSmall" style={styles.label}>
-                    Relationship Type
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.typeScrollContainer}
-                  >
-                    <Animated.View
-                      style={{
-                        transform: [{ translateX: relationshipTypeScrollAnim }],
+              <FormSection title="Relationship Type">
+                <View style={styles.pillRow}>
+                  {RELATIONSHIP_TYPES.map((type) => (
+                    <Pill
+                      key={type.value}
+                      label={type.label}
+                      selected={relationshipType === type.value}
+                      onPress={() => {
+                        setRelationshipType(type.value);
+                        if (pendingPersonName) {
+                          if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
+                            setPersonType('primary');
+                          } else if (type.value === 'acquaintance') {
+                            setPersonType('mentioned');
+                          } else {
+                            setPersonType('primary');
+                          }
+                        }
                       }}
-                    >
-                      <View style={styles.typeGrid}>
-                        {RELATIONSHIP_TYPES.map((type) => (
-                          <Button
-                            key={type.value}
-                            mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                            onPress={() => {
-                              setRelationshipType(type.value);
-                              // Auto-select person type for new people
-                              if (pendingPersonName) {
-                                if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
-                                  setPersonType('primary');
-                                } else if (type.value === 'acquaintance') {
-                                  setPersonType('mentioned');
-                                } else {
-                                  // For colleague or others, default to primary but allow change
-                                  setPersonType('primary');
-                                }
-                              }
-                            }}
-                            icon={type.icon}
-                            style={styles.typeButton}
-                            compact
-                          >
-                            {type.label}
-                          </Button>
-                        ))}
-                      </View>
-                    </Animated.View>
-                  </ScrollView>
-                  {pendingPersonName && personType === 'mentioned' && (
-                    <Text variant="bodySmall" style={{ color: '#f57c00', marginTop: 8, fontStyle: 'italic' }}>
-                      Note: This person will be created as "Mentioned" (hidden).
-                    </Text>
-                  )}
-                </Card.Content>
-              </Card>
-
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text variant="titleSmall" style={styles.label}>
-                    Status
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.statusScrollContainer}
-                  >
-                    <SegmentedButtons
-                      value={status}
-                      onValueChange={setStatus}
-                      buttons={[
-                        { value: 'active', label: 'Active' },
-                        { value: 'inactive', label: 'Inactive' },
-                        { value: 'complicated', label: 'Complicated' },
-                      ]}
-                      style={styles.segmented}
                     />
-                  </ScrollView>
-                </Card.Content>
-              </Card>
-
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text variant="titleSmall" style={styles.label}>
-                    Additional Details
+                  ))}
+                </View>
+                {pendingPersonName && personType === 'mentioned' && (
+                  <Text style={[fzText.sub, styles.pillHint]}>
+                    This person will be created as "Mentioned" (hidden).
                   </Text>
-                  <TextInput
-                    label="Qualifier (e.g., best, close, ex)"
-                    value={qualifier}
-                    onChangeText={setQualifier}
-                    mode="outlined"
-                    style={styles.input}
-                    placeholder="How to qualify this relationship"
-                  />
-                  <TextInput
-                    label="Notes"
-                    value={notes}
-                    onChangeText={setNotes}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={3}
-                    style={styles.input}
-                    placeholder="Any additional context"
-                  />
-                </Card.Content>
-              </Card>
+                )}
+              </FormSection>
+
+              <FormSection title="Status">
+                <View style={styles.pillRow}>
+                  {['active', 'inactive', 'complicated'].map((s) => (
+                    <Pill key={s} label={s.charAt(0).toUpperCase() + s.slice(1)} selected={status === s} onPress={() => setStatus(s as ConnectionStatus)} />
+                  ))}
+                </View>
+              </FormSection>
+
+              <FormSection title="Additional Details">
+                <FormInput
+                  label="Qualifier (e.g., best, close, ex)"
+                  value={qualifier}
+                  onChangeText={setQualifier}
+                  placeholder="How to qualify this relationship"
+                />
+                <FormInput
+                  label="Notes"
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={3}
+                  placeholder="Any additional context"
+                  style={styles.lastInput}
+                />
+              </FormSection>
             </>
           ) : (
             // Form mode (edit) or multi-select mode (add)
             <>
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text variant="titleSmall" style={styles.label}>
-                    Relationship Type
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.typeScrollContainer}
-                  >
-                    <Animated.View
-                      style={{
-                        transform: [{ translateX: relationshipTypeScrollAnim }],
-                      }}
-                    >
-                      <View style={styles.typeGrid}>
-                        {RELATIONSHIP_TYPES.map((type) => (
-                          <Button
-                            key={type.value}
-                            mode={relationshipType === type.value ? 'contained' : 'outlined'}
-                            onPress={() => handleRelationshipTypeChange(type.value)}
-                            icon={type.icon}
-                            style={styles.typeButton}
-                            compact
-                          >
-                            {type.label}
-                          </Button>
-                        ))}
-                      </View>
-                    </Animated.View>
-                  </ScrollView>
-                </Card.Content>
-              </Card>
-
-              <Card style={styles.card}>
-                <Card.Content>
-                  <Text variant="titleSmall" style={styles.label}>
-                    Connection Status
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.statusScrollContainer}
-                  >
-                    <Animated.View
-                      style={{
-                        transform: [{ translateX: statusScrollAnim }],
-                      }}
-                    >
-                      <SegmentedButtons
-                        value={status}
-                        onValueChange={handleStatusChange}
-                        buttons={CONNECTION_STATUSES}
-                        style={styles.segmented}
-                      />
-                    </Animated.View>
-                  </ScrollView>
-
-                  <TextInput
-                    mode="outlined"
-                    label="Qualifier (married, sibling, etc.)"
-                    placeholder="e.g., childhood friend, work colleague, cousin"
-                    value={qualifier}
-                    onChangeText={setQualifier}
-                    style={styles.input}
-                  />
-
-                  {mode === 'add' && (
-                    <TextInput
-                      mode="outlined"
-                      label="Notes (optional)"
-                      placeholder="Any additional notes about this connection..."
-                      value={notes}
-                      onChangeText={setNotes}
-                      multiline
-                      numberOfLines={3}
-                      style={styles.input}
+              <FormSection title="Relationship Type">
+                <View style={styles.pillRow}>
+                  {RELATIONSHIP_TYPES.map((type) => (
+                    <Pill
+                      key={type.value}
+                      label={type.label}
+                      selected={relationshipType === type.value}
+                      onPress={() => handleRelationshipTypeChange(type.value)}
                     />
-                  )}
-                </Card.Content>
-              </Card>
+                  ))}
+                </View>
+              </FormSection>
+
+              <FormSection title="Connection Status">
+                <View style={styles.pillRow}>
+                  {CONNECTION_STATUSES.map((s) => (
+                    <Pill key={s.value} label={s.label} selected={status === s.value} onPress={() => handleStatusChange(s.value)} />
+                  ))}
+                </View>
+
+                <FormInput
+                  label="Qualifier (married, sibling, etc.)"
+                  placeholder="e.g., childhood friend, work colleague, cousin"
+                  value={qualifier}
+                  onChangeText={setQualifier}
+                  style={styles.qualifierInput}
+                />
+
+                {mode === 'add' && (
+                  <FormInput
+                    label="Notes (optional)"
+                    placeholder="Any additional notes about this connection..."
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.lastInput}
+                  />
+                )}
+              </FormSection>
 
               {mode === 'edit' && (
-                <View style={styles.buttonContainer}>
-                  <View style={styles.topButtons}>
-                    <Button
-                      mode="outlined"
-                      onPress={handleDelete}
-                      style={[styles.button, styles.deleteButton]}
-                      icon="delete-outline"
-                      textColor="#d32f2f"
-                    >
-                      Delete
-                    </Button>
-                    <Button mode="outlined" onPress={() => router.back()} style={styles.button}>
-                      Cancel
-                    </Button>
-                  </View>
+                <View style={styles.topButtons}>
+                  <Button
+                    mode="outlined"
+                    onPress={handleDelete}
+                    style={[styles.button, styles.deleteButton]}
+                    textColor="#d32f2f"
+                    labelStyle={[fzText.btnOutline, styles.deleteLabel]}
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    onPress={() => router.back()}
+                    style={styles.button}
+                    textColor={fz.ink}
+                    labelStyle={fzText.btnOutline}
+                  >
+                    Cancel
+                  </Button>
                 </View>
               )}
             </>
           )}
-              {mode === 'add' && (
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text variant="titleSmall" style={styles.label}>
-                      Select People
-                    </Text>
 
-                    <TextInput
-                      mode="outlined"
-                      placeholder="Search people..."
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      style={styles.searchbar}
-                      left={<TextInput.Icon icon="magnify" />}
-                    />
+          {mode === 'add' && (
+            <FormSection title="Select People">
+              <FormInput
+                placeholder="Search people..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                left={<TextInput.Icon icon="magnify" />}
+              />
 
-                    {loadingPeople && (
-                      <CenteredContainer style={styles.centered}>
-                        <ActivityIndicator />
-                      </CenteredContainer>
-                    )}
-
-                    {searchQuery.trim().length > 0 && (
-                      <List.Item
-                        title={`Add "${searchQuery}"`}
-                        description="Create new person and connect"
-                        left={(props) => (
-                          <View
-                            style={[
-                              styles.listAvatar,
-                              { backgroundColor: '#4caf50' },
-                              props.style,
-                            ]}
-                          >
-                            <IconButton icon="plus" iconColor="white" size={20} />
-                          </View>
-                        )}
-                        onPress={handleCreateAndSelectPerson}
-                        style={styles.listItem}
-                      />
-                    )}
-
-                    {selectedPersonIds.length > 0 && (
-                      <View style={styles.selectedChipsContainer}>
-                        {selectedPersonIds.map((id) => {
-                          const person = allPeople.find((p) => p.id === id);
-                          return person ? (
-                            <Chip
-                              key={id}
-                              onClose={() => togglePersonSelection(id)}
-                              style={styles.selectedChip}
-                            >
-                              {person.name}
-                            </Chip>
-                          ) : null;
-                        })}
-                      </View>
-                    )}
-
-                    {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
-                      <Text style={styles.emptyText}>
-                        No other people found. Add more people first.
-                      </Text>
-                    )}
-
-                    {availablePeople.length > 0 && (
-                      <ScrollView style={styles.peopleList} nestedScrollEnabled>
-                        {availablePeople.map((p) => (
-                          <List.Item
-                            key={p.id}
-                            title={p.name}
-                            description={p.nickname || p.relationshipType}
-                            left={(props) => (
-                              <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                                <View style={[styles.listAvatar, props.style]}>
-                                  <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
-                                </View>
-                              </TouchableOpacity>
-                            )}
-                            right={(props) => (
-                              <Checkbox
-                                status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                                {...props}
-                              />
-                            )}
-                            onPress={() => togglePersonSelection(p.id)}
-                            style={styles.listItem}
-                          />
-                        ))}
-                      </ScrollView>
-                    )}
-                  </Card.Content>
-                </Card>
+              {loadingPeople && (
+                <CenteredContainer style={styles.centered}>
+                  <ActivityIndicator color={fz.ink} />
+                </CenteredContainer>
               )}
-          ){'}'}
+
+              {searchQuery.trim().length > 0 && (
+                <TouchableOpacity style={styles.listRow} onPress={handleCreateAndSelectPerson} activeOpacity={0.7}>
+                  <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
+                    <LineIcon name="plus" size={16} color="#fff" />
+                  </View>
+                  <View style={styles.listRowBody}>
+                    <Text style={fzText.name}>Add "{searchQuery}"</Text>
+                    <Text style={fzText.sub}>Create new person and connect</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {selectedPersonIds.length > 0 && (
+                <View style={styles.pillRow}>
+                  {selectedPersonIds.map((id) => {
+                    const person = allPeople.find((p) => p.id === id);
+                    return person ? (
+                      <Pill key={id} label={person.name} onClose={() => togglePersonSelection(id)} />
+                    ) : null;
+                  })}
+                </View>
+              )}
+
+              {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
+                <Text style={[fzText.sub, styles.emptyText]}>
+                  No other people found. Add more people first.
+                </Text>
+              )}
+
+              {availablePeople.length > 0 && (
+                <ScrollView style={styles.peopleList} nestedScrollEnabled>
+                  {availablePeople.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={styles.listRow}
+                      activeOpacity={0.7}
+                      onPress={() => togglePersonSelection(p.id)}
+                    >
+                      <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
+                        <View style={styles.listAvatarFallback}>
+                          <Text style={styles.listAvatarText}>{getInitials(p.name)}</Text>
+                        </View>
+                      </TouchableOpacity>
+                      <View style={styles.listRowBody}>
+                        <Text style={fzText.name}>{p.name}</Text>
+                        <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
+                      </View>
+                      <Checkbox
+                        status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
+                        color={fz.ink}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </FormSection>
+          )}
 
           <Button
             mode="contained"
@@ -971,55 +793,55 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               isSubmitting ||
               (mode === 'add' && !singlePersonMode && selectedPersonIds.length === 0)
             }
+            buttonColor={fz.ink}
             style={styles.submitButton}
             contentStyle={styles.submitButtonContent}
+            labelStyle={fzText.btn}
           >
             {mode === 'add'
               ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}`
               : 'Update Connection'}
           </Button>
 
-          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting} textColor={fz.textMute}>
             Cancel
           </Button>
 
           <View style={styles.spacer} />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.paper,
   },
   content: {
-    padding: 16,
+    padding: fz.s.edge,
   },
-  card: {
-    marginBottom: 16,
+  headerSub: {
+    marginTop: 6,
+    marginBottom: fz.s.lg,
   },
-  title: {
-    marginBottom: 8,
-  },
-  subtitle: {
-    opacity: 0.7,
-  },
-  label: {
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  searchbar: {
-    marginBottom: 12,
+  backLink: {
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+    marginLeft: -8,
   },
   centered: {
     padding: 20,
   },
   selectedCard: {
-    backgroundColor: '#e8f5e9',
-    marginTop: 8,
+    backgroundColor: fz.card,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    borderRadius: fz.rCard,
+    padding: fz.s.xl,
+    marginBottom: fz.s.lg,
   },
   selectedPerson: {
     flexDirection: 'row',
@@ -1029,78 +851,86 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6200ee',
+    backgroundColor: fz.ink,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   avatarText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontFamily: fz.font,
   },
   personInfo: {
     flex: 1,
   },
-  nickname: {
-    opacity: 0.7,
+  nicknameText: {
     fontStyle: 'italic',
+    marginTop: 2,
+  },
+  personTypePill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  pillHint: {
+    marginTop: 10,
+  },
+  qualifierInput: {
+    marginTop: fz.s.md,
+  },
+  lastInput: {
+    marginBottom: 0,
   },
   emptyText: {
     textAlign: 'center',
-    opacity: 0.7,
     padding: 16,
   },
   peopleList: {
-    maxHeight: 300,
+    maxHeight: 320,
+    marginTop: fz.s.sm,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  listRowBody: {
+    flex: 1,
+    minWidth: 0,
   },
   listAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#6200ee',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: fz.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   listAvatarText: {
-    color: 'white',
+    color: fz.ink,
     fontSize: 14,
-    fontWeight: 'bold',
-  },
-  listItem: {
-    backgroundColor: '#fff',
-    marginBottom: 4,
-    borderRadius: 8,
-  },
-  moreText: {
-    textAlign: 'center',
-    opacity: 0.6,
-    padding: 8,
-    fontStyle: 'italic',
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  typeScrollContainer: {
-    paddingVertical: 4,
-  },
-  statusScrollContainer: {
-    paddingVertical: 4,
-  },
-  typeButton: {
-    marginBottom: 8,
-  },
-  segmented: {
-    marginBottom: 16,
-  },
-  input: {
-    marginBottom: 16,
+    fontWeight: '600',
+    fontFamily: fz.font,
   },
   submitButton: {
     marginTop: 8,
     marginBottom: 8,
+    borderRadius: fz.rButton,
   },
   submitButtonContent: {
     paddingVertical: 8,
@@ -1108,31 +938,22 @@ const styles = StyleSheet.create({
   spacer: {
     height: 40,
   },
-  selectedChipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginVertical: 12,
-  },
-  selectedChip: {
-    marginBottom: 4,
-  },
-  singlePersonHeader: {
-    marginBottom: 12,
-  },
-  buttonContainer: {
-    marginTop: 24,
-  },
   topButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: fz.s.lg,
   },
   deleteButton: {
     flex: 1,
+    borderColor: '#d32f2f',
+  },
+  deleteLabel: {
+    color: '#d32f2f',
   },
   button: {
     flex: 1,
     minWidth: 80,
+    borderColor: fz.outline,
   },
 });

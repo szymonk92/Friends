@@ -4,6 +4,7 @@ import { TextInput, Text, Card, Chip, useTheme } from 'react-native-paper';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { and, eq, or, like } from 'drizzle-orm';
+import { fz } from '@/lib/design/tokens';
 
 interface Person {
   id: string;
@@ -15,7 +16,6 @@ interface MentionTextInputProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  label?: string;
   numberOfLines?: number;
   style?: any;
 }
@@ -31,7 +31,6 @@ export default function MentionTextInput({
   value,
   onChangeText,
   placeholder,
-  label = 'Your Story',
   numberOfLines = 12,
   style,
 }: MentionTextInputProps) {
@@ -182,7 +181,6 @@ export default function MentionTextInput({
     <View style={styles.container}>
       <TextInput
         mode="outlined"
-        label={label}
         placeholder={
           placeholder || "Example: Had dinner with Sarah. She mentioned she's now vegan..."
         }
@@ -281,6 +279,7 @@ const styles = StyleSheet.create({
   },
   atButtonText: {
     color: '#fff',
+    fontFamily: fz.font,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -292,6 +291,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   atButtonTextOutlined: {
+    fontFamily: fz.font,
     fontSize: 15,
     fontWeight: '600',
   },

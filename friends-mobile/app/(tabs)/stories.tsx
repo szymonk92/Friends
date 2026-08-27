@@ -1,12 +1,14 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, StyleSheet, View, ActivityIndicator, StatusBar, FlatList } from 'react-native';
+import { Alert, StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Text, Card, Button, Chip, IconButton, Searchbar } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useStories, useDeleteStory } from '@/hooks/useStories';
 import { formatRelativeTime } from '@/lib/utils/format';
-import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
+import { fz, fzText } from '@/lib/design/tokens';
+import { IconCircle } from '@/components/IconCircle';
+import { Pill } from '@/components/Pill';
 
 export default function StoriesListScreen() {
   const insets = useSafeAreaInsets();
@@ -43,23 +45,21 @@ export default function StoriesListScreen() {
 
   if (isLoading) {
     return (
-      <CenteredContainer style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading stories...</Text>
-      </CenteredContainer>
+      <View style={s.centered}>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading stories...</Text>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <CenteredContainer style={styles.centered}>
-        <Text variant="bodyLarge" style={styles.errorText}>
-          Failed to load stories
-        </Text>
-        <Button mode="contained" onPress={() => refetch()} style={styles.retryButton}>
-          Retry
-        </Button>
-      </CenteredContainer>
+      <View style={s.centered}>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>Failed to load stories</Text>
+        <TouchableOpacity style={s.primaryBtn} onPress={() => refetch()} activeOpacity={0.8}>
+          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -69,123 +69,96 @@ export default function StoriesListScreen() {
       item.content.length > 200 ? item.content.substring(0, 200) + '...' : item.content;
 
     return (
-      <Card
-        style={styles.storyCard}
+      <TouchableOpacity
+        style={s.card}
+        activeOpacity={0.7}
         onPress={() => router.push(`/story/${item.id}`)}
         onLongPress={() => handleDeleteStory(item.id, item.aiProcessed)}
       >
-        <Card.Content>
-          <View style={styles.storyHeader}>
-            <Text variant="labelSmall" style={styles.storyDate}>
-              {formatRelativeTime(new Date(item.createdAt))}
-            </Text>
-            <View style={styles.chips}>
-              {item.aiProcessed && (
-                <Chip icon="robot" compact style={styles.aiChip}>
-                  AI Processed
-                </Chip>
-              )}
-              <Chip compact style={styles.wordChip}>
-                {wordCount} words
-              </Chip>
-            </View>
+        <View style={s.cardHeader}>
+          <Text style={fzText.time}>{formatRelativeTime(new Date(item.createdAt))}</Text>
+          <View style={s.chips}>
+            {item.aiProcessed && <Pill label="AI Processed" variant="soft" />}
+            <Pill label={`${wordCount} words`} variant="surface" />
           </View>
+        </View>
 
-          {item.title && (
-            <Text variant="titleMedium" style={styles.storyTitle}>
-              {item.title}
-            </Text>
-          )}
+        {item.title && <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>}
 
-          <Text variant="bodyMedium" style={styles.storyContent}>
-            {preview}
+        <Text style={fzText.body} numberOfLines={4}>{preview}</Text>
+
+        {item.storyDate && (
+          <Text style={{ ...fzText.time, marginTop: 8 }}>
+            Event date: {new Date(item.storyDate).toLocaleDateString()}
           </Text>
+        )}
 
-          {item.storyDate && (
-            <Text variant="labelSmall" style={styles.storyEventDate}>
-              Event date: {new Date(item.storyDate).toLocaleDateString()}
-            </Text>
-          )}
-
-          <Text variant="labelSmall" style={styles.tapHint}>
-            Tap to view full story • Long press to delete
-          </Text>
-        </Card.Content>
-      </Card>
+        <Text style={s.tapHint}>Tap to view • Long press to delete</Text>
+      </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+    <View style={s.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      {/* Custom Header - Android Contacts Style */}
-      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
-        <View style={headerStyles.headerContent}>
-          {!searchVisible ? (
-            <>
-              <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-                Stories
-              </Text>
-              <View style={headerStyles.headerActions}>
-                <IconButton
-                  icon="plus"
-                  size={HEADER_ICON_SIZE}
-                  style={headerStyles.headerIcon}
-                  onPress={() => router.push('/story/addStory')}
-                />
-                <IconButton
-                  icon="magnify"
-                  size={HEADER_ICON_SIZE}
-                  onPress={() => setSearchVisible(true)}
-                />
-              </View>
-            </>
-          ) : (
-            <View style={styles.searchContainer}>
-              <Searchbar
+      {/* App bar */}
+      <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
+        {!searchVisible ? (
+          <View style={s.appBarRow}>
+            <Text style={fzText.screenTitle}>Stories</Text>
+            <View style={s.appBarActions}>
+              <IconCircle icon="plus" onPress={() => router.push('/story/addStory')} />
+              <IconCircle icon="search" onPress={() => setSearchVisible(true)} />
+            </View>
+          </View>
+        ) : (
+          <View style={s.searchRow}>
+            <IconCircle icon="back" onPress={() => { setSearchVisible(false); setSearchQuery(''); }} />
+            <View style={s.searchInput}>
+              <TextInput
                 placeholder="Search stories..."
-                onChangeText={setSearchQuery}
+                placeholderTextColor={fz.textMute}
                 value={searchQuery}
-                style={styles.searchbar}
+                onChangeText={setSearchQuery}
                 autoFocus
-                icon="arrow-left"
-                onIconPress={() => {
-                  setSearchVisible(false);
-                  setSearchQuery('');
-                }}
+                style={s.searchText}
               />
             </View>
-          )}
-        </View>
+          </View>
+        )}
+        {stories.length > 0 && (
+          <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
+            {stories.length} {stories.length === 1 ? 'story' : 'stories'} captured
+          </Text>
+        )}
       </View>
 
       {stories.length === 0 ? (
-        <CenteredContainer style={styles.emptyState}>
-          <Text variant="titleLarge" style={styles.emptyTitle}>
-            No stories yet
+        <View style={s.empty}>
+          <Text style={fzText.title}>No stories yet</Text>
+          <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
+            Start capturing memories by adding your first story. Tell us about your friends, family, and the moments you share together.
           </Text>
-          <Text variant="bodyMedium" style={styles.emptyDescription}>
-            Start capturing memories by adding your first story. Tell us about your friends, family,
-            and the moments you share together.
-          </Text>
-          <Button
-            mode="contained"
+          <TouchableOpacity
+            style={s.primaryBtn}
             onPress={() => router.push('/story/addStory')}
-            style={styles.addButton}
+            activeOpacity={0.8}
           >
-            Add Your First Story
-          </Button>
-        </CenteredContainer>
+            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
+              Add Your First Story
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={filteredStories}
           renderItem={renderStoryItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={s.list}
           ListEmptyComponent={
-            <View style={styles.noResults}>
-              <Text variant="bodyLarge">No stories match your search</Text>
+            <View style={s.noResults}>
+              <Text style={fzText.sub}>No stories match your search</Text>
             </View>
           }
         />
@@ -194,98 +167,41 @@ export default function StoriesListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: fz.paper },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper },
+  appBarRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge, paddingBottom: 2,
   },
-  statusBarSpacer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: fz.s.edge, paddingBottom: 6 },
+  searchInput: {
+    flex: 1, height: 42, borderRadius: fz.rPill, backgroundColor: fz.surface,
+    paddingHorizontal: 16, justifyContent: 'center',
   },
-  centered: {
-    padding: 20,
+  searchText: { fontFamily: fz.font, fontSize: 15, color: fz.ink, padding: 0 },
+  list: { padding: fz.s.edge, paddingTop: 4, paddingBottom: 110 },
+  card: {
+    backgroundColor: fz.card, borderRadius: fz.rCard, borderWidth: 1,
+    borderColor: fz.cardBorder, padding: 16, marginBottom: 12,
   },
-  loadingText: {
-    marginTop: 12,
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 8, gap: 8, flexWrap: 'wrap',
   },
-  errorText: {
-    marginBottom: 16,
-    color: '#d32f2f',
-  },
-  retryButton: {
-    marginTop: 8,
-  },
-  searchContainer: {
-    flex: 1,
-  },
-  searchbar: {
-    elevation: 0,
-    backgroundColor: 'transparent',
-  },
-  list: {
-    padding: 16,
-    paddingBottom: 80,
-  },
-  storyCard: {
-    marginBottom: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  storyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  storyDate: {
-    opacity: 0.6,
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  aiChip: {
-    height: 28,
-    backgroundColor: '#e8f5e9',
-  },
-  wordChip: {
-    height: 32,
-    backgroundColor: '#f5f5f5',
-  },
-  storyTitle: {
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  storyContent: {
-    lineHeight: 22,
-    color: '#333',
-  },
-  storyEventDate: {
-    marginTop: 8,
-    opacity: 0.6,
+  chips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  cardTitle: {
+    ...fzText.name, fontSize: 17, marginBottom: 6,
   },
   tapHint: {
-    marginTop: 12,
-    opacity: 0.5,
-    fontStyle: 'italic',
+    ...fzText.time, fontStyle: 'italic', marginTop: 12,
   },
-  emptyState: {
-    padding: 32,
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  primaryBtn: {
+    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
+    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
   },
-  emptyTitle: {
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  addButton: {
-    marginTop: 8,
-  },
-  noResults: {
-    padding: 32,
-    alignItems: 'center',
-  },
+  noResults: { padding: 32, alignItems: 'center' },
 });

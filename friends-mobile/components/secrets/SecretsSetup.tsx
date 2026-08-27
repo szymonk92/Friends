@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { Text, Card, Button, Portal, Dialog, TextInput } from 'react-native-paper';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
+import { fz } from '@/lib/design/tokens';
 
 interface SecretsSetupProps {
   biometricStatus: any;
@@ -112,10 +113,11 @@ export default function SecretsSetup({
             setSetupPassword('');
             setConfirmPassword('');
           }}
+          style={styles.dialog}
         >
-          <Dialog.Title>Set Password</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>Set Password</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodySmall" style={styles.warningBanner}>
+            <Text variant="bodySmall" style={[styles.warningBanner, styles.dialogFont]}>
               ⚠️ WARNING: If you forget this password, your secrets CANNOT be recovered. Write it
               down in a safe place!
             </Text>
@@ -125,7 +127,7 @@ export default function SecretsSetup({
               onChangeText={setSetupPassword}
               mode="outlined"
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, styles.dialogFont]}
             />
             <TextInput
               label="Confirm Password"
@@ -133,21 +135,22 @@ export default function SecretsSetup({
               onChangeText={setConfirmPassword}
               mode="outlined"
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, styles.dialogFont]}
             />
             {setupPassword.length > 0 && setupPassword.length < 8 && (
-              <Text variant="bodySmall" style={styles.errorText}>
+              <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
                 Password must be at least 8 characters
               </Text>
             )}
             {confirmPassword.length > 0 && setupPassword !== confirmPassword && (
-              <Text variant="bodySmall" style={styles.errorText}>
+              <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
                 Passwords do not match
               </Text>
             )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button
+              labelStyle={styles.dialogFont}
               onPress={() => {
                 setShowPasswordSetupDialog(false);
                 setSetupPassword('');
@@ -157,6 +160,7 @@ export default function SecretsSetup({
               Cancel
             </Button>
             <Button
+              labelStyle={styles.dialogFont}
               onPress={handlePasswordSetup}
               loading={initializeWithPassword.isPending}
               disabled={
@@ -175,6 +179,16 @@ export default function SecretsSetup({
 }
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
+  },
   centered: {
     flex: 1,
     justifyContent: 'center',

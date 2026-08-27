@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, Chip } from 'react-native-paper';
+import { Text, Button } from 'react-native-paper';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreatePerson } from '@/hooks/usePeople';
@@ -19,9 +19,14 @@ import { useCreateConnection } from '@/hooks/useConnections';
 import { useCreateRelations } from '@/hooks/useRelations';
 import type { BrainDumpAttribute } from '@/lib/ai/brain-dump';
 import { parseFlexibleDate } from '@/lib/utils/dates';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { FormSection, FormInput } from '@/components/FormKit';
 
 export default function AddPersonModal() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [relationshipType, setRelationshipType] = useState<string>('friend');
@@ -215,211 +220,187 @@ export default function AddPersonModal() {
       style={{ flex: 1 }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.content}>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={[fzText.sub, styles.subtitle]}>
             {t('person.addSubtitle')}
           </Text>
 
           <BrainDumpSection personName={name} onApply={handleBrainDumpApply} />
 
-          <TextInput
-            mode="outlined"
-            label={`${t('person.name')} ${t('person.nameRequired')} `}
-            placeholder={t('person.namePlaceholder')}
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            autoFocus
-            autoCapitalize="words"
-            maxLength={255}
-          />
+          <View style={styles.plainGroup}>
+            <FormInput
+              label={`${t('person.name')} ${t('person.nameRequired')} `}
+              placeholder={t('person.namePlaceholder')}
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              autoCapitalize="words"
+              maxLength={255}
+            />
 
-          <TextInput
-            mode="outlined"
-            label={t('person.nickname')}
-            placeholder={t('person.nicknamePlaceholder')}
-            value={nickname}
-            onChangeText={setNickname}
-            style={styles.input}
-            maxLength={255}
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text variant="titleSmall" style={styles.label}>
-              {t('person.relationshipType')}
-            </Text>
-            {!ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-              <Chip
-                compact
-                style={{ 
-                  backgroundColor: personType === 'primary' ? '#e3f2fd' : '#fff3e0',
-                  borderColor: personType === 'primary' ? '#2196f3' : '#ff9800',
-                  borderWidth: 1,
-                }}
-                textStyle={{ 
-                  fontSize: 10, 
-                  marginVertical: 0, 
-                  marginHorizontal: 4, 
-                  color: personType === 'primary' ? '#0d47a1' : '#e65100',
-                }}
-              >
-                {personType.toUpperCase()}
-              </Chip>
-            )}
+            <FormInput
+              label={t('person.nickname')}
+              placeholder={t('person.nicknamePlaceholder')}
+              value={nickname}
+              onChangeText={setNickname}
+              style={styles.lastInput}
+              maxLength={255}
+            />
           </View>
-          <SegmentedButtons
-            value={relationshipType}
-            onValueChange={handleRelationshipChange}
-            buttons={[
-              { value: 'friend', label: t('person.friend'), icon: 'account-heart' },
-              { value: 'family', label: t('person.family'), icon: 'home-heart' },
-              { value: 'colleague', label: t('person.colleague'), icon: 'briefcase' },
-            ]}
-            style={styles.segmented}
-          />
-          <SegmentedButtons
-            value={relationshipType}
-            onValueChange={handleRelationshipChange}
-            buttons={[
-              { value: 'acquaintance', label: t('person.acquaintance') },
-              { value: 'partner', label: t('person.partner'), icon: 'heart' },
-            ]}
-            style={styles.segmented}
-          />
 
-          {!ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-            <View style={{ marginBottom: 16 }}>
-              <Text variant="titleSmall" style={styles.label}>
-                Person Type
-              </Text>
-              <SegmentedButtons
-                value={personType}
-                onValueChange={value => setPersonType(value as 'primary' | 'mentioned')}
-                buttons={[
-                  {
-                    value: 'primary',
-                    label: 'Primary',
-                    icon: 'account',
-                  },
-                  {
-                    value: 'mentioned',
-                    label: 'Mentioned',
-                    icon: 'account-outline',
-                  },
-                ]}
-              />
-              <Text variant="bodySmall" style={{ marginTop: 8, color: '#666' }}>
-                {personType === 'primary' 
-                  ? 'Visible in main lists and search.' 
-                  : 'Hidden from main lists, used for context only.'}
-              </Text>
+          <FormSection title={t('person.relationshipType')}>
+            <View style={styles.pillRow}>
+              {[
+                { value: 'friend', label: t('person.friend') },
+                { value: 'family', label: t('person.family') },
+                { value: 'colleague', label: t('person.colleague') },
+                { value: 'acquaintance', label: t('person.acquaintance') },
+                { value: 'partner', label: t('person.partner') },
+              ].map((opt) => (
+                <Pill
+                  key={opt.value}
+                  label={opt.label}
+                  selected={relationshipType === opt.value}
+                  onPress={() => handleRelationshipChange(opt.value)}
+                />
+              ))}
             </View>
-          )}
 
-          <TextInput
-            mode="outlined"
-            label={t('person.birthday')}
-            placeholder={t('person.birthdayPlaceholder')}
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-            style={styles.input}
-          />
-          <Text variant="labelSmall" style={styles.birthdayHint}>
-            {t('person.birthdayHint')}
-          </Text>
+            {!ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+              <View style={styles.personTypeBlock}>
+                <Text style={[fzText.label, styles.label]}>Person Type</Text>
+                <View style={styles.pillRow}>
+                  <Pill
+                    label="Primary"
+                    selected={personType === 'primary'}
+                    onPress={() => setPersonType('primary')}
+                  />
+                  <Pill
+                    label="Mentioned"
+                    selected={personType === 'mentioned'}
+                    onPress={() => setPersonType('mentioned')}
+                  />
+                </View>
+                <Text style={[fzText.sub, { marginTop: 8 }]}>
+                  {personType === 'primary'
+                    ? 'Visible in main lists and search.'
+                    : 'Hidden from main lists, used for context only.'}
+                </Text>
+              </View>
+            )}
+          </FormSection>
 
-          <TextInput
-            mode="outlined"
-            label="When you met"
-            placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
-            value={metDate}
-            onChangeText={setMetDate}
-            style={styles.input}
-          />
-          <Text variant="labelSmall" style={styles.birthdayHint}>
-            Year alone is fine, e.g. 2024.
-          </Text>
+          <View style={styles.plainGroup}>
+            <FormInput
+              label={t('person.birthday')}
+              placeholder={t('person.birthdayPlaceholder')}
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+            />
+            <Text style={[fzText.sub, styles.birthdayHint]}>
+              {t('person.birthdayHint')}
+            </Text>
+
+            <FormInput
+              label="When you met"
+              placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+              value={metDate}
+              onChangeText={setMetDate}
+            />
+            <Text style={[fzText.sub, styles.birthdayHint]}>
+              Year alone is fine, e.g. 2024.
+            </Text>
+          </View>
 
           <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
 
           <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
 
-          <View style={styles.phoneRow}>
-            <TextInput
-              mode="outlined"
-              label="Phone"
-              placeholder="+1 555 123 4567"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              autoCorrect={false}
-              style={styles.phoneInput}
-              maxLength={32}
-            />
+          <View style={styles.plainGroup}>
+            <View style={styles.phoneRow}>
+              <FormInput
+                label="Phone"
+                placeholder="+1 555 123 4567"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                autoCorrect={false}
+                style={styles.phoneInput}
+                maxLength={32}
+              />
+              {isContactPickerAvailable() && (
+                <Button
+                  mode="outlined"
+                  icon="contacts"
+                  onPress={handlePickFromContacts}
+                  style={styles.pickButton}
+                  textColor={fz.ink}
+                  compact
+                >
+                  Pick
+                </Button>
+              )}
+            </View>
             {isContactPickerAvailable() && (
-              <Button
-                mode="outlined"
-                icon="contacts"
-                onPress={handlePickFromContacts}
-                style={styles.pickButton}
-                compact
-              >
-                Pick
-              </Button>
+              <Text style={[fzText.sub, styles.birthdayHint]}>
+                Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
+              </Text>
             )}
-          </View>
-          {isContactPickerAvailable() && (
-            <Text variant="labelSmall" style={styles.birthdayHint}>
-              Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
-            </Text>
-          )}
 
-          <TextInput
-            mode="outlined"
-            label="Email"
-            placeholder="name@example.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.input}
-            maxLength={254}
-          />
+            <FormInput
+              label="Email"
+              placeholder="name@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.lastInput}
+              maxLength={254}
+            />
+          </View>
 
           <LanguagesEditor value={languages} onChange={setLanguages} />
 
           <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
 
-          <TextInput
-            mode="outlined"
-            label={t('person.notes')}
-            placeholder={t('person.notesPlaceholder')}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            style={styles.input}
-          />
+          <View style={styles.plainGroup}>
+            <FormInput
+              label={t('person.notes')}
+              placeholder={t('person.notesPlaceholder')}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+              style={styles.lastInput}
+            />
+          </View>
 
           <Button
             mode="contained"
+            buttonColor={fz.ink}
+            textColor={fz.paper}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={isSubmitting || name.trim().length < 2}
             style={styles.submitButton}
             contentStyle={styles.submitButtonContent}
+            labelStyle={fzText.btn}
           >
             {t('person.addButton')}
           </Button>
 
-          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting} textColor={fz.textMute}>
             {t('common.cancel')}
           </Button>
         </View>
 
-        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+        <StatusBar style="dark" />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -428,39 +409,47 @@ export default function AddPersonModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: fz.paper,
   },
   content: {
-    padding: 24,
+    padding: fz.s.xxl,
   },
   title: {
     marginBottom: 8,
   },
   subtitle: {
     marginBottom: 24,
-    opacity: 0.7,
   },
-  input: {
-    marginBottom: 16,
+  lastInput: {
+    marginBottom: 0,
   },
   label: {
     marginBottom: 8,
     marginTop: 8,
   },
-  segmented: {
-    marginBottom: 12,
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  personTypeBlock: {
+    marginTop: fz.s.lg,
   },
   submitButton: {
     marginTop: 16,
     marginBottom: 8,
+    borderRadius: fz.rButton,
   },
   submitButtonContent: {
     paddingVertical: 8,
   },
   birthdayHint: {
-    opacity: 0.6,
-    marginTop: -12,
-    marginBottom: 16,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  plainGroup: {
+    marginBottom: fz.s.lg,
   },
   phoneRow: {
     flexDirection: 'row',

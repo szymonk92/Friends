@@ -1,23 +1,17 @@
-import { StyleSheet, View, Alert, ScrollView } from 'react-native';
-import {
-  Text,
-  List,
-  IconButton,
-  Divider,
-  ActivityIndicator,
-  Button,
-  Chip,
-  useTheme,
-} from 'react-native-paper';
+import { StyleSheet, View, Alert, ScrollView, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonGiftIdeas, useDeleteGiftIdea } from '@/hooks/useGifts';
 import { usePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
-import { spacing } from '@/styles/spacing';
+import { fz, fzText } from '@/lib/design/tokens';
+import { HeaderBack } from '@/components/HeaderBack';
+import { Pill } from '@/components/Pill';
+import { IconCircle } from '@/components/IconCircle';
 
 export default function ManageGiftsScreen() {
+  const insets = useSafeAreaInsets();
   const { personId } = useLocalSearchParams<{ personId: string }>();
-  const theme = useTheme();
   const { data: person } = usePerson(personId!);
   const { data: gifts = [], isLoading } = usePersonGiftIdeas(personId!);
   const deleteGift = useDeleteGiftIdea();
@@ -35,172 +29,118 @@ export default function ManageGiftsScreen() {
     ]);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return '#d32f2f';
-      case 'medium':
-        return (theme.colors as any).medium || '#ff9800';
-      case 'low':
-        return '#4caf50';
-      default:
-        return '#757575';
-    }
-  };
+  const AppBar = () => (
+    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.appBarRow}>
+        <HeaderBack onPress={() => router.back()} />
+        <RNText style={fzText.screenTitle} numberOfLines={1}>
+          {person?.name ? `${person.name} · Gifts` : 'Gifts'}
+        </RNText>
+        <View style={{ width: 38 }} />
+      </View>
+    </View>
+  );
 
   if (isLoading) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Manage Gifts' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={fz.ink} />
         </View>
-      </>
+      </View>
     );
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: `${person?.name || 'Person'} - Gifts`,
-          headerRight: () => (
-            <View style={{ marginRight: spacing.xs }}>
-              {/* We can add a plus button here if we want to allow adding from this screen too, 
-                  but usually manage screens are for list management. 
-                  Let's keep it simple for now or add it if needed. 
-                  The user request said "manage them", implying list/delete/edit.
-                  I'll add a plus button for consistency with relations.
-              */}
-            </View>
-          ),
-        }}
-      />
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <AppBar />
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {gifts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text variant="bodyLarge" style={styles.emptyText}>
-              No gift ideas yet
-            </Text>
+            <RNText style={fzText.sub}>No gift ideas yet</RNText>
           </View>
         ) : (
           <View>
-            {/* We could group by status (given vs idea) or priority. 
-                 For now, simple list. */}
             {gifts.map((gift) => (
-              <View key={gift.id}>
-                <List.Item
-                  title={gift.item}
-                  titleStyle={
-                    gift.status === 'given'
-                      ? { textDecorationLine: 'line-through', opacity: 0.6 }
-                      : {}
-                  }
-                  description={
-                    <View style={styles.descriptionColumn}>
-                      <View style={styles.chipsRow}>
-                        <Chip
-                          compact
-                          style={[
-                            styles.priorityChip,
-                            { backgroundColor: getPriorityColor(gift.priority) + '20' },
-                          ]}
-                          textStyle={{ color: getPriorityColor(gift.priority), fontSize: 10 }}
-                        >
-                          {gift.priority}
-                        </Chip>
-                        {gift.occasion && (
-                          <Chip compact style={styles.chip} textStyle={{ fontSize: 10 }}>
-                            {gift.occasion}
-                          </Chip>
-                        )}
-                      </View>
-                      {gift.notes && (
-                        <Text variant="bodySmall" style={styles.notesText} numberOfLines={2}>
-                          {gift.notes}
-                        </Text>
-                      )}
-                      {gift.status === 'given' && gift.givenDate && (
-                        <Text variant="bodySmall" style={styles.givenDateText}>
-                          Given: {formatShortDate(gift.givenDate)}
-                        </Text>
-                      )}
-                    </View>
-                  }
-                  right={() => (
-                    <View style={styles.actions}>
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        iconColor={theme.colors.error}
-                        onPress={() => handleDelete(gift.id, gift.item)}
-                      />
-                    </View>
+              <View key={gift.id} style={styles.giftCard}>
+                <View style={styles.giftMain}>
+                  <RNText
+                    style={[
+                      styles.giftItem,
+                      gift.status === 'given' && styles.giftItemGiven,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {gift.item}
+                  </RNText>
+
+                  <View style={styles.chipsRow}>
+                    <Pill label={gift.priority} variant={gift.priority === 'high' ? 'solid' : 'surface'} />
+                    {gift.occasion && <Pill label={gift.occasion} variant="soft" />}
+                  </View>
+
+                  {gift.notes && (
+                    <RNText style={styles.notesText} numberOfLines={2}>
+                      {gift.notes}
+                    </RNText>
                   )}
-                  style={styles.listItem}
+                  {gift.status === 'given' && gift.givenDate && (
+                    <RNText style={styles.givenDateText}>
+                      Given: {formatShortDate(gift.givenDate)}
+                    </RNText>
+                  )}
+                </View>
+
+                <IconCircle
+                  icon="trash"
+                  size={34}
+                  iconSize={16}
+                  onPress={() => handleDelete(gift.id, gift.item)}
                 />
-                <Divider />
               </View>
             ))}
           </View>
         )}
-        <View style={styles.spacer} />
+        <View style={{ height: 60 }} />
       </ScrollView>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginBottom: 16,
-    opacity: 0.7,
-  },
-  listItem: {
-    backgroundColor: 'white',
-    paddingVertical: 8,
-  },
-  descriptionColumn: {
-    marginTop: 4,
-    gap: 4,
-  },
-  chipsRow: {
+  container: { flex: 1, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: fz.s.sm,
   },
-  priorityChip: {
-    height: 24,
-  },
-  chip: {
-    height: 24,
-  },
-  notesText: {
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
-  givenDateText: {
-    color: '#4caf50',
-    fontSize: 12,
-  },
-  actions: {
+  scroll: { flex: 1 },
+  scrollInner: { padding: fz.s.edge, paddingTop: fz.s.sm },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { padding: 32, alignItems: 'center' },
+  giftCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    backgroundColor: fz.card,
+    borderRadius: fz.rRow,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.md,
+    marginBottom: fz.s.sm,
   },
-  spacer: {
-    height: 40,
-  },
+  giftMain: { flex: 1, marginRight: fz.s.sm, gap: fz.s.xs },
+  giftItem: { ...fzText.name, color: fz.ink },
+  giftItemGiven: { textDecorationLine: 'line-through', opacity: 0.55 },
+  chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 },
+  notesText: { ...fzText.body, fontStyle: 'italic', lineHeight: 18 },
+  givenDateText: { ...fzText.time, color: fz.textMute },
 });

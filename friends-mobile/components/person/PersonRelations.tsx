@@ -1,33 +1,21 @@
-import { StyleSheet, View } from 'react-native';
-import { Text, Chip, Button, IconButton, ActivityIndicator, useTheme } from 'react-native-paper';
+import { StyleSheet, View, Pressable } from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { usePersonRelations } from '@/hooks/useRelations';
-import { formatRelationType, getRelationEmoji } from '@/lib/utils/format';
-import { WEAK, MEDIUM, STRONG, VERY_STRONG } from '@/lib/constants/relations';
-import { useCommonStyles } from '@/styles/common';
+import { formatRelationType } from '@/lib/utils/format';
+import { WEAK, MEDIUM, STRONG, TYPES_WITHOUT_INTENSITY } from '@/lib/constants/relations';
+import { ProfileSection } from './ProfileSection';
+import { Pill } from '@/components/Pill';
+import { RelationIcon } from '@/components/RelationIcon';
+import { fz, fzText } from '@/lib/design/tokens';
 
 // Priority order for relation types (higher priority = shown first)
 const RELATION_TYPE_PRIORITY: Record<string, number> = {
-  CARES_FOR: 100,
-  DEPENDS_ON: 95,
-  STRUGGLES_WITH: 90,
-  FEARS: 85,
-  WANTS_TO_ACHIEVE: 80,
-  IS: 75,
-  HAS_SKILL: 70,
-  REGULARLY_DOES: 65,
-  KNOWS: 60,
-  BELIEVES: 55,
-  LIKES: 50,
-  PREFERS_OVER: 45,
-  ASSOCIATED_WITH: 40,
-  EXPERIENCED: 35,
-  OWNS: 30,
-  UNCOMFORTABLE_WITH: 25,
-  SENSITIVE_TO: 20,
-  DISLIKES: 10,
-  USED_TO_BE: 5,
-  UNKNOWN: 0,
+  STRUGGLES_WITH: 100, AVOIDS: 95, WANTS: 90, LIVES_IN: 85,
+  IS: 80, CAN: 75, DOES: 70, KNOWS: 65,
+  LIKES: 60, HAS: 55, DID: 50, DISLIKES: 45,
+  HAS_IMPORTANT_DATE: 40,
 };
 
 interface PersonRelationsProps {
@@ -36,11 +24,8 @@ interface PersonRelationsProps {
 }
 
 export default function PersonRelations({ personId, personName }: PersonRelationsProps) {
-  const theme = useTheme();
-  const commonStyles = useCommonStyles();
   const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(personId);
 
-  // Group relations by type and sort by priority
   const relationsByType = personRelations?.reduce(
     (acc, relation) => {
       const type = relation.relationType;
@@ -51,130 +36,118 @@ export default function PersonRelations({ personId, personName }: PersonRelation
     {} as Record<string, typeof personRelations>
   );
 
-  // Sort relation types by priority (higher priority first)
   const sortedRelationTypes = relationsByType
     ? Object.keys(relationsByType).sort(
         (a, b) => (RELATION_TYPE_PRIORITY[b] || 0) - (RELATION_TYPE_PRIORITY[a] || 0)
       )
     : [];
 
-  return (
-    <View style={commonStyles.section}>
-      <View style={commonStyles.sectionHeader}>
-        <Text variant="titleLarge" style={commonStyles.sectionTitle}>
-          Relations ({personRelations?.length || 0})
-        </Text>
-        <View style={commonStyles.sectionHeaderButtons}>
-          <IconButton
-            icon="plus"
-            size={20}
-            onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-          />
-          <IconButton
-            icon="dots-vertical"
-            size={20}
-            onPress={() => router.push(`/person/manage-relations?personId=${personId}`)}
-          />
-        </View>
-      </View>
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({});
+  const toggleType = (type: string) =>
+    setExpandedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
 
+  return (
+    <ProfileSection
+      label="What they're into"
+      count={personRelations?.length || 0}
+      onAdd={() => router.push(`/person/add-relation?personId=${personId}`)}
+      onMore={() => router.push(`/person/manage-relations?personId=${personId}`)}
+    >
       {relationsLoading && (
         <View style={styles.centered}>
-          <ActivityIndicator />
+          <ActivityIndicator color={fz.ink} />
         </View>
       )}
 
       {!relationsLoading && personRelations && personRelations.length === 0 && (
         <View style={styles.emptyState}>
-          <Text variant="bodyMedium" style={commonStyles.emptyStateText}>
-            No relations yet. Add preferences, facts, or information about {personName}.
+          <Text style={styles.emptyText}>
+            Nothing yet. Add likes, fears, or facts about {personName}.
           </Text>
           <Button
             mode="outlined"
-            icon="plus"
+            textColor={fz.ink}
+            style={styles.emptyButton}
             onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-            style={styles.emptyStateButton}
           >
-            Add Relation
+            Add Something
           </Button>
         </View>
       )}
 
-      {/* Compact relations list sorted by priority */}
       {sortedRelationTypes.map((type) => {
         const rels = relationsByType![type];
+        const expanded = expandedTypes[type] ?? false;
         return (
           <View key={type} style={styles.relationTypeSection}>
-            <Text
-              variant="labelLarge"
-              style={[styles.relationTypeLabel, { color: theme.colors.onSurface }]}
+            <Pressable
+              style={styles.relationTypeHeader}
+              onPress={() => toggleType(type)}
+              hitSlop={8}
             >
-              {getRelationEmoji(type)} {formatRelationType(type)}
-            </Text>
-            <View style={styles.relationChipsContainer}>
-              {rels.map((relation) => (
-                <Chip
-                  key={relation.id}
-                  style={styles.relationChip}
-                  textStyle={styles.relationChipText}
-                >
-                  {relation.objectLabel}
-                  {relation.intensity && relation.intensity !== 'medium' && (
-                    <Text
-                      style={[styles.intensityIndicator, { color: theme.colors.onSurfaceVariant }]}
-                    >
-                      {' '}
-                      {relation.intensity === VERY_STRONG
-                        ? '💪'
-                        : relation.intensity === STRONG
-                          ? '+'
-                          : relation.intensity === WEAK
-                            ? '-'
-                            : ''}
-                    </Text>
-                  )}
-                </Chip>
-              ))}
-            </View>
+              <View style={styles.relationTypeLabelRow}>
+                <RelationIcon type={type} size={13} color={fz.ink} />
+                <Text style={fzText.label}>
+                  {formatRelationType(type)} · {rels.length}
+                </Text>
+              </View>
+              <Text style={styles.chevron}>{expanded ? '︿' : '﹀'}</Text>
+            </Pressable>
+            {expanded && (
+              <View style={styles.chipsContainer}>
+                {rels.map((relation) => {
+                  const intensitySuffix =
+                    relation.intensity &&
+                    relation.intensity !== MEDIUM &&
+                    !TYPES_WITHOUT_INTENSITY.includes(type)
+                      ? relation.intensity === STRONG
+                        ? ' +'
+                        : relation.intensity === WEAK
+                          ? ' −'
+                          : ''
+                      : '';
+                  return (
+                    <Pill key={relation.id} label={`${relation.objectLabel}${intensitySuffix}`} variant="surface" />
+                  );
+                })}
+              </View>
+            )}
           </View>
         );
       })}
-    </View>
+    </ProfileSection>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyState: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  emptyStateButton: {
-    marginTop: 8,
-  },
-  relationTypeSection: {
+  centered: { padding: 12, alignItems: 'center' },
+  emptyState: { paddingVertical: 10, alignItems: 'center' },
+  emptyText: {
+    ...fzText.sub,
+    fontStyle: 'italic',
+    textAlign: 'center',
     marginBottom: 12,
   },
-  relationTypeLabel: {
-    marginBottom: 6,
-    opacity: 0.8,
-  },
-  relationChipsContainer: {
+  emptyButton: { borderColor: fz.outline },
+  relationTypeSection: { marginBottom: 14 },
+  relationTypeHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  relationTypeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  relationChip: {
-    marginBottom: 2,
-  },
-  relationChipText: {
+  chevron: {
+    ...fzText.sub,
     fontSize: 12,
   },
-  intensityIndicator: {
-    fontSize: 10,
-    opacity: 0.8,
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
   },
 });

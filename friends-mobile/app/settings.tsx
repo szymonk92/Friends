@@ -21,6 +21,8 @@ import {
   AVAILABLE_COLORS,
 } from '@/lib/settings/relationship-colors';
 
+import { fz } from '@/lib/design/tokens';
+
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
 import AIConfiguration from '@/components/settings/AIConfiguration';
 import RelationshipColorsSettings from '@/components/settings/RelationshipColorsSettings';
@@ -37,12 +39,18 @@ export default function SettingsScreen() {
   const {
     setApiKey,
     setGeminiApiKey,
+    setOllamaApiKey,
     clearApiKey,
     clearGeminiApiKey,
+    clearOllamaApiKey,
     loadApiKey,
     loadGeminiApiKey,
+    loadOllamaApiKey,
+    loadOllamaBaseUrl,
+    loadOllamaModel,
     hasApiKey,
     hasGeminiApiKey,
+    hasOllamaApiKey,
     selectedModel,
     setSelectedModel,
     loadSelectedModel,
@@ -57,8 +65,10 @@ export default function SettingsScreen() {
   } = useSettings();
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
   const [geminiApiKeyDialogVisible, setGeminiApiKeyDialogVisible] = useState(false);
+  const [ollamaApiKeyDialogVisible, setOllamaApiKeyDialogVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState('');
+  const [tempOllamaApiKey, setTempOllamaApiKey] = useState('');
 
   // Birthday reminder settings
   const [birthdaySettings, setBirthdaySettings] = useState<BirthdayReminderSettings | null>(null);
@@ -74,6 +84,9 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadApiKey();
     loadGeminiApiKey();
+    loadOllamaApiKey();
+    loadOllamaBaseUrl();
+    loadOllamaModel();
     loadSelectedModel();
     loadThemeColor();
     loadFontFamily();
@@ -198,6 +211,36 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleSaveOllamaApiKey = async () => {
+    if (tempOllamaApiKey.trim().length === 0) {
+      Alert.alert('Invalid API Key', 'Please enter a value (any placeholder works for Ollama)');
+      return;
+    }
+
+    try {
+      await setOllamaApiKey(tempOllamaApiKey.trim());
+      setOllamaApiKeyDialogVisible(false);
+      setTempOllamaApiKey('');
+      Alert.alert('Success', 'Ollama API key saved!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save API key. Please try again.');
+    }
+  };
+
+  const handleClearOllamaApiKey = () => {
+    Alert.alert('Clear Ollama API Key', 'Are you sure you want to remove your Ollama API key?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          await clearOllamaApiKey();
+          Alert.alert('Success', 'Ollama API key cleared.');
+        },
+      },
+    ]);
+  };
+
   return (
     <>
       <Stack.Screen options={{ title: t('settings.title') }} />
@@ -216,11 +259,14 @@ export default function SettingsScreen() {
           setSelectedModel={setSelectedModel}
           hasApiKey={hasApiKey}
           hasGeminiApiKey={hasGeminiApiKey}
+          hasOllamaApiKey={hasOllamaApiKey}
           hasActiveApiKey={hasActiveApiKey}
           setApiKeyDialogVisible={setApiKeyDialogVisible}
           setGeminiApiKeyDialogVisible={setGeminiApiKeyDialogVisible}
+          setOllamaApiKeyDialogVisible={setOllamaApiKeyDialogVisible}
           handleClearApiKey={handleClearApiKey}
           handleClearGeminiApiKey={handleClearGeminiApiKey}
+          handleClearOllamaApiKey={handleClearOllamaApiKey}
         />
 
         {/* Security */}
@@ -293,12 +339,16 @@ export default function SettingsScreen() {
 
       {/* Anthropic API Key Dialog */}
       <Portal>
-        <Dialog visible={apiKeyDialogVisible} onDismiss={() => setApiKeyDialogVisible(false)}>
-          <Dialog.Title>
+        <Dialog
+          visible={apiKeyDialogVisible}
+          onDismiss={() => setApiKeyDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>
             {hasApiKey() ? 'Change Claude API Key' : 'Set Claude API Key'}
           </Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
+            <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
               Enter your Anthropic API key to enable Claude AI extraction.
             </Text>
             <TextInput
@@ -308,12 +358,16 @@ export default function SettingsScreen() {
               value={tempApiKey}
               onChangeText={setTempApiKey}
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, styles.dialogFont]}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setApiKeyDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleSaveApiKey}>Save</Button>
+            <Button labelStyle={styles.dialogFont} onPress={() => setApiKeyDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button labelStyle={styles.dialogFont} onPress={handleSaveApiKey}>
+              Save
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -321,12 +375,13 @@ export default function SettingsScreen() {
         <Dialog
           visible={geminiApiKeyDialogVisible}
           onDismiss={() => setGeminiApiKeyDialogVisible(false)}
+          style={styles.dialog}
         >
-          <Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>
             {hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}
           </Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
+            <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
               Enter your Google Gemini API key to enable Gemini AI extraction.
             </Text>
             <TextInput
@@ -336,18 +391,65 @@ export default function SettingsScreen() {
               value={tempGeminiApiKey}
               onChangeText={setTempGeminiApiKey}
               secureTextEntry
-              style={styles.input}
+              style={[styles.input, styles.dialogFont]}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setGeminiApiKeyDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleSaveGeminiApiKey}>Save</Button>
+            <Button
+              labelStyle={styles.dialogFont}
+              onPress={() => setGeminiApiKeyDialogVisible(false)}
+            >
+              Cancel
+            </Button>
+            <Button labelStyle={styles.dialogFont} onPress={handleSaveGeminiApiKey}>
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Ollama API Key Dialog */}
+        <Dialog
+          visible={ollamaApiKeyDialogVisible}
+          onDismiss={() => setOllamaApiKeyDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>
+            {hasOllamaApiKey() ? 'Change Ollama API Key' : 'Set Ollama API Key'}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
+              Enter any value — Ollama ignores the key, it's just a placeholder so the app treats local extraction as configured.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="API Key (placeholder)"
+              placeholder="ollama"
+              value={tempOllamaApiKey}
+              onChangeText={setTempOllamaApiKey}
+              secureTextEntry
+              style={[styles.input, styles.dialogFont]}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              labelStyle={styles.dialogFont}
+              onPress={() => setOllamaApiKeyDialogVisible(false)}
+            >
+              Cancel
+            </Button>
+            <Button labelStyle={styles.dialogFont} onPress={handleSaveOllamaApiKey}>
+              Save
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
         {/* Color Picker Dialog */}
-        <Dialog visible={colorPickerVisible} onDismiss={() => setColorPickerVisible(false)}>
-          <Dialog.Title>
+        <Dialog
+          visible={colorPickerVisible}
+          onDismiss={() => setColorPickerVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>
             Choose Color for{' '}
             {selectedRelationType.charAt(0).toUpperCase() + selectedRelationType.slice(1)}
           </Dialog.Title>
@@ -368,7 +470,9 @@ export default function SettingsScreen() {
             </View>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setColorPickerVisible(false)}>Cancel</Button>
+            <Button labelStyle={styles.dialogFont} onPress={() => setColorPickerVisible(false)}>
+              Cancel
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -401,6 +505,16 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 40,
+  },
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
   },
   dialogText: {
     marginBottom: 16,

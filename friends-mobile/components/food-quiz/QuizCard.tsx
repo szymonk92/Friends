@@ -1,5 +1,9 @@
-import { StyleSheet, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Animated, Dimensions, View } from 'react-native';
 import { Card, Text, Chip } from 'react-native-paper';
+import { QuestionIcon, ForkKnifeIcon } from 'phosphor-react-native';
+import { RelationIcon } from '@/components/RelationIcon';
+import { LIKES, DISLIKES } from '@/lib/constants/relations';
+import { fz } from '@/lib/design/tokens';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,22 +47,29 @@ export default function QuizCard({
     >
       {/* Overlay indicators */}
       <Animated.View style={[styles.likeOverlay, { opacity: likeOpacity }]}>
-        <Text style={styles.overlayText}>LIKES ❤️</Text>
+        <View style={styles.overlayBadge}>
+          <Text style={styles.overlayText}>LIKES</Text>
+          <RelationIcon type={LIKES} size={28} />
+        </View>
       </Animated.View>
 
       <Animated.View style={[styles.dislikeOverlay, { opacity: dislikeOpacity }]}>
-        <Text style={styles.overlayText}>DISLIKES 👎</Text>
+        <View style={styles.overlayBadge}>
+          <Text style={styles.overlayText}>DISLIKES</Text>
+          <RelationIcon type={DISLIKES} size={28} />
+        </View>
       </Animated.View>
 
       <Animated.View style={[styles.skipOverlay, { opacity: skipOpacity }]}>
-        <Text style={styles.overlayText}>IDK 🤷</Text>
+        <View style={styles.overlayBadge}>
+          <Text style={styles.overlayText}>IDK</Text>
+          <QuestionIcon size={28} color="#1B1815" weight="bold" />
+        </View>
       </Animated.View>
 
       <Card style={styles.questionCard}>
         <Card.Content style={styles.questionContent}>
-          <Text variant="displaySmall" style={styles.foodEmoji}>
-            🍽️
-          </Text>
+          <ForkKnifeIcon size={40} color="#1B1815" weight="bold" style={styles.foodIcon} />
           <Text variant="headlineMedium" style={styles.questionText}>
             Does {currentPerson?.name?.split(' ')[0]} like
           </Text>
@@ -80,13 +91,14 @@ const styles = StyleSheet.create({
   },
   questionCard: {
     flex: 1,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
   },
   questionContent: {
     alignItems: 'center',
     padding: 24,
   },
-  foodEmoji: {
-    fontSize: 48,
+  foodIcon: {
     marginBottom: 16,
   },
   questionText: {
@@ -96,11 +108,12 @@ const styles = StyleSheet.create({
   foodItem: {
     textAlign: 'center',
     fontWeight: 'bold',
-    color: '#6200ee',
+    color: fz.ink,
     marginBottom: 16,
   },
   categoryChip: {
     marginTop: 8,
+    borderRadius: fz.rPill,
   },
   likeOverlay: {
     position: 'absolute',
@@ -122,12 +135,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     zIndex: 10,
   },
+  overlayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 4,
+    borderRadius: fz.rButton,
+    padding: 8,
+    backgroundColor: fz.card,
+  },
   overlayText: {
+    fontFamily: fz.font,
     fontSize: 32,
     fontWeight: 'bold',
-    borderWidth: 4,
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: 'white',
+    color: fz.ink,
   },
 });

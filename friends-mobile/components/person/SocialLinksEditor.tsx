@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Button, IconButton, Menu, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { useState } from 'react';
 import {
   parseSocialInput,
@@ -9,6 +9,8 @@ import {
   type SocialLink,
   type SocialPlatform,
 } from '@/lib/social/socialLinks';
+import { fz, fzText } from '@/lib/design/tokens';
+import { FormInput } from '@/components/FormKit';
 
 type Props = {
   value: SocialLink[];
@@ -16,7 +18,6 @@ type Props = {
 };
 
 export default function SocialLinksEditor({ value, onChange }: Props) {
-  const theme = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const addLink = (platform: SocialPlatform) => {
@@ -49,19 +50,14 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text variant="titleSmall" style={styles.title}>
-        Social handles
-      </Text>
-      <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
-        Paste a profile URL or just type a handle.
-      </Text>
+      <Text style={fzText.label}>Social handles</Text>
+      <Text style={[fzText.sub, styles.hint]}>Paste a profile URL or just type a handle.</Text>
 
       {value.map((link, index) => (
         <View key={index} style={styles.row}>
-          <IconButton icon={platformIcon(link.platform)} size={20} style={styles.platformIcon} />
+          <IconButton icon={platformIcon(link.platform)} size={20} iconColor={fz.ink} style={styles.platformIcon} />
           <View style={styles.input}>
-            <TextInput
-              mode="outlined"
+            <FormInput
               dense
               label={platformLabel(link.platform)}
               placeholder="@handle or full URL"
@@ -70,9 +66,10 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={500}
+              style={styles.textInput}
             />
           </View>
-          <IconButton icon="close" size={18} onPress={() => removeLink(index)} />
+          <IconButton icon="close" size={18} iconColor={fz.textMute} onPress={() => removeLink(index)} />
         </View>
       ))}
 
@@ -85,6 +82,7 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
             icon="plus"
             onPress={() => setPickerOpen(true)}
             style={styles.addButton}
+            textColor={fz.ink}
             compact
           >
             Add social
@@ -108,10 +106,6 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
   },
-  title: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
   hint: {
     marginBottom: 12,
   },
@@ -126,8 +120,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
   },
+  textInput: {
+    marginBottom: 0,
+  },
   addButton: {
     marginTop: 4,
     alignSelf: 'flex-start',
+    borderColor: fz.outline,
   },
 });

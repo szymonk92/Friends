@@ -3,7 +3,7 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -73,6 +73,11 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Minimum time the animated ChainLockSplash stays on screen — long enough to
+// see the links slide in and snap (~1.4s into its 2.8s loop), so it isn't cut
+// off mid-animation when migrations/onboarding resolve in milliseconds.
+const MIN_SPLASH_MS = 1700;
+
 export default Sentry.wrap(function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -83,6 +88,7 @@ export default Sentry.wrap(function RootLayout() {
     ...FontAwesome.font,
   });
   const [appReady, setAppReady] = useState(false);
+  const splashShownAt = useRef(0);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -96,6 +102,16 @@ export default Sentry.wrap(function RootLayout() {
 
       // Reveal the animated loader while migrations/onboarding check run.
       SplashScreen.hideAsync();
+      splashShownAt.current = Date.now();
+
+      // Hold the animated splash for one full lock-in cycle so it's actually
+      // seen, instead of getting swapped out mid-animation when local DB work
+      // (migrations/onboarding check) finishes in milliseconds.
+      const revealApp = () => {
+        const elapsed = Date.now() - splashShownAt.current;
+        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+        setTimeout(() => setAppReady(true), remaining);
+      };
 
       // Run database migrations on app start
       runMigrations()
@@ -115,12 +131,12 @@ export default Sentry.wrap(function RootLayout() {
           }
 
           perf.end(true);
-          setAppReady(true);
+          revealApp();
         })
         .catch((err) => {
           appLogger.error('Migration failed', { error: err });
           perf.end(false);
-          setAppReady(true);
+          revealApp();
         });
     }
   }, [loaded]);

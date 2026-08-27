@@ -128,7 +128,7 @@ export function useCreateGiftIdea() {
           id: randomUUID(),
           userId,
           subjectId: data.personId,
-          relationType: 'WANTS_TO_ACHIEVE', // Using existing type for gifts
+          relationType: 'WANTS', // Using existing type for gifts
           objectLabel: data.item,
           category: 'gift_idea',
           metadata: JSON.stringify(metadata),

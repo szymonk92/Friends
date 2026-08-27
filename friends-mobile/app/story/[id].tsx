@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import {
-  Text,
-  Card,
-  Button,
-  Chip,
-  Divider,
-  IconButton,
+  StyleSheet,
+  View,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+  Text as RNText,
   ActivityIndicator,
-  useTheme,
-} from 'react-native-paper';
+  StatusBar,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -25,17 +25,19 @@ import {
 import { createSystemPrompt } from '@/lib/ai/prompts';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { useSettings, AI_MODELS } from '@/store/useSettings';
-import { spacing } from '@/styles/spacing';
+import { fz, fzText } from '@/lib/design/tokens';
+import { HeaderBack } from '@/components/HeaderBack';
+import { IconCircle } from '@/components/IconCircle';
+import { Pill } from '@/components/Pill';
 
 export default function StoryDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const theme = useTheme();
   const deleteStory = useDeleteStory();
   const extractRelations = useExtractRelations();
   const approveExtraction = useApprovePendingExtraction();
   const rejectExtraction = useRejectPendingExtraction();
   const { hasActiveApiKey, selectedModel } = useSettings();
-  const [extractionResult, setExtractionResult] = useState<any>(null);
   const [selectedExtraction, setSelectedExtraction] = useState<any>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [expandedDebugSections, setExpandedDebugSections] = useState<{
@@ -217,7 +219,6 @@ export default function StoryDetailScreen() {
 
               // Run the extraction
               const result = await extractRelations.mutateAsync(id!);
-              setExtractionResult(result);
 
               // Capture ALL debug data in a single update to avoid race conditions
               const debugInfo = {
@@ -319,630 +320,521 @@ export default function StoryDetailScreen() {
     }
   };
 
+  const AppBar = ({ title }: { title: string }) => (
+    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.appBarRow}>
+        <HeaderBack onPress={() => router.back()} />
+        <RNText style={fzText.screenTitle} numberOfLines={1}>
+          {title}
+        </RNText>
+        <IconCircle icon="trash" onPress={handleDelete} />
+      </View>
+    </View>
+  );
+
   if (isLoading) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Story' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar title="Story" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={fz.ink} />
         </View>
-      </>
+      </View>
     );
   }
 
   if (!story) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Story Not Found' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar title="Story Not Found" />
         <View style={styles.centered}>
-          <Text variant="bodyLarge">Story not found</Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-            Go Back
-          </Button>
+          <RNText style={fzText.sub}>Story not found</RNText>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
+            <RNText style={fzText.btn}>Go Back</RNText>
+          </TouchableOpacity>
         </View>
-      </>
+      </View>
     );
   }
 
   const wordCount = story.content.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: story.title || 'Story Details',
-          headerRight: () => (
-            <View style={{ marginRight: spacing.xs }}>
-              <IconButton
-                onPress={handleDelete}
-                icon="delete-outline"
-                iconColor={theme.colors.primary}
-              />
-            </View>
-          ),
-        }}
-      />
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+
+      <AppBar title={story.title || 'Story Details'} />
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {/* Story Metadata */}
-        <Card style={styles.card}>
-          <Card.Content>
+        <View style={styles.card}>
+          <View style={styles.metaRow}>
+            <RNText style={[fzText.label, styles.metaLabel]}>Created</RNText>
+            <RNText style={fzText.sub}>{formatRelativeTime(new Date(story.createdAt))}</RNText>
+          </View>
+
+          {story.storyDate && (
             <View style={styles.metaRow}>
-              <Text variant="labelMedium" style={styles.metaLabel}>
-                Created:
-              </Text>
-              <Text variant="bodyMedium">{formatRelativeTime(new Date(story.createdAt))}</Text>
+              <RNText style={[fzText.label, styles.metaLabel]}>Event Date</RNText>
+              <RNText style={fzText.sub}>
+                {new Date(story.storyDate).toLocaleDateString(undefined, {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </RNText>
             </View>
+          )}
 
-            {story.storyDate && (
-              <View style={styles.metaRow}>
-                <Text variant="labelMedium" style={styles.metaLabel}>
-                  Event Date:
-                </Text>
-                <Text variant="bodyMedium">
-                  {new Date(story.storyDate).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.chipRow}>
-              <Chip icon="text" compact style={styles.chip}>
-                {wordCount} words
-              </Chip>
-              {story.aiProcessed && (
-                <Chip icon="robot" compact style={styles.chip}>
-                  AI Processed
-                </Chip>
-              )}
-            </View>
-          </Card.Content>
-        </Card>
+          <View style={styles.chipRow}>
+            <Pill label={`${wordCount} words`} icon="book" />
+            {story.aiProcessed && <Pill label="AI Processed" icon="checkCircle" />}
+          </View>
+        </View>
 
         {/* AI Extraction Action */}
         {!story.aiProcessed && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                AI Analysis
-              </Text>
-              <Divider style={styles.divider} />
-              {pendingCount > 0 ? (
-                <>
-                  <Text variant="bodySmall" style={styles.extractionDescription}>
-                    You have {pendingCount} pending extraction{pendingCount !== 1 ? 's' : ''}{' '}
-                    waiting for review from previous stories.
-                  </Text>
-                  <Button
-                    mode="contained"
-                    icon="clipboard-check"
-                    onPress={() => router.push('/review-extractions')}
-                    style={styles.extractButton}
-                  >
-                    Review Now ({pendingCount})
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Text variant="bodySmall" style={styles.extractionDescription}>
-                    Use AI to automatically extract people, preferences, and relationships from this
-                    story. The AI will identify @mentions, detect likes/dislikes, and create
-                    connections.
-                  </Text>
-                  <Button
-                    mode="contained"
-                    icon="robot"
-                    onPress={handleExtractRelations}
-                    loading={extractRelations.isPending}
-                    disabled={extractRelations.isPending}
-                    style={styles.extractButton}
-                  >
+          <View style={styles.card}>
+            <RNText style={fzText.title}>AI Analysis</RNText>
+            <View style={styles.divider} />
+            {pendingCount > 0 ? (
+              <>
+                <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
+                  You have {pendingCount} pending extraction{pendingCount !== 1 ? 's' : ''} waiting
+                  for review from previous stories.
+                </RNText>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => router.push('/review-extractions')}
+                  activeOpacity={0.8}
+                >
+                  <RNText style={fzText.btn}>Review Now ({pendingCount})</RNText>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
+                  Use AI to automatically extract people, preferences, and relationships from this
+                  story. The AI will identify @mentions, detect likes/dislikes, and create
+                  connections.
+                </RNText>
+                <TouchableOpacity
+                  style={[
+                    styles.primaryBtn,
+                    extractRelations.isPending && { opacity: 0.5 },
+                  ]}
+                  onPress={handleExtractRelations}
+                  disabled={extractRelations.isPending}
+                  activeOpacity={0.8}
+                >
+                  <RNText style={fzText.btn}>
                     {extractRelations.isPending ? 'Extracting...' : 'Extract Relations'}
-                  </Button>
-                  {!hasActiveApiKey() && (
-                    <Text variant="labelSmall" style={styles.apiKeyWarning}>
-                      Note: API key required for {AI_MODELS[selectedModel]?.name}. Configure in
-                      Settings.
-                    </Text>
-                  )}
-                </>
-              )}
-            </Card.Content>
-          </Card>
+                  </RNText>
+                </TouchableOpacity>
+                {!hasActiveApiKey() && (
+                  <RNText style={styles.apiKeyWarning}>
+                    Note: API key required for {AI_MODELS[selectedModel]?.name}. Configure in
+                    Settings.
+                  </RNText>
+                )}
+              </>
+            )}
+          </View>
         )}
 
         {/* Story Content */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Story Content
-            </Text>
-            <Divider style={styles.divider} />
-            <Text variant="bodyMedium" style={styles.storyText}>
-              {story.content}
-            </Text>
-          </Card.Content>
-        </Card>
+        <View style={styles.card}>
+          <RNText style={fzText.title}>Story Content</RNText>
+          <View style={styles.divider} />
+          <RNText style={styles.storyText}>{story.content}</RNText>
+        </View>
 
         {/* AI Extraction Info */}
         {story.aiProcessed && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                AI Extracted Relations
-              </Text>
-              <Divider style={styles.divider} />
+          <View style={styles.card}>
+            <RNText style={fzText.title}>AI Extracted Relations</RNText>
+            <View style={styles.divider} />
 
-              {extractions.length > 0 ? (
-                <View>
-                  <Text variant="bodySmall" style={styles.extractionInfo}>
-                    {extractions.length} relation{extractions.length !== 1 ? 's' : ''} extracted
-                    from this story:
-                  </Text>
-                  {extractions.map((ext) =>
-                    ext.reviewStatus === 'pending' ? (
-                      <TouchableOpacity
-                        key={ext.id}
-                        style={styles.extractionItem}
-                        onPress={() => setSelectedExtraction(ext)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.relationRow}>
-                          <Text variant="bodyMedium" style={styles.subjectName}>
-                            {ext.subjectName}
-                          </Text>
-                          <Text variant="bodySmall" style={styles.relationType}>
-                            {ext.relationType}
-                          </Text>
-                          <Text variant="bodyMedium" style={styles.objectLabel}>
-                            {ext.objectLabel}
-                          </Text>
-                        </View>
-                        <View style={styles.metadataRow}>
-                          <Chip mode="outlined" compact style={styles.pendingChip}>
-                            pending
-                          </Chip>
-                          <Text variant="labelSmall" style={styles.confidence}>
-                            {((ext.confidence || 0) * 100).toFixed(0)}% confidence
-                          </Text>
-                        </View>
-                        {ext.extractionReason && (
-                          <Text variant="labelSmall" style={styles.reason}>
-                            {ext.extractionReason}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    ) : (
-                      <View key={ext.id} style={styles.extractionItem}>
-                        <View style={styles.relationRow}>
-                          <Text variant="bodyMedium" style={styles.subjectName}>
-                            {ext.subjectName}
-                          </Text>
-                          <Text variant="bodySmall" style={styles.relationType}>
-                            {ext.relationType}
-                          </Text>
-                          <Text variant="bodyMedium" style={styles.objectLabel}>
-                            {ext.objectLabel}
-                          </Text>
-                        </View>
-                        <View style={styles.metadataRow}>
-                          <Chip
-                            mode="outlined"
-                            compact
-                            style={[
-                              styles.statusChip,
-                              ext.reviewStatus === 'approved' && styles.approvedChip,
-                              ext.reviewStatus === 'rejected' && styles.rejectedChip,
-                              ext.reviewStatus === 'edited' && styles.approvedChip,
-                            ]}
-                          >
-                            {ext.reviewStatus}
-                          </Chip>
-                          <Text variant="labelSmall" style={styles.confidence}>
-                            {((ext.confidence || 0) * 100).toFixed(0)}% confidence
-                          </Text>
-                        </View>
-                        {ext.extractionReason && (
-                          <Text variant="labelSmall" style={styles.reason}>
-                            {ext.extractionReason}
-                          </Text>
-                        )}
+            {extractions.length > 0 ? (
+              <View>
+                <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
+                  {extractions.length} relation{extractions.length !== 1 ? 's' : ''} extracted from
+                  this story:
+                </RNText>
+                {extractions.map((ext) =>
+                  ext.reviewStatus === 'pending' ? (
+                    <TouchableOpacity
+                      key={ext.id}
+                      style={styles.extractionItem}
+                      onPress={() => setSelectedExtraction(ext)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.relationRow}>
+                        <RNText style={styles.subjectName}>{ext.subjectName}</RNText>
+                        <RNText style={styles.relationType}>{ext.relationType}</RNText>
+                        <RNText style={styles.objectLabel}>{ext.objectLabel}</RNText>
                       </View>
-                    )
-                  )}
-                </View>
-              ) : (
-                <Text variant="bodySmall" style={styles.extractionInfo}>
-                  This story was processed by AI but no extraction details are available.
-                </Text>
-              )}
+                      <View style={styles.metadataRow}>
+                        <Pill label="pending" variant="outline" />
+                        <RNText style={styles.confidence}>
+                          {((ext.confidence || 0) * 100).toFixed(0)}% confidence
+                        </RNText>
+                      </View>
+                      {ext.extractionReason && (
+                        <RNText style={styles.reason}>{ext.extractionReason}</RNText>
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <View key={ext.id} style={styles.extractionItem}>
+                      <View style={styles.relationRow}>
+                        <RNText style={styles.subjectName}>{ext.subjectName}</RNText>
+                        <RNText style={styles.relationType}>{ext.relationType}</RNText>
+                        <RNText style={styles.objectLabel}>{ext.objectLabel}</RNText>
+                      </View>
+                      <View style={styles.metadataRow}>
+                        <Pill label={ext.reviewStatus} variant="outline" />
+                        <RNText style={styles.confidence}>
+                          {((ext.confidence || 0) * 100).toFixed(0)}% confidence
+                        </RNText>
+                      </View>
+                      {ext.extractionReason && (
+                        <RNText style={styles.reason}>{ext.extractionReason}</RNText>
+                      )}
+                    </View>
+                  )
+                )}
+              </View>
+            ) : (
+              <RNText style={fzText.body}>
+                This story was processed by AI but no extraction details are available.
+              </RNText>
+            )}
 
-              <Text variant="labelSmall" style={styles.warning}>
-                Note: Deleting this story will NOT remove any extracted people, relations, or
-                information.
-              </Text>
-            </Card.Content>
-          </Card>
+            <RNText style={styles.warning}>
+              Note: Deleting this story will NOT remove any extracted people, relations, or
+              information.
+            </RNText>
+          </View>
         )}
 
         {/* Debug Information */}
-        {
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.debugHeader}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Debug Information
-                </Text>
-                <Button
-                  mode="text"
-                  onPress={() => setShowDebugInfo(!showDebugInfo)}
-                  compact
-                  style={styles.debugToggle}
-                >
-                  Debug Data
-                </Button>
-              </View>
-              <Divider style={styles.divider} />
+        <View style={styles.card}>
+          <View style={styles.debugHeader}>
+            <RNText style={fzText.title}>Debug Information</RNText>
+            <TouchableOpacity
+              onPress={() => setShowDebugInfo(!showDebugInfo)}
+              activeOpacity={0.6}
+              hitSlop={8}
+            >
+              <RNText style={styles.debugToggle}>
+                {showDebugInfo ? 'Hide' : 'Show'} Data
+              </RNText>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.divider} />
 
-              {showDebugInfo && (
+          {showDebugInfo && (
+            <View>
+              {!debugData ? (
+                <View style={styles.debugSection}>
+                  <RNText style={styles.debugTitle}>No Debug Data Available</RNText>
+                  <RNText style={styles.debugText}>
+                    Debug information is captured during AI extraction. Process this story with AI
+                    to see the debug details.
+                  </RNText>
+                  <RNText style={styles.debugText}>
+                    This story's AI processed status: {story.aiProcessed ? 'Yes' : 'No'}
+                  </RNText>
+                </View>
+              ) : (
                 <View>
-                  {!debugData ? (
-                    <View style={styles.debugSection}>
-                      <Text variant="labelMedium" style={styles.debugTitle}>
-                        No Debug Data Available
-                      </Text>
-                      <Text variant="bodySmall" style={styles.debugText}>
-                        Debug information is captured during AI extraction. Process this story with
-                        AI to see the debug details.
-                      </Text>
-                      <Text variant="bodySmall" style={styles.debugText}>
-                        This story's AI processed status: {story.aiProcessed ? 'Yes' : 'No'}
-                      </Text>
+                  {debugData.systemPrompt && (
+                    <View
+                      style={[
+                        styles.debugSection,
+                        expandedDebugSections.systemPrompt ? styles.debugSectionExpanded : null,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleDebugSection('systemPrompt')}
+                        style={styles.debugSectionHeader}
+                        activeOpacity={0.6}
+                      >
+                        <RNText style={styles.debugTitle}>
+                          System Prompt {expandedDebugSections.systemPrompt ? '▼' : '▶'}
+                        </RNText>
+                      </TouchableOpacity>
+                      {expandedDebugSections.systemPrompt && (
+                        <ScrollView style={styles.debugTextContainer} nestedScrollEnabled>
+                          <RNText style={styles.debugText} selectable>
+                            {debugData.systemPrompt}
+                          </RNText>
+                        </ScrollView>
+                      )}
                     </View>
-                  ) : (
-                    <View>
-                      {debugData.systemPrompt && (
-                        <View
-                          style={[
-                            styles.debugSection,
-                            expandedDebugSections.systemPrompt ? styles.debugSectionExpanded : null,
-                          ]}
-                        >
-                          <TouchableOpacity
-                            onPress={() => toggleDebugSection('systemPrompt')}
-                            style={styles.debugSectionHeader}
-                          >
-                            <Text variant="labelMedium" style={styles.debugTitle}>
-                              System Prompt {expandedDebugSections.systemPrompt ? '▼' : '▶'}
-                            </Text>
-                          </TouchableOpacity>
-                          {expandedDebugSections.systemPrompt && (
-                            <ScrollView style={styles.debugTextContainer}>
-                              <Text variant="bodySmall" style={styles.debugText} selectable>
-                                {debugData.systemPrompt}
-                              </Text>
-                            </ScrollView>
-                          )}
-                        </View>
+                  )}
+
+                  {debugData.contextUpdate && (
+                    <View
+                      style={[
+                        styles.debugSection,
+                        expandedDebugSections.contextUpdate
+                          ? styles.debugSectionExpanded
+                          : null,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleDebugSection('contextUpdate')}
+                        style={styles.debugSectionHeader}
+                        activeOpacity={0.6}
+                      >
+                        <RNText style={styles.debugTitle}>
+                          Context Sent to AI {expandedDebugSections.contextUpdate ? '▼' : '▶'}
+                        </RNText>
+                      </TouchableOpacity>
+                      {expandedDebugSections.contextUpdate && (
+                        <ScrollView style={styles.debugTextContainer} nestedScrollEnabled>
+                          <RNText style={styles.debugText} selectable>
+                            {debugData.contextUpdate}
+                          </RNText>
+                        </ScrollView>
                       )}
+                    </View>
+                  )}
 
-                      {debugData.contextUpdate && (
-                        <View
-                          style={[
-                            styles.debugSection,
-                            expandedDebugSections.contextUpdate
-                              ? styles.debugSectionExpanded
-                              : null,
-                          ]}
-                        >
-                          <TouchableOpacity
-                            onPress={() => toggleDebugSection('contextUpdate')}
-                            style={styles.debugSectionHeader}
-                          >
-                            <Text variant="labelMedium" style={styles.debugTitle}>
-                              Context Sent to AI {expandedDebugSections.contextUpdate ? '▼' : '▶'}
-                            </Text>
-                          </TouchableOpacity>
-                          {expandedDebugSections.contextUpdate && (
-                            <ScrollView style={styles.debugTextContainer}>
-                              <Text variant="bodySmall" style={styles.debugText} selectable>
-                                {debugData.contextUpdate}
-                              </Text>
-                            </ScrollView>
-                          )}
-                        </View>
+                  {debugData.sentText && (
+                    <View
+                      style={[
+                        styles.debugSection,
+                        expandedDebugSections.sentText ? styles.debugSectionExpanded : null,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleDebugSection('sentText')}
+                        style={styles.debugSectionHeader}
+                        activeOpacity={0.6}
+                      >
+                        <RNText style={styles.debugTitle}>
+                          Text Sent to AI {expandedDebugSections.sentText ? '▼' : '▶'}
+                        </RNText>
+                      </TouchableOpacity>
+                      {expandedDebugSections.sentText && (
+                        <ScrollView style={styles.debugTextContainer} nestedScrollEnabled>
+                          <RNText style={styles.debugText} selectable>
+                            {debugData.sentText}
+                          </RNText>
+                        </ScrollView>
                       )}
+                    </View>
+                  )}
 
-                      {debugData.sentText && (
-                        <View
-                          style={[
-                            styles.debugSection,
-                            expandedDebugSections.sentText ? styles.debugSectionExpanded : null,
-                          ]}
-                        >
-                          <TouchableOpacity
-                            onPress={() => toggleDebugSection('sentText')}
-                            style={styles.debugSectionHeader}
-                          >
-                            <Text variant="labelMedium" style={styles.debugTitle}>
-                              Text Sent to AI {expandedDebugSections.sentText ? '▼' : '▶'}
-                            </Text>
-                          </TouchableOpacity>
-                          {expandedDebugSections.sentText && (
-                            <ScrollView style={styles.debugTextContainer}>
-                              <Text variant="bodySmall" style={styles.debugText} selectable>
-                                {debugData.sentText}
-                              </Text>
-                            </ScrollView>
-                          )}
-                        </View>
+                  {debugData.reply && (
+                    <View
+                      style={[
+                        styles.debugSection,
+                        expandedDebugSections.aiReply ? styles.debugSectionExpanded : null,
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleDebugSection('aiReply')}
+                        style={styles.debugSectionHeader}
+                        activeOpacity={0.6}
+                      >
+                        <RNText style={styles.debugTitle}>
+                          AI Reply {expandedDebugSections.aiReply ? '▼' : '▶'}
+                        </RNText>
+                      </TouchableOpacity>
+                      {expandedDebugSections.aiReply && (
+                        <ScrollView style={styles.debugTextContainer} nestedScrollEnabled>
+                          <RNText style={styles.debugText} selectable>
+                            {debugData.reply}
+                          </RNText>
+                        </ScrollView>
                       )}
+                    </View>
+                  )}
 
-                      {debugData.reply && (
-                        <View
-                          style={[
-                            styles.debugSection,
-                            expandedDebugSections.aiReply ? styles.debugSectionExpanded : null,
-                          ]}
-                        >
-                          <TouchableOpacity
-                            onPress={() => toggleDebugSection('aiReply')}
-                            style={styles.debugSectionHeader}
-                          >
-                            <Text variant="labelMedium" style={styles.debugTitle}>
-                              AI Reply {expandedDebugSections.aiReply ? '▼' : '▶'}
-                            </Text>
-                          </TouchableOpacity>
-                          {expandedDebugSections.aiReply && (
-                            <ScrollView style={styles.debugTextContainer}>
-                              <Text variant="bodySmall" style={styles.debugText} selectable>
-                                {debugData.reply}
-                              </Text>
-                            </ScrollView>
+                  {debugData.tokenUsage && (
+                    <View
+                      style={[
+                        styles.debugSection,
+                        expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null,
+                      ]}
+                    >
+                      <RNText style={styles.debugTitle}>Token Usage:</RNText>
+                      <RNText style={styles.debugText} selectable>
+                        Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
+                        {debugData.tokenUsage.inputTokens &&
+                          debugData.tokenUsage.outputTokens && (
+                            <>
+                              {' '}
+                              (Input: {debugData.tokenUsage.inputTokens.toLocaleString()}, Output:{' '}
+                              {debugData.tokenUsage.outputTokens.toLocaleString()})
+                            </>
                           )}
-                        </View>
-                      )}
+                      </RNText>
 
-                      {debugData.tokenUsage && (
-                        <View
-                          style={[
-                            styles.debugSection,
-                            expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null,
-                          ]}
-                        >
-                          <Text variant="labelMedium" style={styles.debugTitle}>
-                            Token Usage:
-                          </Text>
-                          <Text variant="bodySmall" style={styles.debugText} selectable>
-                            Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
-                            {debugData.tokenUsage.inputTokens &&
-                              debugData.tokenUsage.outputTokens && (
-                                <>
-                                  {' '}
-                                  (Input: {debugData.tokenUsage.inputTokens.toLocaleString()},
-                                  Output: {debugData.tokenUsage.outputTokens.toLocaleString()})
-                                </>
-                              )}
-                          </Text>
-
-                          {(debugData.costUsd ?? debugData.cost) !== undefined && (
-                            <Text variant="bodySmall" style={styles.debugText} selectable>
-                              Estimated cost: $
-                              {Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
-                            </Text>
-                          )}
-                        </View>
+                      {(debugData.costUsd ?? debugData.cost) !== undefined && (
+                        <RNText style={styles.debugText} selectable>
+                          Estimated cost: $
+                          {Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
+                        </RNText>
                       )}
                     </View>
                   )}
                 </View>
               )}
-            </Card.Content>
-          </Card>
-        }
+            </View>
+          )}
+        </View>
 
-        <View style={styles.spacer} />
+        <View style={{ height: 60 }} />
       </ScrollView>
 
       {/* Review Dialog */}
       {selectedExtraction && (
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
-            <Text variant="titleMedium" style={styles.dialogTitle}>
-              Review AI Extraction
-            </Text>
-            <Divider style={styles.dialogDivider} />
+            <RNText style={fzText.title}>Review AI Extraction</RNText>
+            <View style={styles.dialogDivider} />
 
             <View style={styles.relationRow}>
-              <Text variant="bodyMedium" style={styles.subjectName}>
-                {selectedExtraction.subjectName}
-              </Text>
-              <Text variant="bodySmall" style={styles.relationType}>
-                {selectedExtraction.relationType}
-              </Text>
-              <Text variant="bodyMedium" style={styles.objectLabel}>
-                {selectedExtraction.objectLabel}
-              </Text>
+              <RNText style={styles.subjectName}>{selectedExtraction.subjectName}</RNText>
+              <RNText style={styles.relationType}>{selectedExtraction.relationType}</RNText>
+              <RNText style={styles.objectLabel}>{selectedExtraction.objectLabel}</RNText>
             </View>
 
-            <Text variant="bodySmall" style={styles.confidence}>
+            <RNText style={styles.confidence}>
               AI Confidence: {((selectedExtraction.confidence || 0) * 100).toFixed(0)}%
-            </Text>
+            </RNText>
 
             {selectedExtraction.extractionReason && (
-              <Text variant="bodySmall" style={styles.reason}>
-                {selectedExtraction.extractionReason}
-              </Text>
+              <RNText style={styles.reason}>{selectedExtraction.extractionReason}</RNText>
             )}
 
             <View style={styles.dialogButtons}>
-              <Button
-                mode="outlined"
+              <TouchableOpacity
+                style={styles.dialogBtnOutline}
                 onPress={() => setSelectedExtraction(null)}
-                style={styles.dialogButton}
+                activeOpacity={0.7}
               >
-                Cancel
-              </Button>
-              <Button
-                mode="outlined"
+                <RNText style={fzText.btnOutline}>Cancel</RNText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogBtnOutline, { borderColor: fz.ink }]}
                 onPress={() => handleRejectExtraction(selectedExtraction.id)}
-                textColor="#f44336"
-                style={styles.dialogButton}
-                loading={rejectExtraction.isPending}
                 disabled={rejectExtraction.isPending}
+                activeOpacity={0.7}
               >
-                Reject
-              </Button>
-              <Button
-                mode="contained"
+                <RNText style={[fzText.btnOutline, { color: fz.ink }]}>
+                  {rejectExtraction.isPending ? '...' : 'Reject'}
+                </RNText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dialogBtnSolid}
                 onPress={() => handleApproveExtraction(selectedExtraction.id)}
-                style={styles.dialogButton}
-                loading={approveExtraction.isPending}
                 disabled={approveExtraction.isPending}
+                activeOpacity={0.7}
               >
-                Approve
-              </Button>
+                <RNText style={fzText.btn}>
+                  {approveExtraction.isPending ? '...' : 'Approve'}
+                </RNText>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       )}
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { flex: 1, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: fz.s.sm,
   },
-  centered: {
-    flex: 1,
+  scroll: { flex: 1 },
+  scrollInner: { padding: fz.s.edge, paddingTop: fz.s.md },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  primaryBtn: {
+    backgroundColor: fz.ink,
+    height: 48,
+    borderRadius: fz.rButton,
+    paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  backButton: {
-    marginTop: 16,
-  },
-  card: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  metaLabel: {
-    fontWeight: 'bold',
-    marginRight: 8,
-    width: 100,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  chip: {
     alignSelf: 'flex-start',
   },
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+  card: {
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.lg,
+    marginBottom: fz.s.md,
   },
-  divider: {
-    marginBottom: 16,
-  },
-  storyText: {
-    lineHeight: 24,
-    color: '#333',
-  },
-  extractionDescription: {
-    opacity: 0.8,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  extractButton: {
-    marginTop: 8,
-  },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: fz.s.sm },
+  metaLabel: { marginRight: fz.s.md, width: 90 },
+  chipRow: { flexDirection: 'row', gap: 8, marginTop: fz.s.sm },
+  divider: { height: 1, backgroundColor: fz.hairline, marginVertical: fz.s.md },
+  storyText: { ...fzText.body, lineHeight: 24, color: fz.ink },
   apiKeyWarning: {
-    marginTop: 8,
-    color: '#ff9800',
+    ...fzText.sub,
+    marginTop: fz.s.sm,
+    color: fz.textMute,
     fontStyle: 'italic',
   },
-  extractionInfo: {
-    opacity: 0.7,
-    marginBottom: 8,
-  },
   extractionItem: {
-    paddingVertical: 4,
     borderLeftWidth: 3,
-    borderLeftColor: '#4caf50',
-    paddingLeft: 8,
-    marginBottom: 12,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
+    borderLeftColor: fz.line,
+    paddingLeft: fz.s.md,
+    marginBottom: fz.s.md,
+    backgroundColor: fz.surfaceSoft,
+    borderRadius: fz.rRow,
+    padding: fz.s.md,
   },
   relationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: fz.s.sm,
     flexWrap: 'wrap',
+    gap: fz.s.sm,
   },
-  subjectName: {
-    fontWeight: 'bold',
-    color: '#1976d2',
-    marginRight: 8,
-  },
+  subjectName: { ...fzText.name, marginRight: fz.s.sm },
   relationType: {
-    backgroundColor: '#e3f2fd',
-    color: '#1976d2',
-    paddingHorizontal: 8,
+    ...fzText.chip,
+    backgroundColor: fz.surface,
+    paddingHorizontal: fz.s.sm,
     paddingVertical: 2,
-    borderRadius: 12,
-    fontSize: 12,
-    marginRight: 8,
-    fontWeight: '500',
+    borderRadius: fz.rPill,
+    overflow: 'hidden',
   },
-  objectLabel: {
-    fontWeight: '500',
-    color: '#333',
-  },
+  objectLabel: { ...fzText.body, color: fz.ink },
   metadataRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  statusChip: {
-    height: 32,
-    minWidth: 70,
-  },
-  approvedChip: {
-    backgroundColor: '#e8f5e8',
-    borderColor: '#4caf50',
-  },
-  rejectedChip: {
-    backgroundColor: '#ffebee',
-    borderColor: '#f44336',
-  },
-  pendingChip: {
-    backgroundColor: '#fff3e0',
-    borderColor: '#ff9800',
-  },
-  confidence: {
-    color: '#666',
-    fontSize: 11,
-  },
-  reason: {
-    color: '#666',
-    fontSize: 11,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
+  confidence: { ...fzText.time, color: fz.textMute },
+  reason: { ...fzText.time, color: fz.textMute, fontStyle: 'italic', marginTop: 4 },
+  warning: { ...fzText.sub, marginTop: fz.s.md, color: fz.textMute, fontStyle: 'italic' },
+  // Dialog
   dialogOverlay: {
     position: 'absolute',
     top: 0,
@@ -955,85 +847,62 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   dialog: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    padding: fz.s.lg,
     width: '100%',
     maxWidth: 400,
   },
-  dialogTitle: {
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  dialogDivider: {
-    marginBottom: 16,
-  },
+  dialogDivider: { height: 1, backgroundColor: fz.hairline, marginVertical: fz.s.md },
   dialogButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 8,
+    marginTop: fz.s.lg,
+    gap: fz.s.sm,
   },
-  dialogButton: {
+  dialogBtnOutline: {
     flex: 1,
+    height: 44,
+    borderRadius: fz.rButton,
+    borderWidth: 1.5,
+    borderColor: fz.outline,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  warning: {
-    marginTop: 12,
-    color: '#ff9800',
-    fontStyle: 'italic',
+  dialogBtnSolid: {
+    flex: 1,
+    height: 44,
+    borderRadius: fz.rButton,
+    backgroundColor: fz.ink,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  spacer: {
-    height: 40,
-  },
+  // Debug
   debugHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  debugToggle: {
-    marginTop: -8,
-  },
-  debugSection: {
-    // base spacing for a section header (collapsed)
-    marginBottom: 8,
-  },
-  debugSectionExpanded: {
-    // extra spacing when the section shows expanded content
-    marginBottom: 16,
-  },
+  debugToggle: { ...fzText.label, color: fz.textMute },
+  debugSection: { marginBottom: fz.s.sm },
+  debugSectionExpanded: { marginBottom: fz.s.lg },
   debugSectionHeader: {
-    padding: 12,
-    backgroundColor: '#e8f4f8',
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: fz.s.md,
+    backgroundColor: fz.surface,
+    borderRadius: fz.rRow,
+    marginBottom: fz.s.sm,
   },
-  debugTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#666',
-  },
-  debugHint: {
-    color: '#999',
-    fontSize: 10,
-    fontStyle: 'italic',
-  },
+  debugTitle: { ...fzText.label, color: fz.textBody },
   debugTextContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: fz.surfaceSoft,
+    borderRadius: fz.rRow,
+    padding: fz.s.md,
+    maxHeight: 300,
   },
   debugText: {
     fontFamily: 'monospace',
     fontSize: 11,
-    color: '#333',
+    color: fz.textBody,
     lineHeight: 16,
-  },
-  debugButton: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  debugButtonBottom: {
-    marginVertical: 0,
   },
 });

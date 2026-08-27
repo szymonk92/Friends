@@ -119,7 +119,7 @@ interface ProcessedResults {
 }
 
 /**
- * Process extraction results: create people, auto-accept relations, queue pending
+ * Process extraction results: create people, auto-accept relations, queue pending, queue conflicts
  */
 async function processExtractionResults(
   userId: string,
@@ -164,9 +164,35 @@ async function processExtractionResults(
     }
   }
 
-  // 2. Process relations
+  // 2. Fetch existing relations for duplicate detection
+  const subjectIds = [...new Set(
+    result.relations.map((r) => personIdMap.get(r.subjectId) || r.subjectId)
+  )];
+  const existingRelationsForSubjects = subjectIds.length > 0
+    ? await db
+        .select({ id: relations.id, subjectId: relations.subjectId, relationType: relations.relationType, objectLabel: relations.objectLabel })
+        .from(relations)
+        .where(and(eq(relations.userId, userId), isNull(relations.deletedAt)))
+    : [];
+
+  const isDuplicate = (subjectId: string, relationType: string, objectLabel: string): boolean => {
+    const normalise = (s: string) => s.trim().toLowerCase();
+    return existingRelationsForSubjects.some(
+      (r) =>
+        r.subjectId === subjectId &&
+        normalise(r.relationType) === normalise(relationType) &&
+        normalise(r.objectLabel) === normalise(objectLabel)
+    );
+  };
+
+  // 3. Process relations
   for (const relation of result.relations) {
     const actualSubjectId = personIdMap.get(relation.subjectId) || relation.subjectId;
+
+    // Skip exact duplicates silently
+    if (isDuplicate(actualSubjectId, relation.relationType, relation.objectLabel)) {
+      continue;
+    }
 
     if (shouldAutoAccept(relation)) {
       // Auto-accept high confidence relations
@@ -206,6 +232,37 @@ async function processExtractionResults(
       });
       pendingCount++;
     }
+  }
+
+  // 4. Queue detected conflicts for user review
+  for (const conflict of result.conflicts) {
+    const nr = conflict.newRelation;
+    const actualSubjectId = personIdMap.get(nr.subjectId) || nr.subjectId;
+    // Skip if this new relation is an exact duplicate (already skipped above, but guard again)
+    if (isDuplicate(actualSubjectId, nr.relationType, nr.objectLabel)) continue;
+
+    await db.insert(pendingExtractions).values({
+      id: randomUUID(),
+      userId,
+      storyId,
+      subjectId: actualSubjectId,
+      subjectName: nr.subjectName || '',
+      relationType: nr.relationType,
+      objectLabel: nr.objectLabel,
+      objectType: nr.objectType,
+      intensity: nr.intensity,
+      confidence: nr.confidence ?? 0.7,
+      category: nr.category,
+      metadata: nr.metadata ? JSON.stringify(nr.metadata) : null,
+      status: nr.status || 'current',
+      reviewStatus: 'pending',
+      extractionReason: conflict.description,
+      isConflict: true,
+      conflictType: conflict.type,
+      conflictingRelationId: conflict.existingRelationId || null,
+      conflictDescription: conflict.description,
+    });
+    pendingCount++;
   }
 
   return {
@@ -316,6 +373,112 @@ export function useRejectPendingExtraction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+    },
+  });
+}
+
+/**
+ * Hook to resolve a conflict: accept the new relation and archive the old one
+ */
+export function useAcceptNewConflict() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (extractionId: string) => {
+      const userId = await getCurrentUserId();
+
+      const pending = await db
+        .select()
+        .from(pendingExtractions)
+        .where(eq(pendingExtractions.id, extractionId))
+        .limit(1);
+
+      if (!pending[0]) throw new Error('Pending extraction not found');
+      const extraction = pending[0];
+
+      // Archive the conflicting old relation
+      if (extraction.conflictingRelationId) {
+        await db
+          .update(relations)
+          .set({ status: 'past', validTo: new Date(), updatedAt: new Date() })
+          .where(eq(relations.id, extraction.conflictingRelationId));
+      }
+
+      // Insert the new relation
+      await db.insert(relations).values({
+        id: randomUUID(),
+        userId,
+        subjectId: extraction.subjectId,
+        relationType: extraction.relationType as any,
+        objectLabel: extraction.objectLabel,
+        objectType: extraction.objectType,
+        intensity: extraction.intensity as any,
+        confidence: extraction.confidence,
+        category: extraction.category,
+        metadata: extraction.metadata,
+        status: (extraction.status as any) || 'current',
+        source: 'ai_extraction',
+      });
+
+      await db
+        .update(pendingExtractions)
+        .set({ reviewStatus: 'approved', reviewedAt: new Date(), updatedAt: new Date() })
+        .where(eq(pendingExtractions.id, extractionId));
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] });
+    },
+  });
+}
+
+/**
+ * Hook to resolve a conflict: keep both old and new relation
+ */
+export function useAcceptBothConflict() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (extractionId: string) => {
+      const userId = await getCurrentUserId();
+
+      const pending = await db
+        .select()
+        .from(pendingExtractions)
+        .where(eq(pendingExtractions.id, extractionId))
+        .limit(1);
+
+      if (!pending[0]) throw new Error('Pending extraction not found');
+      const extraction = pending[0];
+
+      // Insert new relation without touching the old one
+      await db.insert(relations).values({
+        id: randomUUID(),
+        userId,
+        subjectId: extraction.subjectId,
+        relationType: extraction.relationType as any,
+        objectLabel: extraction.objectLabel,
+        objectType: extraction.objectType,
+        intensity: extraction.intensity as any,
+        confidence: extraction.confidence,
+        category: extraction.category,
+        metadata: extraction.metadata,
+        status: (extraction.status as any) || 'current',
+        source: 'ai_extraction',
+      });
+
+      await db
+        .update(pendingExtractions)
+        .set({ reviewStatus: 'approved', reviewedAt: new Date(), updatedAt: new Date() })
+        .where(eq(pendingExtractions.id, extractionId));
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });
 }

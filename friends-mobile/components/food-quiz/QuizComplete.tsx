@@ -3,6 +3,7 @@ import { Text, Button, Chip } from 'react-native-paper';
 import { router } from 'expo-router';
 import { Stack } from 'expo-router';
 import CenteredContainer from '@/components/CenteredContainer';
+import { fz } from '@/lib/design/tokens';
 
 interface QuizCompleteProps {
   savedCount: {
@@ -52,6 +53,7 @@ export default function QuizComplete({ savedCount }: QuizCompleteProps) {
 const styles = StyleSheet.create({
   centered: {
     padding: 24,
+    backgroundColor: fz.paper,
   },
   completeIcon: {
     fontSize: 64,

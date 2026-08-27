@@ -1,6 +1,8 @@
-import { StyleSheet, View, ScrollView, Image } from 'react-native';
-import { Card, Text, Searchbar, Chip, Divider, List } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Image, Text, TextInput, TouchableOpacity } from 'react-native';
 import { getInitials } from '@/lib/utils/format';
+import { fz, fzText } from '@/lib/design/tokens';
+import { FormSection } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
 
 interface Person {
   id: string;
@@ -15,7 +17,6 @@ interface GuestSelectorProps {
   people: Person[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  relationshipColors: Record<string, string>;
 }
 
 export default function GuestSelector({
@@ -24,120 +25,104 @@ export default function GuestSelector({
   people,
   searchQuery,
   setSearchQuery,
-  relationshipColors,
 }: GuestSelectorProps) {
   // Get selected guest objects for display
   const selectedGuestObjects = people.filter((p) => selectedGuests.includes(p.id));
 
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          Select Guests ({selectedGuests.length})
-        </Text>
-
-        <Searchbar
+    <FormSection title={`Select Guests (${selectedGuests.length})`}>
+      <View style={styles.searchInput}>
+        <TextInput
           placeholder="Search people..."
-          onChangeText={setSearchQuery}
+          placeholderTextColor={fz.textMute}
           value={searchQuery}
-          style={styles.searchbar}
+          onChangeText={setSearchQuery}
+          style={styles.searchText}
         />
+      </View>
 
-        {/* Selected guests chips */}
-        {selectedGuests.length > 0 && (
-          <View style={styles.selectedChips}>
-            {selectedGuestObjects.map((guest) => (
-              <Chip key={guest.id} onClose={() => onToggleGuest(guest.id)} style={styles.guestChip}>
-                {guest.name}
-              </Chip>
-            ))}
-          </View>
-        )}
-
-        <Divider style={styles.divider} />
-
-        {/* People list */}
-        <View style={styles.peopleList}>
-          <ScrollView nestedScrollEnabled style={{ maxHeight: 300 }}>
-            {people.slice(0, 10).map((person) => {
-              const avatarColor = person.relationshipType
-                ? relationshipColors[person.relationshipType] || '#6200ee'
-                : '#6200ee';
-
-              return (
-                <List.Item
-                  key={person.id}
-                  title={person.name}
-                  left={() => (
-                    <View style={styles.avatarContainer}>
-                      {person.photoPath ? (
-                        <Image source={{ uri: person.photoPath }} style={styles.avatarImage} />
-                      ) : (
-                        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-                          <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                  right={() => (
-                    <Chip
-                      selected={selectedGuests.includes(person.id)}
-                      onPress={() => onToggleGuest(person.id)}
-                      style={styles.selectChip}
-                    >
-                      {selectedGuests.includes(person.id) ? 'Selected' : 'Add'}
-                    </Chip>
-                  )}
-                  style={styles.personItem}
-                />
-              );
-            })}
-          </ScrollView>
+      {/* Selected guests chips */}
+      {selectedGuests.length > 0 && (
+        <View style={styles.selectedChips}>
+          {selectedGuestObjects.map((guest) => (
+            <Pill key={guest.id} label={guest.name} onClose={() => onToggleGuest(guest.id)} />
+          ))}
         </View>
-      </Card.Content>
-    </Card>
+      )}
+
+      <View style={styles.divider} />
+
+      {/* People list */}
+      <ScrollView nestedScrollEnabled style={styles.peopleList}>
+        {people.slice(0, 10).map((person) => {
+          const selected = selectedGuests.includes(person.id);
+          return (
+            <View key={person.id} style={styles.personRow}>
+              {person.photoPath ? (
+                <Image source={{ uri: person.photoPath }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+                </View>
+              )}
+              <Text style={[fzText.name, styles.personName]} numberOfLines={1}>
+                {person.name}
+              </Text>
+              <Pill
+                label={selected ? 'Selected' : 'Add'}
+                selected={selected}
+                onPress={() => onToggleGuest(person.id)}
+              />
+            </View>
+          );
+        })}
+      </ScrollView>
+    </FormSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    margin: 16,
-    marginBottom: 8,
+  searchInput: {
+    height: 44,
+    borderRadius: fz.rPill,
+    backgroundColor: fz.surface,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  searchbar: {
-    marginBottom: 12,
+  searchText: {
+    fontFamily: fz.font,
+    fontSize: 15,
+    color: fz.ink,
+    padding: 0,
   },
   selectedChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 12,
-  },
-  guestChip: {
-    backgroundColor: '#e3f2fd',
+    marginTop: fz.s.md,
   },
   divider: {
-    marginVertical: 8,
+    height: 1,
+    backgroundColor: fz.hairline,
+    marginTop: fz.s.md,
+    marginBottom: fz.s.xs,
   },
   peopleList: {
     maxHeight: 300,
   },
-  personItem: {
-    paddingVertical: 4,
-  },
-  avatarContainer: {
-    marginLeft: 8,
-    justifyContent: 'center',
+  personRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: fz.s.md,
+    paddingVertical: fz.s.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: fz.hairline,
   },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
+    backgroundColor: fz.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -147,11 +132,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   avatarText: {
-    color: 'white',
+    fontFamily: fz.font,
+    fontWeight: '600',
     fontSize: 12,
-    fontWeight: 'bold',
+    color: fz.ink,
   },
-  selectChip: {
-    marginRight: 8,
+  personName: {
+    flex: 1,
   },
 });

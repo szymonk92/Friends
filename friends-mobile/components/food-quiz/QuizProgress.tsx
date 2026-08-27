@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text, ProgressBar } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';
+import { fz, fzText } from '@/lib/design/tokens';
 
 interface QuizProgressProps {
   currentQuestionIndex: number;
@@ -56,13 +57,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#6200ee',
+    backgroundColor: fz.ink,
     alignItems: 'center',
     marginBottom: 8,
     justifyContent: 'center',
   },
   avatarText: {
-    color: 'white',
+    color: '#fff',
+    fontFamily: fz.font,
     fontSize: 24,
     fontWeight: 'bold',
   },

@@ -1,421 +1,224 @@
-import { StyleSheet, ScrollView, View } from 'react-native';
-import { Text, Card, Divider, List, useTheme, Chip } from 'react-native-paper';
-import { Stack } from 'expo-router';
+import { StyleSheet, ScrollView, View, Text as RNText, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, router } from 'expo-router';
+import { fz, fzText } from '@/lib/design/tokens';
+import { HeaderBack } from '@/components/HeaderBack';
+import { Pill } from '@/components/Pill';
+import { IconCircle } from '@/components/IconCircle';
 
 /**
  * Documentation screen explaining app terminology and nomenclature
  * Accessible via /documentation route
  */
 export default function DocumentationScreen() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const Row = ({
+    title,
+    description,
+    left,
+  }: {
+    title: string;
+    description: string;
+    left?: React.ReactNode;
+  }) => (
+    <View style={styles.row}>
+      {left ? <View style={styles.rowLeft}>{left}</View> : null}
+      <View style={styles.rowBody}>
+        <RNText style={styles.rowTitle}>{title}</RNText>
+        <RNText style={styles.rowDesc}>{description}</RNText>
+      </View>
+    </View>
+  );
+
+  const SectionTitle = ({ children }: { children: string }) => (
+    <RNText style={styles.sectionTitle}>{children}</RNText>
+  );
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'App Documentation',
-          presentation: 'modal',
-        }}
-      />
-      <ScrollView style={styles.container}>
-        <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Friends App - Nomenclature Guide
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Understanding the terminology and symbols used in the app
-          </Text>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-          {/* Relations Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                📊 Relation Types
-              </Text>
-              <Divider style={styles.divider} />
-
-              <Text variant="bodyMedium" style={styles.description}>
-                Relations describe what people like, dislike, know, fear, and more. Each relation
-                has a type that defines the kind of connection.
-              </Text>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Preferences
-                </Text>
-                <List.Item
-                  title="LIKES ❤️"
-                  description="Things a person enjoys, prefers, or has positive feelings about"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="DISLIKES 💔"
-                  description="Things a person dislikes, avoids, or has negative feelings about"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="PREFERS_OVER 🔄"
-                  description="A choice between two options, showing preference hierarchy"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Identity & Skills
-                </Text>
-                <List.Item
-                  title="IS 👤"
-                  description="Defines who someone is (profession, role, trait, identity)"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="HAS_SKILL 🛠️"
-                  description="Skills, abilities, or expertise a person possesses"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="USED_TO_BE ⏮️"
-                  description="Past identities, roles, or professions"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Behaviors & Habits
-                </Text>
-                <List.Item
-                  title="REGULARLY_DOES 🔁"
-                  description="Activities, habits, or routines someone does regularly"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="EXPERIENCED 📅"
-                  description="Past events, experiences, or life events"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Emotions & Sensitivities
-                </Text>
-                <List.Item
-                  title="FEARS ⚠️"
-                  description="Things that cause fear, anxiety, or phobias"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="SENSITIVE_TO 🔔"
-                  description="Physical or emotional sensitivities (allergies, triggers)"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="UNCOMFORTABLE_WITH 😣"
-                  description="Situations, topics, or things that cause discomfort"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Other Types
-                </Text>
-                <List.Item
-                  title="KNOWS 🤝"
-                  description="People or things someone is familiar with"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="BELIEVES 🧠"
-                  description="Beliefs, values, or philosophical positions"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="WANTS_TO_ACHIEVE 🎯"
-                  description="Goals, aspirations, or future objectives"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="STRUGGLES_WITH 😔"
-                  description="Challenges, difficulties, or ongoing struggles"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="CARES_FOR 💚"
-                  description="People, pets, or dependents someone cares for"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Status Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                📌 Relation Status
-              </Text>
-              <Divider style={styles.divider} />
-
-              <Text variant="bodyMedium" style={styles.description}>
-                Each relation has a status indicating its timeframe and relevance.
-              </Text>
-
-              <List.Item
-                title="current"
-                description="Active right now (default for most relations)"
-                left={() => <Chip style={styles.chipCurrent}>current</Chip>}
-              />
-              <List.Item
-                title="past"
-                description="Was true in the past but no longer applies"
-                left={() => <Chip style={styles.chipPast}>past</Chip>}
-              />
-              <List.Item
-                title="future"
-                description="Expected or planned for the future"
-                left={() => <Chip style={styles.chipFuture}>future</Chip>}
-              />
-              <List.Item
-                title="aspiration"
-                description="Something they hope to achieve or become"
-                left={() => <Chip style={styles.chipAspiration}>aspiration</Chip>}
-              />
-            </Card.Content>
-          </Card>
-
-          {/* Intensity Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                📈 Intensity Levels
-              </Text>
-              <Divider style={styles.divider} />
-
-              <Text variant="bodyMedium" style={styles.description}>
-                Intensity indicates how strong a relation is.
-              </Text>
-
-              <List.Item
-                title="Weak +"
-                description="Mild preference or light connection"
-                titleStyle={{ fontWeight: '300' }}
-              />
-              <List.Item
-                title="Medium ++"
-                description="Moderate preference or notable connection"
-                titleStyle={{ fontWeight: '500' }}
-              />
-              <List.Item
-                title="Strong +++"
-                description="Strong preference or important connection"
-                titleStyle={{ fontWeight: '700' }}
-              />
-              <List.Item
-                title="Very Strong ++++"
-                description="Extremely strong or core belief/value"
-                titleStyle={{ fontWeight: '900' }}
-              />
-            </Card.Content>
-          </Card>
-
-          {/* Connections Section */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                🔗 Person Connections
-              </Text>
-              <Divider style={styles.divider} />
-
-              <Text variant="bodyMedium" style={styles.description}>
-                Connections represent relationships between people in your network.
-              </Text>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Relationship Types
-                </Text>
-                <List.Item
-                  title="Friend 💙"
-                  description="Personal friendship"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="Family 🏠"
-                  description="Blood relatives or close family"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="Colleague 💼"
-                  description="Work or professional relationships"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="Partner ❤️"
-                  description="Romantic or life partner"
-                  titleStyle={styles.listTitle}
-                />
-                <List.Item
-                  title="Acquaintance 👋"
-                  description="Casual or limited connection"
-                  titleStyle={styles.listTitle}
-                />
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Connection Status
-                </Text>
-                <List.Item
-                  title="Active"
-                  description="Currently maintaining this relationship"
-                  left={() => <Chip>active</Chip>}
-                />
-                <List.Item
-                  title="Inactive"
-                  description="Not actively in touch but connection exists"
-                  left={() => <Chip>inactive</Chip>}
-                />
-                <List.Item
-                  title="Ended"
-                  description="Relationship has concluded"
-                  left={() => <Chip>ended</Chip>}
-                />
-                <List.Item
-                  title="Complicated"
-                  description="Complex or mixed relationship status"
-                  left={() => <Chip>complicated</Chip>}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* UI Symbols */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                🔤 UI Symbols Explained
-              </Text>
-              <Divider style={styles.divider} />
-
-              <List.Item
-                title="+ Pluses"
-                description="Represent intensity. More pluses = stronger intensity (+ to ++++)"
-              />
-              <List.Item
-                title="− Minuses"
-                description="Not currently used in the app, reserved for future features"
-              />
-              <List.Item
-                title="Numbers (3/5)"
-                description="Current count / Maximum limit (e.g., photos: 3 out of 5 allowed)"
-              />
-              <List.Item
-                title="✓ Checkmark Badge"
-                description="Indicates the profile photo on person cards"
-              />
-            </Card.Content>
-          </Card>
-
-          {/* Tips */}
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                💡 Pro Tips
-              </Text>
-              <Divider style={styles.divider} />
-
-              <List.Item
-                title="Quick Actions"
-                description="Long press on items for quick actions and options"
-                left={(props) => <List.Icon {...props} icon="gesture-tap-hold" />}
-              />
-              <List.Item
-                title="Photo Browser"
-                description="Tap photos to view full-screen with pinch-to-zoom"
-                left={(props) => <List.Icon {...props} icon="image" />}
-              />
-              <List.Item
-                title="AI Extraction"
-                description="Write natural stories and let AI automatically extract relations"
-                left={(props) => <List.Icon {...props} icon="brain" />}
-              />
-              <List.Item
-                title="Timeline Filters"
-                description="Use filters to view specific types of relations in the timeline"
-                left={(props) => <List.Icon {...props} icon="filter" />}
-              />
-            </Card.Content>
-          </Card>
-
-          <View style={styles.spacer} />
+      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.appBarRow}>
+          <HeaderBack onPress={() => router.back()} />
+          <RNText style={fzText.screenTitle}>Documentation</RNText>
+          <View style={{ width: 38 }} />
         </View>
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <RNText style={styles.title}>Friends App — Nomenclature Guide</RNText>
+        <RNText style={styles.subtitle}>
+          Understanding the terminology and symbols used in the app
+        </RNText>
+
+        {/* Relations Section */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>📊 Relation Types</RNText>
+          <View style={styles.divider} />
+          <RNText style={styles.description}>
+            Relations describe what people like, avoid, know, do, and more. Each relation has a type
+            that defines the kind of connection — 12 in total.
+          </RNText>
+
+          <View style={styles.section}>
+            <SectionTitle>Preferences</SectionTitle>
+            <Row title="LIKES ❤️" description="Things a person enjoys, prefers, or has positive feelings about" />
+            <Row title="DISLIKES 👎" description="Things a person dislikes or finds unpleasant — a taste, not a rule" />
+            <Row title="AVOIDS 🚨" description="A hard rule: allergy, medical restriction, diet, sobriety, or ethics" />
+          </View>
+
+          <View style={styles.section}>
+            <SectionTitle>Identity & Skills</SectionTitle>
+            <Row title="IS 👤" description="Who someone is — profession, role, trait, belief, or identity" />
+            <Row title="CAN 🎯" description="Skills, abilities, or expertise a person possesses" />
+            <Row title="HAS 🎒" description="Possessions and physical traits — objects, property, appearance" />
+            <Row title="LIVES_IN 📍" description="Current, past, or future residence" />
+          </View>
+
+          <View style={styles.section}>
+            <SectionTitle>Behaviors & Events</SectionTitle>
+            <Row title="DOES 🔄" description="A habit, routine, or regularly repeated activity" />
+            <Row title="DID 📅" description="A one-off past event or experience" />
+          </View>
+
+          <View style={styles.section}>
+            <SectionTitle>Other Types</SectionTitle>
+            <Row title="KNOWS 🤝" description="An unquantified social connection — people, places, or groups" />
+            <Row title="WANTS 🎯" description="Goals, aspirations, or future objectives" />
+            <Row title="STRUGGLES_WITH 😔" description="Ongoing difficulties, health conditions, or hardship" />
+          </View>
+        </View>
+
+        {/* Status Section */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>📌 Relation Status</RNText>
+          <View style={styles.divider} />
+          <RNText style={styles.description}>
+            Each relation has a status indicating its timeframe and relevance.
+          </RNText>
+
+          <Row title="current" description="Active right now (default for most relations)" left={<Pill label="current" variant="outline" />} />
+          <Row title="past" description="Was true in the past but no longer applies" left={<Pill label="past" variant="outline" />} />
+          <Row title="future" description="Expected or planned for the future" left={<Pill label="future" variant="outline" />} />
+          <Row title="aspiration" description="Something they hope to achieve or become" left={<Pill label="aspiration" variant="outline" />} />
+        </View>
+
+        {/* Intensity Section */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>📈 Intensity Levels</RNText>
+          <View style={styles.divider} />
+          <RNText style={styles.description}>Intensity indicates how strong a relation is.</RNText>
+
+          <Row title="Weak +" description="Mild preference or light connection" />
+          <Row title="Medium ++" description="Moderate preference or notable connection" />
+          <Row title="Strong +++" description="Strong, defining, or extreme preference" />
+        </View>
+
+        {/* Connections Section */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>🔗 Person Connections</RNText>
+          <View style={styles.divider} />
+          <RNText style={styles.description}>
+            Connections represent relationships between people in your network.
+          </RNText>
+
+          <View style={styles.section}>
+            <SectionTitle>Relationship Types</SectionTitle>
+            <Row title="Friend 💙" description="Personal friendship" />
+            <Row title="Family 🏠" description="Blood relatives or close family" />
+            <Row title="Colleague 💼" description="Work or professional relationships" />
+            <Row title="Partner ❤️" description="Romantic or life partner" />
+            <Row title="Acquaintance 👋" description="Casual or limited connection" />
+          </View>
+
+          <View style={styles.section}>
+            <SectionTitle>Connection Status</SectionTitle>
+            <Row title="Active" description="Currently maintaining this relationship" left={<Pill label="active" variant="outline" />} />
+            <Row title="Inactive" description="Not actively in touch but connection exists" left={<Pill label="inactive" variant="outline" />} />
+            <Row title="Ended" description="Relationship has concluded" left={<Pill label="ended" variant="outline" />} />
+            <Row title="Complicated" description="Complex or mixed relationship status" left={<Pill label="complicated" variant="outline" />} />
+          </View>
+        </View>
+
+        {/* UI Symbols */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>🔤 UI Symbols Explained</RNText>
+          <View style={styles.divider} />
+          <Row title="+ Pluses" description="Represent intensity. More pluses = stronger intensity (+ to ++++)" />
+          <Row title="− Minuses" description="Not currently used in the app, reserved for future features" />
+          <Row title="Numbers (3/5)" description="Current count / Maximum limit (e.g., photos: 3 out of 5 allowed)" />
+          <Row title="✓ Checkmark Badge" description="Indicates the profile photo on person cards" />
+        </View>
+
+        {/* Tips */}
+        <View style={styles.card}>
+          <RNText style={styles.cardTitle}>💡 Pro Tips</RNText>
+          <View style={styles.divider} />
+          <Row
+            title="Quick Actions"
+            description="Long press on items for quick actions and options"
+            left={<IconCircle icon="more" size={32} iconSize={15} />}
+          />
+          <Row
+            title="Photo Browser"
+            description="Tap photos to view full-screen with pinch-to-zoom"
+            left={<IconCircle icon="camera" size={32} iconSize={15} />}
+          />
+          <Row
+            title="AI Extraction"
+            description="Write natural stories and let AI automatically extract relations"
+            left={<IconCircle icon="network" size={32} iconSize={15} />}
+          />
+          <Row
+            title="Timeline Filters"
+            description="Use filters to view specific types of relations in the timeline"
+            left={<IconCircle icon="filter" size={32} iconSize={15} />}
+          />
+        </View>
+
+        <View style={{ height: 60 }} />
       </ScrollView>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { flex: 1, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: fz.s.sm,
   },
-  content: {
-    padding: 16,
-  },
-  title: {
-    marginBottom: 8,
-    fontWeight: '700',
-  },
-  subtitle: {
-    marginBottom: 24,
-    opacity: 0.7,
-  },
+  scroll: { flex: 1 },
+  content: { padding: fz.s.lg },
+  title: { ...fzText.titleLg, marginBottom: fz.s.sm },
+  subtitle: { ...fzText.sub, marginBottom: fz.s.xxl },
   card: {
-    marginBottom: 16,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.lg,
+    marginBottom: fz.s.lg,
   },
-  cardTitle: {
-    marginBottom: 8,
-    fontWeight: '600',
+  cardTitle: { ...fzText.title, marginBottom: fz.s.sm },
+  divider: { height: 1, backgroundColor: fz.hairline, marginBottom: fz.s.md },
+  description: { ...fzText.body, marginBottom: fz.s.md, lineHeight: 20 },
+  section: { marginBottom: fz.s.md },
+  sectionTitle: { ...fzText.label, marginBottom: fz.s.sm, marginTop: fz.s.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: fz.s.sm,
   },
-  divider: {
-    marginBottom: 16,
-  },
-  description: {
-    marginBottom: 16,
-    lineHeight: 20,
-    opacity: 0.8,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  listTitle: {
-    fontWeight: '500',
-  },
-  chipCurrent: {
-    backgroundColor: '#4caf50',
-    marginTop: 8,
-  },
-  chipPast: {
-    backgroundColor: '#9e9e9e',
-    marginTop: 8,
-  },
-  chipFuture: {
-    backgroundColor: '#2196f3',
-    marginTop: 8,
-  },
-  chipAspiration: {
-    backgroundColor: '#ff9800',
-    marginTop: 8,
-  },
-  spacer: {
-    height: 40,
-  },
+  rowLeft: { marginRight: fz.s.md, marginTop: 2 },
+  rowBody: { flex: 1 },
+  rowTitle: { ...fzText.name, marginBottom: 2 },
+  rowDesc: { ...fzText.body, lineHeight: 19 },
 });

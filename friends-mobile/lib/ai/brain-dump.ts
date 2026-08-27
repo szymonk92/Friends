@@ -1,19 +1,20 @@
 import { callAI, parseExtractionResponse, type AIServiceConfig } from './ai-service';
 import type { SocialLink, SocialPlatform } from '@/lib/social/socialLinks';
 
+// LIVES_IN is deliberately excluded — current residence is already a
+// top-level structured field (homeLocation), not a free-form attribute.
 export const BRAIN_DUMP_RELATION_TYPES = [
   'IS',
-  'HAS_SKILL',
-  'OWNS',
+  'CAN',
+  'HAS',
   'LIKES',
   'DISLIKES',
-  'CARES_FOR',
-  'ASSOCIATED_WITH',
-  'WANTS_TO_ACHIEVE',
+  'AVOIDS',
+  'WANTS',
   'STRUGGLES_WITH',
-  'REGULARLY_DOES',
+  'DOES',
   'KNOWS',
-  'EXPERIENCED',
+  'DID',
 ] as const;
 
 export type BrainDumpRelationType = (typeof BRAIN_DUMP_RELATION_TYPES)[number];
@@ -71,7 +72,7 @@ Schema:
   ],
   "languages": [string],
   "attributes": [
-    { "relationType": "IS"|"HAS_SKILL"|"OWNS"|"LIKES"|"DISLIKES"|"CARES_FOR"|"ASSOCIATED_WITH"|"WANTS_TO_ACHIEVE"|"STRUGGLES_WITH"|"REGULARLY_DOES"|"KNOWS"|"EXPERIENCED",
+    { "relationType": "IS"|"CAN"|"HAS"|"LIKES"|"DISLIKES"|"AVOIDS"|"WANTS"|"STRUGGLES_WITH"|"DOES"|"KNOWS"|"DID",
       "objectLabel": string,
       "confidence": number,
       "assertion": "asserted"|"speculation"|"reported"|"aspiration"
@@ -91,24 +92,23 @@ EXTRACTION CHECKLIST — scan the note in this order before writing the JSON:
 7. Remaining facts → attributes (use the most specific relationType possible)
 
 ATTRIBUTE RELATION TYPES — use the MOST specific one:
-- IS          identity / state: "is a doctor", "is Polish", "parents are doctors"
-- HAS_SKILL   ability / education: "studied biology in London", "speaks French", "is a programmer"
-- OWNS        possession: "has a campervan", "owns a flat"
+- IS          identity, role, trait, or belief: "is a doctor", "is Polish", "parents are doctors"
+- CAN         ability, skill, or education: "studied biology in London", "speaks French", "is a programmer"
+- HAS         possession or physical trait: "has a campervan", "owns a flat", "has a dog named Rex", "wears glasses"
 - LIKES       enjoyment / preference: "loves hiking", "is into jazz"
-- DISLIKES    aversion: "hates flying", "dislikes crowds"
-- CARES_FOR   caregiving or strong emotional bond: "looks after her mum", "has a dog named Rex"
-- ASSOCIATED_WITH  indirect connection that fits no stronger type: "knows the CEO", "family has a farm"
-- WANTS_TO_ACHIEVE goal / ambition: "wants to move to Berlin", "hoping to retrain as a nurse"
-- STRUGGLES_WITH   difficulty / challenge: "dealing with burnout", "has back problems"
-- REGULARLY_DOES   recurring habit / activity: "runs marathons", "goes to the gym daily"
-- KNOWS       personal connection (not romantic): "knows Tom from uni", "friends with Maria"
-- EXPERIENCED  past event / experience: "did the W-trek in Patagonia", "lived in Tokyo for a year", "interned at Google"
+- DISLIKES    aversion that's a taste, not a rule: "hates flying", "dislikes crowds"
+- AVOIDS      a hard rule, not a taste — allergy, diet, sobriety, ethics, or policy: "allergic to nuts", "vegan", "doesn't drink"
+- WANTS       goal / ambition: "wants to move to Berlin", "hoping to retrain as a nurse"
+- STRUGGLES_WITH   ongoing difficulty, health condition, or hardship: "dealing with burnout", "has back problems"
+- DOES        recurring habit / activity: "runs marathons", "goes to the gym daily", "looks after her mum"
+- KNOWS       an unquantified connection, not romantic: "knows Tom from uni", "knows the CEO", "family has a farm"
+- DID         a one-off past event or experience: "did the W-trek in Patagonia", "lived in Tokyo for a year", "interned at Google"
 
 ATTRIBUTION RULES (most important):
 - Every fact in the output MUST be about the TARGET.
 - If a sentence describes another named person, do NOT attribute it to the TARGET.
   Add that person's name to "mentionedOthers" and skip the fact.
-- Family facts about the TARGET's relatives ("her dad has a campervan") go on the TARGET as an ASSOCIATED_WITH or OWNS attribute with a label naming the relative ("father has a campervan"). Do NOT create separate entries.
+- Family facts about the TARGET's relatives ("her dad has a campervan") go on the TARGET as a HAS attribute with a label naming the relative ("father has a campervan"). Do NOT create separate entries.
 - If you cannot confidently attribute a fact to the TARGET, drop it.
 
 FIELD-SPECIFIC RULES:
@@ -116,7 +116,7 @@ FIELD-SPECIFIC RULES:
 - homeLocation: where the TARGET lives, is from, or is currently based ("UK", "Warsaw", "moved to NYC").
 - partnerName: set if the text explicitly or strongly implies the TARGET has a romantic partner and names them.
   Trigger words: "couple", "partner", "boyfriend", "girlfriend", "husband", "wife", "fiancé", "together with", "dating".
-  If they broke up / are an ex, do NOT set partnerName; record "ex-partner NAME" as ASSOCIATED_WITH instead.
+  If they broke up / are an ex, do NOT set partnerName; record "ex-partner NAME" as KNOWS instead.
 - socialHandles: extract ANY @handle or social-platform reference, even if the platform is inferred from context (e.g. "IG @agata.x" → instagram).
 - languages: explicit language mentions only ("speaks Polish", "fluent in French").
 - DO NOT extract phone/email unless the text contains a literal digit string or email address.
@@ -141,10 +141,10 @@ Expected JSON:
   "partnerName": "Tom",
   "socialHandles": [{ "platform": "instagram", "handle": "@agata.x" }],
   "attributes": [
-    { "relationType": "EXPERIENCED", "objectLabel": "W-trek in Chile", "confidence": 0.95, "assertion": "asserted" },
-    { "relationType": "HAS_SKILL",   "objectLabel": "studied in London", "confidence": 0.9, "assertion": "asserted" },
-    { "relationType": "IS",          "objectLabel": "parents are doctors", "confidence": 0.9, "assertion": "asserted" },
-    { "relationType": "ASSOCIATED_WITH", "objectLabel": "father has a campervan", "confidence": 0.9, "assertion": "asserted" }
+    { "relationType": "DID", "objectLabel": "W-trek in Chile", "confidence": 0.95, "assertion": "asserted" },
+    { "relationType": "CAN", "objectLabel": "studied in London", "confidence": 0.9, "assertion": "asserted" },
+    { "relationType": "IS",  "objectLabel": "parents are doctors", "confidence": 0.9, "assertion": "asserted" },
+    { "relationType": "HAS", "objectLabel": "father has a campervan", "confidence": 0.9, "assertion": "asserted" }
   ],
   "mentionedOthers": ["Tom"],
   "notesSummary": "Met in Chile on a W-trek. UK couple. Agata studied in London; parents are doctors. Dad has a campervan. IG @agata.x."

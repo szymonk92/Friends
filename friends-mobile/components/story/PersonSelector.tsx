@@ -12,6 +12,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { usePeople } from '@/hooks/usePeople';
+import { fz } from '@/lib/design/tokens';
 
 interface PersonSelectorProps {
   visible: boolean;
@@ -94,22 +95,23 @@ export default function PersonSelector({
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
-        <Dialog.Title>{title}</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onDismiss} style={[styles.dialog, styles.dialogShape]}>
+        <Dialog.Title style={styles.dialogTitle}>{title}</Dialog.Title>
         <Dialog.Content style={styles.content}>
           <Searchbar
             placeholder="Search people..."
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchBar}
+            inputStyle={styles.dialogFont}
             elevation={0}
           />
 
           <View style={styles.listContainer}>
             {isLoading ? (
-              <Text style={styles.loadingText}>Loading people...</Text>
+              <Text style={[styles.loadingText, styles.dialogFont]}>Loading people...</Text>
             ) : filteredPeople.length === 0 ? (
-              <Text style={styles.emptyText}>No people found</Text>
+              <Text style={[styles.emptyText, styles.dialogFont]}>No people found</Text>
             ) : (
               <FlatList
                 data={filteredPeople}
@@ -121,8 +123,15 @@ export default function PersonSelector({
           </View>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleSave} mode="contained" style={styles.saveButton}>
+          <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button
+            labelStyle={styles.dialogFont}
+            onPress={handleSave}
+            mode="contained"
+            style={styles.saveButton}
+          >
             Done ({selectedIds.size})
           </Button>
         </Dialog.Actions>
@@ -135,6 +144,16 @@ const styles = StyleSheet.create({
   dialog: {
     maxHeight: '80%',
   },
+  dialogShape: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
+  },
   content: {
     paddingHorizontal: 0,
     paddingBottom: 0,
@@ -143,7 +162,7 @@ const styles = StyleSheet.create({
   searchBar: {
     marginHorizontal: 16,
     marginBottom: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.surfaceSoft,
   },
   listContainer: {
     flex: 1,

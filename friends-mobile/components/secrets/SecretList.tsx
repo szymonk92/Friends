@@ -1,7 +1,9 @@
-import { View, FlatList, StyleSheet } from 'react-native';
-import { Card, Text, Chip, ActivityIndicator, IconButton, FAB } from 'react-native-paper';
+import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Text as RNText } from 'react-native';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { IconCircle } from '@/components/IconCircle';
 
 interface SecretListProps {
   secrets: any[];
@@ -23,37 +25,31 @@ export default function SecretList({
   people,
   handleViewSecret,
   handleDeleteSecret,
-  setShowCreateDialog,
-  insets,
 }: SecretListProps) {
   return (
     <View style={styles.container}>
-      <Card style={styles.statusCard}>
-        <Card.Content style={styles.statusContent}>
-          <Chip icon="shield-lock" style={styles.statusChip}>
-            Protected by{' '}
-            {isPasswordBased
+      <View style={styles.statusRow}>
+        <Pill
+          label={`Protected by ${
+            isPasswordBased
               ? 'Password'
-              : getBiometricTypeName(biometricStatus?.biometricType || 'none')}
-          </Chip>
-          <Text variant="bodySmall" style={styles.statusText}>
-            {secrets.length} secret(s) stored
-          </Text>
-        </Card.Content>
-      </Card>
+              : getBiometricTypeName(biometricStatus?.biometricType || 'none')
+          }`}
+          icon="checkCircle"
+        />
+        <RNText style={fzText.meta}>{secrets.length} secret(s) stored</RNText>
+      </View>
 
       {loadingSecrets ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="small" color={fz.ink} />
         </View>
       ) : secrets.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            No Secrets Yet
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <RNText style={fzText.title}>No Secrets Yet</RNText>
+          <RNText style={[fzText.sub, { marginTop: fz.s.sm, textAlign: 'center' }]}>
             Tap the + button to add your first secret
-          </Text>
+          </RNText>
         </View>
       ) : (
         <FlatList
@@ -65,105 +61,61 @@ export default function SecretList({
               ? people.find((p) => p.id === item.personId)
               : null;
             return (
-              <Card style={styles.secretCard} onPress={() => handleViewSecret(item.id)}>
-                <Card.Content style={styles.secretCardContent}>
-                  <View style={styles.secretInfo}>
-                    <Text variant="titleMedium">{item.title}</Text>
-                    {associatedPerson && (
-                      <Text variant="bodySmall" style={styles.personTag}>
-                        {associatedPerson.name}
-                      </Text>
-                    )}
-                    <Text variant="bodySmall" style={styles.secretDate}>
-                      {formatRelativeTime(new Date(item.createdAt))}
-                    </Text>
-                  </View>
-                  <IconButton
-                    icon="delete"
-                    size={20}
-                    onPress={() => handleDeleteSecret(item.id, item.title)}
-                  />
-                </Card.Content>
-              </Card>
+              <TouchableOpacity
+                style={styles.secretCard}
+                onPress={() => handleViewSecret(item.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.secretInfo}>
+                  <RNText style={fzText.name} numberOfLines={1}>
+                    {item.title}
+                  </RNText>
+                  {associatedPerson && (
+                    <RNText style={styles.personTag}>{associatedPerson.name}</RNText>
+                  )}
+                  <RNText style={styles.secretDate}>
+                    {formatRelativeTime(new Date(item.createdAt))}
+                  </RNText>
+                </View>
+                <IconCircle
+                  icon="trash"
+                  size={34}
+                  iconSize={16}
+                  onPress={() => handleDeleteSecret(item.id, item.title)}
+                />
+              </TouchableOpacity>
             );
           }}
         />
       )}
-
-      <FAB
-        icon="plus"
-        style={[styles.fab, { bottom: insets.bottom + 16 }]}
-        onPress={() => setShowCreateDialog(true)}
-        label="Add Secret"
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  statusCard: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  statusContent: {
+  container: { flex: 1 },
+  statusRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: fz.s.edge,
+    paddingVertical: fz.s.md,
   },
-  statusChip: {
-    backgroundColor: '#e8f5e9',
-  },
-  statusText: {
-    opacity: 0.7,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-  },
-  emptyText: {
-    opacity: 0.6,
-    textAlign: 'center',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  listContent: { padding: fz.s.edge, paddingTop: 0, paddingBottom: 120 },
   secretCard: {
-    marginBottom: 12,
-  },
-  secretCardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: fz.card,
+    borderRadius: fz.rRow,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    padding: fz.s.md,
+    marginBottom: fz.s.sm,
   },
-  secretInfo: {
-    flex: 1,
-  },
-  secretDate: {
-    opacity: 0.6,
-    marginTop: 4,
-  },
-  personTag: {
-    color: '#6200ee',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-  },
+  secretInfo: { flex: 1, marginRight: fz.s.sm },
+  personTag: { ...fzText.chip, color: fz.textMute, marginTop: 2 },
+  secretDate: { ...fzText.time, marginTop: 4 },
 });

@@ -1,17 +1,21 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Divider, SegmentedButtons, List, Button, useTheme } from 'react-native-paper';
-import { AI_MODELS, type AIModel } from '@/store/useSettings';
+import { Card, Text, Divider, SegmentedButtons, List, Button, TextInput, useTheme } from 'react-native-paper';
+import { AI_MODELS, useSettings, type AIModel } from '@/store/useSettings';
 
 interface AIConfigurationProps {
   selectedModel: AIModel;
   setSelectedModel: (model: AIModel) => void;
   hasApiKey: () => boolean;
   hasGeminiApiKey: () => boolean;
+  hasOllamaApiKey: () => boolean;
   hasActiveApiKey: () => boolean;
   setApiKeyDialogVisible: (visible: boolean) => void;
   setGeminiApiKeyDialogVisible: (visible: boolean) => void;
+  setOllamaApiKeyDialogVisible: (visible: boolean) => void;
   handleClearApiKey: () => void;
   handleClearGeminiApiKey: () => void;
+  handleClearOllamaApiKey: () => void;
 }
 
 export default function AIConfiguration({
@@ -19,13 +23,27 @@ export default function AIConfiguration({
   setSelectedModel,
   hasApiKey,
   hasGeminiApiKey,
+  hasOllamaApiKey,
   hasActiveApiKey,
   setApiKeyDialogVisible,
   setGeminiApiKeyDialogVisible,
+  setOllamaApiKeyDialogVisible,
   handleClearApiKey,
   handleClearGeminiApiKey,
+  handleClearOllamaApiKey,
 }: AIConfigurationProps) {
   const theme = useTheme();
+  const {
+    ollamaBaseUrl,
+    ollamaModel,
+    setOllamaBaseUrl,
+    setOllamaModel,
+  } = useSettings();
+
+  // Local edit state for the Ollama text fields — committed to the store on blur
+  // so each keystroke doesn't trigger an AsyncStorage write (which would lag the input).
+  const [baseUrlDraft, setBaseUrlDraft] = useState(ollamaBaseUrl);
+  const [modelDraft, setModelDraft] = useState(ollamaModel);
   return (
     <Card style={styles.card}>
       <Card.Content>
@@ -54,6 +72,11 @@ export default function AIConfiguration({
               value: 'gemini',
               label: 'Gemini',
               icon: hasGeminiApiKey() ? 'check' : 'close',
+            },
+            {
+              value: 'ollama',
+              label: 'Ollama',
+              icon: hasOllamaApiKey() ? 'check' : 'close',
             },
           ]}
           style={styles.segmentedButtons}
@@ -163,6 +186,91 @@ export default function AIConfiguration({
           Get your key from: https://aistudio.google.com/apikey
         </Text>
 
+        <Divider style={styles.divider} />
+
+        {/* Ollama (Local) */}
+        <List.Item
+          title="Ollama API Key (placeholder)"
+          description={hasOllamaApiKey() ? 'Key is set (any value works)' : 'Not configured'}
+          left={(props) => (
+            <List.Icon
+              {...props}
+              icon={hasOllamaApiKey() ? 'check-circle' : 'alert-circle'}
+              color={hasOllamaApiKey() ? theme.colors.primary : theme.colors.error}
+            />
+          )}
+        />
+
+        {hasOllamaApiKey() ? (
+          <View style={styles.apiKeyButtons}>
+            <Button
+              mode="outlined"
+              onPress={() => setOllamaApiKeyDialogVisible(true)}
+              icon="key-change"
+              style={styles.button}
+            >
+              Change Key
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={handleClearOllamaApiKey}
+              icon="delete"
+              textColor={theme.colors.error}
+              style={styles.button}
+            >
+              Clear Ollama Key
+            </Button>
+          </View>
+        ) : (
+          <Button
+            mode="contained"
+            onPress={() => setOllamaApiKeyDialogVisible(true)}
+            icon="key-plus"
+            style={styles.button}
+          >
+            Set Ollama API Key
+          </Button>
+        )}
+
+        <Text variant="labelSmall" style={styles.apiKeyHelp}>
+          Local & free. Key is a placeholder — enter any value (e.g. "ollama"). Set the base URL below to reach your Ollama server.
+        </Text>
+
+        <Text variant="labelMedium" style={styles.modelLabel}>
+          Ollama Base URL
+        </Text>
+        <TextInput
+          mode="outlined"
+          value={baseUrlDraft}
+          onChangeText={setBaseUrlDraft}
+          onBlur={() => setOllamaBaseUrl(baseUrlDraft)}
+          placeholder="http://localhost:11434"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          style={styles.ollamaInput}
+        />
+        <Text variant="labelSmall" style={styles.apiKeyHelp}>
+          Android emulator: http://10.0.2.2:11434 · Physical device: your computer's LAN IP (e.g. http://192.168.1.10:11434)
+        </Text>
+
+        <Text variant="labelMedium" style={styles.modelLabel}>
+          Ollama Model
+        </Text>
+        <TextInput
+          mode="outlined"
+          value={modelDraft}
+          onChangeText={setModelDraft}
+          onBlur={() => setOllamaModel(modelDraft)}
+          placeholder="llama3.2:3b"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.ollamaInput}
+        />
+        <Text variant="labelSmall" style={styles.apiKeyHelp}>
+          Any model you've pulled (`ollama pull llama3.2:3b`). Larger models extract better.
+        </Text>
+
         {!hasActiveApiKey() && (
           <Text variant="bodySmall" style={[styles.warningText, { color: theme.colors.error }]}>
             ⚠️ You need to configure an API key for the selected model to use AI extraction.
@@ -211,6 +319,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginTop: 4,
     marginBottom: 8,
+  },
+  ollamaInput: {
+    marginBottom: 4,
   },
   warningText: {
     marginTop: 16,

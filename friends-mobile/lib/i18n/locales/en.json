@@ -26,6 +26,9 @@
     "back": "Back",
     "moreOptions": "More Options"
   },
+  "splash": {
+    "connecting": "Connecting your circle…"
+  },
   "navigation": {
     "people": "People",
     "network": "Network",
@@ -52,6 +55,34 @@
     "showCategoryDividers": "Show category dividers",
     "hideCategoryDividers": "Hide category dividers",
     "clearFilters": "Clear filters"
+  },
+  "network": {
+    "title": "Network",
+    "loading": "Loading network...",
+    "searchPlaceholder": "Search people...",
+    "empty": {
+      "title": "No network yet",
+      "description": "Add people and connections to see your social network graph.",
+      "addPeople": "Add People"
+    },
+    "tags": "Tags",
+    "hint": "Tap a node to inspect • pinch to zoom • drag to pan",
+    "stats": {
+      "people": "People",
+      "links": "Links",
+      "avg": "Avg"
+    },
+    "sections": {
+      "likes": "Likes",
+      "dislikes": "Dislikes",
+      "avoids": "Avoids",
+      "skills": "Skills",
+      "activities": "Activities",
+      "goals": "Goals"
+    },
+    "connectionCount_one": "{{count}} connection",
+    "connectionCount_other": "{{count}} connections",
+    "noDetails": "No detailed information available yet."
   },
   "person": {
     "addTitle": "Add a Person",

@@ -1,18 +1,12 @@
-import { StyleSheet, View, Image } from 'react-native';
-import {
-  Text,
-  Chip,
-  Button,
-  IconButton,
-  List,
-  ActivityIndicator,
-  useTheme,
-} from 'react-native-paper';
+import { StyleSheet, View, Image, TouchableOpacity } from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
-import { useCommonStyles } from '@/styles/common';
+import { ProfileSection } from './ProfileSection';
+import { Pill } from '@/components/Pill';
+import { fz, fzText } from '@/lib/design/tokens';
 import type { Connection } from '@/lib/db/schema';
 
 interface PersonConnectionsProps {
@@ -21,8 +15,6 @@ interface PersonConnectionsProps {
 }
 
 export default function PersonConnections({ personId, personName }: PersonConnectionsProps) {
-  const theme = useTheme();
-  const commonStyles = useCommonStyles();
   const { data: personConnections = [], isLoading: connectionsLoading } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
 
@@ -33,40 +25,28 @@ export default function PersonConnections({ personId, personName }: PersonConnec
   };
 
   return (
-    <View style={commonStyles.section}>
-      <View style={commonStyles.sectionHeader}>
-        <Text variant="titleLarge" style={commonStyles.sectionTitle}>
-          Connections ({personConnections.length})
-        </Text>
-        <View style={commonStyles.sectionHeaderButtons}>
-          <IconButton
-            icon="plus"
-            size={20}
-            onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
-          />
-          <IconButton
-            icon="dots-vertical"
-            size={20}
-            onPress={() => router.push(`/person/manage-connections?personId=${personId}`)}
-          />
-        </View>
-      </View>
-
+    <ProfileSection
+      label="Connections"
+      count={personConnections.length || null}
+      onAdd={() => router.push(`/person/add-connection?personId=${personId}`)}
+      onMore={() => router.push(`/person/manage-connections?personId=${personId}`)}
+    >
       {connectionsLoading && (
         <View style={styles.centered}>
-          <ActivityIndicator />
+          <ActivityIndicator color={fz.ink} />
         </View>
       )}
 
       {!connectionsLoading && personConnections.length === 0 && (
         <View style={styles.emptyState}>
-          <Text variant="bodyMedium" style={commonStyles.emptyStateText}>
+          <Text style={styles.emptyText}>
             No connections yet. Add connections to show how {personName} relates to other people.
           </Text>
           <Button
             mode="outlined"
+            textColor={fz.ink}
+            style={styles.emptyButton}
             onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
-            style={styles.emptyStateButton}
           >
             Add Connection
           </Button>
@@ -74,94 +54,87 @@ export default function PersonConnections({ personId, personName }: PersonConnec
       )}
 
       {personConnections.map((connection) => {
-          const connectedPerson = getConnectedPerson(connection);
-          if (!connectedPerson) return null;
-
-          return (
-            <List.Item
-              key={connection.id}
-              title={connectedPerson.name}
-              description={`${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`}
-              left={() =>
-                connectedPerson.photoPath ? (
-                  <Image
-                    source={{ uri: connectedPerson.photoPath }}
-                    style={styles.connectionPhoto}
-                  />
-                ) : (
-                  <View
-                    style={[styles.connectionAvatar, { backgroundColor: theme.colors.secondary }]}
-                  >
-                    <Text
-                      style={[styles.connectionAvatarText, { color: theme.colors.onSecondary }]}
-                    >
-                      {getInitials(connectedPerson.name)}
-                    </Text>
-                  </View>
-                )
-              }
-              right={() => (
-                <Chip
-                  compact
-                  style={{ marginRight: 4, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  {connection.status}
-                </Chip>
-              )}
-              onPress={() => router.push(`/person/${connectedPerson.id}`)}
-              style={styles.connectionItem}
-            />
-          );
-        })}
+        const connectedPerson = getConnectedPerson(connection);
+        if (!connectedPerson) return null;
+        const description = `${connection.relationshipType}${connection.qualifier ? ` • ${connection.qualifier}` : ''}${connection.status !== 'active' ? ` • ${connection.status}` : ''}`;
+        return (
+          <TouchableOpacity
+            key={connection.id}
+            style={styles.row}
+            activeOpacity={0.7}
+            onPress={() => router.replace(`/person/${connectedPerson.id}`)}
+          >
+            {connectedPerson.photoPath ? (
+              <Image source={{ uri: connectedPerson.photoPath }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarText}>{getInitials(connectedPerson.name)}</Text>
+              </View>
+            )}
+            <View style={styles.rowBody}>
+              <Text style={fzText.name} numberOfLines={1}>{connectedPerson.name}</Text>
+              <Text style={fzText.sub} numberOfLines={1}>{description}</Text>
+            </View>
+            <Pill label={connection.status} variant="soft" />
+          </TouchableOpacity>
+        );
+      })}
 
       {personConnections.length > 0 && (
         <Button
-          mode="contained"
-          icon="plus"
-          onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
+          mode="outlined"
+          textColor={fz.ink}
           style={styles.addButton}
+          onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
         >
           Add Connection
         </Button>
       )}
-    </View>
+    </ProfileSection>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    padding: 20,
+  centered: { padding: 12, alignItems: 'center' },
+  emptyState: { paddingVertical: 10, alignItems: 'center' },
+  emptyText: {
+    ...fzText.sub,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyButton: { borderColor: fz.outline },
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
   },
-  emptyState: {
-    paddingVertical: 16,
-    alignItems: 'center',
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
-  emptyStateButton: {
-    marginTop: 8,
-  },
-  connectionItem: {
-    paddingVertical: 8,
-  },
-  connectionAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  avatarFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: fz.ink,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
-  connectionPhoto: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginLeft: 8,
+  avatarText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: fz.font,
   },
-  connectionAvatarText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  rowBody: {
+    flex: 1,
+    minWidth: 0,
   },
   addButton: {
-    marginTop: 16,
+    marginTop: 14,
+    borderColor: fz.outline,
   },
 });

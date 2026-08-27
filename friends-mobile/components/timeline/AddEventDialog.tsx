@@ -9,15 +9,15 @@ import {
   TextInput,
   Button,
 } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 
 interface AddEventDialogProps {
   visible: boolean;
   onDismiss: () => void;
   editingEvent: any;
-  selectedPersonId: string | null;
-  setSelectedPersonId: (id: string | null) => void;
+  selectedPersonIds: string[];
+  togglePersonId: (id: string) => void;
   people: any[];
-  getPersonName: (id: string) => string;
   eventType: string;
   setEventType: (type: string) => void;
   eventTypes: any[];
@@ -33,10 +33,9 @@ export default function AddEventDialog({
   visible,
   onDismiss,
   editingEvent,
-  selectedPersonId,
-  setSelectedPersonId,
+  selectedPersonIds,
+  togglePersonId,
   people,
-  getPersonName,
   eventType,
   setEventType,
   eventTypes,
@@ -49,38 +48,30 @@ export default function AddEventDialog({
 }: AddEventDialogProps) {
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Title>{editingEvent ? 'Edit Timeline Event' : 'Add Timeline Event'}</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+        <Dialog.Title style={styles.dialogTitle}>
+          {editingEvent ? 'Edit Timeline Event' : 'Add Timeline Event'}
+        </Dialog.Title>
         <Dialog.Content>
-          <Text variant="titleSmall" style={styles.dialogLabel}>
-            Person
+          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
+            People
           </Text>
-          {selectedPersonId ? (
-            <View style={styles.selectedPerson}>
-              <Chip onClose={() => setSelectedPersonId(null)}>
-                {getPersonName(selectedPersonId)}
+          <View style={styles.personList}>
+            {people.map((person) => (
+              <Chip
+                key={person.id}
+                selected={selectedPersonIds.includes(person.id)}
+                showSelectedOverlay
+                onPress={() => togglePersonId(person.id)}
+                style={styles.personChip}
+                textStyle={styles.dialogFont}
+              >
+                {person.name}
               </Chip>
-            </View>
-          ) : (
-            <View style={styles.personList}>
-              {people.slice(0, 5).map((person) => (
-                <Chip
-                  key={person.id}
-                  onPress={() => setSelectedPersonId(person.id)}
-                  style={styles.personChip}
-                >
-                  {person.name}
-                </Chip>
-              ))}
-              {people.length > 5 && (
-                <Text variant="labelSmall" style={styles.moreText}>
-                  + {people.length - 5} more
-                </Text>
-              )}
-            </View>
-          )}
+            ))}
+          </View>
 
-          <Text variant="titleSmall" style={styles.dialogLabel}>
+          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
             Event Type
           </Text>
           <SegmentedButtons
@@ -102,7 +93,7 @@ export default function AddEventDialog({
             style={styles.segmented}
           />
 
-          <Text variant="titleSmall" style={styles.dialogLabel}>
+          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
             Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)
           </Text>
           <TextInput
@@ -111,7 +102,7 @@ export default function AddEventDialog({
             placeholder="2024 or 2024-03 or 2024-03-15"
             value={dateInput}
             onChangeText={setDateInput}
-            style={styles.dateInput}
+            style={[styles.dateInput, styles.dialogFont]}
           />
 
           <TextInput
@@ -122,12 +113,19 @@ export default function AddEventDialog({
             onChangeText={setNotes}
             multiline
             numberOfLines={3}
-            style={styles.notesInput}
+            style={[styles.notesInput, styles.dialogFont]}
           />
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={handleAddEvent} loading={isSubmitting} disabled={isSubmitting}>
+          <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button
+            labelStyle={styles.dialogFont}
+            onPress={handleAddEvent}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
             {editingEvent ? 'Save' : 'Add'}
           </Button>
         </Dialog.Actions>
@@ -137,13 +135,19 @@ export default function AddEventDialog({
 }
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
+  },
   dialogLabel: {
     marginBottom: 8,
     marginTop: 12,
-  },
-  selectedPerson: {
-    flexDirection: 'row',
-    marginBottom: 8,
   },
   personList: {
     flexDirection: 'row',
@@ -153,10 +157,7 @@ const styles = StyleSheet.create({
   },
   personChip: {
     marginBottom: 4,
-  },
-  moreText: {
-    alignSelf: 'center',
-    opacity: 0.6,
+    borderRadius: fz.rPill,
   },
   segmented: {
     marginBottom: 8,

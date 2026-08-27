@@ -1,12 +1,16 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Card, Text, Divider, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
+import { FormSection } from '@/components/FormKit';
 
 interface ExportImportSettingsProps {
   handleExportJSON: () => void;
   exportDataPending: boolean;
   handleExportCSV: () => void;
   exportCSVPending: boolean;
+  handleExportObsidian: () => void;
+  exportObsidianPending: boolean;
   handleImport: () => void;
   importLoading: boolean;
   importDataPending: boolean;
@@ -17,93 +21,92 @@ export default function ExportImportSettings({
   exportDataPending,
   handleExportCSV,
   exportCSVPending,
+  handleExportObsidian,
+  exportObsidianPending,
   handleImport,
   importLoading,
   importDataPending,
 }: ExportImportSettingsProps) {
   return (
     <>
-      {/* Export Options */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Export Data
-          </Text>
-          <Divider style={styles.divider} />
+      <FormSection
+        title="Export Data"
+        hint="Export your data to back it up or transfer to another device."
+      >
+        <Button
+          mode="contained"
+          buttonColor={fz.ink}
+          textColor={fz.paper}
+          onPress={handleExportJSON}
+          loading={exportDataPending}
+          disabled={exportDataPending}
+          icon="file-export"
+          style={styles.button}
+          labelStyle={styles.buttonLabel}
+        >
+          Export All Data (JSON)
+        </Button>
 
-          <Text variant="bodySmall" style={styles.description}>
-            Export your data to back it up or transfer to another device.
-          </Text>
+        <Button
+          mode="outlined"
+          textColor={fz.ink}
+          onPress={handleExportCSV}
+          loading={exportCSVPending}
+          disabled={exportCSVPending}
+          icon="file-delimited"
+          style={styles.button}
+          labelStyle={styles.buttonLabel}
+        >
+          Export People (CSV)
+        </Button>
 
-          <Button
-            mode="contained"
-            onPress={handleExportJSON}
-            loading={exportDataPending}
-            disabled={exportDataPending}
-            icon="file-export"
-            style={styles.button}
-          >
-            Export All Data (JSON)
-          </Button>
+        <Button
+          mode="outlined"
+          textColor={fz.ink}
+          onPress={handleExportObsidian}
+          loading={exportObsidianPending}
+          disabled={exportObsidianPending}
+          icon="file-tree"
+          style={[styles.button, styles.lastButton]}
+          labelStyle={styles.buttonLabel}
+        >
+          Export to Obsidian
+        </Button>
+      </FormSection>
 
-          <Button
-            mode="outlined"
-            onPress={handleExportCSV}
-            loading={exportCSVPending}
-            disabled={exportCSVPending}
-            icon="file-delimited"
-            style={styles.button}
-          >
-            Export People (CSV)
-          </Button>
-        </Card.Content>
-      </Card>
-
-      {/* Import Options */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Import Data
-          </Text>
-          <Divider style={styles.divider} />
-
-          <Text variant="bodySmall" style={styles.description}>
-            Import data from a previously exported JSON file. Duplicate people (by name) will be
-            skipped.
-          </Text>
-
-          <Button
-            mode="contained"
-            onPress={handleImport}
-            loading={importLoading || importDataPending}
-            disabled={importLoading || importDataPending}
-            icon="file-import"
-            style={styles.button}
-          >
-            Import from JSON
-          </Button>
-        </Card.Content>
-      </Card>
+      <FormSection
+        title="Import Data"
+        hint="Import data from a previously exported JSON file. Duplicate people (by name) will be skipped."
+      >
+        <Button
+          mode="contained"
+          buttonColor={fz.ink}
+          textColor={fz.paper}
+          onPress={handleImport}
+          loading={importLoading || importDataPending}
+          disabled={importLoading || importDataPending}
+          icon="file-import"
+          style={[styles.button, styles.lastButton]}
+          labelStyle={styles.buttonLabel}
+        >
+          Import from JSON
+        </Button>
+      </FormSection>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  description: {
-    marginBottom: 16,
-    opacity: 0.7,
-  },
   button: {
-    marginBottom: 12,
+    borderRadius: fz.rButton,
+    borderColor: fz.outline,
+    marginBottom: fz.s.md,
+  },
+  lastButton: {
+    marginBottom: 0,
+  },
+  buttonLabel: {
+    fontFamily: fz.font,
+    fontWeight: '600',
   },
 });

@@ -22,7 +22,7 @@ import {
   type MatchInfo,
 } from '@/hooks/useContactsImport';
 import { fz, fzText } from '@/lib/design/tokens';
-import { IconCircle } from '@/components/IconCircle';
+import { HeaderBack } from '@/components/HeaderBack';
 
 type Phase = 'loading' | 'ready' | 'denied' | 'empty';
 
@@ -209,7 +209,7 @@ export default function ImportContactsScreen() {
       {/* App bar */}
       <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
         <View style={s.appBarRow}>
-          <IconCircle icon="back" onPress={() => router.back()} />
+          <HeaderBack onPress={() => router.back()} />
           <View style={s.titleWrap}>
             <Text style={fzText.screenTitle}>Import contacts</Text>
             <Text style={fzText.meta}>
@@ -303,8 +303,9 @@ export default function ImportContactsScreen() {
             setReview(null);
             void doImport(decisions);
           }}
+          style={s.dialog}
         >
-          <Dialog.Title>Possible duplicate</Dialog.Title>
+          <Dialog.Title style={s.dialogTitle}>Possible duplicate</Dialog.Title>
           <Dialog.Content>
             <Text style={fzText.body}>
               Contact “{reviewContact?.name}”
@@ -315,9 +316,15 @@ export default function ImportContactsScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => onReviewDecision('skip')}>Skip</Button>
-            <Button onPress={() => onReviewDecision('create')}>Add as new</Button>
-            <Button onPress={() => onReviewDecision('update')}>Update existing</Button>
+            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('skip')}>
+              Skip
+            </Button>
+            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('create')}>
+              Add as new
+            </Button>
+            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('update')}>
+              Update existing
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -377,4 +384,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
   fabText: { color: '#fff', fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
+  dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
+  dialogTitle: { fontFamily: fz.font },
+  dialogFont: { fontFamily: fz.font },
 });

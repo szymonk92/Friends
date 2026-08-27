@@ -1,14 +1,11 @@
 import { StyleSheet, View, Alert } from 'react-native';
 import {
   Text,
-  Chip,
   Button,
-  IconButton,
   Portal,
   Dialog,
   TextInput as PaperInput,
   SegmentedButtons,
-  useTheme,
 } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -19,7 +16,9 @@ import {
   useDeleteGiftIdea,
 } from '@/hooks/useGifts';
 import { formatShortDate } from '@/lib/utils/format';
-import { useCommonStyles } from '@/styles/common';
+import { ProfileSection } from './ProfileSection';
+import { IconCircle } from '@/components/IconCircle';
+import { fz, fzText } from '@/lib/design/tokens';
 
 interface PersonGiftIdeasProps {
   personId: string;
@@ -27,8 +26,6 @@ interface PersonGiftIdeasProps {
 }
 
 export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdeasProps) {
-  const theme = useTheme();
-  const commonStyles = useCommonStyles();
   const { data: giftIdeas = [] } = usePersonGiftIdeas(personId);
   const createGiftIdea = useCreateGiftIdea();
   const updateGiftIdea = useUpdateGiftIdea();
@@ -84,7 +81,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
       case 'high':
         return '#d32f2f';
       case 'medium':
-        return (theme.colors as any).medium || '#ff9800';
+        return '#ff9800';
       case 'low':
         return '#4caf50';
       default:
@@ -94,40 +91,23 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
   return (
     <>
-      <View style={commonStyles.section}>
-        <View style={commonStyles.sectionHeader}>
-          {/* titleLarge ?*/}
-          <Text variant="titleMedium" style={commonStyles.sectionTitle}>
-            Gift Ideas
-          </Text>
-          <View style={commonStyles.sectionHeaderButtons}>
-            <IconButton icon="plus" size={20} onPress={() => setAddGiftDialogVisible(true)} />
-            <IconButton
-              icon="dots-vertical"
-              size={20}
-              onPress={() => router.push(`/person/manage-gifts?personId=${personId}`)}
-            />
-          </View>
-        </View>
-
+      <ProfileSection
+        label="Gift Ideas"
+        count={giftIdeas.length || null}
+        onAdd={() => setAddGiftDialogVisible(true)}
+        onMore={() => router.push(`/person/manage-gifts?personId=${personId}`)}
+      >
         {giftIdeas.length === 0 ? (
-          <Text variant="bodySmall" style={commonStyles.emptyStateText}>
-            No gift ideas yet. Add ideas for {personName}!
-          </Text>
+          <Text style={styles.empty}>No gift ideas yet. Add ideas for {personName}!</Text>
         ) : (
           giftIdeas.map((gift) => (
-            <View
-              key={gift.id}
-              style={[styles.giftItem, { backgroundColor: theme.colors.elevation.level1 }]}
-            >
+            <View key={gift.id} style={styles.giftItem}>
               <View style={styles.giftInfo}>
                 <View style={styles.giftHeader}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <Text
-                      variant="bodyMedium"
                       style={[
                         styles.giftItemText,
-                        { color: theme.colors.onSurface },
                         gift.status === 'given' && styles.giftGiven,
                       ]}
                       numberOfLines={2}
@@ -136,62 +116,45 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
                       {gift.item}
                     </Text>
                   </View>
-                  <Chip
-                    compact
-                    style={[
-                      styles.priorityChip,
-                      { backgroundColor: getPriorityColor(gift.priority) + '20' },
-                    ]}
-                    textStyle={{ color: getPriorityColor(gift.priority), fontSize: 10 }}
-                  >
-                    {gift.priority}
-                  </Chip>
+                  <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(gift.priority) }]} />
                 </View>
                 {gift.occasion && (
-                  <Text
-                    variant="labelSmall"
-                    style={[styles.giftOccasion, { color: theme.colors.onSurfaceVariant }]}
-                  >
-                    For: {gift.occasion}
-                  </Text>
+                  <Text style={styles.giftOccasion}>For: {gift.occasion}</Text>
                 )}
-                {gift.notes && (
-                  <Text
-                    variant="labelSmall"
-                    style={[styles.giftNotes, { color: theme.colors.onSurfaceVariant }]}
-                  >
-                    {gift.notes}
-                  </Text>
-                )}
+                {gift.notes && <Text style={styles.giftNotes}>{gift.notes}</Text>}
                 {gift.status === 'given' && gift.givenDate && (
-                  <Text variant="labelSmall" style={styles.giftGivenDate}>
-                    Given on {formatShortDate(gift.givenDate)}
-                  </Text>
+                  <Text style={styles.giftGivenDate}>Given on {formatShortDate(gift.givenDate)}</Text>
                 )}
               </View>
               <View style={styles.giftActions}>
                 {gift.status !== 'given' && (
-                  <IconButton
-                    icon="check-circle-outline"
-                    size={20}
-                    iconColor="#4caf50"
+                  <IconCircle
+                    icon="check"
+                    size={30}
+                    iconSize={16}
+                    color="#4caf50"
                     onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
                   />
                 )}
-                <IconButton
-                  icon="delete-outline"
-                  size={20}
+                <IconCircle
+                  icon="trash"
+                  size={30}
+                  iconSize={14}
                   onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
                 />
               </View>
             </View>
           ))
         )}
-      </View>
+      </ProfileSection>
 
       <Portal>
-        <Dialog visible={addGiftDialogVisible} onDismiss={() => setAddGiftDialogVisible(false)}>
-          <Dialog.Title>Add Gift Idea</Dialog.Title>
+        <Dialog
+          visible={addGiftDialogVisible}
+          onDismiss={() => setAddGiftDialogVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>Add Gift Idea</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
@@ -199,15 +162,15 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               placeholder="e.g., Hiking boots, Coffee machine"
               value={giftItem}
               onChangeText={setGiftItem}
-              style={{ marginBottom: 12 }}
+              style={[{ marginBottom: 12 }, styles.dialogFont]}
             />
 
-            <Text variant="labelMedium" style={{ marginBottom: 8 }}>
+            <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
               Priority
             </Text>
             <SegmentedButtons
               value={giftPriority}
-              onValueChange={(v) => setGiftPriority(v as any)}
+              onValueChange={(v) => setGiftPriority(v as 'low' | 'medium' | 'high')}
               buttons={[
                 { value: 'low', label: 'Low' },
                 { value: 'medium', label: 'Medium' },
@@ -222,7 +185,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               placeholder="e.g., Birthday, Christmas"
               value={giftOccasion}
               onChangeText={setGiftOccasion}
-              style={{ marginBottom: 12 }}
+              style={[{ marginBottom: 12 }, styles.dialogFont]}
             />
 
             <PaperInput
@@ -233,11 +196,19 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               onChangeText={setGiftNotes}
               multiline
               numberOfLines={2}
+              style={styles.dialogFont}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setAddGiftDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddGiftIdea} loading={isAddingGift} disabled={isAddingGift}>
+            <Button labelStyle={styles.dialogFont} onPress={() => setAddGiftDialogVisible(false)}>
+              Cancel
+            </Button>
+            <Button
+              labelStyle={styles.dialogFont}
+              onPress={handleAddGiftIdea}
+              loading={isAddingGift}
+              disabled={isAddingGift}
+            >
               Add
             </Button>
           </Dialog.Actions>
@@ -252,9 +223,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-    padding: 8,
-    borderRadius: 8,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
   },
   giftInfo: {
     flex: 1,
@@ -266,26 +240,50 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   giftItemText: {
-    fontWeight: '500',
+    ...fzText.name,
+    fontSize: 14.5,
   },
   giftGiven: {
     textDecorationLine: 'line-through',
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  priorityChip: {
-    height: 24,
+  priorityDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   giftOccasion: {
+    ...fzText.sub,
+    fontSize: 12,
     marginBottom: 2,
   },
   giftNotes: {
+    ...fzText.sub,
+    fontSize: 12,
     fontStyle: 'italic',
   },
   giftGivenDate: {
+    ...fzText.time,
     color: '#4caf50',
     marginTop: 4,
   },
   giftActions: {
     flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  empty: {
+    ...fzText.sub,
+    fontStyle: 'italic',
+  },
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
   },
 });

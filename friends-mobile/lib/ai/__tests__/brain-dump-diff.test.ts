@@ -143,28 +143,28 @@ describe('diffBrainDump', () => {
       const diff = diffBrainDump(
         make({
           attributes: [
-            { relationType: 'HAS_SKILL', objectLabel: 'studied chemistry', confidence: 0.9, assertion: 'asserted' },
+            { relationType: 'CAN', objectLabel: 'studied chemistry', confidence: 0.9, assertion: 'asserted' },
           ],
         }),
         {
           attributes: [
-            { id: 'r1', relationType: 'HAS_SKILL', objectLabel: 'studied biology' },
+            { id: 'r1', relationType: 'CAN', objectLabel: 'studied biology' },
           ],
         }
       );
       expect(diff.attributes[0].class).toBe('UPDATE');
     });
 
-    it('treats unrelated objects on same relation type as NEW (not all HAS_SKILL clashes)', () => {
+    it('treats unrelated objects on same relation type as NEW (not all CAN clashes)', () => {
       const diff = diffBrainDump(
         make({
           attributes: [
-            { relationType: 'HAS_SKILL', objectLabel: 'plays piano', confidence: 0.9, assertion: 'asserted' },
+            { relationType: 'CAN', objectLabel: 'plays piano', confidence: 0.9, assertion: 'asserted' },
           ],
         }),
         {
           attributes: [
-            { id: 'r1', relationType: 'HAS_SKILL', objectLabel: 'speaks Polish' },
+            { id: 'r1', relationType: 'CAN', objectLabel: 'speaks Polish' },
           ],
         }
       );

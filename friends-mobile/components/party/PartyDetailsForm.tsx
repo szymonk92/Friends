@@ -1,5 +1,7 @@
-import { StyleSheet } from 'react-native';
-import { Card, Text, TextInput, SegmentedButtons } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { fz } from '@/lib/design/tokens';
+import { FormSection, FormInput } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
 
 interface PartyDetailsFormProps {
   name: string;
@@ -12,6 +14,12 @@ interface PartyDetailsFormProps {
   setLocation: (location: string) => void;
 }
 
+const TYPES: Array<{ value: 'dinner' | 'party' | 'gathering'; label: string }> = [
+  { value: 'dinner', label: 'Dinner' },
+  { value: 'party', label: 'Party' },
+  { value: 'gathering', label: 'Gathering' },
+];
+
 export default function PartyDetailsForm({
   name,
   setName,
@@ -23,67 +31,50 @@ export default function PartyDetailsForm({
   setLocation,
 }: PartyDetailsFormProps) {
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          Party Details
-        </Text>
+    <FormSection title="Party Details">
+      <FormInput
+        label="Party Name"
+        value={name}
+        onChangeText={setName}
+        placeholder="e.g., Summer BBQ, Birthday Dinner"
+      />
 
-        <TextInput
-          label="Party Name"
-          value={name}
-          onChangeText={setName}
-          mode="outlined"
-          style={styles.input}
-          placeholder="e.g., Summer BBQ, Birthday Dinner"
-        />
+      <View style={styles.pillRow}>
+        {TYPES.map((opt) => (
+          <Pill
+            key={opt.value}
+            label={opt.label}
+            selected={type === opt.value}
+            onPress={() => setType(opt.value)}
+          />
+        ))}
+      </View>
 
-        <SegmentedButtons
-          value={type}
-          onValueChange={(v) => setType(v as any)}
-          buttons={[
-            { value: 'dinner', label: 'Dinner' },
-            { value: 'party', label: 'Party' },
-            { value: 'gathering', label: 'Gathering' },
-          ]}
-          style={styles.segmentedButton}
-        />
+      <FormInput
+        label="Date (YYYY-MM-DD)"
+        value={date}
+        onChangeText={setDate}
+        placeholder="2024-12-25"
+      />
 
-        <TextInput
-          label="Date (YYYY-MM-DD)"
-          value={date}
-          onChangeText={setDate}
-          mode="outlined"
-          style={styles.input}
-          placeholder="2024-12-25"
-        />
-
-        <TextInput
-          label="Location"
-          value={location}
-          onChangeText={setLocation}
-          mode="outlined"
-          style={styles.input}
-          placeholder="e.g., My place, Restaurant name"
-        />
-      </Card.Content>
-    </Card>
+      <FormInput
+        label="Location"
+        value={location}
+        onChangeText={setLocation}
+        placeholder="e.g., My place, Restaurant name"
+        style={styles.lastInput}
+      />
+    </FormSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    margin: 16,
-    marginBottom: 8,
+  pillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: fz.s.md,
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  input: {
-    marginBottom: 12,
-  },
-  segmentedButton: {
-    marginBottom: 12,
+  lastInput: {
+    marginBottom: 0,
   },
 });

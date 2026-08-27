@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Chip, Text, TextInput, useTheme } from 'react-native-paper';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { COMMON_LANGUAGES } from '@/lib/data/languages';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { FormInput } from '@/components/FormKit';
 
 type Props = {
   value: string[];
@@ -11,9 +14,11 @@ type Props = {
 const MAX_LANGUAGES = 20;
 
 export default function LanguagesEditor({ value, onChange }: Props) {
-  const theme = useTheme();
   const [draft, setDraft] = useState('');
-  const [focused, setFocused] = useState(false);
+  // Shown while the input is focused; only explicit selection/submit hides it —
+  // NOT the input's onBlur, which fires (and would unmount this list) before a
+  // tap on a suggestion row below it can register as a press.
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const suggestions = useMemo(() => {
     const lowered = draft.trim().toLowerCase();
@@ -25,15 +30,17 @@ export default function LanguagesEditor({ value, onChange }: Props) {
 
   const addLanguage = (raw: string) => {
     const cleaned = raw.trim();
+    setShowSuggestions(false);
+    // Dismissing first ends the IME's composing session — otherwise Samsung's
+    // keyboard can re-assert its in-progress composing text over the cleared
+    // controlled value a beat later.
+    Keyboard.dismiss();
+    setDraft('');
     if (!cleaned) return;
     if (value.length >= MAX_LANGUAGES) return;
     const exists = value.some((v) => v.toLowerCase() === cleaned.toLowerCase());
-    if (exists) {
-      setDraft('');
-      return;
-    }
+    if (exists) return;
     onChange([...value, cleaned]);
-    setDraft('');
   };
 
   const removeLanguage = (lang: string) => {
@@ -42,53 +49,46 @@ export default function LanguagesEditor({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text variant="titleSmall" style={styles.title}>
-        Languages spoken
-      </Text>
-      <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
+      <Text style={fzText.label}>Languages spoken</Text>
+      <Text style={[fzText.sub, styles.hint]}>
         Tap a suggestion or type a custom language and press return.
       </Text>
 
       {value.length > 0 && (
         <View style={styles.chipsRow}>
           {value.map((lang) => (
-            <Chip key={lang} compact onClose={() => removeLanguage(lang)} style={styles.chip}>
-              {lang}
-            </Chip>
+            <Pill key={lang} label={lang} onClose={() => removeLanguage(lang)} />
           ))}
         </View>
       )}
 
-      <TextInput
-        mode="outlined"
+      <FormInput
         dense
         label="Add language"
         placeholder="Start typing…"
         value={draft}
-        onChangeText={setDraft}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 120)}
+        onChangeText={(t) => {
+          setDraft(t);
+          setShowSuggestions(true);
+        }}
+        onFocus={() => setShowSuggestions(true)}
         onSubmitEditing={() => addLanguage(draft)}
         autoCapitalize="words"
         autoCorrect={false}
         returnKeyType="done"
         maxLength={40}
+        style={styles.input}
       />
 
-      {focused && suggestions.length > 0 && (
-        <View style={[styles.dropdown, { backgroundColor: theme.colors.elevation.level2 }]}>
+      {showSuggestions && suggestions.length > 0 && (
+        <View style={styles.dropdown}>
           {suggestions.map((s) => (
             <Pressable
               key={s}
               onPress={() => addLanguage(s)}
-              style={({ pressed }) => [
-                styles.suggestionRow,
-                pressed && { backgroundColor: theme.colors.surfaceVariant },
-              ]}
+              style={({ pressed }) => [styles.suggestionRow, pressed && styles.suggestionRowPressed]}
             >
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-                {s}
-              </Text>
+              <Text style={fzText.body}>{s}</Text>
             </Pressable>
           ))}
         </View>
@@ -101,10 +101,6 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
   },
-  title: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
   hint: {
     marginBottom: 8,
   },
@@ -114,18 +110,23 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 8,
   },
-  chip: {
-    marginRight: 4,
-    marginBottom: 4,
+  input: {
+    marginBottom: 0,
   },
   dropdown: {
     marginTop: 4,
-    borderRadius: 8,
+    borderRadius: fz.rButton,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    backgroundColor: fz.card,
     overflow: 'hidden',
     paddingVertical: 4,
   },
   suggestionRow: {
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  suggestionRowPressed: {
+    backgroundColor: fz.surfaceSoft,
   },
 });

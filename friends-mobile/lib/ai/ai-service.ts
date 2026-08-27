@@ -1,7 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { AIModel } from '@/store/useSettings';
+import { useSettings, type AIModel } from '@/store/useSettings';
 export type { AIModel } from '@/store/useSettings';
+
+// ponytail: model names centralized here per project rule — never hardcode in call sites
+const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001'; // cheapest current Claude ($1/$5 per 1M)
 
 
 export interface AIServiceConfig {
@@ -360,17 +363,16 @@ export function getAggregatedAnalytics(): {
  * Calculate cost for a given model and token usage
  */
 function calculateCost(model: AIModel, tokensUsed: number): number {
-  // Pricing as of Nov 2024 (per 1M tokens)
-  // Pricing as of Nov 2024 (per 1M tokens)
+  // Pricing as of Aug 2026 (per 1M tokens)
   const pricing: Record<string, { input: number; output: number }> = {
     anthropic: {
-      input: 3.0, // $3 per 1M input tokens
-      output: 15.0, // $15 per 1M output tokens
+      input: 1.0, // Claude Haiku 4.5
+      output: 5.0,
     },
     // Gemini (paid tier) pricing per 1M tokens (USD)
-    gemini: { // 2.0 Flash Lite (assumed similar to 1.5 Flash for now)
-      input: 0.075,
-      output: 0.3,
+    gemini: { // 2.5 Flash Lite
+      input: 0.1,
+      output: 0.4,
     },
     'gemini-1.5-flash': {
       input: 0.075,
@@ -379,6 +381,10 @@ function calculateCost(model: AIModel, tokensUsed: number): number {
     'gemini-1.5-pro': {
       input: 3.5,
       output: 10.5,
+    },
+    ollama: { // local — free
+      input: 0,
+      output: 0,
     },
   };
 
@@ -438,6 +444,8 @@ async function callAIWithHistory(
 ): Promise<{ response: string; tokensUsed?: number; debugDetails?: Partial<AIDebugInfo> }> {
   if (config.model === 'anthropic') {
     return await callAnthropicWithHistory(config.apiKey, messages);
+  } else if (config.model === 'ollama') {
+    return await callOllamaWithHistory(config.apiKey, messages);
   } else {
     return await callGeminiWithHistory(config.apiKey, messages, config.model);
   }
@@ -510,6 +518,31 @@ export async function callAI(
           costUsd: cost,
         },
       };
+    } else if (config.model === 'ollama') {
+      const result = await callOllama(config.apiKey, prompt, config.systemPrompt);
+      const cost = calculateCost(config.model, result.tokensUsed || 0);
+      const tokenUsage =
+        result.tokensUsed !== undefined
+          ? {
+              totalTokens: result.tokensUsed,
+              inputTokens: Math.floor((result.tokensUsed || 0) * 0.67),
+              outputTokens: Math.floor((result.tokensUsed || 0) * 0.33),
+            }
+          : undefined;
+
+      return {
+        response: result.response,
+        tokensUsed: result.tokensUsed,
+        debugInfo: {
+          userPrompt: prompt,
+          rawResponse: result.response,
+          tokensUsed: result.tokensUsed,
+          tokenUsage,
+          model: config.model,
+          cost,
+          costUsd: cost,
+        },
+      };
     } else {
       const result = await callGemini(config.apiKey, prompt, config.model, config.systemPrompt);
       const cost = calculateCost(config.model, result.tokensUsed || 0);
@@ -567,7 +600,7 @@ async function callAnthropic(
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: ANTHROPIC_MODEL,
       max_tokens: 4000,
       temperature: 0.3,
       ...(systemPrompt ? { system: systemPrompt } : {}),
@@ -614,7 +647,7 @@ async function callAnthropicWithHistory(
     }));
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: ANTHROPIC_MODEL,
       max_tokens: 4000,
       temperature: 0.3,
       messages: anthropicMessages,
@@ -640,6 +673,107 @@ async function callAnthropicWithHistory(
     // Re-throw with additional context
     throw error;
   }
+}
+
+/**
+ * Ollama — local models via the OpenAI-compatible API at {baseUrl}/v1/chat/completions.
+ * The API key is a placeholder (Ollama ignores it); base URL + model come from the settings store.
+ * No JSON mode set — we rely on the extraction prompt + parseExtractionResponse's fallback,
+ * for max compatibility across Ollama models. // ponytail: ceiling = models that ignore the
+ * "JSON only" instruction; upgrade to response_format json_object once model support is confirmed.
+ */
+function getOllamaEndpointConfig() {
+  const { ollamaBaseUrl, ollamaModel } = useSettings.getState();
+  return {
+    url: `${ollamaBaseUrl.replace(/\/+$/, '')}/v1/chat/completions`,
+    model: ollamaModel || 'llama3.2:3b',
+  };
+}
+
+async function callOllama(
+  apiKey: string,
+  prompt: string,
+  systemPrompt?: string
+): Promise<{ response: string; tokensUsed?: number }> {
+  const { url, model } = getOllamaEndpointConfig();
+  const messages = [
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    { role: 'user', content: prompt },
+  ];
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 4000, stream: false }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const error = new Error(`Ollama request failed (${res.status}): ${body.slice(0, 200)}`) as AIError;
+    error.type = res.status === 429 ? AIErrorType.RATE_LIMIT : AIErrorType.SERVER_ERROR;
+    error.retryable = res.status >= 500;
+    error.statusCode = res.status;
+    throw error;
+  }
+
+  const data: any = await res.json();
+  const text = data?.choices?.[0]?.message?.content ?? '';
+  if (!text.trim()) {
+    const error = new Error('Empty response from Ollama') as AIError;
+    error.type = AIErrorType.INVALID_RESPONSE;
+    error.retryable = true;
+    throw error;
+  }
+
+  const tokensUsed =
+    data?.usage?.prompt_tokens != null && data?.usage?.completion_tokens != null
+      ? data.usage.prompt_tokens + data.usage.completion_tokens
+      : undefined;
+
+  return { response: text, tokensUsed };
+}
+
+async function callOllamaWithHistory(
+  apiKey: string,
+  messages: AIMessage[]
+): Promise<{ response: string; tokensUsed?: number; debugDetails?: Partial<AIDebugInfo> }> {
+  const { url, model } = getOllamaEndpointConfig();
+  const ollamaMessages = messages.map((msg) => ({ role: msg.role, content: msg.content }));
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, messages: ollamaMessages, temperature: 0.3, max_tokens: 4000, stream: false }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const error = new Error(`Ollama request failed (${res.status}): ${body.slice(0, 200)}`) as AIError;
+    error.type = res.status === 429 ? AIErrorType.RATE_LIMIT : AIErrorType.SERVER_ERROR;
+    error.retryable = res.status >= 500;
+    error.statusCode = res.status;
+    throw error;
+  }
+
+  const data: any = await res.json();
+  const text = data?.choices?.[0]?.message?.content ?? '';
+  if (!text.trim()) {
+    const error = new Error('Empty response from Ollama') as AIError;
+    error.type = AIErrorType.INVALID_RESPONSE;
+    error.retryable = true;
+    throw error;
+  }
+
+  const tokensUsed =
+    data?.usage?.prompt_tokens != null && data?.usage?.completion_tokens != null
+      ? data.usage.prompt_tokens + data.usage.completion_tokens
+      : undefined;
+
+  return {
+    response: text,
+    tokensUsed,
+    debugDetails: { responseStatus: res.status, requestHeaders: { Authorization: '***' } },
+  };
 }
 
 async function callGemini(

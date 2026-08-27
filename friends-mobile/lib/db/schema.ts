@@ -110,11 +110,6 @@ export const people = sqliteTable(
       enum: ['unknown', 'peripheral', 'important', 'very_important'],
     }).default('unknown'),
 
-    // User's personal sentiment towards this person
-    userSentiment: text('user_sentiment', {
-      enum: ['neutral', 'positive', 'negative', 'complicated'],
-    }).default('neutral'),
-
     // De-duplication & Merging
     potentialDuplicates: text('potential_duplicates'),
     // @ts-ignore - Self-reference is valid in Drizzle
@@ -125,8 +120,11 @@ export const people = sqliteTable(
     extractionContext: text('extraction_context'),
     mentionCount: integer('mention_count').default(0),
 
+    gender: text('gender', {
+      enum: ['male', 'female', 'other', 'unknown'],
+    }),
     status: text('status', {
-      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged'],
+      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged', 'expected'],
     })
       .notNull()
       .default('active'),
@@ -137,6 +135,7 @@ export const people = sqliteTable(
     dateOfDeath: integer('date_of_death', { mode: 'timestamp' }),
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
+    lifeMilestones: text('life_milestones'),
     notes: text('notes'),
     tags: text('tags'), // JSON array of tag strings, e.g., '["college", "work"]'
     createdAt: integer('created_at', { mode: 'timestamp' })
@@ -175,7 +174,7 @@ export const connections = sqliteTable(
       .notNull()
       .references(() => people.id, { onDelete: 'cascade' }),
     relationshipType: text('relationship_type', {
-      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance'],
+      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance', 'parent', 'child', 'sibling'],
     }).notNull(),
     status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] })
       .notNull()
@@ -221,35 +220,30 @@ export const relations = sqliteTable(
       .references(() => people.id, { onDelete: 'cascade' }),
     subjectType: text('subject_type').notNull().default('person'),
     relationType: text('relation_type', {
+      // 12 story-fact types + HAS_IMPORTANT_DATE, reserved for the dedicated
+      // birthday/anniversary feature (see PersonImportantDates) — kept out of
+      // the AI vocabulary and manual picker on purpose.
       enum: [
-        'KNOWS',
+        'DOES',
+        'AVOIDS',
         'LIKES',
         'DISLIKES',
-        'UNKNOWN',
-        'ASSOCIATED_WITH',
-        'EXPERIENCED',
-        'HAS_SKILL',
-        'OWNS',
-        'HAS_IMPORTANT_DATE',
+        'HAS',
+        'LIVES_IN',
         'IS',
-        'BELIEVES',
-        'FEARS',
-        'WANTS_TO_ACHIEVE',
+        'CAN',
+        'DID',
         'STRUGGLES_WITH',
-        'CARES_FOR',
-        'DEPENDS_ON',
-        'REGULARLY_DOES',
-        'PREFERS_OVER',
-        'USED_TO_BE',
-        'SENSITIVE_TO',
-        'UNCOMFORTABLE_WITH',
+        'WANTS',
+        'KNOWS',
+        'HAS_IMPORTANT_DATE',
       ],
     }).notNull(),
     objectId: text('object_id'),
     objectType: text('object_type'),
     objectLabel: text('object_label').notNull(),
     metadata: text('metadata'),
-    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong', 'unknown'] }),
+    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'unknown'] }),
     confidence: real('confidence').default(1.0),
     category: text('category'),
     source: text('source', {
@@ -529,6 +523,12 @@ export const pendingExtractions = sqliteTable(
 
     // AI reasoning
     extractionReason: text('extraction_reason'), // Why AI extracted this
+
+    // Conflict metadata (set when this item was queued due to a detected conflict)
+    isConflict: integer('is_conflict', { mode: 'boolean' }).default(false),
+    conflictType: text('conflict_type'), // e.g. 'direct_contradiction', 'ingredient_conflict', 'duplicate'
+    conflictingRelationId: text('conflicting_relation_id').references(() => relations.id, { onDelete: 'set null' }),
+    conflictDescription: text('conflict_description'), // Human-readable explanation
 
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()

@@ -1,13 +1,17 @@
 import { View, StyleSheet } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fz } from '@/lib/design/tokens';
 
 interface QuizControlsProps {
   onSwipe: (direction: 'left' | 'right' | 'down') => void;
 }
 
 export default function QuizControls({ onSwipe }: QuizControlsProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.buttonContainer}>
         <IconButton
           icon="thumb-down"
@@ -25,8 +29,8 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
         <IconButton
           icon="help"
           mode="contained"
-          containerColor="#f5f5f5"
-          iconColor="#757575"
+          containerColor={fz.surfaceSoft}
+          iconColor={fz.textBody}
           size={24}
           onPress={() => onSwipe('down')}
           style={styles.smallButton}
@@ -55,7 +59,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-end',
-    paddingBottom: 40,
     gap: 32,
     position: 'absolute',
     bottom: 0,

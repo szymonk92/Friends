@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ActivityIndicator, View, StyleSheet } from 'react-native';
 import {
   Canvas,
@@ -14,7 +14,7 @@ import {
 } from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import * as d3 from 'd3-force';
-import { useTheme } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRAPH_HEIGHT = 450;
@@ -53,7 +53,6 @@ interface ForceDirectedGraphProps {
     relationshipType?: string | null;
   }>;
   connections: Array<{ id: string; person1Id: string; person2Id: string }>;
-  relationshipColors: Record<string, string>;
   selectedPersonId: string | null;
   onSelectPerson: (personId: string | null) => void;
 }
@@ -83,11 +82,15 @@ const GraphNode = ({
   titleFont: any;
   clipPath: any;
 }) => {
-  const image = useImage(node.photoPath || '');
+  // ponytail: null (not '') so Skia doesn't attempt to decode an empty source.
+  const image = useImage(node.photoPath ?? null);
   const shouldShowLabel = isSelected || isNeighbor;
 
   const opacity = isSelected || isNeighbor ? 1 : 0.6;
   const scale = isSelected ? 1.2 : 1;
+
+  // Measure the label so it centers on the node instead of the old length*3.5 hack.
+  const labelOffsetX = font ? -font.measureText(node.name).width / 2 : 0;
 
   return (
     <Group transform={[{ translateX: x }, { translateY: y }, { scale: scale }]} opacity={opacity}>
@@ -132,11 +135,11 @@ const GraphNode = ({
       {shouldShowLabel && font && (
         <Group transform={[{ translateY: NODE_RADIUS + 18 }]}>
           <SkiaText
-            x={-(node.name.length * 3.5)} // Adjusted centering magic number
+            x={labelOffsetX}
             y={0}
             text={node.name}
             font={font}
-            color="#000000"
+            color={fz.ink}
             opacity={1}
           />
         </Group>
@@ -149,21 +152,40 @@ const GraphNode = ({
 export default function ForceDirectedGraph({
   people,
   connections,
-  relationshipColors,
   selectedPersonId,
   onSelectPerson,
 }: ForceDirectedGraphProps) {
-  const theme = useTheme();
+  const font = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), FONT_SIZE);
+  const titleFont = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), TITLE_FONT_SIZE);
 
-  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), FONT_SIZE);
-  const titleFont = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), TITLE_FONT_SIZE);
+  // DEBUG: proves whether Metro is serving this instrumented source or a stale bundle.
+  useEffect(() => {
+    console.warn('[FDG] mount — instrumented build');
+  }, []);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [links, setLinks] = useState<Link[]>([]);
   const simulationRef = useRef<d3.Simulation<Node, Link> | null>(null);
 
+  // Refs mirror state so gesture handlers can read live values without rebuilding
+  // the gesture on every simulation tick (which would tear down + rebuild it ~60x/s).
+  const nodesRef = useRef<Node[]>([]);
+  const linksRef = useRef<Link[]>([]);
+  const cameraRef = useRef({ x: 0, y: 0, scale: 1 });
+  const selectedPersonIdRef = useRef<string | null>(selectedPersonId);
+  const onSelectPersonRef = useRef(onSelectPerson);
+
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
   const startCamera = useRef({ x: 0, y: 0, scale: 1 });
+
+  // Live container width via onLayout instead of the stale module-load SCREEN_WIDTH.
+  const [layoutWidth, setLayoutWidth] = useState(SCREEN_WIDTH);
+  const layoutRef = useRef(SCREEN_WIDTH);
+
+  const commitCamera = useCallback((next: { x: number; y: number; scale: number }) => {
+    cameraRef.current = next;
+    setCamera(next);
+  }, []);
 
   // Create a reusable path for clipping circles
   const circleClipPath = useMemo(() => {
@@ -176,17 +198,16 @@ export default function ForceDirectedGraph({
   useEffect(() => {
     if (!people.length) return;
 
-    // Initialize Nodes
+    const w = layoutWidth;
+
+    // Initialize Nodes, preserving last simulated positions for people still present.
     const newNodes: Node[] = people.map((p) => {
-      const existing = nodes.find((n) => n.id === p.id);
+      const existing = nodesRef.current.find((n) => n.id === p.id);
       return {
         ...p,
-        x: existing ? existing.x : SCREEN_WIDTH / 2 + (Math.random() - 0.5) * 50,
-        y: existing ? existing.y : GRAPH_HEIGHT / 2 + (Math.random() - 0.5) * 50,
-        color:
-          p.relationshipType && relationshipColors[p.relationshipType]
-            ? relationshipColors[p.relationshipType]
-            : theme.colors.primary,
+        x: existing?.x ?? w / 2 + (Math.random() - 0.5) * 50,
+        y: existing?.y ?? GRAPH_HEIGHT / 2 + (Math.random() - 0.5) * 50,
+        color: fz.ink,
       };
     });
 
@@ -201,6 +222,9 @@ export default function ForceDirectedGraph({
         target: c.person2Id,
       }));
 
+    nodesRef.current = newNodes;
+    linksRef.current = newLinks;
+
     if (simulationRef.current) simulationRef.current.stop();
 
     simulationRef.current = d3
@@ -213,49 +237,80 @@ export default function ForceDirectedGraph({
           .distance(LINK_DISTANCE)
       )
       .force('charge', d3.forceManyBody().strength(MANY_BODY_STRENGTH).distanceMax(250))
-      .force('center', d3.forceCenter(SCREEN_WIDTH / 2, GRAPH_HEIGHT / 2).strength(CENTER_FORCE))
+      .force('center', d3.forceCenter(w / 2, GRAPH_HEIGHT / 2).strength(CENTER_FORCE))
       .force('collide', d3.forceCollide(COLLISION_RADIUS));
 
     simulationRef.current.on('tick', () => {
-      // Trigger React Render
+      // Trigger React render. node objects are mutated in place by d3, so the
+      // new array refs carry live positions; refs keep the same live objects for hit-testing.
       setNodes([...newNodes]);
       setLinks([...newLinks]);
     });
 
     simulationRef.current.restart();
 
-    // FIX: Explicitly return void for cleanup
     return () => {
       simulationRef.current?.stop();
     };
-  }, [people, connections, relationshipColors]);
+  }, [people, connections, layoutWidth]);
+
+  // Keep selection + callback refs current.
+  useEffect(() => {
+    selectedPersonIdRef.current = selectedPersonId;
+  }, [selectedPersonId]);
+  useEffect(() => {
+    onSelectPersonRef.current = onSelectPerson;
+  }, [onSelectPerson]);
+
+  // --- AUTO-CENTER THE SELECTED NODE if it's outside the viewport ---
+  useEffect(() => {
+    if (!selectedPersonId) return;
+    const node = nodesRef.current.find((n) => n.id === selectedPersonId);
+    if (!node || node.x == null || node.y == null) return;
+
+    const { scale, x: camX, y: camY } = cameraRef.current;
+    const screenX = node.x * scale + camX;
+    const screenY = node.y * scale + camY;
+    const margin = NODE_RADIUS * 3;
+    const w = layoutRef.current || SCREEN_WIDTH;
+    const inView =
+      screenX > margin && screenX < w - margin && screenY > margin && screenY < GRAPH_HEIGHT - margin;
+    if (inView) return;
+
+    commitCamera({ x: w / 2 - node.x * scale, y: GRAPH_HEIGHT / 2 - node.y * scale, scale });
+  }, [selectedPersonId, commitCamera]);
 
   // --- 2. GESTURE HANDLERS ---
+  // Built once: handlers read live state from refs, so the gesture composition
+  // isn't rebuilt on every tick / camera change.
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
       .runOnJS(true)
       .onStart(() => {
-        startCamera.current = { ...camera };
+        startCamera.current = { ...cameraRef.current };
       })
       .onUpdate((e) => {
-        setCamera({
+        // ponytail: read scale LIVE, not from startCamera. Pan and pinch run
+        // simultaneously; if pan re-wrote startCamera.scale (captured at gesture
+        // start = 1.0) it would clobber the scale pinch just applied. Reading
+        // cameraRef.current.scale preserves whatever pinch set, order-independent.
+        commitCamera({
           x: startCamera.current.x + e.translationX,
           y: startCamera.current.y + e.translationY,
-          scale: startCamera.current.scale,
+          scale: cameraRef.current.scale,
         });
       });
 
     const pinch = Gesture.Pinch()
       .runOnJS(true)
       .onStart(() => {
-        startCamera.current = { ...camera };
+        startCamera.current = { ...cameraRef.current };
+        console.warn(`[PINCH] start | startScale=${startCamera.current.scale}`);
       })
       .onUpdate((e) => {
-        const newScale = startCamera.current.scale * e.scale;
-        setCamera({
-          ...camera,
-          scale: Math.max(0.5, Math.min(newScale, 3)),
-        });
+        const newScale = Math.max(0.5, Math.min(startCamera.current.scale * e.scale, 3));
+        console.warn(`[PINCH] update | e.scale=${e.scale.toFixed(3)} startScale=${startCamera.current.scale.toFixed(3)} newScale=${newScale.toFixed(3)} committed=${cameraRef.current.scale.toFixed(3)}`);
+        commitCamera({ ...cameraRef.current, scale: newScale });
       });
 
     const tap = Gesture.Tap()
@@ -263,15 +318,15 @@ export default function ForceDirectedGraph({
       .maxDistance(10)
       .onEnd((e) => {
         // Transform Touch to World Coordinates
-        const worldX = (e.x - camera.x) / camera.scale;
-        const worldY = (e.y - camera.y) / camera.scale;
+        const cam = cameraRef.current;
+        const worldX = (e.x - cam.x) / cam.scale;
+        const worldY = (e.y - cam.y) / cam.scale;
 
         const HIT_SLOP = 40;
         let closestNode: string | null = null;
         let minDist = HIT_SLOP;
 
-        for (const node of nodes) {
-          // Skip nodes that haven't been positioned yet
+        for (const node of nodesRef.current) {
           if (node.x === undefined || node.y === undefined) continue;
 
           const dx = node.x - worldX;
@@ -285,11 +340,25 @@ export default function ForceDirectedGraph({
         }
 
         // Toggle selection
-        onSelectPerson(closestNode === selectedPersonId ? null : closestNode);
+        const current = selectedPersonIdRef.current;
+        onSelectPersonRef.current(closestNode === current ? null : closestNode);
       });
 
-    return Gesture.Simultaneous(tap, pan, pinch);
-  }, [camera, nodes, selectedPersonId, onSelectPerson]);
+    // Double-tap resets to overview: recenter camera AND clear selection.
+    // Runs simultaneously with the single tap, so the first tap's fleeting
+    // selection is immediately cleared by this — no 300ms single-tap delay.
+    const doubleTap = Gesture.Tap()
+      .runOnJS(true)
+      .numberOfTaps(2)
+      .maxDelay(300)
+      .onEnd(() => {
+        onSelectPersonRef.current(null);
+        commitCamera({ x: 0, y: 0, scale: 1 });
+      });
+
+    return Gesture.Simultaneous(Gesture.Exclusive(doubleTap, tap), pan, pinch);
+    // Built once: all mutable values are read from refs; commitCamera is stable (useCallback).
+  }, [commitCamera]);
 
   const neighborIds = useMemo(
     () =>
@@ -314,7 +383,16 @@ export default function ForceDirectedGraph({
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(e) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && w !== layoutRef.current) {
+          layoutRef.current = w;
+          setLayoutWidth(w);
+        }
+      }}
+    >
       <GestureDetector gesture={gesture}>
         <View style={{ flex: 1 }}>
           <Canvas style={styles.canvas}>
@@ -339,7 +417,7 @@ export default function ForceDirectedGraph({
                 const isConnected =
                   selectedPersonId && (s.id === selectedPersonId || t.id === selectedPersonId);
                 const opacity = selectedPersonId ? (isConnected ? 1 : 0.1) : 0.2;
-                const color = isConnected ? theme.colors.primary : '#999';
+                const color = isConnected ? fz.ink : fz.outline;
                 const width = isConnected ? 2 : 1;
 
                 return (
@@ -386,8 +464,8 @@ const styles = StyleSheet.create({
   container: {
     height: GRAPH_HEIGHT,
     width: '100%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
+    backgroundColor: fz.surfaceSoft,
+    borderRadius: fz.rCard,
     overflow: 'hidden',
   },
   canvas: {

@@ -1,6 +1,7 @@
 import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import type { MD3Theme } from 'react-native-paper';
 import { THEME_PALETTES, type ThemeColor, type FontFamily } from '@/store/useSettings';
+import { fz } from '@/lib/design/tokens';
 
 export const createTheme = (
   themeColor: ThemeColor,
@@ -11,7 +12,7 @@ export const createTheme = (
   const palette = THEME_PALETTES[themeColor];
 
   const fontConfig = {
-    fontFamily: fontFamily === 'System' ? undefined : fontFamily,
+    fontFamily: fontFamily === 'System' ? fz.font : fontFamily,
   };
 
   return {
@@ -19,24 +20,27 @@ export const createTheme = (
     fonts: configureFonts({ config: fontConfig }),
     colors: {
       ...baseTheme.colors,
-      primary: palette.primary,
-      primaryContainer: `${palette.primary}20`,
-      secondary: palette.secondary,
-      secondaryContainer: `${palette.secondary}15`,
-      tertiary: palette.tertiary,
-      tertiaryContainer: `${palette.tertiary}10`,
-      surface: isDark ? '#1c1b1f' : '#ffffff',
-      surfaceVariant: isDark ? '#49454f' : '#e7e0ec',
-      background: isDark ? '#1c1b1f' : '#fafafa',
+      // FriendZ B&W design: force Paper accents to ink regardless of the
+      // user's themeColor palette. Color is reintroduced later; until then
+      // every selected/contained Paper element renders ink on paper.
+      primary: fz.ink,
+      primaryContainer: fz.surface,
+      onPrimary: fz.paper,
+      onPrimaryContainer: fz.ink,
+      secondary: fz.ink,
+      secondaryContainer: fz.surfaceSoft,
+      onSecondary: fz.paper,
+      onSecondaryContainer: fz.ink,
+      tertiary: fz.ink,
+      tertiaryContainer: fz.surfaceSoft,
+      onTertiary: fz.paper,
+      onTertiaryContainer: fz.ink,
+      surface: isDark ? '#1c1b1f' : fz.card,
+      surfaceVariant: isDark ? '#49454f' : fz.surfaceSoft,
+      background: isDark ? '#1c1b1f' : fz.paper,
       error: '#ba1a1a',
       warning: '#ba7000ff',
       errorContainer: '#ffdad6',
-      onPrimary: '#ffffff',
-      onPrimaryContainer: isDark ? '#ffffff' : '#21005d',
-      onSecondary: '#ffffff',
-      onSecondaryContainer: isDark ? '#ffffff' : '#1d192b',
-      onTertiary: '#ffffff',
-      onTertiaryContainer: isDark ? '#ffffff' : '#31111d',
       onSurface: isDark ? '#e6e1e5' : '#1c1b1f',
       onSurfaceVariant: isDark ? '#cac4d0' : '#49454f',
       onError: '#ffffff',

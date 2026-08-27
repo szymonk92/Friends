@@ -12,7 +12,7 @@ export type ThemeColor =
   | 'inkWash'
   | 'cherry'
   | 'lavender';
-export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-3.1-flash-lite';
+export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-3.1-flash-lite' | 'ollama';
 
 
 export interface ColorPalette {
@@ -89,8 +89,8 @@ export const THEME_COLORS: Record<ThemeColor, string> = Object.entries(THEME_PAL
 
 export const AI_MODELS: Record<AIModel, { name: string; description: string }> = {
   anthropic: {
-    name: 'Claude 3.5 Sonnet',
-    description: 'Anthropic Claude - High quality analysis',
+    name: 'Claude Haiku 4.5',
+    description: 'Anthropic Claude - Fast, budget-friendly',
   },
   gemini: {
     name: 'Gemini 2.5 Flash-Lite',
@@ -112,11 +112,18 @@ export const AI_MODELS: Record<AIModel, { name: string; description: string }> =
     name: 'Gemini 1.5 Pro',
     description: 'Google Gemini - High reasoning capability',
   },
+  ollama: {
+    name: 'Ollama (Local)',
+    description: 'Free local models via Ollama - runs on your machine',
+  },
 };
 
 interface SettingsState {
   apiKey: string | null;
   geminiApiKey: string | null;
+  ollamaApiKey: string | null;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
   selectedModel: AIModel;
   themeColor: ThemeColor;
   fontFamily: FontFamily;
@@ -129,6 +136,14 @@ interface SettingsState {
   clearGeminiApiKey: () => Promise<void>;
   loadGeminiApiKey: () => Promise<void>;
   hasGeminiApiKey: () => boolean;
+  setOllamaApiKey: (key: string) => Promise<void>;
+  clearOllamaApiKey: () => Promise<void>;
+  loadOllamaApiKey: () => Promise<void>;
+  hasOllamaApiKey: () => boolean;
+  setOllamaBaseUrl: (url: string) => Promise<void>;
+  loadOllamaBaseUrl: () => Promise<void>;
+  setOllamaModel: (model: string) => Promise<void>;
+  loadOllamaModel: () => Promise<void>;
   setSelectedModel: (model: AIModel) => Promise<void>;
   loadSelectedModel: () => Promise<void>;
   getActiveApiKey: () => string | null;
@@ -144,10 +159,16 @@ interface SettingsState {
 
 const API_KEY_STORAGE_KEY = '@friends_api_key';
 const GEMINI_API_KEY_STORAGE_KEY = '@friends_gemini_api_key';
+const OLLAMA_API_KEY_STORAGE_KEY = '@friends_ollama_api_key';
+const OLLAMA_BASE_URL_STORAGE_KEY = '@friends_ollama_base_url';
+const OLLAMA_MODEL_STORAGE_KEY = '@friends_ollama_model';
 const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
 const THEME_COLOR_STORAGE_KEY = '@friends_theme_color';
 const FONT_FAMILY_STORAGE_KEY = '@friends_font_family';
 const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
+
+const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
+const DEFAULT_OLLAMA_MODEL = 'llama3.2:3b';
 
 /**
  * Settings store using Zustand
@@ -156,6 +177,9 @@ const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
 export const useSettings = create<SettingsState>((set, get) => ({
   apiKey: null,
   geminiApiKey: null,
+  ollamaApiKey: null,
+  ollamaBaseUrl: DEFAULT_OLLAMA_BASE_URL,
+  ollamaModel: DEFAULT_OLLAMA_MODEL,
   selectedModel: 'anthropic',
   themeColor: 'violet',
   fontFamily: 'System',
@@ -229,6 +253,78 @@ export const useSettings = create<SettingsState>((set, get) => ({
     return !!state.geminiApiKey && state.geminiApiKey.trim().length > 0;
   },
 
+  setOllamaApiKey: async (key: string) => {
+    try {
+      await SecureStore.setItemAsync(OLLAMA_API_KEY_STORAGE_KEY, key);
+      set({ ollamaApiKey: key });
+    } catch (error) {
+      console.error('Failed to save Ollama API key:', error);
+      throw error;
+    }
+  },
+
+  clearOllamaApiKey: async () => {
+    try {
+      await SecureStore.deleteItemAsync(OLLAMA_API_KEY_STORAGE_KEY);
+      set({ ollamaApiKey: null });
+    } catch (error) {
+      console.error('Failed to clear Ollama API key:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaApiKey: async () => {
+    try {
+      const key = await SecureStore.getItemAsync(OLLAMA_API_KEY_STORAGE_KEY);
+      set({ ollamaApiKey: key });
+    } catch (error) {
+      console.error('Failed to load Ollama API key:', error);
+    }
+  },
+
+  hasOllamaApiKey: () => {
+    const state = get();
+    return !!state.ollamaApiKey && state.ollamaApiKey.trim().length > 0;
+  },
+
+  setOllamaBaseUrl: async (url: string) => {
+    try {
+      await AsyncStorage.setItem(OLLAMA_BASE_URL_STORAGE_KEY, url);
+      set({ ollamaBaseUrl: url });
+    } catch (error) {
+      console.error('Failed to save Ollama base URL:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaBaseUrl: async () => {
+    try {
+      const url = await AsyncStorage.getItem(OLLAMA_BASE_URL_STORAGE_KEY);
+      if (url) set({ ollamaBaseUrl: url });
+    } catch (error) {
+      console.error('Failed to load Ollama base URL:', error);
+    }
+  },
+
+  setOllamaModel: async (model: string) => {
+    try {
+      await AsyncStorage.setItem(OLLAMA_MODEL_STORAGE_KEY, model);
+      set({ ollamaModel: model });
+    } catch (error) {
+      console.error('Failed to save Ollama model:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaModel: async () => {
+    try {
+      const model = await AsyncStorage.getItem(OLLAMA_MODEL_STORAGE_KEY);
+      if (model) set({ ollamaModel: model });
+    } catch (error) {
+      console.error('Failed to load Ollama model:', error);
+    }
+  },
+
   setSelectedModel: async (model: AIModel) => {
     try {
       await AsyncStorage.setItem(SELECTED_MODEL_STORAGE_KEY, model);
@@ -242,7 +338,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   loadSelectedModel: async () => {
     try {
       const model = await AsyncStorage.getItem(SELECTED_MODEL_STORAGE_KEY);
-      const valid: AIModel[] = ['anthropic', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite'];
+      const valid: AIModel[] = ['anthropic', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'ollama'];
       if (model && valid.includes(model as AIModel)) {
         set({ selectedModel: model as AIModel });
       }
@@ -253,12 +349,14 @@ export const useSettings = create<SettingsState>((set, get) => ({
 
   getActiveApiKey: () => {
     const state = get();
-    return state.selectedModel === 'anthropic' ? state.apiKey : state.geminiApiKey;
+    if (state.selectedModel === 'anthropic') return state.apiKey;
+    if (state.selectedModel === 'ollama') return state.ollamaApiKey;
+    return state.geminiApiKey;
   },
 
   hasActiveApiKey: () => {
     const state = get();
-    const key = state.selectedModel === 'anthropic' ? state.apiKey : state.geminiApiKey;
+    const key = state.getActiveApiKey();
     return !!key && key.trim().length > 0;
   },
 

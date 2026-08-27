@@ -1,6 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
+import {
+  Platform,
+  StyleSheet,
+  ScrollView,
+  View,
+  Alert,
+  KeyboardAvoidingView,
+  Text as RNText,
+} from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { usePerson, useUpdatePerson } from '@/hooks/usePeople';
@@ -26,6 +34,10 @@ import { useCreateConnection } from '@/hooks/useConnections';
 import { useCreateRelations, useUpdateRelation } from '@/hooks/useRelations';
 import { useUpdateConnection } from '@/hooks/useConnections';
 import { parseFlexibleDate } from '@/lib/utils/dates';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { FormSection, FormInput } from '@/components/FormKit';
 
 function buildExistingState(args: {
   metLocation: string;
@@ -78,6 +90,7 @@ function buildExistingState(args: {
 
 export default function EditPersonScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
+  const insets = useSafeAreaInsets();
   const { data: person, isLoading } = usePerson(personId!);
   const updatePerson = useUpdatePerson();
   const createPerson = useCreatePerson();
@@ -103,6 +116,7 @@ export default function EditPersonScreen() {
   const [notes, setNotes] = useState('');
   const [personType, setPersonType] = useState<string>('primary');
   const [importanceToUser, setImportanceToUser] = useState<string>('unknown');
+  const [gender, setGender] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill form when person data loads
@@ -124,6 +138,7 @@ export default function EditPersonScreen() {
       setNotes(person.notes || '');
       setPersonType(person.personType || 'primary');
       setImportanceToUser(person.importanceToUser || 'unknown');
+      setGender(person.gender || '');
     }
   }, [person]);
 
@@ -261,14 +276,10 @@ export default function EditPersonScreen() {
         notes: notes.trim() || null,
         personType: personType as any,
         importanceToUser: importanceToUser as any,
+        gender: (gender || null) as any,
       });
 
-      Alert.alert('Success', `${name} has been updated!`, [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
+      router.back();
     } catch (error) {
       // Handle specific error cases
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -287,8 +298,8 @@ export default function EditPersonScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={[fzText.sub, styles.loadingText]}>Loading...</Text>
       </View>
     );
   }
@@ -296,8 +307,8 @@ export default function EditPersonScreen() {
   if (!person) {
     return (
       <View style={styles.centered}>
-        <Text variant="bodyLarge">Person not found</Text>
-        <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
+        <Text style={fzText.title}>Person not found</Text>
+        <Button mode="contained" onPress={() => router.back()} buttonColor={fz.ink} style={styles.backButton}>
           Go Back
         </Button>
       </View>
@@ -308,8 +319,15 @@ export default function EditPersonScreen() {
     <>
       <Stack.Screen
         options={{
-          title: `Edit ${person.name}`,
+          headerTitle: () => (
+            <RNText style={styles.headerTitle} numberOfLines={1}>
+              Edit <RNText style={styles.headerTitleName}>{person.name}</RNText>
+            </RNText>
+          ),
           headerBackTitle: 'Cancel',
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerShadowVisible: false,
         }}
       />
       <KeyboardAvoidingView
@@ -317,11 +335,13 @@ export default function EditPersonScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <ScrollView style={styles.container}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.content}>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Update information for {person.name}
-            </Text>
+            <Text style={[fzText.sub, styles.subtitle]}>Update information for {person.name}</Text>
 
             <BrainDumpSection
               personName={person.name}
@@ -341,183 +361,154 @@ export default function EditPersonScreen() {
               onApply={handleBrainDumpApply}
             />
 
-            <TextInput
-              mode="outlined"
-              label="Name *"
-              placeholder="Enter their name"
-              value={name}
-              onChangeText={setName}
-              style={styles.input}
-              autoFocus
-            />
-
-            <TextInput
-              mode="outlined"
-              label="Nickname"
-              placeholder="Optional nickname"
-              value={nickname}
-              onChangeText={setNickname}
-              style={styles.input}
-            />
-
-            <Text variant="titleSmall" style={styles.label}>
-              Relationship Type
-            </Text>
-            <SegmentedButtons
-              value={relationshipType}
-              onValueChange={setRelationshipType}
-              buttons={[
-                { value: 'friend', label: 'Friend', icon: 'account-heart' },
-                { value: 'family', label: 'Family', icon: 'home-heart' },
-                { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
-              ]}
-              style={styles.segmented}
-            />
-            <SegmentedButtons
-              value={relationshipType}
-              onValueChange={setRelationshipType}
-              buttons={[
-                { value: 'acquaintance', label: 'Acquaintance' },
-                { value: 'partner', label: 'Partner', icon: 'heart' },
-              ]}
-              style={styles.segmented}
-            />
-
-            <TextInput
-              mode="outlined"
-              label="Birthday"
-              placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-              style={styles.input}
-            />
-            <Text variant="labelSmall" style={styles.birthdayHint}>
-              Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
-            </Text>
-
-            <TextInput
-              mode="outlined"
-              label="When you met"
-              placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
-              value={metDate}
-              onChangeText={setMetDate}
-              style={styles.input}
-            />
-            <Text variant="labelSmall" style={styles.birthdayHint}>
-              Year alone is fine, e.g. 2024.
-            </Text>
-
-            <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
-
-            <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
-
-            <View style={styles.phoneRow}>
-              <TextInput
-                mode="outlined"
-                label="Phone"
-                placeholder="+1 555 123 4567"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoCorrect={false}
-                style={styles.phoneInput}
-                maxLength={32}
-              />
-              {isContactPickerAvailable() && (
-                <Button
-                  mode="outlined"
-                  icon="contacts"
-                  onPress={handlePickFromContacts}
-                  style={styles.pickButton}
-                  compact
-                >
-                  Pick
-                </Button>
-              )}
+            <View style={styles.plainGroup}>
+              <FormInput label="Name *" placeholder="Enter their name" value={name} onChangeText={setName} autoFocus />
+              <FormInput label="Nickname" placeholder="Optional nickname" value={nickname} onChangeText={setNickname} style={styles.lastInput} />
             </View>
-            {isContactPickerAvailable() && (
-              <Text variant="labelSmall" style={styles.birthdayHint}>
-                Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
+
+            <FormSection title="Social &amp; languages">
+              <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
+              <LanguagesEditor value={languages} onChange={setLanguages} />
+            </FormSection>
+
+            <FormSection title="Gender">
+              <View style={styles.pillRow}>
+                {[
+                  { value: 'male', label: 'Male' },
+                  { value: 'female', label: 'Female' },
+                  { value: 'other', label: 'Other' },
+                  { value: '', label: 'Unknown' },
+                ].map((opt) => (
+                  <Pill key={opt.value || 'unknown'} label={opt.label} selected={gender === opt.value} onPress={() => setGender(opt.value)} />
+                ))}
+              </View>
+            </FormSection>
+
+            <FormSection title="Relationship Type">
+              <View style={styles.pillRow}>
+                {[
+                  { value: 'friend', label: 'Friend' },
+                  { value: 'family', label: 'Family' },
+                  { value: 'colleague', label: 'Colleague' },
+                  { value: 'acquaintance', label: 'Acquaintance' },
+                  { value: 'partner', label: 'Partner' },
+                ].map((opt) => (
+                  <Pill key={opt.value} label={opt.label} selected={relationshipType === opt.value} onPress={() => setRelationshipType(opt.value)} />
+                ))}
+              </View>
+            </FormSection>
+
+            <View style={styles.plainGroup}>
+              <FormInput
+                label="Birthday"
+                placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+                value={dateOfBirth}
+                onChangeText={setDateOfBirth}
+              />
+              <Text style={[fzText.sub, styles.hintTight]}>
+                Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
               </Text>
-            )}
 
-            <TextInput
-              mode="outlined"
-              label="Email"
-              placeholder="name@example.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              maxLength={254}
-            />
+              <FormInput
+                label="When you met"
+                placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+                value={metDate}
+                onChangeText={setMetDate}
+              />
+              <Text style={[fzText.sub, styles.hintTight]}>Year alone is fine, e.g. 2024.</Text>
 
-            <LanguagesEditor value={languages} onChange={setLanguages} />
+              <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
+              <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
 
-            <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
+              <View style={styles.phoneRow}>
+                <FormInput
+                  label="Phone"
+                  placeholder="+1 555 123 4567"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoCorrect={false}
+                  style={styles.phoneInput}
+                  maxLength={32}
+                />
+                {isContactPickerAvailable() && (
+                  <Button
+                    mode="outlined"
+                    onPress={handlePickFromContacts}
+                    style={styles.pickButton}
+                    textColor={fz.ink}
+                    compact
+                  >
+                    Pick
+                  </Button>
+                )}
+              </View>
+              {isContactPickerAvailable() && (
+                <Text style={[fzText.sub, styles.hintTight]}>
+                  Tap "Pick" to choose one contact from your address book. Nothing is uploaded.
+                </Text>
+              )}
 
-            <Text variant="titleSmall" style={styles.label}>
-              Person Type
-            </Text>
-            <Text variant="bodySmall" style={styles.hint}>
-              Primary people appear in party mode and food quiz. Mentioned people are tracked but
-              less prominent.
-            </Text>
-            <SegmentedButtons
-              value={personType}
-              onValueChange={setPersonType}
-              buttons={[
-                { value: 'primary', label: 'Primary', icon: 'star' },
-                { value: 'mentioned', label: 'Mentioned', icon: 'account-outline' },
-              ]}
-              style={styles.segmented}
-            />
+              <FormInput
+                label="Email"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={254}
+                style={styles.lastInput}
+              />
+            </View>
 
-            <Text variant="titleSmall" style={styles.label}>
-              Importance to You
-            </Text>
-            <Text variant="bodySmall" style={styles.hint}>
-              Used for sorting people by importance. Very important people appear first.
-            </Text>
-            <SegmentedButtons
-              value={importanceToUser}
-              onValueChange={setImportanceToUser}
-              buttons={[
-                { value: 'very_important', label: 'Very Important', icon: 'star' },
-                { value: 'important', label: 'Important', icon: 'star-half-full' },
-              ]}
-              style={styles.segmented}
-            />
-            <SegmentedButtons
-              value={importanceToUser}
-              onValueChange={setImportanceToUser}
-              buttons={[
-                { value: 'peripheral', label: 'Peripheral', icon: 'star-outline' },
-                { value: 'unknown', label: 'Unknown' },
-              ]}
-              style={styles.segmented}
-            />
+            <FormSection
+              title="Person Type"
+              hint="Primary people appear in party mode and food quiz. Mentioned people are tracked but less prominent."
+            >
+              <View style={styles.pillRow}>
+                <Pill label="Primary" selected={personType === 'primary'} onPress={() => setPersonType('primary')} />
+                <Pill label="Mentioned" selected={personType === 'mentioned'} onPress={() => setPersonType('mentioned')} />
+              </View>
+            </FormSection>
 
-            <TextInput
-              mode="outlined"
-              label="Notes"
-              placeholder="Any notes about this person..."
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-              style={styles.input}
-            />
+            <FormSection
+              title="Importance to You"
+              hint="Used for sorting people by importance. Very important people appear first."
+            >
+              <View style={styles.pillRow}>
+                {[
+                  { value: 'very_important', label: 'Very Important' },
+                  { value: 'important', label: 'Important' },
+                  { value: 'peripheral', label: 'Peripheral' },
+                  { value: 'unknown', label: 'Unknown' },
+                ].map((opt) => (
+                  <Pill key={opt.value} label={opt.label} selected={importanceToUser === opt.value} onPress={() => setImportanceToUser(opt.value)} />
+                ))}
+              </View>
+            </FormSection>
+
+            <View style={styles.plainGroup}>
+              <FormInput
+                label="Notes"
+                placeholder="Any notes about this person..."
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={4}
+                style={styles.lastInput}
+              />
+            </View>
 
             <Button
               mode="contained"
               onPress={handleSubmit}
               loading={isSubmitting}
               disabled={isSubmitting || name.trim().length < 2}
+              buttonColor={fz.ink}
               style={styles.submitButton}
               contentStyle={styles.submitButtonContent}
+              labelStyle={fzText.btn}
             >
               Save Changes
             </Button>
@@ -525,24 +516,26 @@ export default function EditPersonScreen() {
             <Button
               mode="outlined"
               onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-              icon="plus"
-              style={styles.addRelationButton}
+              style={styles.secondaryButton}
+              contentStyle={styles.submitButtonContent}
+              labelStyle={fzText.btnOutline}
               disabled={isSubmitting}
             >
-              Add Relation
+              Add Something They're Into
             </Button>
 
             <Button
               mode="outlined"
               onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
-              icon="account-multiple-plus"
-              style={styles.addRelationButton}
+              style={styles.secondaryButton}
+              contentStyle={styles.submitButtonContent}
+              labelStyle={fzText.btnOutline}
               disabled={isSubmitting}
             >
               Add Connection to Person
             </Button>
 
-            <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+            <Button mode="text" onPress={() => router.back()} disabled={isSubmitting} textColor={fz.textMute}>
               Cancel
             </Button>
           </View>
@@ -555,15 +548,28 @@ export default function EditPersonScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerTitle: {
+    fontFamily: fz.font,
+    fontWeight: '500',
+    fontSize: 18,
+    color: fz.ink,
+  },
+  headerTitleName: {
+    fontFamily: fz.font,
+    fontWeight: '700',
+    fontSize: 18,
+    color: fz.ink,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: fz.paper,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: fz.paper,
   },
   loadingText: {
     marginTop: 12,
@@ -572,55 +578,51 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   content: {
-    padding: 24,
-  },
-  title: {
-    marginBottom: 8,
+    padding: fz.s.edge,
   },
   subtitle: {
-    marginBottom: 24,
-    opacity: 0.7,
+    marginBottom: fz.s.lg,
   },
-  input: {
-    marginBottom: 16,
+  lastInput: {
+    marginBottom: 0,
   },
-  label: {
-    marginBottom: 8,
-    marginTop: 8,
+  plainGroup: {
+    marginBottom: fz.s.lg,
   },
-  segmented: {
-    marginBottom: 12,
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  hintTight: {
+    marginTop: -10,
+    marginBottom: fz.s.md,
   },
   submitButton: {
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 8,
+    borderRadius: fz.rButton,
   },
   submitButtonContent: {
     paddingVertical: 8,
   },
-  addRelationButton: {
+  secondaryButton: {
     marginBottom: 8,
-  },
-  birthdayHint: {
-    opacity: 0.6,
-    marginTop: -12,
-    marginBottom: 16,
-  },
-  hint: {
-    opacity: 0.7,
-    marginBottom: 8,
-    marginTop: -4,
+    borderColor: fz.outline,
+    borderRadius: fz.rButton,
   },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: fz.s.md,
   },
   phoneInput: {
     flex: 1,
+    marginBottom: 0,
   },
   pickButton: {
     alignSelf: 'center',
+    borderColor: fz.outline,
   },
 });

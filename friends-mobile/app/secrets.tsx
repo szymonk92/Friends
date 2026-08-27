@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
-import { Text, Portal } from 'react-native-paper';
+import { StyleSheet, View, Alert, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { fz, fzText } from '@/lib/design/tokens';
+import { HeaderBack } from '@/components/HeaderBack';
+import { IconCircle } from '@/components/IconCircle';
 import {
   useBiometricStatus,
   useSecretsSetupStatus,
@@ -246,23 +249,41 @@ export default function SecretsScreen() {
     );
   };
 
+  const AppBar = ({ title, onAdd }: { title: string; onAdd?: () => void }) => (
+    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.appBarRow}>
+        <HeaderBack onPress={() => router.back()} />
+        <RNText style={fzText.screenTitle}>{title}</RNText>
+        {onAdd ? (
+          <IconCircle icon="plus" onPress={onAdd} />
+        ) : (
+          <View style={{ width: 38 }} />
+        )}
+      </View>
+    </View>
+  );
+
   if (loadingBiometric || loadingSetup) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Secrets' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar title="Secrets" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loadingText}>Checking device security...</Text>
+          <ActivityIndicator size="large" color={fz.ink} />
+          <RNText style={[fzText.sub, { marginTop: 12 }]}>Checking device security...</RNText>
         </View>
-      </>
+      </View>
     );
   }
 
   // Setup screen if not initialized
   if (!isSetup) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Setup Secrets' }} />
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <AppBar title="Setup Secrets" />
         <SecretsSetup
           biometricStatus={biometricStatus}
           initializeSecrets={initializeSecrets}
@@ -276,14 +297,16 @@ export default function SecretsScreen() {
           handleSetup={handleSetup}
           handlePasswordSetup={handlePasswordSetup}
         />
-      </>
+      </View>
     );
   }
 
   // Main secrets list
   return (
-    <>
-      <Stack.Screen options={{ title: 'Secrets' }} />
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <AppBar title="Secrets" onAdd={() => setShowCreateDialog(true)} />
       <SecretList
         secrets={secrets}
         loadingSecrets={loadingSecrets}
@@ -339,19 +362,24 @@ export default function SecretsScreen() {
           loading={createSecret.isPending || decryptSecret.isPending}
         />
       </Portal>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge,
+    paddingBottom: fz.s.sm,
+  },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  loadingText: {
-    marginTop: 16,
-    opacity: 0.7,
   },
 });

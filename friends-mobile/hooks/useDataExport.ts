@@ -1,5 +1,6 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, connections, stories, contactEvents, files } from '@/lib/db/schema';
+import { buildObsidianVault } from '@/lib/export/obsidianExport';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { eq, isNull, and, ne } from 'drizzle-orm';
 import * as Sharing from 'expo-sharing';
@@ -296,6 +297,35 @@ export function useImportData() {
       } catch (error: any) {
         throw new Error(`Import failed: ${error.message}`);
       }
+    },
+  });
+}
+
+/**
+ * Hook to export all people as an Obsidian-compatible markdown vault (.zip)
+ */
+export function useExportObsidian() {
+  return useMutation({
+    mutationFn: async (): Promise<string> => {
+      const zipBytes = await buildObsidianVault();
+
+      const exportDir = new Directory(Paths.cache, 'exports');
+      if (!exportDir.exists) {
+        exportDir.create();
+      }
+
+      const filename = `friends_obsidian_${Date.now()}.zip`;
+      const exportFile = new ExpoFile(exportDir, filename);
+      exportFile.write(zipBytes);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(exportFile.uri, {
+          mimeType: 'application/zip',
+          dialogTitle: 'Export Obsidian Vault',
+        });
+      }
+
+      return exportFile.uri;
     },
   });
 }

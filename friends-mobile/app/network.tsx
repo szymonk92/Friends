@@ -1,112 +1,73 @@
-import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Dimensions, StyleSheet, View, ActivityIndicator, StatusBar } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import { StyleSheet, View, ActivityIndicator, StatusBar, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import { router, useFocusEffect, Stack } from 'expo-router';
-import { useState, useMemo, useCallback } from 'react';
-import { headerStyles, HEADER_ICON_SIZE } from '@/lib/styles/headerStyles';
-import {
-  getRelationshipColors,
-  type RelationshipColorMap,
-  DEFAULT_COLORS,
-} from '@/lib/settings/relationship-colors';
-import { Text, Button, IconButton, Chip, Searchbar } from 'react-native-paper';
-import { useTheme } from 'react-native-paper';
+import { router, Stack } from 'expo-router';
+import { useState, useMemo } from 'react';
+import { Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import ForceDirectedGraph from '@/components/graph/ForceDirectedGraph';
 import NetworkPersonDetails from '@/components/graph/NetworkPersonDetails';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { fz, fzText } from '@/lib/design/tokens';
+import { IconCircle } from '@/components/IconCircle';
+import { HeaderBack } from '@/components/HeaderBack';
+import { Pill } from '@/components/Pill';
 
 export default function NetworkScreen() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: people = [], isLoading: loadingPeople, refetch } = usePeople();
+  const { t } = useTranslation();
+  const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
-
-  console.log('[Network] Data loaded:', {
-    peopleCount: people.length,
-    connectionsCount: connections.length,
-    loadingPeople,
-    loadingConnections,
-    peopleSample: people
-      .slice(0, 3)
-      .map((p) => ({ id: p.id, name: p.name, relationshipType: p.relationshipType })),
-    connectionsSample: connections
-      .slice(0, 3)
-      .map((c) => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
-  });
   const { data: allTags = [] } = useAllTags();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [relationshipColors, setRelationshipColors] =
-    useState<RelationshipColorMap>(DEFAULT_COLORS);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get relations for selected person
   const { data: selectedPersonRelations = [] } = usePersonRelations(selectedPersonId || '');
 
-  useFocusEffect(
-    useCallback(() => {
-      getRelationshipColors().then((colors) => {
-        console.log('[Network] Loaded relationship colors:', colors);
-        setRelationshipColors(colors);
-      });
-    }, [])
+  // Unique relationship types
+  const relationshipTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(people.map((p) => p.relationshipType).filter((type): type is string => type != null))
+      ),
+    [people]
   );
 
-  // Get unique relationship types
-  const relationshipTypes = useMemo(() => {
-    return Array.from(
-      new Set(people.map((p) => p.relationshipType).filter((type) => type !== null))
-    ) as string[];
-  }, [people]);
+  const filteredPeople = useMemo(
+    () =>
+      people.filter((person) => {
+        const matchesSearch =
+          searchQuery === '' ||
+          person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (person.nickname && person.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
+        const personTags = parseTags(person.tags);
+        const matchesTags =
+          selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
+        const matchesRelationType =
+          selectedRelationTypes.length === 0 ||
+          (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
+        return matchesSearch && matchesTags && matchesRelationType;
+      }),
+    [people, searchQuery, selectedTags, selectedRelationTypes]
+  );
 
-  // Filter people based on search, tags and relationship types
-  const filteredPeople = useMemo(() => {
-    return people.filter((person) => {
-      // Filter by search query
-      const matchesSearch =
-        searchQuery === '' ||
-        person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (person.nickname && person.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      // Filter by tags
-      const personTags = parseTags(person.tags);
-      const matchesTags =
-        selectedTags.length === 0 || selectedTags.some((tag) => personTags.includes(tag));
-
-      // Filter by relationship type
-      const matchesRelationType =
-        selectedRelationTypes.length === 0 ||
-        (person.relationshipType && selectedRelationTypes.includes(person.relationshipType));
-
-      return matchesSearch && matchesTags && matchesRelationType;
-    });
-  }, [people, searchQuery, selectedTags, selectedRelationTypes]);
-
-  // Filter connections to only show those between filtered people
   const filteredConnections = useMemo(() => {
     const filteredIds = new Set(filteredPeople.map((p) => p.id));
     return connections.filter((c) => filteredIds.has(c.person1Id) && filteredIds.has(c.person2Id));
   }, [connections, filteredPeople]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
+  const toggleTag = (tag: string) =>
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
-  const toggleRelationType = (type: string) => {
+  const toggleRelationType = (type: string) =>
     setSelectedRelationTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
-  };
 
   const clearFilters = () => {
     setSelectedTags([]);
@@ -115,7 +76,6 @@ export default function NetworkScreen() {
 
   const hasActiveFilters = selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
-  // Get connections for selected person
   const selectedConnections = useMemo(() => {
     if (!selectedPersonId) return [];
     return filteredConnections.filter(
@@ -127,122 +87,121 @@ export default function NetworkScreen() {
 
   if (isLoading) {
     return (
-      <CenteredContainer style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading network...</Text>
-      </CenteredContainer>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={fz.ink} />
+          <Text style={[fzText.sub, { marginTop: 12 }]}>{t('network.loading')}</Text>
+        </View>
+      </View>
     );
   }
 
   if (people.length === 0) {
     return (
-      <CenteredContainer style={styles.centered}>
-        <Text variant="titleLarge" style={styles.emptyTitle}>
-          No network yet
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptyDescription}>
-          Add people and connections to see your social network graph.
-        </Text>
-        <Button mode="contained" onPress={() => router.push('/')}>
-          Add People
-        </Button>
-      </CenteredContainer>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.appBarRow}>
+            <HeaderBack onPress={() => router.back()} />
+            <Text style={fzText.screenTitle}>{t('network.title')}</Text>
+            <View style={{ width: 38 }} />
+          </View>
+        </View>
+        <View style={styles.empty}>
+          <Text style={fzText.title}>{t('network.empty.title')}</Text>
+          <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
+            {t('network.empty.description')}
+          </Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/')} activeOpacity={0.8}>
+            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('network.empty.addPeople')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
-  const selectedPerson = people.find((p) => p.id === selectedPersonId);
+  const selectedPerson = filteredPeople.find((p) => p.id === selectedPersonId);
+  const showFilters = filtersVisible && (allTags.length > 0 || relationshipTypes.length > 0);
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      {/* Custom Header - Android Contacts Style */}
-      <View style={[headerStyles.header, { paddingTop: insets.top }]}>
-        <View style={headerStyles.headerContent}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <IconButton
-              icon="arrow-left"
-              size={24}
-              onPress={() => router.back()}
-              style={{ marginLeft: -8, marginRight: 4 }}
-            />
-            <Text variant="headlineMedium" style={headerStyles.headerTitle}>
-              Network
-            </Text>
-          </View>
-          <View style={headerStyles.headerActions}>
-            {(allTags.length > 0 || relationshipTypes.length > 0) && (
-              <IconButton
-                icon={filtersVisible ? 'filter-variant' : 'filter-variant-remove'}
-                size={HEADER_ICON_SIZE}
-                style={headerStyles.headerIcon}
+      {/* App bar */}
+      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.appBarRow}>
+          <HeaderBack onPress={() => router.back()} />
+          <Text style={fzText.screenTitle}>{t('network.title')}</Text>
+          <View style={styles.appBarActions}>
+            <IconCircle icon="heart" onPress={() => router.push('/shared-interests')} />
+            {allTags.length > 0 || relationshipTypes.length > 0 ? (
+              <IconCircle
+                icon="filter"
+                fill={hasActiveFilters ? fz.ink : undefined}
+                color={hasActiveFilters ? fz.paper : fz.ink}
                 onPress={() => setFiltersVisible(!filtersVisible)}
-                iconColor={hasActiveFilters ? '#6200ee' : undefined}
               />
-            )}
+            ) : null}
+          </View>
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchInput}>
+            <TextInput
+              placeholder={t('network.searchPlaceholder')}
+              placeholderTextColor={fz.textMute}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchText}
+            />
           </View>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContent}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search people..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            icon="magnify"
-            clearIcon="close"
-          />
-        </View>
-
+      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
         {/* Filters */}
-        {filtersVisible && (allTags.length > 0 || relationshipTypes.length > 0) && (
+        {showFilters && (
           <View style={styles.filterSection}>
+            {hasActiveFilters && (
+              <View style={styles.filterHeader}>
+                <Text style={fzText.label}>{t('common.filter')}</Text>
+                <TouchableOpacity onPress={clearFilters} hitSlop={8} activeOpacity={0.6}>
+                  <Text style={styles.clearBtn}>{t('people.clearFilters')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {relationshipTypes.length > 0 && (
               <View style={styles.filterGroup}>
-                <Text variant="labelSmall" style={styles.filterLabel}>
-                  Relationship Type
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.chipRow}>
-                    {relationshipTypes.map((type) => (
-                      <Chip
-                        key={type}
-                        selected={selectedRelationTypes.includes(type)}
-                        onPress={() => toggleRelationType(type)}
-                        style={styles.filterChip}
-                        compact
-                      >
-                        {type}
-                      </Chip>
-                    ))}
-                  </View>
+                <Text style={fzText.label}>{t('person.relationshipType')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                  {relationshipTypes.map((type) => (
+                    <Pill
+                      key={type}
+                      label={type}
+                      selected={selectedRelationTypes.includes(type)}
+                      onPress={() => toggleRelationType(type)}
+                    />
+                  ))}
                 </ScrollView>
               </View>
             )}
-
             {allTags.length > 0 && (
               <View style={styles.filterGroup}>
-                <Text variant="labelSmall" style={styles.filterLabel}>
-                  Tags
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.chipRow}>
-                    {allTags.map((tag) => (
-                      <Chip
-                        key={tag}
-                        selected={selectedTags.includes(tag)}
-                        onPress={() => toggleTag(tag)}
-                        style={styles.filterChip}
-                        compact
-                      >
-                        {tag}
-                      </Chip>
-                    ))}
-                  </View>
+                <Text style={fzText.label}>{t('network.tags')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                  {allTags.map((tag) => (
+                    <Pill
+                      key={tag}
+                      label={tag}
+                      selected={selectedTags.includes(tag)}
+                      onPress={() => toggleTag(tag)}
+                    />
+                  ))}
                 </ScrollView>
               </View>
             )}
@@ -250,259 +209,94 @@ export default function NetworkScreen() {
         )}
 
         {/* Stats */}
-        <View style={styles.statsSection}>
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text variant="titleLarge" style={styles.statNumber}>
-                {filteredPeople.length}
-              </Text>
-              <Text variant="labelSmall" style={styles.statLabel}>
-                People{filteredPeople.length !== people.length && ` / ${people.length}`}
-              </Text>
-            </View>
-            <View style={styles.stat}>
-              <Text variant="titleLarge" style={styles.statNumber}>
-                {filteredConnections.length}
-              </Text>
-              <Text variant="labelSmall" style={styles.statLabel}>
-                Connections
-                {filteredConnections.length !== connections.length && ` / ${connections.length}`}
-              </Text>
-            </View>
-            <View style={styles.stat}>
-              <Text variant="titleLarge" style={styles.statNumber}>
-                {filteredPeople.length > 0
-                  ? ((filteredConnections.length * 2) / filteredPeople.length).toFixed(1)
-                  : '0'}
-              </Text>
-              <Text variant="labelSmall" style={styles.statLabel}>
-                Avg Links
-              </Text>
-            </View>
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{filteredPeople.length}</Text>
+            <Text style={fzText.label}>{t('network.stats.people')}{filteredPeople.length !== people.length && ` / ${people.length}`}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{filteredConnections.length}</Text>
+            <Text style={fzText.label}>{t('network.stats.links')}{filteredConnections.length !== connections.length && ` / ${connections.length}`}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>
+              {filteredPeople.length > 0
+                ? ((filteredConnections.length * 2) / filteredPeople.length).toFixed(1)
+                : '0'}
+            </Text>
+            <Text style={fzText.label}>{t('network.stats.avg')}</Text>
           </View>
         </View>
 
-        {/* Force-Directed Graph */}
-        <View style={styles.graphSection}>
-          {(() => {
-            console.log('[Network] Rendering ForceDirectedGraph with:', {
-              filteredPeopleCount: filteredPeople.length,
-              filteredConnectionsCount: filteredConnections.length,
-              selectedPersonId,
-              relationshipColorsKeys: Object.keys(relationshipColors),
-              peopleSample: filteredPeople.slice(0, 3).map((p) => ({ id: p.id, name: p.name })),
-              connectionsSample: filteredConnections
-                .slice(0, 3)
-                .map((c) => ({ id: c.id, person1Id: c.person1Id, person2Id: c.person2Id })),
-            });
-            return (
-              <ForceDirectedGraph
-                key={`graph-${Object.keys(relationshipColors).length}-${JSON.stringify(relationshipColors)}`}
-                people={filteredPeople}
-                connections={filteredConnections}
-                relationshipColors={relationshipColors}
-                selectedPersonId={selectedPersonId}
-                onSelectPerson={setSelectedPersonId}
-              />
-            );
-          })()}
+        {/* Graph */}
+        <View style={styles.graphCard}>
+          <ForceDirectedGraph
+            people={filteredPeople}
+            connections={filteredConnections}
+            selectedPersonId={selectedPersonId}
+            onSelectPerson={setSelectedPersonId}
+          />
         </View>
+        <Text style={[fzText.time, { paddingHorizontal: fz.s.edge, marginTop: 8 }]}>
+          {t('network.hint')}
+        </Text>
 
         {/* Selected person details */}
         {selectedPerson && (
           <NetworkPersonDetails
             person={selectedPerson}
             relations={selectedPersonRelations}
-            relationshipColor={
-              selectedPerson.relationshipType
-                ? relationshipColors[selectedPerson.relationshipType] || theme.colors.primary
-                : theme.colors.primary
-            }
             connectionCount={selectedConnections.length}
           />
         )}
 
-        <View style={styles.spacer} />
+        <View style={{ height: fz.s.xxl }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  container: { flex: 1, backgroundColor: fz.paper },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.md },
+  appBarRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: fz.s.edge, paddingBottom: fz.s.sm,
   },
-  statusBarSpacer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchRow: { paddingHorizontal: fz.s.edge },
+  searchInput: {
+    height: 44, borderRadius: fz.rPill, backgroundColor: fz.surface,
+    paddingHorizontal: 16, justifyContent: 'center',
   },
-  scrollContent: {
-    flex: 1,
-  },
-  centered: {
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  emptyTitle: {
-    marginBottom: 12,
-  },
-  emptyDescription: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
-    backgroundColor: '#fff',
-  },
-  searchBar: {
-    elevation: 0,
-    backgroundColor: '#f5f5f5',
-  },
-  filterToggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginBottom: 8,
-  },
-  filterToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  filterIcon: {
-    margin: 0,
-  },
-  filterToggleText: {
-    marginLeft: 4,
-  },
-  filterActiveText: {
-    color: '#6200ee',
-    fontWeight: '600',
-  },
+  searchText: { fontFamily: fz.font, fontSize: 15, color: fz.ink, padding: 0 },
+  scrollContent: { flex: 1 },
+  scrollContentInner: { paddingBottom: 120 },
   filterSection: {
-    backgroundColor: '#f9f9f9',
-    padding: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    marginHorizontal: fz.s.edge, marginBottom: fz.s.md, padding: fz.s.md,
+    backgroundColor: fz.surfaceSoft, borderRadius: fz.rCard,
   },
-  filterGroup: {
-    marginBottom: 12,
+  filterHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: fz.s.md,
   },
-  filterLabel: {
-    marginBottom: 8,
-    opacity: 0.6,
-    textTransform: 'uppercase',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
-    marginRight: 4,
-  },
-  statsSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 8,
-  },
+  clearBtn: { ...fzText.label, color: fz.textMute },
+  filterGroup: { marginBottom: fz.s.md },
+  chipRow: { gap: 8, paddingRight: fz.s.edge, paddingTop: 8 },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: 'row', justifyContent: 'space-around',
+    paddingHorizontal: fz.s.edge, paddingVertical: fz.s.md,
   },
-  stat: {
-    alignItems: 'center',
+  stat: { alignItems: 'center' },
+  statNumber: { ...fzText.titleLg, fontSize: 26 },
+  graphCard: {
+    marginHorizontal: fz.s.edge, backgroundColor: fz.card, borderRadius: fz.rCard,
+    borderWidth: 1, borderColor: fz.cardBorder, padding: 8, overflow: 'hidden',
   },
-  statNumber: {
-    fontWeight: '700',
-  },
-  statLabel: {
-    opacity: 0.6,
-    marginTop: 4,
-  },
-  graphSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 8,
-  },
-  graphTitle: {
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  graphHint: {
-    opacity: 0.5,
-    marginBottom: 16,
-  },
-  graphContainer: {
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    padding: 8,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendLine: {
-    width: 20,
-    height: 2,
-    backgroundColor: '#ccc',
-  },
-  infoSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 8,
-  },
-  infoTitle: {
-    marginBottom: 8,
-    fontWeight: '700',
-  },
-  infoChips: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  connectionsList: {
-    marginTop: 8,
-  },
-  connectionsTitle: {
-    marginBottom: 8,
-  },
-  connectionChip: {
-    marginBottom: 4,
-  },
-  viewButton: {
-    marginTop: 12,
-  },
-  spacer: {
-    height: 32,
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  primaryBtn: {
+    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
+    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
   },
 });

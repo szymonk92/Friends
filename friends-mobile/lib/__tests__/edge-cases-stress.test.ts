@@ -359,7 +359,7 @@ function generate10kPeople() {
 
 function generate10kRelations() {
   const relations = [];
-  const relationTypes = ['LIKES', 'DISLIKES', 'KNOWS', 'ASSOCIATED_WITH'];
+  const relationTypes = ['LIKES', 'DISLIKES', 'KNOWS', 'HAS'];
   const categories = ['food', 'music', 'sports', 'hobbies'];
 
   for (let i = 0; i < 10000; i++) {

@@ -13,6 +13,7 @@ import { Stack } from 'expo-router';
 import { Dimensions, LogBox, View, StyleSheet, Animated, PanResponder } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
+import { fz } from '@/lib/design/tokens';
 
 import QuizCard from '@/components/food-quiz/QuizCard';
 import QuizControls from '@/components/food-quiz/QuizControls';
@@ -360,11 +361,12 @@ export default function FoodQuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.paper,
     paddingTop: 16,
   },
   centered: {
     padding: 24,
+    backgroundColor: fz.paper,
   },
   emptyText: {
     textAlign: 'center',
@@ -373,6 +375,8 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 24,
   },
   completeIcon: {
     fontSize: 64,

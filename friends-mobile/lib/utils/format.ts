@@ -72,29 +72,6 @@ export function formatRelationType(relationType: string): string {
 }
 
 /**
- * Get emoji for relation type
- */
-export function getRelationEmoji(relationType: string): string {
-  const emojiMap: Record<string, string> = {
-    LIKES: '❤️',
-    DISLIKES: '👎',
-    AVOIDS: '🚨',
-    KNOWS: '🤝',
-    HAS: '🎒',
-    LIVES_IN: '📍',
-    IS: '👤',
-    CAN: '🎯',
-    DID: '📅',
-    DOES: '🔄',
-    WANTS: '🎯',
-    STRUGGLES_WITH: '😓',
-    HAS_IMPORTANT_DATE: '🎂',
-  };
-
-  return emojiMap[relationType] || '📝';
-}
-
-/**
  * Truncate text with ellipsis
  */
 export function truncate(text: string, maxLength: number): string {

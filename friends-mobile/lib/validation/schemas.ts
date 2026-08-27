@@ -56,30 +56,25 @@ export type NewPersonFormData = z.infer<typeof newPersonSchema>;
 // RELATION SCHEMAS
 // ============================================================================
 
+// 12 story-fact types + HAS_IMPORTANT_DATE (reserved for the dedicated
+// birthday/anniversary feature — not part of the AI/manual vocabulary).
 export const relationTypeEnum = z.enum([
-  'KNOWS',
+  'DOES',
+  'AVOIDS',
   'LIKES',
   'DISLIKES',
-  'ASSOCIATED_WITH',
-  'EXPERIENCED',
-  'HAS_SKILL',
-  'OWNS',
-  'HAS_IMPORTANT_DATE',
+  'HAS',
+  'LIVES_IN',
   'IS',
-  'BELIEVES',
-  'FEARS',
-  'WANTS_TO_ACHIEVE',
+  'CAN',
+  'DID',
   'STRUGGLES_WITH',
-  'CARES_FOR',
-  'DEPENDS_ON',
-  'REGULARLY_DOES',
-  'PREFERS_OVER',
-  'USED_TO_BE',
-  'SENSITIVE_TO',
-  'UNCOMFORTABLE_WITH',
+  'WANTS',
+  'KNOWS',
+  'HAS_IMPORTANT_DATE',
 ]);
 
-export const intensityEnum = z.enum(['weak', 'medium', 'strong', 'very_strong']);
+export const intensityEnum = z.enum(['weak', 'medium', 'strong']);
 export const relationStatusEnum = z.enum(['current', 'past', 'future', 'aspiration']);
 export const sourceEnum = z.enum([
   'manual',
@@ -172,14 +167,6 @@ export const likesMetadataSchema = z.object({
   since: z.string().optional(), // "childhood", "2020"
 });
 
-// FEARS metadata
-export const fearsMetadataSchema = z.object({
-  severity: z.enum(['mild', 'moderate', 'severe', 'phobia']).optional(),
-  triggers: z.array(z.string()).optional(),
-  context: z.string().optional(),
-  since: z.string().optional(),
-});
-
 // STRUGGLES_WITH metadata
 export const strugglesMetadataSchema = z.object({
   severity: z.enum(['minor', 'moderate', 'major', 'severe']).optional(),
@@ -188,26 +175,9 @@ export const strugglesMetadataSchema = z.object({
   triggers: z.array(z.string()).optional(),
 });
 
-// CARES_FOR metadata
-export const caresForMetadataSchema = z.object({
-  care_type: z.string().optional(), // "elderly_parent", "child", "pet"
-  level: z.enum(['occasional', 'part_time', 'full_time', 'primary_caregiver']).optional(),
-  since: z.string().optional(),
-  condition: z.string().optional(), // "dementia", "chronic_illness"
-});
-
 // IS metadata (identity)
 export const isMetadataSchema = z.object({
   category: z.enum(['profession', 'role', 'trait', 'identity', 'health', 'relationship_status']),
   since: z.string().optional(),
   context: z.string().optional(),
-});
-
-// BELIEVES metadata
-export const believesMetadataSchema = z.object({
-  category: z
-    .enum(['political', 'religious', 'philosophical', 'ethical', 'scientific', 'lifestyle'])
-    .optional(),
-  strength: z.enum(['mild', 'moderate', 'strong', 'core_value']).optional(),
-  open_to_discussion: z.boolean().optional(),
 });

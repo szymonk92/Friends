@@ -1,22 +1,26 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Text, Card, Button, Divider, List } from 'react-native-paper';
-import { Stack, router, Link } from 'expo-router';
+import { Button } from 'react-native-paper';
+import { Stack, router } from 'expo-router';
 import {
   useExportData,
   useExportStats,
   useExportPeopleCSV,
+  useExportObsidian,
   useImportData,
 } from '@/hooks/useDataExport';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { fz } from '@/lib/design/tokens';
+import { FormSection } from '@/components/FormKit';
 import ExportImportSettings from '@/components/settings/ExportImportSettings';
 
 export default function MenuScreen() {
   const { t } = useTranslation();
   const exportData = useExportData();
   const exportCSV = useExportPeopleCSV();
+  const exportObsidian = useExportObsidian();
   const importData = useImportData();
   const [importLoading, setImportLoading] = useState(false);
 
@@ -35,6 +39,15 @@ export default function MenuScreen() {
       Alert.alert('Success', 'People exported to CSV!');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to export CSV');
+    }
+  };
+
+  const handleExportObsidian = async () => {
+    try {
+      await exportObsidian.mutateAsync();
+      Alert.alert('Success', 'Obsidian vault exported successfully!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to export Obsidian vault');
     }
   };
 
@@ -76,90 +89,89 @@ export default function MenuScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Menu' }} />
-      <ScrollView style={styles.container}>
-        {/* Experimental */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t('settings.experimental')}
-            </Text>
-            <Divider style={styles.divider} />
-            <Text variant="bodySmall" style={styles.description}>
-              Features that are currently in development.
-            </Text>
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/network')}
-              icon="share-variant"
-              style={styles.button}
-            >
-              Network Graph
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/party-planner')}
-              icon="party-popper"
-              style={styles.button}
-            >
-              Party Planner
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/food-quiz')}
-              icon="food"
-              style={styles.button}
-            >
-              Food Quiz
-            </Button>
-          </Card.Content>
-        </Card>
+      <Stack.Screen
+        options={{
+          title: 'Menu',
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+          headerShadowVisible: false,
+        }}
+      />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <FormSection
+          title={t('settings.experimental')}
+          hint="Features that are currently in development."
+        >
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/network')}
+            icon="share-variant"
+            textColor={fz.ink}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+          >
+            Network Graph
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/party-planner')}
+            icon="party-popper"
+            textColor={fz.ink}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+          >
+            Party Planner
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/food-quiz')}
+            icon="food"
+            textColor={fz.ink}
+            style={[styles.button, styles.lastButton]}
+            labelStyle={styles.buttonLabel}
+          >
+            Food Quiz
+          </Button>
+        </FormSection>
 
-        {/* Developer Tools */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t('settings.developerTools')}
-            </Text>
-            <Divider style={styles.divider} />
-
-            <Text variant="bodySmall" style={styles.description}>
-              Testing utilities for development. Generate test data, seed sample people, and debug
-              the application.
-            </Text>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.push('/dev')}
-              icon="code-tags"
-              style={styles.button}
-            >
-              Open Dev Tools
-            </Button>
-          </Card.Content>
-        </Card>
+        <FormSection
+          title={t('settings.developerTools')}
+          hint="Testing utilities for development. Generate test data, seed sample people, and debug the application."
+        >
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/dev')}
+            icon="code-tags"
+            textColor={fz.ink}
+            style={styles.button}
+            labelStyle={styles.buttonLabel}
+          >
+            Open Dev Tools
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/developer/playground' as any)}
+            icon="test-tube"
+            textColor={fz.ink}
+            style={[styles.button, styles.lastButton]}
+            labelStyle={styles.buttonLabel}
+          >
+            AI Playground
+          </Button>
+        </FormSection>
 
         <ExportImportSettings
           handleExportJSON={handleExportJSON}
           exportDataPending={exportData.isPending}
           handleExportCSV={handleExportCSV}
           exportCSVPending={exportCSV.isPending}
+          handleExportObsidian={handleExportObsidian}
+          exportObsidianPending={exportObsidian.isPending}
           handleImport={handleImport}
           importLoading={importLoading}
           importDataPending={importData.isPending}
         />
-
-        <List.Section>
-          <List.Subheader>Developer</List.Subheader>
-          {/* @ts-ignore - Route exists but types might not be generated yet */}
-          <Link href="/developer/playground" asChild>
-            <List.Item
-              title="AI Playground"
-              left={(props) => <List.Icon {...props} icon="test-tube" />}
-              right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            />
-          </Link>
-        </List.Section>
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -170,27 +182,24 @@ export default function MenuScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: 16,
+    backgroundColor: fz.paper,
   },
-  card: {
-    marginBottom: 16,
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  description: {
-    marginBottom: 16,
-    opacity: 0.7,
+  content: {
+    padding: fz.s.edge,
   },
   button: {
-    marginBottom: 12,
+    borderRadius: fz.rButton,
+    borderColor: fz.outline,
+    marginBottom: fz.s.md,
+  },
+  lastButton: {
+    marginBottom: 0,
+  },
+  buttonLabel: {
+    fontFamily: fz.font,
+    fontWeight: '600',
   },
   spacer: {
-    height: 40,
+    height: fz.s.xxl,
   },
 });

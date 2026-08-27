@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
+import { HeartIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
@@ -8,9 +9,12 @@ import { getInitials } from '@/lib/utils/format';
 
 type Props = {
   personId: string;
+  // True when this person is the app owner's own partner (relationshipType === 'partner').
+  // In that case there's nothing to "add" — hide the prompt.
+  isOwnerPartner?: boolean;
 };
 
-export default function PartnerBadge({ personId }: Props) {
+export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
   const theme = useTheme();
   const { data: personConnections = [] } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
@@ -25,6 +29,7 @@ export default function PartnerBadge({ personId }: Props) {
   }, [personConnections, allPeople, personId]);
 
   if (!partner) {
+    if (isOwnerPartner) return null;
     return (
       <Button
         mode="text"
@@ -43,9 +48,7 @@ export default function PartnerBadge({ personId }: Props) {
 
   return (
     <Pressable onPress={() => router.push(`/person/${partner.id}`)} style={styles.row}>
-      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-        💕
-      </Text>
+      <HeartIcon size={14} color={theme.colors.onSurface} weight="bold" />
       {partner.photoPath ? (
         <Image source={{ uri: partner.photoPath }} style={styles.avatar} />
       ) : (

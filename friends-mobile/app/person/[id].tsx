@@ -3,10 +3,8 @@ import {
   Text,
   ActivityIndicator,
   Button,
-  Divider,
   IconButton,
   Menu,
-  useTheme,
 } from 'react-native-paper';
 import { useState } from 'react';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -27,21 +25,18 @@ import PersonPhotos from '@/components/person/PersonPhotos';
 import PersonGiftIdeas from '@/components/person/PersonGiftIdeas';
 import PersonRelations from '@/components/person/PersonRelations';
 import PersonConnections from '@/components/person/PersonConnections';
-import { spacing } from '@/styles/spacing';
+import { fz, fzText } from '@/lib/design/tokens';
 
 export default function PersonProfileScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const deletePerson = useDeletePerson();
 
-  // Photo hooks for the menu action
   const { data: personPhotos = [] } = usePersonPhotos(id!);
   const takePhoto = useTakePhoto();
   const setProfilePhoto = useSetProfilePhoto();
   const addPhotoToPerson = useAddPhotoToPerson();
 
-  // Menu state
   const [menuVisible, setMenuVisible] = useState(false);
 
   const handleDelete = () => {
@@ -75,9 +70,10 @@ export default function PersonProfileScreen() {
               const result = await takePhoto.mutateAsync({ personId: id! });
               await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
               Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: any) {
-              if (!error.message.includes('cancelled')) {
-                Alert.alert('Error', error.message || 'Failed to take photo');
+            } catch (error: unknown) {
+              const msg = error instanceof Error ? error.message : '';
+              if (!msg.includes('cancelled')) {
+                Alert.alert('Error', msg || 'Failed to take photo');
               }
             }
           },
@@ -89,9 +85,10 @@ export default function PersonProfileScreen() {
               const result = await addPhotoToPerson.mutateAsync({ personId: id! });
               await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
               Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: any) {
-              if (!error.message.includes('cancelled')) {
-                Alert.alert('Error', error.message || 'Failed to add photo');
+            } catch (error: unknown) {
+              const msg = error instanceof Error ? error.message : '';
+              if (!msg.includes('cancelled')) {
+                Alert.alert('Error', msg || 'Failed to add photo');
               }
             }
           },
@@ -101,14 +98,13 @@ export default function PersonProfileScreen() {
     );
   };
 
-  // Get the profile photo path for the menu check
   const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
   if (personLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading profile...</Text>
       </View>
     );
   }
@@ -116,7 +112,7 @@ export default function PersonProfileScreen() {
   if (!person) {
     return (
       <View style={styles.centered}>
-        <Text variant="headlineSmall">Person not found</Text>
+        <Text style={fzText.title}>Person not found</Text>
         <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
           Go Back
         </Button>
@@ -129,9 +125,12 @@ export default function PersonProfileScreen() {
       <Stack.Screen
         options={{
           title: person.name,
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+          headerShadowVisible: false,
           headerRight: () => (
-            // Menu padding
-            <View style={{ marginRight: spacing.xs }}>
+            <View style={{ marginRight: 4 }}>
               <Menu
                 visible={menuVisible}
                 onDismiss={() => setMenuVisible(false)}
@@ -139,7 +138,7 @@ export default function PersonProfileScreen() {
                   <IconButton
                     icon="dots-vertical"
                     onPress={() => setMenuVisible(true)}
-                    iconColor={theme.colors.primary}
+                    iconColor={fz.ink}
                   />
                 }
               >
@@ -183,26 +182,16 @@ export default function PersonProfileScreen() {
           ),
         }}
       />
-      <View style={[styles.wrapper, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.wrapper}>
         <ScrollView style={styles.container}>
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
-
-          <Divider style={styles.mainDivider} />
-
           <PersonTags personId={id!} personName={person.name} />
-
           <PersonQuickActions personId={id!} personName={person.name} />
-
           <PersonImportantDates person={person} />
-
           <PersonPhotos personId={id!} currentPhotoId={person.photoId} />
-
           <PersonGiftIdeas personId={id!} personName={person.name} />
-
           <PersonRelations personId={id!} personName={person.name} />
-
           <PersonConnections personId={id!} personName={person.name} />
-
           <View style={styles.spacer} />
         </ScrollView>
       </View>
@@ -213,6 +202,7 @@ export default function PersonProfileScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
+    backgroundColor: fz.paper,
   },
   container: {
     flex: 1,
@@ -222,17 +212,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
+    backgroundColor: fz.paper,
   },
   backButton: {
     marginTop: 16,
-  },
-  mainDivider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 8,
   },
   spacer: {
     height: 40,

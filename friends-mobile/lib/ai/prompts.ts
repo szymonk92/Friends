@@ -83,27 +83,26 @@ Extract all people mentioned and their relations (preferences, facts, experience
      - DO NOT guess if there are multiple people with similar names.
 6. **NEW PEOPLE**: If a name is completely new (no @ prefix), create a new person entry.
 
-RELATION TYPES (use exactly these):
-- KNOWS: knows a person/place/thing
-- LIKES: enjoys, prefers, loves
-- DISLIKES: dislikes, hates, avoids
-- ASSOCIATED_WITH: connected to a place, group, organization
-- EXPERIENCED: went through an event or experience
-- HAS_SKILL: has ability or skill
-- OWNS: possesses something
-- HAS_IMPORTANT_DATE: birthday, anniversary, etc.
-- IS: identity, role, profession, trait (e.g., "vegan", "vegetarian", "lactose intolerant")
-- BELIEVES: holds belief, opinion, value
-- FEARS: afraid of, anxious about
-- WANTS_TO_ACHIEVE: goal, aspiration, dream
-- STRUGGLES_WITH: difficulty, challenge, problem
-- CARES_FOR: looks after, supports (person or cause)
-- DEPENDS_ON: relies on (person, thing, or activity)
-- REGULARLY_DOES: habit, routine, regular activity
-- PREFERS_OVER: prefers X over Y
-- USED_TO_BE: past identity, role, or habit
-- SENSITIVE_TO: allergic to, sensitive to (e.g., "SENSITIVE_TO: potatoes")
-- UNCOMFORTABLE_WITH: makes them uncomfortable
+RELATION TYPES (use exactly these — 12 types, no others):
+- LIKES: enjoys, prefers, loves, tastes
+- DISLIKES: dislikes, hates, finds unpleasant (a preference, not a rule — see AVOIDS)
+- AVOIDS: a hard rule, not a taste — allergy, medical restriction, diet, sobriety, ethics, policy (e.g., "AVOIDS: peanuts" for an allergy, "AVOIDS: meat" for vegetarian, "AVOIDS: alcohol" for sobriety)
+- IS: identity, role, profession, trait, belief (e.g., "vegan", "software engineer", "religious", "introvert"). Use status:"past" for a former identity instead of a separate type.
+- HAS: possesses or physically has something — objects, property, physical traits (e.g., "HAS: glasses", "HAS: 100 apartments", "HAS: a beard"). Binary — omit intensity.
+- LIVES_IN: current, past, or future residence. Binary — omit intensity; use status (below) for current/past/future, never intensity, to say when.
+- CAN: has an ability or skill (intensity = skill level: weak = beginner, strong = expert)
+- DOES: a habit, routine, or regularly repeated activity
+- DID: a one-off past event or experience
+- WANTS: a goal, aspiration, or dream
+- STRUGGLES_WITH: an ongoing difficulty, health condition, or hardship
+- KNOWS: has an unquantified social connection to a person, place, or group — NOT for abilities (use CAN for "knows how to swim"). Binary — omit intensity.
+
+STATUS (current | past | future | aspiration) is the "when" axis and applies to every relation — it is NOT the same as intensity. "Lives in Sicily" → status:"current"; "used to live in Sicily" → status:"past"; "wants to move to Rzeszów" → status:"future" or "aspiration". Never encode past/current/future as an intensity value.
+
+INTENSITY SCALE (how strong/severe/skilled — omit entirely for HAS, LIVES_IN, and KNOWS, where it has no meaning):
+- weak: Slight or occasional mention ("sort of likes", "has tried", "mentioned once")
+- medium: Clear, regular preference or trait ("likes", "enjoys", "does regularly", "is")
+- strong: Emphasized or extreme — "loves", "is passionate about", "really hates", "obsessed with", "would never", "always"
 
 ⚠️ CRITICAL: CONFLICT DETECTION WITH DEEP REASONING ⚠️
 
@@ -117,11 +116,11 @@ CONFLICT TYPES TO DETECT:
 
 2. INGREDIENT-LEVEL CONFLICTS (CRITICAL!)
    Think about what foods CONTAIN:
-   - "SENSITIVE_TO: potatoes" conflicts with "LIKES: fries"
+   - "AVOIDS: potatoes" conflicts with "LIKES: fries"
      → WHY? Fries are made from potatoes!
-   - "SENSITIVE_TO: dairy" conflicts with "LIKES: ice cream"
+   - "AVOIDS: dairy" conflicts with "LIKES: ice cream"
      → WHY? Ice cream contains milk and cream!
-   - "SENSITIVE_TO: peanuts" conflicts with "LIKES: peanut butter"
+   - "AVOIDS: peanuts" conflicts with "LIKES: peanut butter"
      → WHY? Peanut butter is made from peanuts!
 
 3. DIETARY RESTRICTION IMPLICATIONS
@@ -134,7 +133,7 @@ CONFLICT TYPES TO DETECT:
      → WHY? Vegetarians don't eat fish!
    - "IS: vegetarian" conflicts with "LIKES: bacon"
      → WHY? Bacon is pork/meat!
-   - "IS: lactose intolerant" conflicts with "REGULARLY_DOES: drinks milk"
+   - "IS: lactose intolerant" conflicts with "DOES: drinks milk"
      → WHY? Lactose intolerant people can't digest lactose in milk!
    - "IS: kosher" conflicts with "LIKES: pork"
      → WHY? Kosher diet prohibits pork!
@@ -216,7 +215,7 @@ RESPONSE FORMAT (JSON):
       "relationType": "LIKES" | "DISLIKES" | etc.,
       "objectLabel": "what they like/dislike/etc",
       "objectType": "food" | "activity" | "person" | etc.,
-      "intensity": "weak" | "medium" | "strong" | "very_strong",
+      "intensity": "weak" | "medium" | "strong",
       "confidence": 0.0-1.0,
       "category": "food" | "sport" | "music" | etc.,
       "metadata": {
@@ -256,7 +255,7 @@ IMPORTANT:
 - Use "mentioned" for people only referenced (e.g., "Sarah's mother")
 - Use "primary" for main people in the story
 - Extract temporal info (validFrom/validTo) when dates are mentioned
-- For allergies/sensitivities, use "SENSITIVE_TO" relation type
+- For allergies, dietary rules, sobriety, or any hard restriction, use "AVOIDS" — never "DISLIKES"
 - CRITICAL: Every person mentioned in "relations" MUST be listed in the "people" array with the EXACT SAME ID.`;
 }
 
@@ -309,27 +308,26 @@ export function createSystemPrompt(variant: 'default' | 'strict' | 'creative' = 
     prompt += `\n\nCREATIVE MODE ENABLED: Infer potential relationships and hidden context where possible.`;
   }
 
-  prompt += `\n\nRELATION TYPES (use exactly these):
-- KNOWS: knows a person/place/thing
-- LIKES: enjoys, prefers, loves
-- DISLIKES: dislikes, hates, avoids
-- ASSOCIATED_WITH: connected to a place, group, organization
-- EXPERIENCED: went through an event or experience
-- HAS_SKILL: has ability or skill
-- OWNS: possesses something
-- HAS_IMPORTANT_DATE: birthday, anniversary, etc.
-- IS: identity, role, profession, trait (e.g., "vegan", "vegetarian", "lactose intolerant")
-- BELIEVES: holds belief, opinion, value
-- FEARS: afraid of, anxious about
-- WANTS_TO_ACHIEVE: goal, aspiration, dream
-- STRUGGLES_WITH: difficulty, challenge, problem
-- CARES_FOR: looks after, supports (person or cause)
-- DEPENDS_ON: relies on (person, thing, or activity)
-- REGULARLY_DOES: habit, routine, regular activity
-- PREFERS_OVER: prefers X over Y
-- USED_TO_BE: past identity, role, or habit
-- SENSITIVE_TO: allergic to, sensitive to (e.g., "SENSITIVE_TO: potatoes")
-- UNCOMFORTABLE_WITH: makes them uncomfortable
+  prompt += `\n\nRELATION TYPES (use exactly these — 12 types, no others):
+- LIKES: enjoys, prefers, loves, tastes
+- DISLIKES: dislikes, hates, finds unpleasant (a preference, not a rule — see AVOIDS)
+- AVOIDS: a hard rule, not a taste — allergy, medical restriction, diet, sobriety, ethics, policy (e.g., "AVOIDS: peanuts" for an allergy, "AVOIDS: meat" for vegetarian, "AVOIDS: alcohol" for sobriety)
+- IS: identity, role, profession, trait, belief (e.g., "vegan", "software engineer", "religious", "introvert"). Use status:"past" for a former identity instead of a separate type.
+- HAS: possesses or physically has something — objects, property, physical traits (e.g., "HAS: glasses", "HAS: 100 apartments", "HAS: a beard"). Binary — omit intensity.
+- LIVES_IN: current, past, or future residence. Binary — omit intensity; use status (below) for current/past/future, never intensity, to say when.
+- CAN: has an ability or skill (intensity = skill level: weak = beginner, strong = expert)
+- DOES: a habit, routine, or regularly repeated activity
+- DID: a one-off past event or experience
+- WANTS: a goal, aspiration, or dream
+- STRUGGLES_WITH: an ongoing difficulty, health condition, or hardship
+- KNOWS: has an unquantified social connection to a person, place, or group — NOT for abilities (use CAN for "knows how to swim"). Binary — omit intensity.
+
+STATUS (current | past | future | aspiration) is the "when" axis and applies to every relation — it is NOT the same as intensity. "Lives in Sicily" → status:"current"; "used to live in Sicily" → status:"past"; "wants to move to Rzeszów" → status:"future" or "aspiration". Never encode past/current/future as an intensity value.
+
+INTENSITY SCALE (how strong/severe/skilled — omit entirely for HAS, LIVES_IN, and KNOWS, where it has no meaning):
+- weak: Slight or occasional mention ("sort of likes", "has tried", "mentioned once")
+- medium: Clear, regular preference or trait ("likes", "enjoys", "does regularly", "is")
+- strong: Emphasized or extreme — "loves", "is passionate about", "really hates", "obsessed with", "would never", "always"
 
 ⚠️ CRITICAL: CONFLICT DETECTION WITH DEEP REASONING ⚠️
 
@@ -343,11 +341,11 @@ CONFLICT TYPES TO DETECT:
 
 2. INGREDIENT-LEVEL CONFLICTS (CRITICAL!)
    Think about what foods CONTAIN:
-   - "SENSITIVE_TO: potatoes" conflicts with "LIKES: fries"
+   - "AVOIDS: potatoes" conflicts with "LIKES: fries"
      → WHY? Fries are made from potatoes!
-   - "SENSITIVE_TO: dairy" conflicts with "LIKES: ice cream"
+   - "AVOIDS: dairy" conflicts with "LIKES: ice cream"
      → WHY? Ice cream contains milk and cream!
-   - "SENSITIVE_TO: peanuts" conflicts with "LIKES: peanut butter"
+   - "AVOIDS: peanuts" conflicts with "LIKES: peanut butter"
      → WHY? Peanut butter is made from peanuts!
 
 3. DIETARY RESTRICTION IMPLICATIONS
@@ -360,7 +358,7 @@ CONFLICT TYPES TO DETECT:
      → WHY? Vegetarians don't eat fish!
    - "IS: vegetarian" conflicts with "LIKES: bacon"
      → WHY? Bacon is pork/meat!
-   - "IS: lactose intolerant" conflicts with "REGULARLY_DOES: drinks milk"
+   - "IS: lactose intolerant" conflicts with "DOES: drinks milk"
      → WHY? Lactose intolerant people can't digest lactose in milk!
    - "IS: kosher" conflicts with "LIKES: pork"
      → WHY? Kosher diet prohibits pork!
@@ -455,7 +453,7 @@ RESPONSE FORMAT (JSON):
       "relationType": "LIKES" | "DISLIKES" | etc.,
       "objectLabel": "what they like/dislike/etc",
       "objectType": "food" | "activity" | "person" | etc.,
-      "intensity": "weak" | "medium" | "strong" | "very_strong",
+      "intensity": "weak" | "medium" | "strong",
       "confidence": 0.0-1.0,
       "category": "food" | "sport" | "music" | etc.,
       "metadata": {
@@ -495,7 +493,7 @@ IMPORTANT:
 - Use "mentioned" for people only referenced (e.g., "Sarah's mother")
 - Use "primary" for main people in the story
 - Extract temporal info (validFrom/validTo) when dates are mentioned
-- For allergies/sensitivities, use "SENSITIVE_TO" relation type
+- For allergies, dietary rules, sobriety, or any hard restriction, use "AVOIDS" — never "DISLIKES"
 - CRITICAL: Every person mentioned in "relations" MUST be listed in the "people" array with the EXACT SAME ID.
 - CRITICAL: If a person exists in the database, you MUST use their existing ID. Do not create a new ID for them.
 - CRITICAL: Common names (David, Mike, Sarah, Ola, etc.) WITHOUT @ or explicit context should be flagged as AMBIGUOUS

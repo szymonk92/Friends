@@ -1,23 +1,28 @@
-import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import {
   View,
+  Image,
   ActivityIndicator,
   StatusBar,
   TouchableOpacity,
   FlatList,
   StyleSheet,
   ScrollView,
+  TextInput,
 } from 'react-native';
-import { Card, Chip, Text, Searchbar, SegmentedButtons, List } from 'react-native-paper';
-import { usePeople } from '@/hooks/usePeople';
+import { Text } from 'react-native-paper';
+import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
 import { useConnections } from '@/hooks/useConnections';
-import { getInitials, formatRelativeTime, getRelationEmoji } from '@/lib/utils/format';
+import { getInitials, formatRelativeTime } from '@/lib/utils/format';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { LineIcon } from '@/components/LineIcon';
+import { RelationIcon } from '@/components/RelationIcon';
 
 type SearchCategory = 'all' | 'people' | 'relations' | 'stories';
 
@@ -29,6 +34,13 @@ interface SearchResult {
   metadata?: string;
   personId?: string;
 }
+
+const CATEGORIES: { key: SearchCategory; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'people', label: 'People' },
+  { key: 'relations', label: 'Preferences' },
+  { key: 'stories', label: 'Stories' },
+];
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
@@ -42,20 +54,17 @@ export default function SearchScreen() {
 
   const isLoading = loadingPeople || loadingRelations || loadingStories || loadingConnections;
 
-  // Get person name by ID
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
     return person?.name || 'Unknown';
   };
 
-  // Search results with relevance
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) return [];
 
     const query = searchQuery.toLowerCase().trim();
     const results: SearchResult[] = [];
 
-    // Search people
     if (category === 'all' || category === 'people') {
       people.forEach((person) => {
         const nameMatch = person.name.toLowerCase().includes(query);
@@ -75,7 +84,6 @@ export default function SearchScreen() {
       });
     }
 
-    // Search relations (LIKES/DISLIKES/etc.)
     if (category === 'all' || category === 'relations') {
       relations.forEach((relation) => {
         const objectMatch = relation.objectLabel.toLowerCase().includes(query);
@@ -89,14 +97,13 @@ export default function SearchScreen() {
             type: 'relation',
             title: `${personName} ${relation.relationType.replace('_', ' ')} ${relation.objectLabel}`,
             subtitle: relation.category || relation.intensity || 'No category',
-            metadata: `${getRelationEmoji(relation.relationType)} ${relation.confidence ? `${Math.round(relation.confidence * 100)}% confidence` : ''}`,
+            metadata: relation.confidence ? `${Math.round(relation.confidence * 100)}%` : undefined,
             personId: relation.subjectId,
           });
         }
       });
     }
 
-    // Search stories
     if (category === 'all' || category === 'stories') {
       stories.forEach((story) => {
         const contentMatch = story.content.toLowerCase().includes(query);
@@ -118,18 +125,14 @@ export default function SearchScreen() {
     return results;
   }, [searchQuery, category, people, relations, stories]);
 
-  // Group relations by what they like/dislike for summary
   const preferenceSummary = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) return null;
 
     const query = searchQuery.toLowerCase().trim();
 
-    // Find all people who LIKE this thing
     const likes = relations.filter(
       (r) => r.relationType === LIKES && r.objectLabel.toLowerCase().includes(query)
     );
-
-    // Find all people who DISLIKE this thing
     const dislikes = relations.filter(
       (r) => r.relationType === DISLIKES && r.objectLabel.toLowerCase().includes(query)
     );
@@ -158,203 +161,153 @@ export default function SearchScreen() {
     } else if (result.type === 'relation' && result.personId) {
       router.push(`/person/${result.personId}`);
     } else if (result.type === 'story') {
-      // Navigate to stories tab for now
       router.push('/stories');
     }
   };
 
-  const renderResult = ({ item }: { item: SearchResult }) => (
-    <Card style={styles.resultCard} onPress={() => handleResultPress(item)}>
-      <Card.Content>
-        <View style={styles.resultHeader}>
-          {category === 'all' && (
-            <Chip
-              style={[
-                styles.typeChip,
-                item.type === 'person' && styles.personChip,
-                item.type === 'relation' && styles.relationChip,
-                item.type === 'story' && styles.storyChip,
-              ]}
-            >
-              {item.type}
-            </Chip>
-          )}
-          {item.metadata && (
-            <Text variant="labelSmall" style={styles.metadata}>
-              {item.metadata}
-            </Text>
-          )}
+  const renderResult = ({ item }: { item: SearchResult }) => {
+    const person = item.personId ? people.find((p) => p.id === item.personId) : null;
+    return (
+      <TouchableOpacity style={s.row} activeOpacity={0.7} onPress={() => handleResultPress(item)}>
+        <ResultAvatar person={person} type={item.type} />
+        <View style={s.rowBody}>
+          <View style={s.rowTop}>
+            {category === 'all' && <Pill label={item.type} variant="surface" />}
+            {item.metadata && <Text style={fzText.time}>{item.metadata}</Text>}
+          </View>
+          <Text style={fzText.name} numberOfLines={1}>{item.title}</Text>
+          <Text style={fzText.sub} numberOfLines={2}>{item.subtitle}</Text>
         </View>
-        <Text variant="titleMedium" style={styles.resultTitle}>
-          {item.title}
-        </Text>
-        <Text variant="bodySmall" style={styles.resultSubtitle} numberOfLines={2}>
-          {item.subtitle}
-        </Text>
-      </Card.Content>
-    </Card>
-  );
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSummaryRow = (item: { personId: string; personName: string; item: string; intensity?: string | null }) => {
+    const person = people.find((p) => p.id === item.personId);
+    return (
+      <TouchableOpacity
+        style={s.summaryRow}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/person/${item.personId}`)}
+      >
+        {person?.photoPath ? (
+          <Image source={{ uri: person.photoPath }} style={s.summaryAvatar} />
+        ) : (
+          <View style={s.summaryAvatar}>
+            <Text style={s.summaryAvatarText}>{getInitials(item.personName)}</Text>
+          </View>
+        )}
+        <View style={s.summaryBody}>
+          <Text style={fzText.name} numberOfLines={1}>{item.personName}</Text>
+          <Text style={fzText.sub} numberOfLines={1}>
+            {item.item}{item.intensity ? ` · ${item.intensity}` : ''}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="rgba(255, 255, 255, 0.8)" translucent />
-      <View style={[styles.statusBarSpacer, { height: insets.top }]} />
-      <View style={styles.header}>
-        <Searchbar
-          placeholder="Search people, preferences, stories..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-          autoFocus
-        />
+    <View style={s.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+
+      {/* App bar / search */}
+      <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
+        <View style={s.searchRow}>
+          <View style={s.searchInput}>
+            <TextInput
+              placeholder="Search people, preferences, stories..."
+              placeholderTextColor={fz.textMute}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              style={s.searchText}
+            />
+          </View>
+        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
+          style={s.categories}
+          contentContainerStyle={s.categoriesContent}
         >
-          <Chip
-            selected={category === 'all'}
-            onPress={() => setCategory('all')}
-            style={styles.categoryChip}
-            showSelectedOverlay={true}
-          >
-            All
-          </Chip>
-          <Chip
-            selected={category === 'people'}
-            onPress={() => setCategory('people')}
-            style={styles.categoryChip}
-            showSelectedOverlay={true}
-          >
-            People
-          </Chip>
-          <Chip
-            selected={category === 'relations'}
-            onPress={() => setCategory('relations')}
-            style={styles.categoryChip}
-            showSelectedOverlay={true}
-          >
-            Preferences
-          </Chip>
-          <Chip
-            selected={category === 'stories'}
-            onPress={() => setCategory('stories')}
-            style={styles.categoryChip}
-            showSelectedOverlay={true}
-          >
-            Stories
-          </Chip>
+          {CATEGORIES.map((c) => (
+            <Pill
+              key={c.key}
+              label={c.label}
+              selected={category === c.key}
+              onPress={() => setCategory(c.key)}
+            />
+          ))}
         </ScrollView>
       </View>
 
       {isLoading && (
-        <CenteredContainer style={styles.centered}>
-          <ActivityIndicator size="large" />
-        </CenteredContainer>
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={fz.ink} />
+        </View>
       )}
 
       {!isLoading && searchQuery.length < 2 && (
-        <CenteredContainer style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>
-            Start searching
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyDescription}>
+        <View style={s.empty}>
+          <Text style={fzText.title}>Start searching</Text>
+          <Text style={[fzText.sub, { marginTop: 8, marginBottom: 16, textAlign: 'center' }]}>
             Search for people, preferences (who likes/dislikes what), or story content.
           </Text>
-          <Text variant="bodySmall" style={styles.exampleText}>
-            Examples: "carrot", "vegan", "hiking", "Sarah"
-          </Text>
-        </CenteredContainer>
+          <Text style={s.exampleText}>Examples: "carrot", "vegan", "hiking", "Sarah"</Text>
+        </View>
       )}
 
       {!isLoading && searchQuery.length >= 2 && (
         <>
-          {/* Preference Summary Card */}
           {preferenceSummary &&
             (preferenceSummary.likes.length > 0 || preferenceSummary.dislikes.length > 0) && (
-              <Card style={styles.summaryCard}>
-                <Card.Content>
-                  <Text variant="titleMedium" style={styles.summaryTitle}>
-                    Who likes/dislikes "{searchQuery}"?
-                  </Text>
+              <View style={s.summaryCard}>
+                <Text style={fzText.title}>Who likes/dislikes "{searchQuery}"?</Text>
 
-                  {preferenceSummary.likes.length > 0 && (
-                    <View style={styles.summarySection}>
-                      <Text variant="titleSmall" style={styles.likesTitle}>
-                        👍 Likes ({preferenceSummary.likes.length})
-                      </Text>
-                      {preferenceSummary.likes.map((item, index) => (
-                        <TouchableOpacity
-                          key={`like-${index}`}
-                          onPress={() => router.push(`/person/${item.personId}`)}
-                        >
-                          <List.Item
-                            title={item.personName}
-                            description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
-                            left={() => (
-                              <View style={styles.summaryAvatar}>
-                                <Text style={styles.summaryAvatarText}>
-                                  {getInitials(item.personName)}
-                                </Text>
-                              </View>
-                            )}
-                            style={styles.summaryItem}
-                          />
-                        </TouchableOpacity>
-                      ))}
+                {preferenceSummary.likes.length > 0 && (
+                  <View style={s.summarySection}>
+                    <View style={s.summaryLabelRow}>
+                      <RelationIcon type={LIKES} size={13} color={fz.ink} />
+                      <Text style={fzText.label}>Likes ({preferenceSummary.likes.length})</Text>
                     </View>
-                  )}
+                    {preferenceSummary.likes.map((item, index) => (
+                      <View key={`like-${index}`}>{renderSummaryRow(item)}</View>
+                    ))}
+                  </View>
+                )}
 
-                  {preferenceSummary.dislikes.length > 0 && (
-                    <View style={styles.summarySection}>
-                      <Text variant="titleSmall" style={styles.dislikesTitle}>
-                        👎 Dislikes ({preferenceSummary.dislikes.length})
-                      </Text>
-                      {preferenceSummary.dislikes.map((item, index) => (
-                        <TouchableOpacity
-                          key={`dislike-${index}`}
-                          onPress={() => router.push(`/person/${item.personId}`)}
-                        >
-                          <List.Item
-                            title={item.personName}
-                            description={`${item.item}${item.intensity ? ` (${item.intensity})` : ''}`}
-                            left={() => (
-                              <View style={[styles.summaryAvatar, styles.dislikeAvatar]}>
-                                <Text style={styles.summaryAvatarText}>
-                                  {getInitials(item.personName)}
-                                </Text>
-                              </View>
-                            )}
-                            style={styles.summaryItem}
-                          />
-                        </TouchableOpacity>
-                      ))}
+                {preferenceSummary.dislikes.length > 0 && (
+                  <View style={s.summarySection}>
+                    <View style={s.summaryLabelRow}>
+                      <RelationIcon type={DISLIKES} size={13} color={fz.ink} />
+                      <Text style={fzText.label}>Dislikes ({preferenceSummary.dislikes.length})</Text>
                     </View>
-                  )}
-                </Card.Content>
-              </Card>
+                    {preferenceSummary.dislikes.map((item, index) => (
+                      <View key={`dislike-${index}`}>{renderSummaryRow(item)}</View>
+                    ))}
+                  </View>
+                )}
+              </View>
             )}
 
-          {/* All Results */}
-          <View style={styles.resultsHeader}>
-            <Text variant="titleSmall">
+          <View style={s.resultsHeader}>
+            <Text style={fzText.meta}>
               {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
             </Text>
           </View>
 
           {searchResults.length === 0 ? (
-            <View style={styles.noResults}>
-              <Text variant="bodyLarge">No results found</Text>
-              <Text variant="bodySmall" style={styles.noResultsHint}>
-                Try a different search term or category
-              </Text>
+            <View style={s.noResults}>
+              <Text style={fzText.sub}>No results found</Text>
+              <Text style={[fzText.time, { marginTop: 6 }]}>Try a different search term or category</Text>
             </View>
           ) : (
             <FlatList
               data={searchResults}
               renderItem={renderResult}
               keyExtractor={(item) => `${item.type}-${item.id}`}
-              contentContainerStyle={styles.resultsList}
+              contentContainerStyle={s.resultsList}
             />
           )}
         </>
@@ -363,138 +316,77 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+/** Left-side avatar for a search result: person photo if present, initials
+ *  fallback, or a generic icon for person-less results (stories). */
+function ResultAvatar({
+  person,
+  type,
+}: {
+  person: PersonWithPhoto | null | undefined;
+  type: SearchResult['type'];
+}) {
+  if (person?.photoPath) {
+    return <Image source={{ uri: person.photoPath }} style={s.avatar} />;
+  }
+  if (person) {
+    return (
+      <View style={[s.avatar, { backgroundColor: fz.surface }]}>
+        <Text style={[s.avatarText, { color: fz.ink }]}>{getInitials(person.name)}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[s.avatar, { backgroundColor: fz.surface }]}>
+      <LineIcon name={type === 'story' ? 'book' : 'users'} size={18} color={fz.ink} />
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: fz.paper },
+  centered: { padding: 20, alignItems: 'center', backgroundColor: fz.paper },
+  appBar: { backgroundColor: fz.paper, paddingBottom: 4 },
+  searchRow: { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md },
+  searchInput: {
+    height: 44, borderRadius: fz.rPill, backgroundColor: fz.surface,
+    paddingHorizontal: 16, justifyContent: 'center',
   },
-  statusBarSpacer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  centered: {},
-  header: {
-    padding: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
-    elevation: 2,
-  },
-  searchbar: {
-    marginBottom: 12,
-    elevation: 0,
-    backgroundColor: '#f5f5f5',
-  },
-  categoriesContainer: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  categoryChip: {
-    marginRight: 8,
-  },
-  emptyState: {
-    padding: 32,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  exampleText: {
-    opacity: 0.5,
-    fontStyle: 'italic',
-  },
+  searchText: { fontFamily: fz.font, fontSize: 15, color: fz.ink, padding: 0 },
+  categories: { paddingHorizontal: fz.s.edge },
+  categoriesContent: { gap: 8, paddingRight: fz.s.edge, paddingBottom: fz.s.md },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  exampleText: { ...fzText.sub, fontStyle: 'italic' },
   summaryCard: {
-    margin: 16,
-    marginBottom: 8,
-    backgroundColor: '#e8f5e9',
+    marginHorizontal: fz.s.edge, marginBottom: 8, padding: 16,
+    backgroundColor: fz.card, borderRadius: fz.rCard, borderWidth: 1,
+    borderColor: fz.cardBorder,
   },
-  summaryTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  summarySection: {
-    marginBottom: 12,
-  },
-  likesTitle: {
-    color: '#2e7d32',
-    marginBottom: 8,
-  },
-  dislikesTitle: {
-    color: '#c62828',
-    marginBottom: 8,
+  summarySection: { marginTop: 14 },
+  summaryLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  summaryRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8,
   },
   summaryAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#4caf50',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36, height: 36, borderRadius: 18, backgroundColor: fz.surface,
+    justifyContent: 'center', alignItems: 'center',
   },
-  dislikeAvatar: {
-    backgroundColor: '#e53935',
+  summaryAvatarText: { color: fz.ink, fontSize: 13, fontWeight: '600', fontFamily: fz.font },
+  summaryBody: { flex: 1, minWidth: 0 },
+  resultsHeader: { paddingHorizontal: fz.s.edge, paddingVertical: 8 },
+  resultsList: { paddingHorizontal: fz.s.edge, paddingTop: 0, paddingBottom: 110 },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: fz.hairline,
   },
-  summaryAvatarText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+  rowBody: { flex: 1, minWidth: 0 },
+  avatar: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
   },
-  summaryItem: {
-    paddingVertical: 4,
-    backgroundColor: '#fff',
-    marginBottom: 4,
-    borderRadius: 8,
+  avatarText: { color: '#fff', fontSize: 14, fontWeight: '600', fontFamily: fz.font },
+  rowTop: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 8, marginBottom: 6,
   },
-  resultsHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  resultsList: {
-    padding: 16,
-    paddingTop: 0,
-    paddingBottom: 80,
-  },
-  resultCard: {
-    marginBottom: 12,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  typeChip: {
-    height: 32,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-  },
-  personChip: {
-    backgroundColor: '#e3f2fd',
-  },
-  relationChip: {
-    backgroundColor: '#fff3e0',
-  },
-  storyChip: {
-    backgroundColor: '#f3e5f5',
-  },
-  metadata: {
-    opacity: 0.6,
-  },
-  resultTitle: {
-    marginBottom: 4,
-  },
-  resultSubtitle: {
-    opacity: 0.7,
-  },
-  noResults: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  noResultsHint: {
-    marginTop: 8,
-    opacity: 0.6,
-  },
+  noResults: { padding: 32, alignItems: 'center' },
 });

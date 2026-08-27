@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 import { Portal, Dialog, Button, Text, RadioButton, Avatar, List } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 
 interface AmbiguityMatch {
   nameInStory: string;
@@ -47,10 +48,12 @@ export default function AmbiguityResolutionDialog({
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onCancel} style={styles.dialog}>
-        <Dialog.Title>Who is "{currentMatch.nameInStory}"?</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onCancel} style={[styles.dialog, styles.dialogShape]}>
+        <Dialog.Title style={styles.dialogTitle}>
+          Who is "{currentMatch.nameInStory}"?
+        </Dialog.Title>
         <Dialog.Content>
-          <Text style={styles.helperText}>
+          <Text style={[styles.helperText, styles.dialogFont]}>
             The AI is not sure which "{currentMatch.nameInStory}" you are referring to.
           </Text>
 
@@ -92,8 +95,11 @@ export default function AmbiguityResolutionDialog({
           </RadioButton.Group>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onCancel}>Cancel</Button>
+          <Button labelStyle={styles.dialogFont} onPress={onCancel}>
+            Cancel
+          </Button>
           <Button
+            labelStyle={styles.dialogFont}
             mode="contained"
             onPress={handleNext}
             disabled={!resolutions[currentMatch.nameInStory]}
@@ -109,6 +115,16 @@ export default function AmbiguityResolutionDialog({
 const styles = StyleSheet.create({
   dialog: {
     maxHeight: '80%',
+  },
+  dialogShape: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
   },
   helperText: {
     marginBottom: 16,

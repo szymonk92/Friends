@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { List, Text, TextInput, useTheme } from 'react-native-paper';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
+import { List, Text } from 'react-native-paper';
 import { useLocationSuggestions, type LocationKind, type LocationSuggestion } from '@/hooks/usePeople';
+import { fz, fzText } from '@/lib/design/tokens';
+import { FormInput } from '@/components/FormKit';
 
 type Props = {
   value: string;
@@ -18,8 +20,10 @@ export default function MetLocationInput({
   label,
   placeholder,
 }: Props) {
-  const theme = useTheme();
-  const [focused, setFocused] = useState(false);
+  // Shown while the input is focused; only explicit selection hides it — NOT
+  // the input's onBlur, which fires (and would unmount this list) before a
+  // tap on a suggestion row below it can register as a press.
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { data: suggestions = [] } = useLocationSuggestions(value, kind);
 
   const resolvedLabel = label ?? (kind === 'home' ? 'Where they live' : 'Where you met');
@@ -31,7 +35,7 @@ export default function MetLocationInput({
 
   const visibleSuggestions = useMemo(() => {
     const trimmed = value.trim().toLowerCase();
-    if (!focused) return [];
+    if (!showSuggestions) return [];
     if (!suggestions.length) return [];
     if (
       suggestions.length === 1 &&
@@ -41,50 +45,42 @@ export default function MetLocationInput({
       return [];
     }
     return suggestions;
-  }, [suggestions, focused, value]);
+  }, [suggestions, showSuggestions, value]);
 
   return (
     <View style={styles.wrapper}>
-      <TextInput
-        mode="outlined"
+      <FormInput
         label={resolvedLabel}
         placeholder={resolvedPlaceholder}
         value={value}
-        onChangeText={onChangeText}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setTimeout(() => setFocused(false), 120);
+        onChangeText={(t) => {
+          onChangeText(t);
+          setShowSuggestions(true);
         }}
+        onFocus={() => setShowSuggestions(true)}
         autoCapitalize="words"
         maxLength={120}
+        style={styles.input}
       />
       {visibleSuggestions.length > 0 && (
-        <View style={[styles.dropdown, { backgroundColor: theme.colors.elevation.level2 }]}>
+        <View style={styles.dropdown}>
           {visibleSuggestions.map((s, idx) => {
             const meta = describe(s);
             return (
               <Pressable
                 key={`${s.value}-${idx}`}
                 onPress={() => {
+                  Keyboard.dismiss();
                   onChangeText(s.value);
-                  setFocused(false);
+                  setShowSuggestions(false);
                 }}
-                style={({ pressed }) => [
-                  styles.row,
-                  pressed && { backgroundColor: theme.colors.surfaceVariant },
-                ]}
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               >
-                <List.Icon icon={meta.icon} color={theme.colors.onSurfaceVariant} />
+                <List.Icon icon={meta.icon} color={fz.textMute} />
                 <View style={styles.rowText}>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-                    {s.value}
-                  </Text>
+                  <Text style={fzText.body}>{s.value}</Text>
                   {meta.subtitle && (
-                    <Text
-                      variant="bodySmall"
-                      style={{ color: theme.colors.onSurfaceVariant }}
-                      numberOfLines={1}
-                    >
+                    <Text style={fzText.sub} numberOfLines={1}>
                       {meta.subtitle}
                     </Text>
                   )}
@@ -117,9 +113,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     zIndex: 10,
   },
+  input: {
+    marginBottom: 0,
+  },
   dropdown: {
     marginTop: 4,
-    borderRadius: 8,
+    borderRadius: fz.rButton,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    backgroundColor: fz.card,
     overflow: 'hidden',
     paddingVertical: 4,
   },
@@ -128,6 +130,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
+  },
+  rowPressed: {
+    backgroundColor: fz.surfaceSoft,
   },
   rowText: {
     flex: 1,

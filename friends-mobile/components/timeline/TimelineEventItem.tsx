@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { Text, IconButton, Menu, useTheme, type MD3Theme } from 'react-native-paper';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { Text, IconButton, Menu } from 'react-native-paper';
 import { router } from 'expo-router';
-import { formatRelativeTime, getInitials } from '@/lib/utils/format';
-import SectionDivider from '@/components/SectionDivider';
+import { getInitials } from '@/lib/utils/format';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
 
 /** Shape of all timeline items after merging contact events, birthdays, party events etc. */
 export interface TimelineEvent {
@@ -15,7 +16,6 @@ export interface TimelineEvent {
   notes?: string | null;
   location?: string | null;
   duration?: number | null;
-  // synthetic event flags
   isBirthday?: boolean;
   isImportantDate?: boolean;
   isPartyEvent?: boolean;
@@ -36,8 +36,6 @@ interface TimelineEventItemProps {
   index: number;
   filteredEvents: TimelineEvent[];
   people: PersonWithPhoto[];
-  relationshipColors: Record<string, string>;
-  theme: MD3Theme;
   eventMenuVisible: string | null;
   setEventMenuVisible: (id: string | null) => void;
   handleEditEvent: (event: TimelineEvent) => void;
@@ -46,13 +44,17 @@ interface TimelineEventItemProps {
   getEventLabel: (type: string) => string;
 }
 
+function formatTimelineDate(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+    .format(date)
+    .toUpperCase();
+}
+
 export default function TimelineEventItem({
   item,
   index,
   filteredEvents,
   people,
-  relationshipColors,
-  theme,
   eventMenuVisible,
   setEventMenuVisible,
   handleEditEvent,
@@ -66,12 +68,7 @@ export default function TimelineEventItem({
   const person = people.find((p) => p.id === item.personId);
   const isBirthday = item.isBirthday || item.eventType === 'birthday';
   const isImportantDate = item.isImportantDate || item.eventType === 'anniversary';
-  const isSpecialEvent = isBirthday || isImportantDate;
-  const personColor = person?.relationshipType
-    ? relationshipColors[person.relationshipType] || theme.colors.primary
-    : theme.colors.primary;
 
-  // Check if we need to show year header
   const currentYear = new Date(item.eventDate!).getFullYear();
   const previousYear =
     index > 0 ? new Date(filteredEvents[index - 1].eventDate!).getFullYear() : null;
@@ -80,76 +77,56 @@ export default function TimelineEventItem({
       ? new Date(filteredEvents[index + 1].eventDate!).getFullYear()
       : null;
   const showYearHeader = index === 0 || currentYear !== previousYear;
-  const isLastInYear = nextYear !== null && currentYear !== nextYear;
+  const isLast = index >= filteredEvents.length - 1;
+  const isLatest = index === 0; // list is sorted desc — index 0 is most recent
+
+  const navigate = () => {
+    if (item.isPartyEvent && item.partyDetails) {
+      const actualEventId = item.id.replace('party-', '');
+      router.push(`/party-planner?eventId=${actualEventId}`);
+    } else if (!item.isPartyEvent && person) {
+      router.push(`/person/${person.id}`);
+    }
+  };
 
   return (
     <>
-      {/* Year header */}
       {showYearHeader && (
-        <SectionDivider label={String(currentYear)} variant="labelLarge" marginVertical={24} />
+        <View style={styles.yearHeader}>
+          <View style={styles.yearRule} />
+          <Text style={fzText.label}>{currentYear}</Text>
+          <View style={styles.yearRule} />
+        </View>
       )}
 
-      <View style={styles.timelineItem}>
-        {/* Timeline line */}
-        <View style={styles.timelineLine}>
-          <View
-            style={[
-              styles.timelineDot,
-              { backgroundColor: personColor },
-              isBirthday && styles.birthdayDot,
-              isImportantDate && styles.anniversaryDot,
-            ]}
-          />
-          {index < filteredEvents.length - 1 && (
-            <View style={[styles.timelineConnector, { backgroundColor: theme.colors.primary }]} />
-          )}
+      <View style={styles.row}>
+        {/* Rail */}
+        <View style={styles.rail}>
+          <View style={[styles.dot, isLatest ? styles.dotFilled : styles.dotOutline]} />
+          {!isLast && <View style={styles.connector} />}
         </View>
 
-        {/* Event content - No card */}
-        <View style={styles.eventContent}>
-          {/* Person & Event Type */}
-          <View style={styles.headerRow}>
-            <View style={styles.personRow}>
+        {/* Content */}
+        <View style={styles.content}>
+          <Text style={fzText.label}>{formatTimelineDate(new Date(item.eventDate!))}</Text>
+
+          <View style={styles.titleRow}>
+            <TouchableOpacity style={styles.personRow} onPress={navigate} activeOpacity={0.7}>
               {item.isPartyEvent ? (
-                // Party event - show party icon
-                <View style={[styles.personAvatar, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={styles.personAvatarText}>🎉</Text>
+                <View style={[styles.avatar, { backgroundColor: fz.ink }]}>
+                  <Text style={styles.avatarEmoji}>🎉</Text>
                 </View>
               ) : person ? (
-                // Regular person event
                 person.photoPath ? (
-                  <View style={styles.avatarWithBorder}>
-                    <Image source={{ uri: person.photoPath }} style={styles.personAvatarImage} />
-                    <View style={[styles.avatarIndicator, { backgroundColor: personColor }]} />
-                  </View>
+                  <Image source={{ uri: person.photoPath }} style={styles.avatar} />
                 ) : (
-                  <View style={[styles.personAvatar, { backgroundColor: personColor }]}>
-                    <Text style={styles.personAvatarText}>{getInitials(person.name)}</Text>
+                  <View style={[styles.avatar, { backgroundColor: fz.surface }]}>
+                    <Text style={[styles.avatarText, { color: fz.ink }]}>{getInitials(person.name)}</Text>
                   </View>
                 )
               ) : null}
-              <View style={styles.personInfo}>
-                <Text
-                  variant="titleSmall"
-                  style={styles.personName}
-                  onPress={() => {
-                    if (item.isPartyEvent && item.partyDetails) {
-                      // Navigate to party view
-                      const actualEventId = item.id.replace('party-', '');
-                      router.push(`/party-planner?eventId=${actualEventId}`);
-                    } else if (!item.isPartyEvent && person) {
-                      // Navigate to person detail
-                      router.push(`/person/${person.id}`);
-                    }
-                  }}
-                >
-                  {personName}
-                </Text>
-                <Text variant="labelSmall" style={styles.eventMeta}>
-                  {getEventLabel(item.eventType)} · {formatRelativeTime(new Date(item.eventDate!))}
-                </Text>
-              </View>
-            </View>
+              <Text style={styles.title} numberOfLines={1}>{personName}</Text>
+            </TouchableOpacity>
 
             {!isBirthday && !isImportantDate && (
               <Menu
@@ -158,25 +135,20 @@ export default function TimelineEventItem({
                 anchor={
                   <IconButton
                     icon="dots-vertical"
-                    size={20}
+                    size={18}
                     onPress={() => setEventMenuVisible(item.id)}
                     style={styles.menuButton}
+                    iconColor={fz.textMute}
                   />
                 }
               >
                 <Menu.Item
-                  onPress={() => {
-                    setEventMenuVisible(null);
-                    handleEditEvent(item);
-                  }}
+                  onPress={() => { setEventMenuVisible(null); handleEditEvent(item); }}
                   title="Edit"
                   leadingIcon="pencil-outline"
                 />
                 <Menu.Item
-                  onPress={() => {
-                    setEventMenuVisible(null);
-                    handleDeleteEvent(item.id);
-                  }}
+                  onPress={() => { setEventMenuVisible(null); handleDeleteEvent(item.id); }}
                   title="Delete"
                   leadingIcon="delete-outline"
                 />
@@ -184,42 +156,25 @@ export default function TimelineEventItem({
             )}
           </View>
 
-          {/* Event Notes */}
-          {item.notes && (
-            <Text variant="bodyMedium" style={styles.eventNotes}>
-              {item.notes}
+          <View style={styles.tagRow}>
+            <Pill label={getEventLabel(item.eventType)} variant="surface" />
+            {isBirthday && <Pill label="Birthday" variant="soft" />}
+            {isImportantDate && <Pill label="Anniversary" variant="soft" />}
+          </View>
+
+          {item.notes && <Text style={fzText.body}>{item.notes}</Text>}
+
+          {item.isPartyEvent && item.partyDetails && (
+            <Text style={styles.guestCount}>
+              👥 {item.guestCount} {item.guestCount === 1 ? 'guest' : 'guests'}
             </Text>
           )}
 
-          {/* Party Management Buttons */}
-          {item.isPartyEvent && item.partyDetails && (
-            <View style={styles.partyActions}>
-              <Text variant="labelSmall" style={styles.guestCount}>
-                👥 {item.guestCount} {item.guestCount === 1 ? 'guest' : 'guests'}
-              </Text>
-              {/* Removed party button for now as it was causing issues in extraction, can be re-added if needed */}
-            </View>
-          )}
-
-          {/* Meta Info */}
           {(item.location || item.duration) && (
             <View style={styles.metaRow}>
-              {item.location && (
-                <Text variant="labelSmall" style={styles.metaText}>
-                  📍 {item.location}
-                </Text>
-              )}
-              {item.duration && (
-                <Text variant="labelSmall" style={styles.metaText}>
-                  ⏱️ {item.duration} min
-                </Text>
-              )}
+              {item.location && <Text style={styles.metaText}>📍 {item.location}</Text>}
+              {item.duration && <Text style={styles.metaText}>⏱️ {item.duration} min</Text>}
             </View>
-          )}
-
-          {/* Divider - hide if last event or last in year */}
-          {index < filteredEvents.length - 1 && !isLastInYear && (
-            <View style={styles.eventDivider} />
           )}
         </View>
       </View>
@@ -228,128 +183,104 @@ export default function TimelineEventItem({
 }
 
 const styles = StyleSheet.create({
-  timelineItem: {
+  yearHeader: {
     flexDirection: 'row',
-    marginBottom: 0,
-  },
-  timelineLine: {
-    width: 30,
     alignItems: 'center',
+    gap: 10,
+    marginVertical: 18,
   },
-  timelineDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    marginTop: 20,
-    borderWidth: 3,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
+  yearRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: fz.hairline,
   },
-  birthdayDot: {
-    backgroundColor: '#ff9800',
+  row: {
+    flexDirection: 'row',
   },
-  anniversaryDot: {
-    backgroundColor: '#e91e63',
+  rail: {
+    width: 28,
+    alignItems: 'center',
+    paddingTop: 2,
   },
-  timelineConnector: {
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  dotFilled: {
+    backgroundColor: fz.ink,
+  },
+  dotOutline: {
+    backgroundColor: fz.paper,
+    borderWidth: 2,
+    borderColor: fz.outline,
+  },
+  connector: {
     width: 2,
     flex: 1,
-    opacity: 0.2,
-    marginTop: 6,
+    backgroundColor: fz.hairline,
+    marginTop: 4,
+    minHeight: 20,
   },
-  eventContent: {
+  content: {
     flex: 1,
-    marginLeft: 12,
-    paddingBottom: 20,
+    marginLeft: 10,
+    paddingBottom: 22,
   },
-  eventDivider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  headerRow: {
+  titleRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    marginTop: 6,
+    marginBottom: 8,
   },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 10,
   },
-  personInfo: {
-    flex: 1,
-  },
-  personAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  personAvatarText: {
-    color: 'white',
-    fontSize: 18,
+  avatarText: {
+    color: '#fff',
+    fontSize: 13,
     fontWeight: '600',
+    fontFamily: fz.font,
   },
-  avatarWithBorder: {
-    position: 'relative',
-    marginRight: 12,
+  avatarEmoji: {
+    fontSize: 16,
   },
-  avatarIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#fff',
+  title: {
+    ...fzText.name,
+    fontSize: 15.5,
+    fontWeight: '600',
+    flexShrink: 1,
   },
-  personAvatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  personName: {
-    fontWeight: 'bold',
-  },
-  eventMeta: {
-    opacity: 0.7,
-  },
-  menuButton: {
-    margin: 0,
-  },
-  eventNotes: {
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  partyActions: {
+  tagRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    marginBottom: 8,
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 8,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
   },
   guestCount: {
-    opacity: 0.8,
+    ...fzText.sub,
+    marginTop: 4,
   },
   metaRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    gap: 14,
+    marginTop: 6,
   },
   metaText: {
-    opacity: 0.6,
+    ...fzText.time,
+  },
+  menuButton: {
+    margin: 0,
   },
 });

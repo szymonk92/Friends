@@ -30,7 +30,7 @@ interface ExtractedRelation {
   relationType: string;
   objectLabel: string;
   objectType?: string;
-  intensity?: 'weak' | 'medium' | 'strong' | 'very_strong';
+  intensity?: 'weak' | 'medium' | 'strong';
   confidence: number;
   category?: string;
   metadata?: Record<string, any>;
@@ -207,27 +207,18 @@ function createContextUpdate(
 export function shouldAutoAccept(relation: ExtractedRelation): boolean {
   const { relationType, confidence } = relation;
 
-  // Safe relations (low risk)
-  const safeRelations = ['LIKES', 'DISLIKES', 'KNOWS', 'ASSOCIATED_WITH', 'EXPERIENCED'];
+  // Low-stakes facts — a wrong guess here just needs a swipe to fix later
+  const safeRelations = ['LIKES', 'DISLIKES', 'DOES', 'HAS', 'CAN', 'WANTS', 'KNOWS'];
   if (safeRelations.includes(relationType) && confidence >= 0.85) {
     return true;
   }
 
-  // Sensitive relations (higher risk)
-  const sensitiveRelations = ['FEARS', 'STRUGGLES_WITH', 'UNCOMFORTABLE_WITH', 'SENSITIVE_TO'];
+  // Higher-stakes facts — identity/belief (IS absorbed BELIEVES), residence,
+  // one-off events, health struggles, and hard constraints (AVOIDS absorbed
+  // allergy/medical-rule facts). Extra scrutiny before writing these.
+  const sensitiveRelations = ['IS', 'LIVES_IN', 'DID', 'AVOIDS', 'STRUGGLES_WITH'];
   if (sensitiveRelations.includes(relationType) && confidence >= 0.9) {
     return true;
-  }
-
-  // Person-to-person relations (very high threshold)
-  const personRelations = ['CARES_FOR', 'DEPENDS_ON'];
-  if (personRelations.includes(relationType) && confidence >= 0.95) {
-    return true;
-  }
-
-  // Beliefs always require review
-  if (relationType === 'BELIEVES') {
-    return false;
   }
 
   return false;

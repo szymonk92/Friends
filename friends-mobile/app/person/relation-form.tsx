@@ -1,29 +1,22 @@
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Alert,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  SegmentedButtons,
-  Card,
-  ActivityIndicator,
-} from 'react-native-paper';
-import { useState, useEffect, useRef } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, View, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { useState, useEffect } from 'react';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useCreateRelation, useUpdateRelation } from '@/hooks/useRelations';
 import { devLogger } from '@/lib/utils/devLogger';
 import { usePerson } from '@/hooks/usePeople';
 import { db } from '@/lib/db';
 import { relations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { RELATION_TYPE_OPTIONS, INTENSITY_OPTIONS } from '@/lib/constants/relations';
+import {
+  RELATION_TYPE_OPTIONS,
+  INTENSITY_OPTIONS,
+  STATUS_OPTIONS,
+  TYPES_WITHOUT_INTENSITY,
+} from '@/lib/constants/relations';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { FormSection, FormInput } from '@/components/FormKit';
 
 type RelationFormMode = 'add' | 'edit';
 
@@ -48,11 +41,8 @@ export default function RelationForm({ mode }: RelationFormProps) {
   const [objectLabel, setObjectLabel] = useState('');
   const [category, setCategory] = useState('');
   const [intensity, setIntensity] = useState<string>('medium');
+  const [status, setStatus] = useState<string>('current');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Animation refs for scroll indicators
-  const relationTypeScrollAnim = useRef(new Animated.Value(0)).current;
-  const intensityScrollAnim = useRef(new Animated.Value(0)).current;
 
   // Load relation data for edit mode
   useEffect(() => {
@@ -72,6 +62,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
             setObjectLabel(rel.objectLabel);
             setCategory(rel.category || '');
             setIntensity(rel.intensity || 'medium');
+            setStatus(rel.status || 'current');
 
             // Load person data
             const personData = await db.query.people.findFirst({
@@ -94,48 +85,6 @@ export default function RelationForm({ mode }: RelationFormProps) {
   // Get the person to display (from hook for add mode, from loaded data for edit mode)
   const displayPerson = mode === 'add' ? person : loadedPerson;
 
-  // Scroll indicator animation effect
-  useEffect(() => {
-    if (displayPerson && !isLoading) {
-      // Small delay to ensure component is fully rendered
-      const timer = setTimeout(() => {
-        // Animate relation type scroll indicator
-        Animated.sequence([
-          Animated.timing(relationTypeScrollAnim, {
-            toValue: -20, // Move left slightly
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.spring(relationTypeScrollAnim, {
-            toValue: 0, // Bounce back
-            friction: 3,
-            tension: 40,
-            useNativeDriver: true,
-          }),
-        ]).start();
-
-        // Animate intensity scroll indicator with slight delay
-        setTimeout(() => {
-          Animated.sequence([
-            Animated.timing(intensityScrollAnim, {
-              toValue: -20, // Move left slightly
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.spring(intensityScrollAnim, {
-              toValue: 0, // Bounce back
-              friction: 3,
-              tension: 40,
-              useNativeDriver: true,
-            }),
-          ]).start();
-        }, 200);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [displayPerson, isLoading, relationTypeScrollAnim, intensityScrollAnim]);
-
   const handleSubmit = async () => {
     if (!objectLabel.trim()) {
       Alert.alert('Missing Information', 'Please enter what they like/dislike/etc.');
@@ -143,6 +92,12 @@ export default function RelationForm({ mode }: RelationFormProps) {
     }
 
     setIsSubmitting(true);
+
+    // HAS/LIVES_IN/KNOWS are binary facts — never persist a leftover
+    // "medium" from local state just because the picker was hidden.
+    const submittedIntensity = TYPES_WITHOUT_INTENSITY.includes(relationType)
+      ? null
+      : (intensity as any);
 
     try {
       if (mode === 'add') {
@@ -153,39 +108,33 @@ export default function RelationForm({ mode }: RelationFormProps) {
           objectLabel: objectLabel.trim(),
           objectType: category.trim() || undefined,
           category: category.trim() || undefined,
-          intensity: intensity as any,
+          intensity: submittedIntensity,
           confidence: 1.0, // Manual entry = 100% confident
           source: 'manual',
-          status: 'current',
+          status: status as any,
         });
 
-        Alert.alert('Success!', 'Relation added successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
+        router.back();
       } else {
         await updateRelation.mutateAsync({
           id: relationId!,
           relationType: relationType as any,
           objectLabel: objectLabel.trim(),
           category: category.trim() || null,
-          intensity: intensity as any,
+          intensity: submittedIntensity,
+          status: status as any,
         });
 
-        Alert.alert('Success!', 'Relation updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
+        router.back();
       }
     } catch (error) {
-      Alert.alert(
-        'Error',
-        `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`
-      );
+      // Add mode may throw a typed contradiction from the hook; surface it.
+      // Edit mode keeps the generic message (the guard isn't on the update path).
+      const msg =
+        mode === 'add' && error instanceof Error
+          ? error.message
+          : `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`;
+      Alert.alert(mode === 'add' ? 'Cannot add relation' : 'Error', msg);
       devLogger.error(`Failed to ${mode} relation`, { error, relationType, personId });
     } finally {
       setIsSubmitting(false);
@@ -198,22 +147,26 @@ export default function RelationForm({ mode }: RelationFormProps) {
         return 'e.g., coffee, hiking, classical music';
       case 'DISLIKES':
         return 'e.g., mushrooms, loud noises, crowds';
+      case 'AVOIDS':
+        return 'e.g., peanuts, alcohol, meat';
       case 'IS':
         return 'e.g., vegan, software engineer, introvert';
-      case 'KNOWS':
-        return 'e.g., Python, Spanish, how to cook';
-      case 'HAS_SKILL':
+      case 'HAS':
+        return 'e.g., glasses, a car, a house';
+      case 'LIVES_IN':
+        return 'e.g., Kraków, Brooklyn';
+      case 'CAN':
         return 'e.g., programming, guitar, cooking';
-      case 'FEARS':
-        return 'e.g., heights, spiders, public speaking';
-      case 'REGULARLY_DOES':
+      case 'DOES':
         return 'e.g., yoga, meditation, running';
-      case 'WANTS_TO_ACHIEVE':
+      case 'DID':
+        return 'e.g., ran a marathon, moved abroad';
+      case 'WANTS':
         return 'e.g., learn piano, run a marathon';
       case 'STRUGGLES_WITH':
         return 'e.g., anxiety, procrastination, sleep';
-      case 'CARES_FOR':
-        return 'e.g., elderly parent, pet, community';
+      case 'KNOWS':
+        return 'e.g., a lot of people in Berlin';
       default:
         return 'Enter details...';
     }
@@ -223,7 +176,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={[fzText.sub, styles.loadingText]}>Loading...</Text>
       </View>
     );
   }
@@ -231,8 +184,8 @@ export default function RelationForm({ mode }: RelationFormProps) {
   if (mode === 'edit' && (!relation || !displayPerson)) {
     return (
       <View style={styles.centered}>
-        <Text variant="bodyLarge">Relation not found</Text>
-        <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
+        <Text style={fzText.title}>Relation not found</Text>
+        <Button mode="contained" onPress={() => router.back()} buttonColor={fz.ink} style={styles.backButton}>
           Go Back
         </Button>
       </View>
@@ -241,119 +194,109 @@ export default function RelationForm({ mode }: RelationFormProps) {
 
   return (
     <>
+      <Stack.Screen
+        options={{
+          title: displayPerson?.name || (mode === 'add' ? 'Add Something' : 'Edit'),
+          headerStyle: { backgroundColor: fz.paper },
+          headerTintColor: fz.ink,
+          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+          headerShadowVisible: false,
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="headlineSmall" style={styles.title}>
-                  {mode === 'add' ? 'Add Relation' : 'Edit Relation'} for {displayPerson?.name}
-                </Text>
-                <Text variant="bodyMedium" style={styles.subtitle}>
-                  {mode === 'add'
-                    ? 'Add information about this person'
-                    : 'Update information about this person'}
-                </Text>
-              </Card.Content>
-            </Card>
+            <Text style={fzText.titleLg}>
+              {mode === 'add' ? 'Add something they’re into' : 'Edit'} for {displayPerson?.name}
+            </Text>
+            <Text style={[fzText.sub, styles.headerSub]}>
+              {mode === 'add'
+                ? 'A like, dislike, fear, skill, or anything worth remembering.'
+                : 'Update this entry.'}
+            </Text>
 
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.label}>
-                  Relation Type
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.typeScrollContainer}
-                >
-                  <Animated.View
-                    style={{
-                      transform: [{ translateX: relationTypeScrollAnim }],
-                    }}
-                  >
-                    <View style={styles.typeGrid}>
-                      {RELATION_TYPE_OPTIONS.map((type) => (
-                        <Button
-                          key={type.value}
-                          mode={relationType === type.value ? 'contained' : 'outlined'}
-                          onPress={() => setRelationType(type.value)}
-                          style={styles.typeButton}
-                          compact
-                        >
-                          {type.label}
-                        </Button>
-                      ))}
-                    </View>
-                  </Animated.View>
-                </ScrollView>
-              </Card.Content>
-            </Card>
+            <FormSection title="Type">
+              <View style={styles.pillRow}>
+                {RELATION_TYPE_OPTIONS.map((type) => (
+                  <Pill
+                    key={type.value}
+                    label={type.label}
+                    selected={relationType === type.value}
+                    onPress={() => setRelationType(type.value)}
+                  />
+                ))}
+              </View>
+            </FormSection>
 
-            <Card style={styles.card}>
-              <Card.Content>
-                <TextInput
-                  mode="outlined"
-                  label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
-                  placeholder={getPlaceholder()}
-                  value={objectLabel}
-                  onChangeText={setObjectLabel}
-                  style={styles.input}
-                  autoFocus
-                />
+            <FormSection>
+              <FormInput
+                label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
+                placeholder={getPlaceholder()}
+                value={objectLabel}
+                onChangeText={setObjectLabel}
+                autoFocus
+              />
 
-                <TextInput
-                  mode="outlined"
-                  label="Category (optional)"
-                  placeholder="e.g., food, activity, music, sport"
-                  value={category}
-                  onChangeText={setCategory}
-                  style={styles.input}
-                />
+              <FormInput
+                label="Category (optional)"
+                placeholder="e.g., food, activity, music, sport"
+                value={category}
+                onChangeText={setCategory}
+                style={styles.lastInput}
+              />
+            </FormSection>
 
-                <Text variant="titleSmall" style={styles.label}>
-                  Intensity
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.intensityScrollContainer}
-                >
-                  <Animated.View
-                    style={{
-                      transform: [{ translateX: intensityScrollAnim }],
-                    }}
-                  >
-                    <SegmentedButtons
-                      value={intensity}
-                      onValueChange={setIntensity}
-                      buttons={INTENSITY_OPTIONS.map((option) => ({
-                        value: option.value,
-                        label: option.label,
-                      }))}
-                      style={styles.segmented}
+            <FormSection title="When">
+              <View style={styles.pillRow}>
+                {STATUS_OPTIONS.map((option) => (
+                  <Pill
+                    key={option.value}
+                    label={option.label}
+                    selected={status === option.value}
+                    onPress={() => setStatus(option.value)}
+                  />
+                ))}
+              </View>
+            </FormSection>
+
+            {!TYPES_WITHOUT_INTENSITY.includes(relationType) && (
+              <FormSection title="Intensity">
+                <View style={styles.pillRow}>
+                  {INTENSITY_OPTIONS.map((option) => (
+                    <Pill
+                      key={option.value}
+                      label={option.label}
+                      selected={intensity === option.value}
+                      onPress={() => setIntensity(option.value)}
                     />
-                  </Animated.View>
-                </ScrollView>
-              </Card.Content>
-            </Card>
+                  ))}
+                </View>
+              </FormSection>
+            )}
 
             <Button
               mode="contained"
               onPress={handleSubmit}
               loading={isSubmitting}
               disabled={isSubmitting || !objectLabel.trim()}
+              buttonColor={fz.ink}
               style={styles.submitButton}
               contentStyle={styles.submitButtonContent}
+              labelStyle={fzText.btn}
             >
-              {mode === 'add' ? 'Add Relation' : 'Save Changes'}
+              {mode === 'add' ? 'Add' : 'Save Changes'}
             </Button>
 
-            <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
+            <Button
+              mode="text"
+              onPress={() => router.back()}
+              disabled={isSubmitting}
+              textColor={fz.textMute}
+            >
               Cancel
             </Button>
 
@@ -368,59 +311,42 @@ export default function RelationForm({ mode }: RelationFormProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.paper,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: fz.paper,
   },
   loadingText: {
     marginTop: 12,
   },
   backButton: {
     marginTop: 16,
+    borderRadius: fz.rButton,
   },
   content: {
-    padding: 16,
+    padding: fz.s.edge,
   },
-  card: {
-    marginBottom: 16,
+  headerSub: {
+    marginTop: 6,
+    marginBottom: fz.s.lg,
   },
-  title: {
-    marginBottom: 8,
-  },
-  subtitle: {
-    opacity: 0.7,
-  },
-  label: {
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  typeGrid: {
+  pillRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
-    marginTop: 8,
+    marginTop: 4,
   },
-  typeScrollContainer: {
-    paddingVertical: 4,
-  },
-  typeButton: {
-    marginBottom: 8,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  segmented: {
-    marginBottom: 16,
-  },
-  intensityScrollContainer: {
-    paddingVertical: 4,
+  lastInput: {
+    marginBottom: 0,
   },
   submitButton: {
     marginTop: 8,
     marginBottom: 8,
+    borderRadius: fz.rButton,
   },
   submitButtonContent: {
     paddingVertical: 8,

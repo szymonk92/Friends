@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { Dialog, Portal, TextInput, Menu, Button, Text } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 
 interface CreateSecretDialogProps {
   visible: boolean;
@@ -36,15 +37,15 @@ export default function CreateSecretDialog({
 }: CreateSecretDialogProps) {
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss}>
-        <Dialog.Title>New Secret</Dialog.Title>
+      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+        <Dialog.Title style={styles.dialogTitle}>New Secret</Dialog.Title>
         <Dialog.Content>
           <TextInput
             label="Title"
             value={newSecretTitle}
             onChangeText={setNewSecretTitle}
             mode="outlined"
-            style={styles.input}
+            style={[styles.input, styles.dialogFont]}
           />
           <TextInput
             label="Secret Content"
@@ -53,7 +54,7 @@ export default function CreateSecretDialog({
             mode="outlined"
             multiline
             numberOfLines={4}
-            style={styles.input}
+            style={[styles.input, styles.dialogFont]}
             secureTextEntry
           />
           <Menu
@@ -64,6 +65,7 @@ export default function CreateSecretDialog({
                 mode="outlined"
                 onPress={() => setShowPersonMenu(true)}
                 style={styles.personSelector}
+                labelStyle={styles.dialogFont}
                 icon="account"
               >
                 {selectedPersonId
@@ -90,13 +92,16 @@ export default function CreateSecretDialog({
               />
             ))}
           </Menu>
-          <Text variant="bodySmall" style={styles.dialogHint}>
+          <Text variant="bodySmall" style={[styles.dialogHint, styles.dialogFont]}>
             Content will be encrypted with your {isPasswordBased ? 'password' : 'biometric key'}
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
+          <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+            Cancel
+          </Button>
           <Button
+            labelStyle={styles.dialogFont}
             onPress={handleCreateSecret}
             loading={createSecretPending}
             disabled={createSecretPending}
@@ -110,6 +115,16 @@ export default function CreateSecretDialog({
 }
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
+  },
   input: {
     marginBottom: 12,
   },

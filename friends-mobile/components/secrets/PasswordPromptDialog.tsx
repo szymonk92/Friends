@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { Dialog, Text, TextInput, Button } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 
 interface PasswordPromptDialogProps {
   visible: boolean;
@@ -21,10 +22,10 @@ export default function PasswordPromptDialog({
   loading,
 }: PasswordPromptDialogProps) {
   return (
-    <Dialog visible={visible} onDismiss={onDismiss}>
-      <Dialog.Title>Enter Password</Dialog.Title>
+    <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+      <Dialog.Title style={styles.dialogTitle}>Enter Password</Dialog.Title>
       <Dialog.Content>
-        <Text variant="bodySmall" style={styles.passwordPromptText}>
+        <Text variant="bodySmall" style={[styles.passwordPromptText, styles.dialogFont]}>
           Enter your password to {pendingAction === 'create' ? 'save' : 'decrypt'} the secret
         </Text>
         <TextInput
@@ -33,13 +34,16 @@ export default function PasswordPromptDialog({
           onChangeText={setAccessPassword}
           mode="outlined"
           secureTextEntry
-          style={styles.input}
+          style={[styles.input, styles.dialogFont]}
           autoFocus
         />
       </Dialog.Content>
       <Dialog.Actions>
-        <Button onPress={onDismiss}>Cancel</Button>
+        <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+          Cancel
+        </Button>
         <Button
+          labelStyle={styles.dialogFont}
           onPress={handlePasswordSubmit}
           loading={loading}
           disabled={!accessPassword || loading}
@@ -52,6 +56,16 @@ export default function PasswordPromptDialog({
 }
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+  },
+  dialogTitle: {
+    fontFamily: fz.font,
+  },
+  dialogFont: {
+    fontFamily: fz.font,
+  },
   passwordPromptText: {
     marginBottom: 16,
     opacity: 0.7,
