@@ -214,11 +214,15 @@ export default function PersonProfileScreen() {
         >
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
           <PersonTags personId={id!} personName={person.name} />
-          <PersonQuickActions personId={id!} personName={person.name} />
+          {person.entityType !== 'pet' && (
+            <PersonQuickActions personId={id!} personName={person.name} />
+          )}
           <PersonImportantDates person={person} />
           <PersonPhotos personId={id!} currentPhotoId={person.photoId} />
           <PersonGiftIdeas personId={id!} personName={person.name} />
-          <PersonRelations personId={id!} personName={person.name} />
+          {person.entityType !== 'pet' && (
+            <PersonRelations personId={id!} personName={person.name} />
+          )}
           <PersonConnections personId={id!} personName={person.name} />
           <Text style={styles.footer}>
             Last updated {formatRelativeTime(new Date(person.updatedAt))}
