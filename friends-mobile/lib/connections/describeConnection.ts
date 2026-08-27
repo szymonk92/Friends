@@ -24,8 +24,13 @@ export function describeConnection(
     const species = connectedEntity.species?.trim();
     return species ? `Pet · ${species}` : 'Pet';
   }
-  if (connection.relationshipType === 'child') {
-    return connection.person1Id === viewerId ? `Child${qualifier}` : 'Parent';
+  // Reciprocal family types: `relationshipType` names person2's role relative to
+  // person1 (the profile the link was created from). 'child' → person1 is the
+  // parent; 'parent' → person1 is the child. Flip when viewing from person2.
+  if (connection.relationshipType === 'child' || connection.relationshipType === 'parent') {
+    const connectedIsChild =
+      (connection.relationshipType === 'child') === (connection.person1Id === viewerId);
+    return connectedIsChild ? `Child${qualifier}` : `Parent${qualifier}`;
   }
 
   const status = connection.status && connection.status !== 'active' ? ` • ${connection.status}` : '';

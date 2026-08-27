@@ -47,7 +47,8 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<SearchCategory>('all');
 
-  const { data: people = [], isLoading: loadingPeople } = usePeople();
+  // 'all' so pets (and their species) and mentioned children are searchable too.
+  const { data: people = [], isLoading: loadingPeople } = usePeople({ entityType: 'all' });
   const { data: relations = [], isLoading: loadingRelations } = useRelations();
   const { data: stories = [], isLoading: loadingStories } = useStories();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
@@ -70,13 +71,17 @@ export default function SearchScreen() {
         const nameMatch = person.name.toLowerCase().includes(query);
         const nicknameMatch = person.nickname?.toLowerCase().includes(query);
         const notesMatch = person.notes?.toLowerCase().includes(query);
+        const speciesMatch = person.species?.toLowerCase().includes(query);
 
-        if (nameMatch || nicknameMatch || notesMatch) {
+        if (nameMatch || nicknameMatch || notesMatch || speciesMatch) {
+          const isPet = person.entityType === 'pet';
           results.push({
             id: person.id,
             type: 'person',
             title: person.name,
-            subtitle: person.relationshipType || 'No relationship type',
+            subtitle: isPet
+              ? `🐾 ${person.species?.trim() || 'Pet'}`
+              : person.relationshipType || 'No relationship type',
             metadata: person.nickname ? `"${person.nickname}"` : undefined,
             personId: person.id,
           });

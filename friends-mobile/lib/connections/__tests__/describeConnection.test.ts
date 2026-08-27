@@ -28,10 +28,17 @@ describe('describeConnection', () => {
     expect(describeConnection(petConn, { entityType: 'pet', species: null }, OWNER)).toBe('Pet');
   });
 
-  it('labels a child link from each side (by person1Id = parent)', () => {
+  it('labels a child link from each side (person1 = parent)', () => {
     const childConn = { ...petConn, relationshipType: 'child' as const, qualifier: 'eldest' };
     expect(describeConnection(childConn, { entityType: 'person', species: null }, OWNER)).toBe('Child • eldest');
-    expect(describeConnection(childConn, { entityType: 'person', species: null }, PET)).toBe('Parent');
+    expect(describeConnection(childConn, { entityType: 'person', species: null }, PET)).toBe('Parent • eldest');
+  });
+
+  it('labels a parent link (reciprocal type, person1 = child)', () => {
+    // Created from the child's profile: person1 = child, person2 = parent.
+    const parentConn = { person1Id: 'kid', relationshipType: 'parent' as const, qualifier: null, status: 'active' as const };
+    expect(describeConnection(parentConn, { entityType: 'person', species: null }, 'kid')).toBe('Parent');
+    expect(describeConnection(parentConn, { entityType: 'person', species: null }, 'mum')).toBe('Child');
   });
 
   it('keeps qualifier and non-active status for regular links', () => {
