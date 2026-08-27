@@ -74,6 +74,9 @@ export default function PersonConnections({ personId, personName }: PersonConnec
             <View style={styles.rowBody}>
               <Text style={fzText.name} numberOfLines={1}>{connectedPerson.name}</Text>
               <Text style={fzText.sub} numberOfLines={1}>{description}</Text>
+              {connection.notes ? (
+                <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
+              ) : null}
             </View>
             <Pill label={connection.status} variant="soft" />
           </TouchableOpacity>
@@ -132,6 +135,11 @@ const styles = StyleSheet.create({
   rowBody: {
     flex: 1,
     minWidth: 0,
+  },
+  notes: {
+    ...fzText.sub,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   addButton: {
     marginTop: 14,

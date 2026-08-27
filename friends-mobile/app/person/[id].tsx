@@ -7,6 +7,7 @@ import {
   Menu,
 } from 'react-native-paper';
 import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson } from '@/hooks/usePeople';
 import {
@@ -26,9 +27,11 @@ import PersonGiftIdeas from '@/components/person/PersonGiftIdeas';
 import PersonRelations from '@/components/person/PersonRelations';
 import PersonConnections from '@/components/person/PersonConnections';
 import { fz, fzText } from '@/lib/design/tokens';
+import { formatRelativeTime } from '@/lib/utils/format';
 
 export default function PersonProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const deletePerson = useDeletePerson();
 
@@ -152,6 +155,26 @@ export default function PersonProfileScreen() {
                     leadingIcon="camera"
                   />
                 )}
+                {person.personType !== 'self' && (
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
+                      router.push(`/person/relationship?personId=${id}`);
+                    }}
+                    title="View Relationship"
+                    leadingIcon="link-variant"
+                  />
+                )}
+                {person.personType !== 'self' && (
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
+                      router.push(`/person/compare-picker?personId=${id}`);
+                    }}
+                    title="Compare With…"
+                    leadingIcon="account-multiple"
+                  />
+                )}
                 <Menu.Item
                   onPress={() => {
                     setMenuVisible(false);
@@ -183,7 +206,10 @@ export default function PersonProfileScreen() {
         }}
       />
       <View style={styles.wrapper}>
-        <ScrollView style={styles.container}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+        >
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
           <PersonTags personId={id!} personName={person.name} />
           <PersonQuickActions personId={id!} personName={person.name} />
@@ -192,7 +218,9 @@ export default function PersonProfileScreen() {
           <PersonGiftIdeas personId={id!} personName={person.name} />
           <PersonRelations personId={id!} personName={person.name} />
           <PersonConnections personId={id!} personName={person.name} />
-          <View style={styles.spacer} />
+          <Text style={styles.footer}>
+            Last updated {formatRelativeTime(new Date(person.updatedAt))}
+          </Text>
         </ScrollView>
       </View>
     </>
@@ -217,7 +245,9 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: 16,
   },
-  spacer: {
-    height: 40,
+  footer: {
+    ...fzText.time,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });

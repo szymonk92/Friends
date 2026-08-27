@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, Image } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePeople, usePerson } from '@/hooks/usePeople';
@@ -45,9 +45,13 @@ export default function ComparePickerScreen() {
                   router.replace(`/person/relationship?personId=${personId}&compareToId=${item.id}`)
                 }
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
-                </View>
+                {item.photoPath ? (
+                  <Image source={{ uri: item.photoPath }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+                  </View>
+                )}
                 <View style={styles.rowInfo}>
                   <Text style={fzText.name}>{item.name}</Text>
                   {item.relationshipType && (

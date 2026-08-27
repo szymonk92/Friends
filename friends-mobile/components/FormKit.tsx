@@ -38,6 +38,14 @@ export function FormInput(props: TextInputProps) {
       placeholderTextColor={fz.textMute}
       theme={{ fonts: { bodyLarge: { fontFamily: fz.font } } }}
       {...props}
+      // Apply the font to the actual input node (not just via theme) so the text
+      // measure/render metrics match — otherwise Space Grotesk sits optically
+      // high in the outlined box. Multiline stays top-aligned.
+      contentStyle={[
+        { fontFamily: fz.font },
+        props.multiline ? { textAlignVertical: 'top', paddingTop: 12 } : null,
+        props.contentStyle,
+      ]}
     />
   );
 }

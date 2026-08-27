@@ -1,7 +1,7 @@
-import { StyleSheet, View, Alert, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Text, List, IconButton, Divider, ActivityIndicator, Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { usePersonConnections, useDeleteConnection } from '@/hooks/useConnections';
+import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople } from '@/hooks/usePeople';
 import { formatRelativeTime, getInitials } from '@/lib/utils/format';
 import { fz } from '@/lib/design/tokens';
@@ -10,24 +10,6 @@ export default function ManageConnectionsScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: allPeople = [] } = usePeople();
   const { data: connections = [], isLoading } = usePersonConnections(personId!);
-  const deleteConnection = useDeleteConnection();
-
-  const handleDelete = (connectionId: string, personName: string) => {
-    Alert.alert(
-      'Delete Connection',
-      `Are you sure you want to delete the connection with ${personName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteConnection.mutateAsync(connectionId);
-          },
-        },
-      ]
-    );
-  };
 
   const getConnectedPerson = (connection: any) => {
     const connectedId =
@@ -97,21 +79,13 @@ export default function ManageConnectionsScreen() {
                     </TouchableOpacity>
                   )}
                   right={() => (
-                    <View style={styles.actions}>
-                      <IconButton
-                        icon="pencil"
-                        size={20}
-                        onPress={() =>
-                          router.push(`/person/edit-connection?connectionId=${connection.id}`)
-                        }
-                      />
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        iconColor="#d32f2f"
-                        onPress={() => handleDelete(connection.id, connectedPerson.name)}
-                      />
-                    </View>
+                    <IconButton
+                      icon="pencil"
+                      size={24}
+                      onPress={() =>
+                        router.push(`/person/edit-connection?connectionId=${connection.id}`)
+                      }
+                    />
                   )}
                   style={styles.listItem}
                 />
@@ -167,10 +141,6 @@ const styles = StyleSheet.create({
     color: fz.ink,
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   spacer: {
     height: 40,

@@ -1,8 +1,7 @@
 import { StyleSheet, View, TouchableOpacity, Image, Alert, Linking } from 'react-native';
 import { useState } from 'react';
 import { Text } from 'react-native-paper';
-import { router } from 'expo-router';
-import { getInitials, formatRelativeTime, formatShortDate } from '@/lib/utils/format';
+import { getInitials, formatShortDate } from '@/lib/utils/format';
 import {
   usePersonPhotos,
   useTakePhoto,
@@ -18,7 +17,6 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
 import { LineIcon } from '@/components/LineIcon';
-import { ChainLogo } from '@/components/ChainLogo';
 
 interface PersonHeaderProps {
   person: Person;
@@ -159,72 +157,63 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
     );
   };
 
+  const hasChips =
+    person.relationshipType ||
+    person.personType ||
+    (person.importanceToUser && person.importanceToUser !== 'unknown') ||
+    person.homeLocation;
+
   return (
     <View style={styles.headerSection}>
-      <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer} activeOpacity={0.8}>
-        {profilePhoto ? (
-          <Image source={{ uri: profilePhoto.filePath }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+      <View style={styles.identityRow}>
+        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer} activeOpacity={0.8}>
+          {profilePhoto ? (
+            <Image source={{ uri: profilePhoto.filePath }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
+            </View>
+          )}
+          <View style={styles.avatarBadge}>
+            <LineIcon name="camera" size={12} color="#fff" />
           </View>
-        )}
-        <View style={styles.avatarBadge}>
-          <LineIcon name="camera" size={15} color="#fff" />
+        </TouchableOpacity>
+
+        <View style={styles.identityInfo}>
+          <View style={styles.nameLine}>
+            <Text style={fzText.title}>{person.name}</Text>
+            {person.nickname && <Text style={styles.nickname}>"{person.nickname}"</Text>}
+          </View>
+
+          {hasChips && (
+            <View style={styles.chips}>
+              {person.relationshipType && (
+                <Pill
+                  label={person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
+                  variant="solid"
+                />
+              )}
+              {person.personType && (
+                <Pill label={person.personType.charAt(0).toUpperCase() + person.personType.slice(1)} />
+              )}
+              {person.importanceToUser && person.importanceToUser !== 'unknown' && (
+                <Pill
+                  label={person.importanceToUser
+                    .replace('_', ' ')
+                    .split(' ')
+                    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')}
+                />
+              )}
+              {person.homeLocation && <Pill label={person.homeLocation} />}
+            </View>
+          )}
+
+          {(person.metDate || person.metLocation) && (
+            <Text style={styles.metaLine}>{formatMetLine(person.metDate, person.metLocation)}</Text>
+          )}
         </View>
-      </TouchableOpacity>
-
-      <Text style={fzText.titleLg}>{person.name}</Text>
-
-      {person.nickname && <Text style={styles.nickname}>"{person.nickname}"</Text>}
-
-      <View style={styles.chips}>
-        {person.relationshipType && (
-          <Pill
-            label={person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
-            variant="solid"
-          />
-        )}
-        {person.personType && (
-          <Pill label={person.personType.charAt(0).toUpperCase() + person.personType.slice(1)} />
-        )}
-        {person.importanceToUser && person.importanceToUser !== 'unknown' && (
-          <Pill
-            label={person.importanceToUser
-              .replace('_', ' ')
-              .split(' ')
-              .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ')}
-          />
-        )}
-        {person.homeLocation && <Pill label={person.homeLocation} />}
       </View>
-
-      {(person.metDate || person.metLocation) && (
-        <Text style={styles.metaLine}>{formatMetLine(person.metDate, person.metLocation)}</Text>
-      )}
-      {person.homeLocation && <Text style={styles.metaLine}>Lives in {person.homeLocation}</Text>}
-
-      {person.personType !== 'self' && (
-        <View style={styles.relationshipActions}>
-          <TouchableOpacity
-            style={styles.relationshipRow}
-            activeOpacity={0.7}
-            onPress={() => router.push(`/person/relationship?personId=${person.id}`)}
-          >
-            <ChainLogo size={20} strokeWidth={7} color={fz.ink} />
-            <Text style={styles.relationshipText}>View relationship</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.relationshipRow}
-            activeOpacity={0.7}
-            onPress={() => router.push(`/person/compare-picker?personId=${person.id}`)}
-          >
-            <LineIcon name="users" size={18} color={fz.ink} />
-            <Text style={styles.relationshipText}>Compare with…</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       <PartnerBadge
         personId={person.id}
@@ -244,10 +233,6 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
       )}
 
       {person.notes && <PersonNotes text={person.notes} />}
-
-      <Text style={styles.meta}>
-        Last updated {formatRelativeTime(new Date(person.updatedAt))}
-      </Text>
     </View>
   );
 }
@@ -255,42 +240,55 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
 const styles = StyleSheet.create({
   headerSection: {
     paddingHorizontal: fz.s.edge,
-    paddingTop: 22,
+    paddingTop: 16,
     paddingBottom: 18,
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: fz.paper,
+  },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  identityInfo: {
+    flex: 1,
+  },
+  nameLine: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: 6,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 18,
   },
   avatar: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: fz.ink,
   },
   avatarImage: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   avatarText: {
     color: '#fff',
-    fontSize: 36,
+    fontSize: 22,
     fontWeight: '600',
     fontFamily: fz.font,
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    bottom: -2,
+    right: -2,
     backgroundColor: fz.ink,
-    borderRadius: 16,
-    width: 32,
-    height: 32,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -299,52 +297,25 @@ const styles = StyleSheet.create({
   nickname: {
     ...fzText.sub,
     fontStyle: 'italic',
-    marginTop: 2,
-    marginBottom: 10,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 8,
   },
   metaLine: {
     ...fzText.sub,
     marginTop: 6,
-    textAlign: 'center',
-  },
-  relationshipActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  relationshipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: fz.rPill,
-    backgroundColor: fz.surface,
-  },
-  relationshipText: {
-    fontFamily: fz.font,
-    fontWeight: '500',
-    fontSize: 13,
-    color: fz.ink,
   },
   contactRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 14,
+    marginTop: 12,
     gap: 10,
   },
   languagesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     marginTop: 12,
     gap: 8,
   },
@@ -358,9 +329,5 @@ const styles = StyleSheet.create({
     fontFamily: fz.font,
     fontSize: 13,
     color: fz.ink,
-  },
-  meta: {
-    ...fzText.time,
-    marginTop: 14,
   },
 });

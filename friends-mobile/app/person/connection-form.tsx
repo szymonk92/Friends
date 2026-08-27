@@ -269,6 +269,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           id: connectionId!,
           relationshipType,
           qualifier: qualifier.trim() || null,
+          notes: notes.trim() || null,
           status,
         });
 
@@ -680,17 +681,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                   style={styles.qualifierInput}
                 />
 
-                {mode === 'add' && (
-                  <FormInput
-                    label="Notes (optional)"
-                    placeholder="Any additional notes about this connection..."
-                    value={notes}
-                    onChangeText={setNotes}
-                    multiline
-                    numberOfLines={3}
-                    style={styles.lastInput}
-                  />
-                )}
+                <FormInput
+                  label="Notes (optional)"
+                  placeholder="Where they met, how they get on, past history..."
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.lastInput}
+                />
               </FormSection>
 
               {mode === 'edit' && (

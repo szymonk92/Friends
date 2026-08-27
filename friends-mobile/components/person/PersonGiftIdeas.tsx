@@ -76,19 +76,6 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
     ]);
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return '#d32f2f';
-      case 'medium':
-        return '#ff9800';
-      case 'low':
-        return '#4caf50';
-      default:
-        return '#757575';
-    }
-  };
-
   return (
     <>
       <ProfileSection
@@ -103,21 +90,16 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
           giftIdeas.map((gift) => (
             <View key={gift.id} style={styles.giftItem}>
               <View style={styles.giftInfo}>
-                <View style={styles.giftHeader}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text
-                      style={[
-                        styles.giftItemText,
-                        gift.status === 'given' && styles.giftGiven,
-                      ]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {gift.item}
-                    </Text>
-                  </View>
-                  <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(gift.priority) }]} />
-                </View>
+                <Text
+                  style={[
+                    styles.giftItemText,
+                    gift.status === 'given' && styles.giftGiven,
+                  ]}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {gift.item}
+                </Text>
                 {gift.occasion && (
                   <Text style={styles.giftOccasion}>For: {gift.occasion}</Text>
                 )}
@@ -222,7 +204,8 @@ const styles = StyleSheet.create({
   giftItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 10,
     padding: 14,
     borderRadius: fz.rCard,
@@ -233,12 +216,6 @@ const styles = StyleSheet.create({
   giftInfo: {
     flex: 1,
   },
-  giftHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
   giftItemText: {
     ...fzText.name,
     fontSize: 14.5,
@@ -246,11 +223,6 @@ const styles = StyleSheet.create({
   giftGiven: {
     textDecorationLine: 'line-through',
     opacity: 0.5,
-  },
-  priorityDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   giftOccasion: {
     ...fzText.sub,
