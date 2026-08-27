@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import {
   Platform,
+  Pressable,
   StyleSheet,
   ScrollView,
   View,
@@ -117,6 +118,8 @@ export default function EditPersonScreen() {
   const [personType, setPersonType] = useState<string>('primary');
   const [importanceToUser, setImportanceToUser] = useState<string>('unknown');
   const [gender, setGender] = useState<string>('');
+  const [genderOther, setGenderOther] = useState('');
+  const [showBrainDump, setShowBrainDump] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill form when person data loads
@@ -138,7 +141,10 @@ export default function EditPersonScreen() {
       setNotes(person.notes || '');
       setPersonType(person.personType || 'primary');
       setImportanceToUser(person.importanceToUser || 'unknown');
-      setGender(person.gender || '');
+      const g = person.gender || '';
+      const known = g === 'male' || g === 'female';
+      setGender(!g ? '' : known ? g : 'other');
+      setGenderOther(!g || known || g === 'other' ? '' : g);
     }
   }, [person]);
 
@@ -276,7 +282,8 @@ export default function EditPersonScreen() {
         notes: notes.trim() || null,
         personType: personType as any,
         importanceToUser: importanceToUser as any,
-        gender: (gender || null) as any,
+        gender:
+          gender === 'other' ? genderOther.trim() || 'other' : gender || null,
       });
 
       router.back();
@@ -343,24 +350,6 @@ export default function EditPersonScreen() {
           <View style={styles.content}>
             <Text style={[fzText.sub, styles.subtitle]}>Update information for {person.name}</Text>
 
-            <BrainDumpSection
-              personName={person.name}
-              existing={buildExistingState({
-                metLocation,
-                metDate,
-                homeLocation,
-                phone,
-                email,
-                socialLinks,
-                languages,
-                personRelations,
-                personConnections,
-                allPeople,
-                personId: personId!,
-              })}
-              onApply={handleBrainDumpApply}
-            />
-
             <View style={styles.plainGroup}>
               <FormInput label="Name *" placeholder="Enter their name" value={name} onChangeText={setName} autoFocus />
               <FormInput label="Nickname" placeholder="Optional nickname" value={nickname} onChangeText={setNickname} style={styles.lastInput} />
@@ -382,6 +371,18 @@ export default function EditPersonScreen() {
                   <Pill key={opt.value || 'unknown'} label={opt.label} selected={gender === opt.value} onPress={() => setGender(opt.value)} />
                 ))}
               </View>
+              {gender === 'other' && (
+                <FormInput
+                  label="Specify gender"
+                  placeholder="e.g. non-binary"
+                  value={genderOther}
+                  onChangeText={setGenderOther}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={40}
+                  style={styles.genderOtherInput}
+                />
+              )}
             </FormSection>
 
             <FormSection title="Relationship Type">
@@ -404,8 +405,9 @@ export default function EditPersonScreen() {
                 placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
                 value={dateOfBirth}
                 onChangeText={setDateOfBirth}
+                style={styles.inputAboveHint}
               />
-              <Text style={[fzText.sub, styles.hintTight]}>
+              <Text style={[fzText.sub, styles.hintTile]}>
                 Enter year only (1990), year-month (1990-06), or full date (1990-06-15)
               </Text>
 
@@ -414,8 +416,9 @@ export default function EditPersonScreen() {
                 placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
                 value={metDate}
                 onChangeText={setMetDate}
+                style={styles.inputAboveHint}
               />
-              <Text style={[fzText.sub, styles.hintTight]}>Year alone is fine, e.g. 2024.</Text>
+              <Text style={[fzText.sub, styles.hintTile]}>Year alone is fine, e.g. 2024.</Text>
 
               <MetLocationInput value={metLocation} onChangeText={setMetLocation} kind="met" />
               <MetLocationInput value={homeLocation} onChangeText={setHomeLocation} kind="home" />
@@ -499,6 +502,34 @@ export default function EditPersonScreen() {
                 style={styles.lastInput}
               />
             </View>
+
+            <Pressable
+              onPress={() => setShowBrainDump((v) => !v)}
+              style={styles.foldHeader}
+              accessibilityRole="button"
+            >
+              <Text style={fzText.label}>Quick brain-dump (optional)</Text>
+              <Text style={fzText.sub}>{showBrainDump ? 'Hide' : 'Show'}</Text>
+            </Pressable>
+            {showBrainDump && (
+              <BrainDumpSection
+                personName={person.name}
+                existing={buildExistingState({
+                  metLocation,
+                  metDate,
+                  homeLocation,
+                  phone,
+                  email,
+                  socialLinks,
+                  languages,
+                  personRelations,
+                  personConnections,
+                  allPeople,
+                  personId: personId!,
+                })}
+                onApply={handleBrainDumpApply}
+              />
+            )}
 
             <Button
               mode="contained"
@@ -597,6 +628,28 @@ const styles = StyleSheet.create({
   hintTight: {
     marginTop: 4,
     marginBottom: fz.s.md,
+  },
+  inputAboveHint: {
+    marginBottom: fz.s.xs,
+  },
+  hintTile: {
+    marginBottom: fz.s.md,
+    backgroundColor: fz.surfaceSoft,
+    borderRadius: fz.rButton,
+    paddingVertical: fz.s.sm,
+    paddingHorizontal: fz.s.md,
+    overflow: 'hidden',
+  },
+  genderOtherInput: {
+    marginTop: fz.s.md,
+    marginBottom: 0,
+  },
+  foldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: fz.s.md,
+    marginBottom: fz.s.sm,
   },
   submitButton: {
     marginTop: 8,

@@ -122,9 +122,9 @@ export const people = sqliteTable(
     extractionContext: text('extraction_context'),
     mentionCount: integer('mention_count').default(0),
 
-    gender: text('gender', {
-      enum: ['male', 'female', 'other', 'unknown'],
-    }),
+    // Free text: 'male' | 'female' | '' (unknown) | any custom value the user typed
+    // under "Other". No enum constraint so custom gender identities round-trip.
+    gender: text('gender'),
     status: text('status', {
       enum: ['active', 'archived', 'deceased', 'placeholder', 'merged', 'expected'],
     })

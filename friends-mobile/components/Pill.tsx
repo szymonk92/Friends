@@ -31,7 +31,11 @@ export function Pill({
     <View style={[styles.base, s, style]}>
       {icon && <LineIcon name={icon} size={13} color={v === 'solid' ? '#fff' : fz.ink} />}
       <Text style={text}>{label}</Text>
-      {onClose && <LineIcon name="close" size={12} color={v === 'solid' ? '#fff' : fz.textMute} />}
+      {onClose && (
+        <TouchableOpacity onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
+          <LineIcon name="close" size={12} color={v === 'solid' ? '#fff' : fz.textMute} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 

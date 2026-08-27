@@ -47,17 +47,32 @@ export default function LanguagesEditor({ value, onChange }: Props) {
     onChange(value.filter((v) => v !== lang));
   };
 
+  // ponytail: tap-to-promote instead of drag-and-drop reordering. First = primary
+  // language, which is the only ordering that matters here. Swap for a gesture
+  // handler only if users actually need arbitrary order.
+  const promoteLanguage = (lang: string) => {
+    if (value[0] === lang) return;
+    onChange([lang, ...value.filter((v) => v !== lang)]);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={fzText.label}>Languages spoken</Text>
       <Text style={[fzText.sub, styles.hint]}>
-        Tap a suggestion or type a custom language and press return.
+        Tap a suggestion or type a custom language and press return. Tap a language
+        to make it the primary one; tap ✕ to remove it.
       </Text>
 
       {value.length > 0 && (
         <View style={styles.chipsRow}>
-          {value.map((lang) => (
-            <Pill key={lang} label={lang} onClose={() => removeLanguage(lang)} />
+          {value.map((lang, i) => (
+            <Pill
+              key={lang}
+              label={lang}
+              selected={i === 0 && value.length > 1}
+              onPress={() => promoteLanguage(lang)}
+              onClose={() => removeLanguage(lang)}
+            />
           ))}
         </View>
       )}
