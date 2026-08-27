@@ -33,6 +33,7 @@ import {
   PersonWithPhoto,
 } from '@/hooks/usePeople';
 import { getInitials } from '@/lib/utils/format';
+import { parseFlexibleDate } from '@/lib/utils/dates';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { db } from '@/lib/db';
 import { connections, type Connection } from '@/lib/db/schema';
@@ -86,6 +87,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingPersonName, setPendingPersonName] = useState<string | null>(null);
   const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
+  const [newEntityKind, setNewEntityKind] = useState<'person' | 'pet' | 'child'>('person');
+  const [species, setSpecies] = useState('');
+  const [birthdayText, setBirthdayText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = ['partner', 'friend', 'family'];
@@ -232,6 +236,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setStatus('active');
     setQualifier('');
     setNotes('');
+    setNewEntityKind('person');
+    setSpecies('');
+    setBirthdayText('');
   };
 
   const handleCreateAndSelectPerson = () => {
@@ -257,6 +264,32 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
     return null;
   }, [singlePersonId, pendingPersonName, allPeople, personType]);
+
+  const buildNewPersonPayload = (name: string) => {
+    const dob = birthdayText.trim() ? parseFlexibleDate(birthdayText.trim()) : null;
+    if (newEntityKind === 'pet') {
+      return {
+        name,
+        personType: 'mentioned' as const,
+        entityType: 'pet' as const,
+        species: species.trim() || null,
+        dateOfBirth: dob ?? undefined,
+      };
+    }
+    if (newEntityKind === 'child') {
+      return {
+        name,
+        personType: 'mentioned' as const,
+        entityType: 'person' as const,
+        dateOfBirth: dob ?? undefined,
+      };
+    }
+    return {
+      name,
+      personType,
+      relationshipType: 'friend' as const,
+    };
+  };
 
   const handleSubmit = async () => {
     if (mode === 'edit') {
@@ -311,11 +344,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       try {
         // If pending person, create them first
         if (!targetPersonId && pendingPersonName) {
-           const newPerson = await createPerson.mutateAsync({
-            name: pendingPersonName,
-            personType: personType,
-            relationshipType: 'friend', // Default
-          });
+          const newPerson = await createPerson.mutateAsync(buildNewPersonPayload(pendingPersonName));
           targetPersonId = newPerson.id;
         }
 
@@ -348,6 +377,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 setStatus('active');
                 setQualifier('');
                 setNotes('');
+                setNewEntityKind('person');
+                setSpecies('');
+                setBirthdayText('');
               },
             },
             {
@@ -444,6 +476,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               setStatus('active');
               setQualifier('');
               setNotes('');
+              setNewEntityKind('person');
+              setSpecies('');
+              setBirthdayText('');
               setSearchQuery('');
             },
           },
@@ -573,7 +608,56 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </View>
               </View>
 
-              {pendingPersonName && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+              {pendingPersonName && (
+                <FormSection title="What are you adding?">
+                  <View style={styles.pillRow}>
+                    {(['person', 'pet', 'child'] as const).map((kind) => (
+                      <Pill
+                        key={kind}
+                        label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}
+                        selected={newEntityKind === kind}
+                        onPress={() => {
+                          setNewEntityKind(kind);
+                          if (kind === 'pet') {
+                            setRelationshipType('pet');
+                            setPersonType('mentioned');
+                          } else if (kind === 'child') {
+                            setRelationshipType('child');
+                            setPersonType('mentioned');
+                          } else {
+                            setRelationshipType('friend');
+                            setPersonType('primary');
+                          }
+                        }}
+                      />
+                    ))}
+                  </View>
+                </FormSection>
+              )}
+
+              {pendingPersonName && newEntityKind === 'pet' && (
+                <FormSection title="Species">
+                  <FormInput
+                    label="Species (e.g. Dog, Cat, Parrot)"
+                    value={species}
+                    onChangeText={setSpecies}
+                    placeholder="Dog"
+                  />
+                </FormSection>
+              )}
+
+              {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
+                <FormSection title="Birthday (optional)">
+                  <FormInput
+                    label="Birthday"
+                    value={birthdayText}
+                    onChangeText={setBirthdayText}
+                    placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+                  />
+                </FormSection>
+              )}
+
+              {pendingPersonName && newEntityKind === 'person' && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
                 <FormSection title="Person Type">
                   <View style={styles.pillRow}>
                     <Pill
@@ -595,34 +679,36 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </FormSection>
               )}
 
-              <FormSection title="Relationship Type">
-                <View style={styles.pillRow}>
-                  {RELATIONSHIP_TYPES.map((type) => (
-                    <Pill
-                      key={type.value}
-                      label={type.label}
-                      selected={relationshipType === type.value}
-                      onPress={() => {
-                        setRelationshipType(type.value);
-                        if (pendingPersonName) {
-                          if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
-                            setPersonType('primary');
-                          } else if (type.value === 'acquaintance') {
-                            setPersonType('mentioned');
-                          } else {
-                            setPersonType('primary');
+              {newEntityKind === 'person' && (
+                <FormSection title="Relationship Type">
+                  <View style={styles.pillRow}>
+                    {RELATIONSHIP_TYPES.map((type) => (
+                      <Pill
+                        key={type.value}
+                        label={type.label}
+                        selected={relationshipType === type.value}
+                        onPress={() => {
+                          setRelationshipType(type.value);
+                          if (pendingPersonName) {
+                            if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(type.value)) {
+                              setPersonType('primary');
+                            } else if (type.value === 'acquaintance') {
+                              setPersonType('mentioned');
+                            } else {
+                              setPersonType('primary');
+                            }
                           }
-                        }
-                      }}
-                    />
-                  ))}
-                </View>
-                {pendingPersonName && personType === 'mentioned' && (
-                  <Text style={[fzText.sub, styles.pillHint]}>
-                    This person will be created as "Mentioned" (hidden).
-                  </Text>
-                )}
-              </FormSection>
+                        }}
+                      />
+                    ))}
+                  </View>
+                  {pendingPersonName && personType === 'mentioned' && (
+                    <Text style={[fzText.sub, styles.pillHint]}>
+                      This person will be created as "Mentioned" (hidden).
+                    </Text>
+                  )}
+                </FormSection>
+              )}
 
               <FormSection title="Status">
                 <View style={styles.pillRow}>
