@@ -14,6 +14,7 @@ import {
   STATUS_OPTIONS,
   TYPES_WITHOUT_INTENSITY,
 } from '@/lib/constants/relations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { FormSection, FormInput } from '@/components/FormKit';
@@ -26,6 +27,7 @@ interface RelationFormProps {
 
 export default function RelationForm({ mode }: RelationFormProps) {
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const relationId = mode === 'edit' ? (params.relationId as string) : undefined;
 
@@ -208,7 +210,11 @@ export default function RelationForm({ mode }: RelationFormProps) {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.content}>
             <Text style={fzText.titleLg}>
               {mode === 'add' ? 'Add something they’re into' : 'Edit'} for {displayPerson?.name}
@@ -299,8 +305,6 @@ export default function RelationForm({ mode }: RelationFormProps) {
             >
               Cancel
             </Button>
-
-            <View style={styles.spacer} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -350,8 +354,5 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
-  },
-  spacer: {
-    height: 40,
   },
 });

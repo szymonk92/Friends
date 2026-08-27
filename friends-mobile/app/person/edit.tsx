@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   hintTight: {
-    marginTop: -10,
+    marginTop: 4,
     marginBottom: fz.s.md,
   },
   submitButton: {

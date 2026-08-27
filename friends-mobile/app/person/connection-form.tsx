@@ -37,6 +37,7 @@ import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relatio
 import { db } from '@/lib/db';
 import { connections, type Connection } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { LineIcon } from '@/components/LineIcon';
@@ -57,6 +58,7 @@ interface ConnectionFormProps {
 
 export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const connectionId = mode === 'edit' ? (params.connectionId as string) : undefined;
 
@@ -524,7 +526,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.content}>
           <Text style={fzText.titleLg}>
             {mode === 'add' ? 'Add Connection' : 'Edit Connection'} for {person?.name}
@@ -806,8 +812,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           <Button mode="text" onPress={() => router.back()} disabled={isSubmitting} textColor={fz.textMute}>
             Cancel
           </Button>
-
-          <View style={styles.spacer} />
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
@@ -934,9 +938,6 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
-  },
-  spacer: {
-    height: 40,
   },
   topButtons: {
     flexDirection: 'row',
