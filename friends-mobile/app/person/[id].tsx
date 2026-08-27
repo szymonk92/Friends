@@ -175,7 +175,7 @@ export default function PersonProfileScreen() {
                     leadingIcon="account-multiple"
                   />
                 )}
-                {person.personType !== 'self' && person.entityType !== 'pet' && (
+                {person.entityType !== 'pet' && (
                   <Menu.Item
                     onPress={() => {
                       setMenuVisible(false);
