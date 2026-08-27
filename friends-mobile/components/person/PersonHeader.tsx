@@ -157,6 +157,8 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
     );
   };
 
+  const isPet = person.entityType === 'pet';
+
   const hasChips =
     person.relationshipType ||
     person.personType ||
@@ -185,7 +187,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
             {person.nickname && <Text style={styles.nickname}>"{person.nickname}"</Text>}
           </View>
 
-          {hasChips && (
+          {!isPet && hasChips && (
             <View style={styles.chips}>
               {person.relationshipType && (
                 <Pill
@@ -209,7 +211,13 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
             </View>
           )}
 
-          {(person.metDate || person.metLocation) && (
+          {isPet && (
+            <View style={styles.chips}>
+              <Pill label={`🐾 ${person.species?.trim() || 'Pet'}`} variant="solid" />
+            </View>
+          )}
+
+          {!isPet && (person.metDate || person.metLocation) && (
             <Text style={styles.metaLine}>{formatMetLine(person.metDate, person.metLocation)}</Text>
           )}
         </View>
@@ -220,11 +228,11 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         isOwnerPartner={person.relationshipType === 'partner'}
       />
 
-      <ContactQuickRow phone={person.phone} email={person.email} />
+      {!isPet && <ContactQuickRow phone={person.phone} email={person.email} />}
 
-      <SocialLinksStrip links={parseSocialLinksJson(person.socialLinks)} />
+      {!isPet && <SocialLinksStrip links={parseSocialLinksJson(person.socialLinks)} />}
 
-      {parseLanguagesJson(person.languages).length > 0 && (
+      {!isPet && parseLanguagesJson(person.languages).length > 0 && (
         <View style={styles.languagesRow}>
           {parseLanguagesJson(person.languages).map((lang) => (
             <Pill key={lang} label={lang} variant="soft" />

@@ -155,7 +155,7 @@ export default function PersonProfileScreen() {
                     leadingIcon="camera"
                   />
                 )}
-                {person.personType !== 'self' && (
+                {person.personType !== 'self' && person.entityType !== 'pet' && (
                   <Menu.Item
                     onPress={() => {
                       setMenuVisible(false);
@@ -165,7 +165,7 @@ export default function PersonProfileScreen() {
                     leadingIcon="link-variant"
                   />
                 )}
-                {person.personType !== 'self' && (
+                {person.personType !== 'self' && person.entityType !== 'pet' && (
                   <Menu.Item
                     onPress={() => {
                       setMenuVisible(false);
@@ -175,14 +175,16 @@ export default function PersonProfileScreen() {
                     leadingIcon="account-multiple"
                   />
                 )}
-                <Menu.Item
-                  onPress={() => {
-                    setMenuVisible(false);
-                    router.push(`/person/add-relation?personId=${id}`);
-                  }}
-                  title="Add Relation"
-                  leadingIcon="plus"
-                />
+                {person.personType !== 'self' && person.entityType !== 'pet' && (
+                  <Menu.Item
+                    onPress={() => {
+                      setMenuVisible(false);
+                      router.push(`/person/add-relation?personId=${id}`);
+                    }}
+                    title="Add Relation"
+                    leadingIcon="plus"
+                  />
+                )}
                 <Menu.Item
                   onPress={() => {
                     setMenuVisible(false);
