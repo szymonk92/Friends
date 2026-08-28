@@ -18,6 +18,7 @@ import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
 import { useConnections } from '@/hooks/useConnections';
 import { getInitials, formatRelativeTime } from '@/lib/utils/format';
+import { parseJsonArray } from '@/lib/utils/json';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
@@ -72,16 +73,22 @@ export default function SearchScreen() {
         const nicknameMatch = person.nickname?.toLowerCase().includes(query);
         const notesMatch = person.notes?.toLowerCase().includes(query);
         const speciesMatch = person.species?.toLowerCase().includes(query);
+        const matchedTags = parseJsonArray(person.tags).filter((t) =>
+          t.toLowerCase().includes(query)
+        );
 
-        if (nameMatch || nicknameMatch || notesMatch || speciesMatch) {
+        if (nameMatch || nicknameMatch || notesMatch || speciesMatch || matchedTags.length) {
           const isPet = person.entityType === 'pet';
+          const base = isPet
+            ? `🐾 ${person.species?.trim() || 'Pet'}`
+            : person.relationshipType || 'No relationship type';
           results.push({
             id: person.id,
             type: isPet ? 'pet' : 'person',
             title: person.name,
-            subtitle: isPet
-              ? `🐾 ${person.species?.trim() || 'Pet'}`
-              : person.relationshipType || 'No relationship type',
+            subtitle: matchedTags.length
+              ? `${base} · ${matchedTags.map((t) => `#${t}`).join(' ')}`
+              : base,
             metadata: person.nickname ? `"${person.nickname}"` : undefined,
             personId: person.id,
           });
