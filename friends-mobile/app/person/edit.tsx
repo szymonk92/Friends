@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View, Alert, Text as RNText } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   usePerson,
@@ -197,25 +197,18 @@ export default function EditPersonScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => (
-            <RNText style={styles.headerTitle} numberOfLines={1}>
-              {t('person.editHeader')}{' '}
-              <RNText style={styles.headerTitleName}>{person.name}</RNText>
-            </RNText>
-          ),
-          headerBackTitle: t('common.cancel'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerShadowVisible: false,
-        }}
-      />
       <PersonForm
         mode="edit"
         isPet={isPet}
         initial={initial}
         subtitle={t('person.editSubtitle', { name: person.name })}
+        headerTitle={
+          <RNText style={styles.headerTitle} numberOfLines={1}>
+            {t('person.editHeader')}{' '}
+            <RNText style={styles.headerTitleName}>{person.name}</RNText>
+          </RNText>
+        }
+        headerBackTitle={t('common.cancel')}
         submitting={isSubmitting}
         submitLabel={t('person.saveButton')}
         onSubmit={handleSubmit}

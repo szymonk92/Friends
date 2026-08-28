@@ -145,6 +145,10 @@ type Props = {
   onBrainDumpApply?: (applied: AppliedBrainDump) => void;
   /** Extra buttons rendered under the submit button (edit: add relation/connection). */
   footer?: ReactNode;
+  /** Custom nav-bar title node (edit only). Rendered next to the header Save button. */
+  headerTitle?: ReactNode;
+  /** iOS back-button label (edit only). */
+  headerBackTitle?: string;
 };
 
 export default function PersonForm({
@@ -160,6 +164,8 @@ export default function PersonForm({
   brainDumpContext,
   onBrainDumpApply,
   footer,
+  headerTitle,
+  headerBackTitle,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -268,13 +274,15 @@ export default function PersonForm({
     {mode === 'edit' && (
       <Stack.Screen
         options={{
+          ...(headerTitle ? { headerTitle: () => <>{headerTitle}</> } : {}),
+          ...(headerBackTitle ? { headerBackTitle } : {}),
           headerRight: () => (
             <Button
               mode="text"
               onPress={handleSubmitPress}
               disabled={submitting || name.trim().length < 2}
               textColor={fz.ink}
-              labelStyle={fzText.btn}
+              labelStyle={fzText.btnOutline}
               compact
             >
               {submitLabel}

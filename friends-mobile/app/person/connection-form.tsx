@@ -69,6 +69,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     notFound,
   } = useEntityById<Connection>(connections, connectionId);
 
+  // A pet's connections are always 'pet' links — no human relationship type
+  // applies, whichever side of the link you're adding from.
+  const subjectIsPet =
+    mode === 'add' ? person?.entityType === 'pet' : connection?.relationshipType === 'pet';
+
   // Form state
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [singlePersonMode, setSinglePersonMode] = useState(false);
@@ -85,6 +90,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [birthdayText, setBirthdayText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  // Optional co-parent / co-owner to link a freshly-created child or pet to.
+  const [secondParentId, setSecondParentId] = useState<string | null>(null);
+  const [parentMenuVisible, setParentMenuVisible] = useState(false);
 
   const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = [
     'partner',
@@ -148,6 +156,20 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
     return combined;
   }, [everyone, mePerson]);
+
+  const petIds = useMemo(
+    () => new Set(allPeople.filter((p) => p.entityType === 'pet').map((p) => p.id)),
+    [allPeople]
+  );
+
+  // A connection where the other endpoint is a pet is an owner link, not a
+  // human relationship type — so hide the relationship-type picker.
+  const otherSideIsPet =
+    newEntityKind === 'pet' ||
+    (singlePersonId != null && petIds.has(singlePersonId)) ||
+    (mode === 'edit' && connection?.relationshipType === 'pet') ||
+    (selectedPersonIds.length > 0 && selectedPersonIds.every((id) => petIds.has(id)));
+  const hideRelationshipType = subjectIsPet || otherSideIsPet;
 
   // Edit mode: the person on the other side of this connection, for the header card
   const editConnectedPerson = useMemo(() => {
@@ -224,6 +246,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setNewEntityKind('person');
     setSpecies('');
     setBirthdayText('');
+    setSecondParentId(null);
   };
 
   const handleCreateAndSelectPerson = () => {
@@ -306,9 +329,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
 
     // Add mode - create new connection
-    // A connection to a pet is always a 'pet' link, whatever relationship pill is shown.
+    // A connection touching a pet — on either side — is always a 'pet' link,
+    // whatever relationship pill happens to be shown.
     const relTypeFor = (id: string | null | undefined) =>
-      allPeople.find((p) => p.id === id)?.entityType === 'pet' ? 'pet' : relationshipType;
+      subjectIsPet || allPeople.find((p) => p.id === id)?.entityType === 'pet'
+        ? 'pet'
+        : relationshipType;
 
     // Single person mode
     if (singlePersonMode && (singlePersonId || pendingPersonName)) {
@@ -375,6 +401,21 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           strength: 0.5,
         });
 
+        // Link the freshly-created child/pet to an optional co-parent / co-owner.
+        if (
+          secondParentId &&
+          pendingPersonName &&
+          (newEntityKind === 'child' || newEntityKind === 'pet')
+        ) {
+          await createConnection.mutateAsync({
+            person1Id: secondParentId,
+            person2Id: targetPersonId,
+            relationshipType: newEntityKind === 'pet' ? 'pet' : 'child',
+            status,
+            strength: 0.5,
+          });
+        }
+
         Alert.alert(
           'Success!',
           `Connection added: ${person?.name} ↔️ ${selectedSinglePerson?.name} (${effectiveRelType})`,
@@ -395,6 +436,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 setNewEntityKind('person');
                 setSpecies('');
                 setBirthdayText('');
+                setSecondParentId(null);
               },
             },
             {
@@ -497,6 +539,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               setNewEntityKind('person');
               setSpecies('');
               setBirthdayText('');
+              setSecondParentId(null);
               setSearchQuery('');
             },
           },
@@ -632,7 +675,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {pendingPersonName && (
             <FormSection title="What are you adding?">
               <View style={styles.pillRow}>
-                {(['person', 'child', 'pet'] as const).map((kind) => (
+                {(subjectIsPet
+                  ? (['person', 'pet'] as const)
+                  : (['person', 'child', 'pet'] as const)
+                ).map((kind) => (
                   <Pill
                     key={kind}
                     label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}
@@ -678,6 +724,55 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             </FormSection>
           )}
 
+          {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
+            <FormSection
+              title={newEntityKind === 'pet' ? 'Other owner (optional)' : 'Other parent (optional)'}
+            >
+              {/* ponytail: plain Menu list; swap for a search field if the people list grows large. */}
+              <Menu
+                visible={parentMenuVisible}
+                onDismiss={() => setParentMenuVisible(false)}
+                anchor={
+                  <Button
+                    mode="outlined"
+                    icon="account-plus"
+                    textColor={fz.ink}
+                    onPress={() => setParentMenuVisible(true)}
+                  >
+                    {secondParentId
+                      ? (allPeople.find((p) => p.id === secondParentId)?.name ?? 'Selected')
+                      : newEntityKind === 'pet'
+                        ? 'Link a second owner'
+                        : 'Link the other parent'}
+                  </Button>
+                }
+              >
+                {secondParentId && (
+                  <Menu.Item
+                    leadingIcon="close"
+                    title="None"
+                    onPress={() => {
+                      setSecondParentId(null);
+                      setParentMenuVisible(false);
+                    }}
+                  />
+                )}
+                {availablePeople
+                  .filter((p) => p.entityType !== 'pet')
+                  .map((p) => (
+                    <Menu.Item
+                      key={p.id}
+                      title={p.name}
+                      onPress={() => {
+                        setSecondParentId(p.id);
+                        setParentMenuVisible(false);
+                      }}
+                    />
+                  ))}
+              </Menu>
+            </FormSection>
+          )}
+
           {pendingPersonName &&
             newEntityKind === 'person' &&
             !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
@@ -702,7 +797,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               </FormSection>
             )}
 
-          {newEntityKind === 'person' && (
+          {newEntityKind === 'person' && !hideRelationshipType && (
             <FormSection title="Relationship Type">
               <RelationshipTypePicker
                 value={relationshipType}
@@ -882,7 +977,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {(mode === 'edit' || selectedPersonIds.length > 0) && (
             <>
               {/* Pet connections aren't human relationship types — no pill picker */}
-              {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
+              {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && !hideRelationshipType && (
                 <FormSection title="Relationship Type">
                   <RelationshipTypePicker
                     value={relationshipType}

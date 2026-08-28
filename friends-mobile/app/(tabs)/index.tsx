@@ -343,10 +343,7 @@ export default function PeopleListScreen() {
                 activeOpacity={0.7}
               >
                 {item.photoPath ? (
-                  <View style={s.avatarWrap}>
-                    <Image source={{ uri: item.photoPath }} style={s.avatar} />
-                    <View style={[s.avatarDot, { backgroundColor: fz.ink }]} />
-                  </View>
+                  <Image source={{ uri: item.photoPath }} style={s.avatar} />
                 ) : (
                   <View style={[s.avatar, { backgroundColor: fz.surface }]}>
                     <Text style={[s.avatarText, { color: fz.ink }]}>{getInitials(item.name)}</Text>
@@ -420,12 +417,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingVertical: 11, paddingHorizontal: fz.s.edge,
   },
-  avatarWrap: { position: 'relative' },
   avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  avatarDot: {
-    position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
-    borderRadius: 6, borderWidth: 2, borderColor: fz.paper,
-  },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: '600', fontFamily: fz.font },
   rowBody: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
