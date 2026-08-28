@@ -632,7 +632,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {pendingPersonName && (
             <FormSection title="What are you adding?">
               <View style={styles.pillRow}>
-                {(['person', 'pet', 'child'] as const).map((kind) => (
+                {(['person', 'child', 'pet'] as const).map((kind) => (
                   <Pill
                     key={kind}
                     label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}

@@ -12,7 +12,7 @@ export function usePersonConnections(personId: string) {
     queryKey: ['connections', 'person', personId],
     queryFn: async () => {
       const userId = await getCurrentUserId();
-      return db
+      const rows = await db
         .select()
         .from(connections)
         .where(
@@ -23,6 +23,11 @@ export function usePersonConnections(personId: string) {
           )
         )
         .orderBy(desc(connections.createdAt));
+      // Partner always comes first; everything else keeps createdAt order.
+      return rows.sort(
+        (a, b) =>
+          Number(b.relationshipType === 'partner') - Number(a.relationshipType === 'partner')
+      );
     },
     enabled: !!personId,
   });

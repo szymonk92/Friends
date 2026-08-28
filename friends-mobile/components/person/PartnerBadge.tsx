@@ -58,7 +58,7 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
           onPress={() => router.push(`/person/${partner.id}`)}
           style={styles.row}
         >
-          <HeartIcon size={14} color={theme.colors.onSurface} weight="bold" />
+          <HeartIcon size={14} color={theme.colors.onSurface} weight="fill" />
           {partner.photoPath ? (
             <Image source={{ uri: partner.photoPath }} style={styles.avatar} />
           ) : (

@@ -78,7 +78,9 @@ export default function PersonConnections({ personId, personName }: PersonConnec
                 <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
               ) : null}
             </View>
-            {!isPet && <Pill label={connection.status} variant="soft" />}
+            {!isPet && connection.status !== 'active' && (
+              <Pill label={connection.status} variant="soft" />
+            )}
           </TouchableOpacity>
         );
       })}

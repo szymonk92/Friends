@@ -77,7 +77,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
 
       {sortedRelationTypes.map((type) => {
         const rels = relationsByType![type];
-        const expanded = expandedTypes[type] ?? false;
+        const expanded = expandedTypes[type] ?? true;
         return (
           <View key={type} style={styles.relationTypeSection}>
             <Pressable
