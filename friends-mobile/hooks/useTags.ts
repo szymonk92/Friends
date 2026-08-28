@@ -1,7 +1,9 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
+import { activePeople } from '@/lib/db/filters';
+import { parseJsonArray } from '@/lib/utils/json';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 /**
  * Hook to get all unique tags used across people
@@ -14,23 +16,11 @@ export function useAllTags() {
       const allPeople = await db
         .select({ tags: people.tags })
         .from(people)
-        .where(
-          and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
-        );
+        .where(activePeople(userId));
 
-      // Extract unique tags
       const tagSet = new Set<string>();
       allPeople.forEach((p) => {
-        if (p.tags) {
-          try {
-            const parsedTags = JSON.parse(p.tags);
-            if (Array.isArray(parsedTags)) {
-              parsedTags.forEach((tag) => tagSet.add(tag));
-            }
-          } catch {
-            // Invalid JSON, skip
-          }
-        }
+        parseJsonArray(p.tags).forEach((tag) => tagSet.add(tag));
       });
 
       return Array.from(tagSet).sort();
@@ -51,14 +41,7 @@ export function usePersonTags(personId: string) {
         .where(eq(people.id, personId))
         .limit(1);
 
-      if (!result.length || !result[0].tags) return [];
-
-      try {
-        const parsed = JSON.parse(result[0].tags);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
+      return parseJsonArray(result[0]?.tags);
     },
     enabled: !!personId,
   });
@@ -81,15 +64,7 @@ export function useAddTagToPerson() {
 
       if (!current.length) throw new Error('Person not found');
 
-      let currentTags: string[] = [];
-      if (current[0].tags) {
-        try {
-          currentTags = JSON.parse(current[0].tags);
-          if (!Array.isArray(currentTags)) currentTags = [];
-        } catch {
-          currentTags = [];
-        }
-      }
+      let currentTags = parseJsonArray(current[0].tags);
 
       // Add tag if not already present
       const normalizedTag = tag.trim().toLowerCase();
@@ -133,15 +108,7 @@ export function useRemoveTagFromPerson() {
 
       if (!current.length) throw new Error('Person not found');
 
-      let currentTags: string[] = [];
-      if (current[0].tags) {
-        try {
-          currentTags = JSON.parse(current[0].tags);
-          if (!Array.isArray(currentTags)) currentTags = [];
-        } catch {
-          currentTags = [];
-        }
-      }
+      let currentTags = parseJsonArray(current[0].tags);
 
       // Remove tag
       const normalizedTag = tag.trim().toLowerCase();
@@ -194,15 +161,5 @@ export function useSetPersonTags() {
   });
 }
 
-/**
- * Helper to parse tags from a person object
- */
-export function parseTags(tagsJson: string | null | undefined): string[] {
-  if (!tagsJson) return [];
-  try {
-    const parsed = JSON.parse(tagsJson);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+/** Helper to parse a person's `tags` JSON column. */
+export const parseTags = parseJsonArray;

@@ -2,7 +2,8 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, connections, stories, contactEvents, files } from '@/lib/db/schema';
 import { buildObsidianVault } from '@/lib/export/obsidianExport';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { eq, isNull, and, ne } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import * as Sharing from 'expo-sharing';
 import { Paths, File as ExpoFile, Directory } from 'expo-file-system';
 
@@ -31,7 +32,7 @@ export function useExportData() {
             .select()
             .from(people)
             .where(
-              and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+              activePeople(userId)
             ),
           db
             .select()
@@ -129,7 +130,7 @@ export function useExportStats() {
             .select({ id: people.id })
             .from(people)
             .where(
-              and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+              activePeople(userId)
             ),
           db
             .select({ id: relations.id })
@@ -342,7 +343,7 @@ export function useExportPeopleCSV() {
         .select()
         .from(people)
         .where(
-          and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))
+          activePeople(userId)
         );
 
       // Create CSV header

@@ -1,16 +1,11 @@
+import { parseJsonArray } from './json';
+
 export function parseLanguagesJson(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((v): v is string => typeof v === 'string')
-      .map((v) => v.trim())
-      .filter((v) => v.length > 0)
-      .slice(0, 20);
-  } catch {
-    return [];
-  }
+  return parseJsonArray(raw)
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+    .slice(0, 20);
 }
 
 export function serializeLanguages(list: string[]): string | null {

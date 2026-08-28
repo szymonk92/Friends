@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { stories, pendingExtractions, people, relations } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { useDeleteStory } from '@/hooks/useStories';
 import { useExtractRelations } from '@/hooks/useAIExtraction';
 import {
@@ -189,7 +190,7 @@ export default function StoryDetailScreen() {
               const existingPeople = await db
                 .select({ id: people.id, name: people.name })
                 .from(people)
-                .where(and(eq(people.userId, userId), isNull(people.deletedAt)));
+                .where(activePeople(userId));
 
               const existingRelations = await db
                 .select({

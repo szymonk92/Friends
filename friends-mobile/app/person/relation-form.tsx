@@ -1,23 +1,21 @@
-import { StyleSheet, View, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { StyleSheet, Alert } from 'react-native';
+import { Text, Button } from 'react-native-paper';
 import { useState, useEffect } from 'react';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCreateRelation, useUpdateRelation } from '@/hooks/useRelations';
 import { devLogger } from '@/lib/utils/devLogger';
 import { usePerson } from '@/hooks/usePeople';
-import { db } from '@/lib/db';
-import { relations } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { useEntityById } from '@/hooks/useEntityById';
+import { relations, type Relation } from '@/lib/db/schema';
 import {
   RELATION_TYPE_OPTIONS,
   INTENSITY_OPTIONS,
   STATUS_OPTIONS,
   TYPES_WITHOUT_INTENSITY,
 } from '@/lib/constants/relations';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz, fzText } from '@/lib/design/tokens';
 import { PillGroup } from '@/components/PillGroup';
-import { FormSection, FormInput } from '@/components/FormKit';
+import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 
 type RelationFormMode = 'add' | 'edit';
 
@@ -27,17 +25,16 @@ interface RelationFormProps {
 
 export default function RelationForm({ mode }: RelationFormProps) {
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const relationId = mode === 'edit' ? (params.relationId as string) : undefined;
 
   const createRelation = useCreateRelation();
   const updateRelation = useUpdateRelation();
-  const { data: person } = usePerson(personId!);
 
-  const [relation, setRelation] = useState<any>(null);
-  const [loadedPerson, setLoadedPerson] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(mode === 'edit');
+  const { data: relation, isLoading, notFound } = useEntityById<Relation>(relations, relationId);
+  const { data: displayPerson } = usePerson(
+    (mode === 'add' ? personId : relation?.subjectId) ?? ''
+  );
 
   const [relationType, setRelationType] = useState('LIKES');
   const [objectLabel, setObjectLabel] = useState('');
@@ -46,46 +43,15 @@ export default function RelationForm({ mode }: RelationFormProps) {
   const [status, setStatus] = useState<string>('current');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load relation data for edit mode
+  // Hydrate form state once the relation loads (edit mode).
   useEffect(() => {
-    if (mode === 'edit' && relationId) {
-      const loadRelation = async () => {
-        try {
-          const result = await db
-            .select()
-            .from(relations)
-            .where(eq(relations.id, relationId))
-            .limit(1);
-
-          if (result.length > 0) {
-            const rel = result[0];
-            setRelation(rel);
-            setRelationType(rel.relationType);
-            setObjectLabel(rel.objectLabel);
-            setCategory(rel.category || '');
-            setIntensity(rel.intensity || 'medium');
-            setStatus(rel.status || 'current');
-
-            // Load person data
-            const personData = await db.query.people.findFirst({
-              where: (people: any, { eq }: any) => eq(people.id, rel.subjectId),
-            });
-            setLoadedPerson(personData);
-          }
-          setIsLoading(false);
-        } catch (error) {
-          devLogger.error('Failed to load relation for editing', { error, relationId });
-          Alert.alert('Error', 'Failed to load relation');
-          setIsLoading(false);
-        }
-      };
-
-      loadRelation();
-    }
-  }, [mode, relationId]);
-
-  // Get the person to display (from hook for add mode, from loaded data for edit mode)
-  const displayPerson = mode === 'add' ? person : loadedPerson;
+    if (!relation) return;
+    setRelationType(relation.relationType);
+    setObjectLabel(relation.objectLabel);
+    setCategory(relation.category || '');
+    setIntensity(relation.intensity || 'medium');
+    setStatus(relation.status || 'current');
+  }, [relation]);
 
   const handleSubmit = async () => {
     if (!objectLabel.trim()) {
@@ -174,139 +140,84 @@ export default function RelationForm({ mode }: RelationFormProps) {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={[fzText.sub, styles.loadingText]}>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (mode === 'edit' && (!relation || !displayPerson)) {
-    return (
-      <View style={styles.centered}>
-        <Text style={fzText.title}>Relation not found</Text>
-        <Button mode="contained" onPress={() => router.back()} buttonColor={fz.ink} style={styles.backButton}>
-          Go Back
-        </Button>
-      </View>
-    );
-  }
-
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: displayPerson?.name || (mode === 'add' ? 'Add Something' : 'Edit'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-        }}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    <FormScreen
+      title={displayPerson?.name || (mode === 'add' ? 'Add Something' : 'Edit')}
+      loading={isLoading}
+      notFound={notFound}
+      notFoundLabel="Relation not found"
+    >
+      <Text style={fzText.titleLg}>
+        {mode === 'add' ? 'Add something they’re into' : 'Edit'} for {displayPerson?.name}
+      </Text>
+      <Text style={[fzText.sub, styles.headerSub]}>
+        {mode === 'add'
+          ? 'A like, dislike, fear, skill, or anything worth remembering.'
+          : 'Update this entry.'}
+      </Text>
+
+      <FormSection title="Type">
+        <PillGroup
+          value={relationType}
+          onChange={setRelationType}
+          options={RELATION_TYPE_OPTIONS}
+        />
+      </FormSection>
+
+      <FormSection>
+        <FormInput
+          label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
+          placeholder={getPlaceholder()}
+          value={objectLabel}
+          onChangeText={setObjectLabel}
+          autoFocus
+        />
+
+        <FormInput
+          label="Category (optional)"
+          placeholder="e.g., food, activity, music, sport"
+          value={category}
+          onChangeText={setCategory}
+          style={styles.lastInput}
+        />
+      </FormSection>
+
+      <FormSection title="When">
+        <PillGroup value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+      </FormSection>
+
+      {!TYPES_WITHOUT_INTENSITY.includes(relationType) && (
+        <FormSection title="Intensity">
+          <PillGroup value={intensity} onChange={setIntensity} options={INTENSITY_OPTIONS} />
+        </FormSection>
+      )}
+
+      <Button
+        mode="contained"
+        onPress={handleSubmit}
+        loading={isSubmitting}
+        disabled={isSubmitting || !objectLabel.trim()}
+        buttonColor={fz.ink}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+        labelStyle={fzText.btn}
       >
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.content}>
-            <Text style={fzText.titleLg}>
-              {mode === 'add' ? 'Add something they’re into' : 'Edit'} for {displayPerson?.name}
-            </Text>
-            <Text style={[fzText.sub, styles.headerSub]}>
-              {mode === 'add'
-                ? 'A like, dislike, fear, skill, or anything worth remembering.'
-                : 'Update this entry.'}
-            </Text>
+        {mode === 'add' ? 'Add' : 'Save Changes'}
+      </Button>
 
-            <FormSection title="Type">
-              <PillGroup value={relationType} onChange={setRelationType} options={RELATION_TYPE_OPTIONS} />
-            </FormSection>
-
-            <FormSection>
-              <FormInput
-                label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
-                placeholder={getPlaceholder()}
-                value={objectLabel}
-                onChangeText={setObjectLabel}
-                autoFocus
-              />
-
-              <FormInput
-                label="Category (optional)"
-                placeholder="e.g., food, activity, music, sport"
-                value={category}
-                onChangeText={setCategory}
-                style={styles.lastInput}
-              />
-            </FormSection>
-
-            <FormSection title="When">
-              <PillGroup value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            </FormSection>
-
-            {!TYPES_WITHOUT_INTENSITY.includes(relationType) && (
-              <FormSection title="Intensity">
-                <PillGroup value={intensity} onChange={setIntensity} options={INTENSITY_OPTIONS} />
-              </FormSection>
-            )}
-
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              loading={isSubmitting}
-              disabled={isSubmitting || !objectLabel.trim()}
-              buttonColor={fz.ink}
-              style={styles.submitButton}
-              contentStyle={styles.submitButtonContent}
-              labelStyle={fzText.btn}
-            >
-              {mode === 'add' ? 'Add' : 'Save Changes'}
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={() => router.back()}
-              disabled={isSubmitting}
-              textColor={fz.textMute}
-            >
-              Cancel
-            </Button>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+      <Button
+        mode="text"
+        onPress={() => router.back()}
+        disabled={isSubmitting}
+        textColor={fz.textMute}
+      >
+        Cancel
+      </Button>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: fz.paper,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: fz.paper,
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  backButton: {
-    marginTop: 16,
-    borderRadius: fz.rButton,
-  },
-  content: {
-    padding: fz.s.edge,
-  },
   headerSub: {
     marginTop: 6,
     marginBottom: fz.s.lg,

@@ -2,6 +2,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { people, files, events, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
 import { COUNTRIES } from '@/lib/data/countries';
@@ -20,10 +21,8 @@ export type PersonWithPhoto = Person & {
 async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = name.trim().toLowerCase();
   const conditions = [
-    eq(people.userId, userId),
+    activePeople(userId),
     sql`lower(${people.name}) = ${normalizedName}`,
-    isNull(people.deletedAt),
-    ne(people.status, 'merged'),
     ...(excludeId ? [ne(people.id, excludeId)] : []),
   ];
   const existingPeople = await db.select().from(people).where(and(...conditions)).limit(1);
@@ -46,9 +45,7 @@ export function usePeople(filter?: {
 
       // Build where clause based on filter
       const whereConditions = [
-        eq(people.userId, userId),
-        ne(people.status, 'merged'),
-        isNull(people.deletedAt),
+        activePeople(userId),
         ne(people.personType, 'self'), // Always exclude self from general list
       ];
 

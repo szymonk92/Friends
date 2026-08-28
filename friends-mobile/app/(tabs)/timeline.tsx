@@ -20,6 +20,7 @@ import TimelineEventItem from '@/components/timeline/TimelineEventItem';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
 import { parseFlexibleDate } from '@/lib/utils/dates';
+import { parseJsonArray } from '@/lib/utils/json';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
 
@@ -96,8 +97,7 @@ export default function TimelineScreen() {
     return partyEvents
       .filter((event) => event.eventDate)
       .map((event) => {
-        // Parse guest IDs from JSON
-        const guestIds: string[] = event.guestIds ? JSON.parse(event.guestIds) : [];
+        const guestIds = parseJsonArray(event.guestIds);
         const guestNames = guestIds.map((gid) => {
           const person = people.find((p) => p.id === gid);
           return person?.name || 'Unknown';

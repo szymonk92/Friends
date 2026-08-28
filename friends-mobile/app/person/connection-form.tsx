@@ -1,24 +1,10 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
-import {
-  Alert,
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import {
-  Text,
-  Button,
-  TextInput,
-  ActivityIndicator,
-  Checkbox,
-} from 'react-native-paper';
+import { Alert, View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, Button, TextInput, ActivityIndicator, Checkbox } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
   useCreateConnection,
@@ -35,14 +21,12 @@ import {
 } from '@/hooks/usePeople';
 import { parseFlexibleDate } from '@/lib/utils/dates';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
-import { db } from '@/lib/db';
 import { connections, type Connection } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEntityById } from '@/hooks/useEntityById';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { LineIcon } from '@/components/LineIcon';
-import { FormSection, FormInput } from '@/components/FormKit';
+import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 import { Avatar } from '@/components/Avatar';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
@@ -62,7 +46,6 @@ interface ConnectionFormProps {
 
 export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const connectionId = mode === 'edit' ? (params.connectionId as string) : undefined;
 
@@ -79,9 +62,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const deleteConnection = useDeleteConnection();
   const createPerson = useCreatePerson();
 
-  // Edit mode state
-  const [connection, setConnection] = useState<Connection | null>(null);
-  const [isLoading, setIsLoading] = useState(mode === 'edit');
+  // Edit mode: load the connection being edited
+  const {
+    data: connection,
+    isLoading,
+    notFound,
+  } = useEntityById<Connection>(connections, connectionId);
 
   // Form state
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
@@ -110,7 +96,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     []
   );
   const CONNECTION_STATUS_VALUES = useMemo(
-    () => new Set(CONNECTION_STATUSES.map((connectionStatus) => connectionStatus.value as ConnectionStatus)),
+    () =>
+      new Set(
+        CONNECTION_STATUSES.map((connectionStatus) => connectionStatus.value as ConnectionStatus)
+      ),
     []
   );
 
@@ -129,7 +118,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   // Pre-select relationship type from query (e.g. PartnerBadge deep-link)
   useEffect(() => {
     if (mode !== 'add') return;
-    const requested = typeof params.relationshipType === 'string' ? params.relationshipType : undefined;
+    const requested =
+      typeof params.relationshipType === 'string' ? params.relationshipType : undefined;
     if (requested && RELATIONSHIP_TYPE_VALUES.has(requested as ConnectionRelationshipType)) {
       setRelationshipType(requested as ConnectionRelationshipType);
     }
@@ -137,42 +127,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load connection data for edit mode
+  // Hydrate form state once the connection loads (edit mode).
   useEffect(() => {
-    if (mode === 'edit' && connectionId) {
-      const loadConnection = async () => {
-        try {
-          const result = await db
-            .select()
-            .from(connections)
-            .where(eq(connections.id, connectionId))
-            .limit(1);
-
-          if (result.length === 0) {
-            Alert.alert('Error', 'Connection not found');
-            router.back();
-            return;
-          }
-
-          const conn = result[0];
-          setConnection(conn);
-
-          setRelationshipType(conn.relationshipType || 'friend');
-          setQualifier(conn.qualifier || '');
-          setStatus(conn.status || 'active');
-          setNotes(conn.notes || '');
-        } catch (error) {
-          devLogger.error('Failed to load connection for editing', { error, connectionId });
-          Alert.alert('Error', 'Failed to load connection');
-          router.back();
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadConnection();
-    }
-  }, [mode, connectionId]);
+    if (!connection) return;
+    setRelationshipType(connection.relationshipType || 'friend');
+    setQualifier(connection.qualifier || '');
+    setStatus(connection.status || 'active');
+    setNotes(connection.notes || '');
+  }, [connection]);
 
   // Combine regular people with ME
   const allPeople = useMemo(() => {
@@ -332,7 +294,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
         router.back();
       } catch (error) {
-        Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update connection');
+        Alert.alert(
+          'Error',
+          error instanceof Error ? error.message : 'Failed to update connection'
+        );
       } finally {
         setIsSubmitting(false);
       }
@@ -388,7 +353,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           if (existing) {
             targetPersonId = existing.id;
           } else {
-            const newPerson = await createPerson.mutateAsync(buildNewPersonPayload(pendingPersonName));
+            const newPerson = await createPerson.mutateAsync(
+              buildNewPersonPayload(pendingPersonName)
+            );
             targetPersonId = newPerson.id;
           }
         }
@@ -552,10 +519,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
     const connectedPerson = allPeople.find(
       (p) =>
-        p.id ===
-        (connection.person1Id === personId
-          ? connection.person2Id
-          : connection.person1Id)
+        p.id === (connection.person1Id === personId ? connection.person2Id : connection.person1Id)
     );
 
     confirmDestructive({
@@ -567,427 +531,413 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           Alert.alert('Success', 'Connection deleted successfully!');
           router.back();
         } catch (error) {
-          Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
+          Alert.alert(
+            'Error',
+            error instanceof Error ? error.message : 'Failed to delete connection'
+          );
         }
       },
     });
   };
 
-  if (isLoading) {
-    return (
-      <CenteredContainer>
-        <ActivityIndicator />
-      </CenteredContainer>
-    );
-  }
-
-  if (mode === 'edit' && !connection) {
-    return (
-      <CenteredContainer>
-        <Text>Connection not found</Text>
-      </CenteredContainer>
-    );
-  }
-
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: mode === 'add' ? 'Add Connection' : 'Edit Connection',
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-        }}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-      >
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.content}>
-          <Text style={fzText.titleLg}>
-            {mode === 'add' ? 'Add Connection' : 'Edit Connection'}
-            {(person?.name ?? editConnectedPerson?.name)
-              ? ` for ${person?.name ?? editConnectedPerson?.name}`
-              : ''}
-          </Text>
-          <Text style={[fzText.sub, styles.headerSub]}>
-            {mode === 'add'
-              ? 'Select multiple people or tap one for a detailed connection'
-              : 'Update connection details'}
-          </Text>
+    <FormScreen
+      title={mode === 'add' ? 'Add Connection' : 'Edit Connection'}
+      loading={isLoading}
+      notFound={notFound}
+      notFoundLabel="Connection not found"
+    >
+      <Text style={fzText.titleLg}>
+        {mode === 'add' ? 'Add Connection' : 'Edit Connection'}
+        {(person?.name ?? editConnectedPerson?.name)
+          ? ` for ${person?.name ?? editConnectedPerson?.name}`
+          : ''}
+      </Text>
+      <Text style={[fzText.sub, styles.headerSub]}>
+        {mode === 'add'
+          ? 'Select multiple people or tap one for a detailed connection'
+          : 'Update connection details'}
+      </Text>
 
-          {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
-            // Single person detailed mode (add only)
-            <>
-              <Button mode="text" icon="arrow-left" onPress={backToMultiMode} style={styles.backLink}>
-                Back to Multi-Select
-              </Button>
+      {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
+        // Single person detailed mode (add only)
+        <>
+          <Button mode="text" icon="arrow-left" onPress={backToMultiMode} style={styles.backLink}>
+            Back to Multi-Select
+          </Button>
 
-              <View style={styles.selectedCard}>
-                <View style={styles.selectedPerson}>
-                  <Avatar
-                    name={selectedSinglePerson.name}
-                    photoPath={selectedSinglePerson.photoPath}
-                    size={48}
-                    variant="ink"
-                    style={styles.cardAvatar}
-                  />
-                  <View style={styles.personInfo}>
-                    <Text style={fzText.name}>{selectedSinglePerson.name}</Text>
-                    {selectedSinglePerson.nickname && (
-                      <Text style={[fzText.sub, styles.nicknameText]}>
-                        "{selectedSinglePerson.nickname}"
-                      </Text>
-                    )}
-                    {(selectedSinglePerson.personType || (pendingPersonName && personType)) &&
-                      !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-                        <Pill
-                          label={(selectedSinglePerson.personType || personType).toUpperCase()}
-                          variant={(selectedSinglePerson.personType || personType) === 'primary' ? 'solid' : 'surface'}
-                          style={styles.personTypePill}
-                        />
-                      )}
-                  </View>
-                </View>
-              </View>
-
-              {pendingPersonName && (
-                <FormSection title="What are you adding?">
-                  <View style={styles.pillRow}>
-                    {(['person', 'pet', 'child'] as const).map((kind) => (
-                      <Pill
-                        key={kind}
-                        label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}
-                        selected={newEntityKind === kind}
-                        onPress={() => {
-                          setNewEntityKind(kind);
-                          if (kind === 'pet') {
-                            setRelationshipType('pet');
-                            setPersonType('mentioned');
-                          } else if (kind === 'child') {
-                            setRelationshipType('child');
-                            setPersonType('mentioned');
-                          } else {
-                            setRelationshipType('friend');
-                            setPersonType('primary');
-                          }
-                        }}
-                      />
-                    ))}
-                  </View>
-                </FormSection>
-              )}
-
-              {pendingPersonName && newEntityKind === 'pet' && (
-                <FormSection title="Species">
-                  <FormInput
-                    label="Species (e.g. Dog, Cat, Parrot)"
-                    value={species}
-                    onChangeText={setSpecies}
-                    placeholder="Dog"
-                  />
-                </FormSection>
-              )}
-
-              {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
-                <FormSection title="Birthday (optional)">
-                  <FormInput
-                    label="Birthday"
-                    value={birthdayText}
-                    onChangeText={setBirthdayText}
-                    placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
-                  />
-                </FormSection>
-              )}
-
-              {pendingPersonName && newEntityKind === 'person' && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-                <FormSection title="Person Type">
-                  <View style={styles.pillRow}>
-                    <Pill
-                      label="Primary"
-                      selected={personType === 'primary'}
-                      onPress={() => setPersonType('primary')}
-                    />
-                    <Pill
-                      label="Mentioned"
-                      selected={personType === 'mentioned'}
-                      onPress={() => setPersonType('mentioned')}
-                    />
-                  </View>
-                  <Text style={[fzText.sub, styles.pillHint]}>
-                    {personType === 'primary'
-                      ? 'Visible in main lists and search.'
-                      : 'Hidden from main lists, used for context only.'}
+          <View style={styles.selectedCard}>
+            <View style={styles.selectedPerson}>
+              <Avatar
+                name={selectedSinglePerson.name}
+                photoPath={selectedSinglePerson.photoPath}
+                size={48}
+                variant="ink"
+                style={styles.cardAvatar}
+              />
+              <View style={styles.personInfo}>
+                <Text style={fzText.name}>{selectedSinglePerson.name}</Text>
+                {selectedSinglePerson.nickname && (
+                  <Text style={[fzText.sub, styles.nicknameText]}>
+                    "{selectedSinglePerson.nickname}"
                   </Text>
-                </FormSection>
-              )}
+                )}
+                {(selectedSinglePerson.personType || (pendingPersonName && personType)) &&
+                  !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+                    <Pill
+                      label={(selectedSinglePerson.personType || personType).toUpperCase()}
+                      variant={
+                        (selectedSinglePerson.personType || personType) === 'primary'
+                          ? 'solid'
+                          : 'surface'
+                      }
+                      style={styles.personTypePill}
+                    />
+                  )}
+              </View>
+            </View>
+          </View>
 
-              {newEntityKind === 'person' && (
-                <FormSection title="Relationship Type">
-                  <RelationshipTypePicker
-                    value={relationshipType}
-                    onChange={(v) => {
-                      const next = v as ConnectionRelationshipType;
-                      setRelationshipType(next);
-                      if (pendingPersonName) {
-                        if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(next)) {
-                          setPersonType('primary');
-                        } else if (next === 'acquaintance') {
-                          setPersonType('mentioned');
-                        } else {
-                          setPersonType('primary');
-                        }
+          {pendingPersonName && (
+            <FormSection title="What are you adding?">
+              <View style={styles.pillRow}>
+                {(['person', 'pet', 'child'] as const).map((kind) => (
+                  <Pill
+                    key={kind}
+                    label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}
+                    selected={newEntityKind === kind}
+                    onPress={() => {
+                      setNewEntityKind(kind);
+                      if (kind === 'pet') {
+                        setRelationshipType('pet');
+                        setPersonType('mentioned');
+                      } else if (kind === 'child') {
+                        setRelationshipType('child');
+                        setPersonType('mentioned');
+                      } else {
+                        setRelationshipType('friend');
+                        setPersonType('primary');
                       }
                     }}
                   />
-                  {pendingPersonName && personType === 'mentioned' && (
-                    <Text style={[fzText.sub, styles.pillHint]}>
-                      This person will be created as "Mentioned" (hidden).
-                    </Text>
-                  )}
-                </FormSection>
-              )}
-
-              <FormSection title="Status">
-                <View style={styles.pillRow}>
-                  {['active', 'inactive', 'complicated'].map((s) => (
-                    <Pill key={s} label={s.charAt(0).toUpperCase() + s.slice(1)} selected={status === s} onPress={() => setStatus(s as ConnectionStatus)} />
-                  ))}
-                </View>
-              </FormSection>
-
-              <FormSection title="Additional Details">
-                <FormInput
-                  label="Qualifier (e.g., best, close, ex)"
-                  value={qualifier}
-                  onChangeText={setQualifier}
-                  placeholder="How to qualify this relationship"
-                />
-                <FormInput
-                  label="Notes"
-                  value={notes}
-                  onChangeText={setNotes}
-                  multiline
-                  numberOfLines={3}
-                  placeholder="Any additional context"
-                  style={styles.lastInput}
-                />
-              </FormSection>
-            </>
-          ) : (
-            // Form mode (edit) or multi-select mode (add)
-            <>
-              {mode === 'edit' && editConnectedPerson && (
-                <TouchableOpacity
-                  style={styles.selectedCard}
-                  activeOpacity={0.7}
-                  onPress={() => router.push(`/person/${editConnectedPerson.id}`)}
-                >
-                  <View style={styles.selectedPerson}>
-                    <Avatar
-                      name={editConnectedPerson.name}
-                      photoPath={editConnectedPerson.photoPath}
-                      size={48}
-                      variant="ink"
-                      style={styles.cardAvatar}
-                    />
-                    <View style={styles.personInfo}>
-                      <Text style={fzText.name}>{editConnectedPerson.name}</Text>
-                      <Text style={[fzText.sub, styles.nicknameText]}>
-                        {connection
-                          ? describeConnection(
-                              connection,
-                              editConnectedPerson,
-                              fromPersonId ?? connection.person1Id
-                            )
-                          : `${relationshipType}${qualifier ? ` • ${qualifier}` : ''}`}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Pet connections aren't human relationship types — no pill picker */}
-              {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
-                <FormSection title="Relationship Type">
-                  <RelationshipTypePicker
-                    value={relationshipType}
-                    onChange={handleRelationshipTypeChange}
-                  />
-                </FormSection>
-              )}
-
-              <FormSection title="Connection Status">
-                <View style={styles.pillRow}>
-                  {CONNECTION_STATUSES.map((s) => (
-                    <Pill key={s.value} label={s.label} selected={status === s.value} onPress={() => handleStatusChange(s.value)} />
-                  ))}
-                </View>
-
-                <FormInput
-                  label="Qualifier (married, sibling, etc.)"
-                  placeholder="e.g., childhood friend, work colleague, cousin"
-                  value={qualifier}
-                  onChangeText={setQualifier}
-                  style={styles.qualifierInput}
-                />
-
-                <FormInput
-                  label="Notes (optional)"
-                  placeholder="Where they met, how they get on, past history..."
-                  value={notes}
-                  onChangeText={setNotes}
-                  multiline
-                  numberOfLines={3}
-                  style={styles.lastInput}
-                />
-              </FormSection>
-
-              {mode === 'edit' && (
-                <View style={styles.topButtons}>
-                  <Button
-                    mode="outlined"
-                    onPress={handleDelete}
-                    style={[styles.button, styles.deleteButton]}
-                    textColor="#d32f2f"
-                    labelStyle={[fzText.btnOutline, styles.deleteLabel]}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={() => router.back()}
-                    style={styles.button}
-                    textColor={fz.ink}
-                    labelStyle={fzText.btnOutline}
-                  >
-                    Cancel
-                  </Button>
-                </View>
-              )}
-            </>
+                ))}
+              </View>
+            </FormSection>
           )}
 
-          {mode === 'add' && !singlePersonMode && (
-            <FormSection title="Select People">
+          {pendingPersonName && newEntityKind === 'pet' && (
+            <FormSection title="Species">
               <FormInput
-                placeholder="Search, or type a new name to add…"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                left={<TextInput.Icon icon="magnify" />}
+                label="Species (e.g. Dog, Cat, Parrot)"
+                value={species}
+                onChangeText={setSpecies}
+                placeholder="Dog"
               />
+            </FormSection>
+          )}
 
-              {searchQuery.trim().length === 0 && (
-                <Text style={[fzText.sub, styles.searchHint]}>
-                  Type a name that isn't in the list to add a new person or pet.
-                </Text>
-              )}
+          {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
+            <FormSection title="Birthday (optional)">
+              <FormInput
+                label="Birthday"
+                value={birthdayText}
+                onChangeText={setBirthdayText}
+                placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+              />
+            </FormSection>
+          )}
 
-              {loadingPeople && (
-                <CenteredContainer style={styles.centered}>
-                  <ActivityIndicator color={fz.ink} />
-                </CenteredContainer>
-              )}
-
-              {searchQuery.trim().length > 0 && (
-                <TouchableOpacity style={styles.listRow} onPress={handleCreateAndSelectPerson} activeOpacity={0.7}>
-                  <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
-                    <LineIcon name="plus" size={16} color="#fff" />
-                  </View>
-                  <View style={styles.listRowBody}>
-                    <Text style={fzText.name}>Add "{searchQuery}"</Text>
-                    <Text style={fzText.sub}>New person or pet — connect now</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {selectedPersonIds.length > 0 && (
+          {pendingPersonName &&
+            newEntityKind === 'person' &&
+            !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
+              <FormSection title="Person Type">
                 <View style={styles.pillRow}>
-                  {selectedPersonIds.map((id) => {
-                    const person = allPeople.find((p) => p.id === id);
-                    return person ? (
-                      <Pill key={id} label={person.name} onClose={() => togglePersonSelection(id)} />
-                    ) : null;
-                  })}
+                  <Pill
+                    label="Primary"
+                    selected={personType === 'primary'}
+                    onPress={() => setPersonType('primary')}
+                  />
+                  <Pill
+                    label="Mentioned"
+                    selected={personType === 'mentioned'}
+                    onPress={() => setPersonType('mentioned')}
+                  />
                 </View>
-              )}
-
-              {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
-                <Text style={[fzText.sub, styles.emptyText]}>
-                  No other people found. Add more people first.
+                <Text style={[fzText.sub, styles.pillHint]}>
+                  {personType === 'primary'
+                    ? 'Visible in main lists and search.'
+                    : 'Hidden from main lists, used for context only.'}
                 </Text>
-              )}
+              </FormSection>
+            )}
 
-              {availablePeople.length > 0 && (
-                <ScrollView style={styles.peopleList} nestedScrollEnabled>
-                  {availablePeople.map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={styles.listRow}
-                      activeOpacity={0.7}
-                      onPress={() => togglePersonSelection(p.id)}
-                    >
-                      <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                        <Avatar name={p.name} photoPath={p.photoPath} />
-                      </TouchableOpacity>
-                      <View style={styles.listRowBody}>
-                        <Text style={fzText.name}>{p.name}</Text>
-                        <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
-                      </View>
-                      <Checkbox
-                        status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                        color={fz.ink}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+          {newEntityKind === 'person' && (
+            <FormSection title="Relationship Type">
+              <RelationshipTypePicker
+                value={relationshipType}
+                onChange={(v) => {
+                  const next = v as ConnectionRelationshipType;
+                  setRelationshipType(next);
+                  if (pendingPersonName) {
+                    if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(next)) {
+                      setPersonType('primary');
+                    } else if (next === 'acquaintance') {
+                      setPersonType('mentioned');
+                    } else {
+                      setPersonType('primary');
+                    }
+                  }
+                }}
+              />
+              {pendingPersonName && personType === 'mentioned' && (
+                <Text style={[fzText.sub, styles.pillHint]}>
+                  This person will be created as "Mentioned" (hidden).
+                </Text>
               )}
             </FormSection>
           )}
 
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={
-              isSubmitting ||
-              (mode === 'add' && !singlePersonMode && selectedPersonIds.length === 0)
-            }
-            buttonColor={fz.ink}
-            style={styles.submitButton}
-            contentStyle={styles.submitButtonContent}
-            labelStyle={fzText.btn}
-          >
-            {mode === 'add'
-              ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}`
-              : 'Update Connection'}
-          </Button>
+          <FormSection title="Status">
+            <View style={styles.pillRow}>
+              {['active', 'inactive', 'complicated'].map((s) => (
+                <Pill
+                  key={s}
+                  label={s.charAt(0).toUpperCase() + s.slice(1)}
+                  selected={status === s}
+                  onPress={() => setStatus(s as ConnectionStatus)}
+                />
+              ))}
+            </View>
+          </FormSection>
 
-          <Button mode="text" onPress={() => router.back()} disabled={isSubmitting} textColor={fz.textMute}>
-            Cancel
-          </Button>
-        </View>
-      </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+          <FormSection title="Additional Details">
+            <FormInput
+              label="Qualifier (e.g., best, close, ex)"
+              value={qualifier}
+              onChangeText={setQualifier}
+              placeholder="How to qualify this relationship"
+            />
+            <FormInput
+              label="Notes"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={3}
+              placeholder="Any additional context"
+              style={styles.lastInput}
+            />
+          </FormSection>
+        </>
+      ) : (
+        // Form mode (edit) or multi-select mode (add)
+        <>
+          {mode === 'edit' && editConnectedPerson && (
+            <TouchableOpacity
+              style={styles.selectedCard}
+              activeOpacity={0.7}
+              onPress={() => router.push(`/person/${editConnectedPerson.id}`)}
+            >
+              <View style={styles.selectedPerson}>
+                <Avatar
+                  name={editConnectedPerson.name}
+                  photoPath={editConnectedPerson.photoPath}
+                  size={48}
+                  variant="ink"
+                  style={styles.cardAvatar}
+                />
+                <View style={styles.personInfo}>
+                  <Text style={fzText.name}>{editConnectedPerson.name}</Text>
+                  <Text style={[fzText.sub, styles.nicknameText]}>
+                    {connection
+                      ? describeConnection(
+                          connection,
+                          editConnectedPerson,
+                          fromPersonId ?? connection.person1Id
+                        )
+                      : `${relationshipType}${qualifier ? ` • ${qualifier}` : ''}`}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Pet connections aren't human relationship types — no pill picker */}
+          {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
+            <FormSection title="Relationship Type">
+              <RelationshipTypePicker
+                value={relationshipType}
+                onChange={handleRelationshipTypeChange}
+              />
+            </FormSection>
+          )}
+
+          <FormSection title="Connection Status">
+            <View style={styles.pillRow}>
+              {CONNECTION_STATUSES.map((s) => (
+                <Pill
+                  key={s.value}
+                  label={s.label}
+                  selected={status === s.value}
+                  onPress={() => handleStatusChange(s.value)}
+                />
+              ))}
+            </View>
+
+            <FormInput
+              label="Qualifier (married, sibling, etc.)"
+              placeholder="e.g., childhood friend, work colleague, cousin"
+              value={qualifier}
+              onChangeText={setQualifier}
+              style={styles.qualifierInput}
+            />
+
+            <FormInput
+              label="Notes (optional)"
+              placeholder="Where they met, how they get on, past history..."
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={3}
+              style={styles.lastInput}
+            />
+          </FormSection>
+
+          {mode === 'edit' && (
+            <View style={styles.topButtons}>
+              <Button
+                mode="outlined"
+                onPress={handleDelete}
+                style={[styles.button, styles.deleteButton]}
+                textColor="#d32f2f"
+                labelStyle={[fzText.btnOutline, styles.deleteLabel]}
+              >
+                Delete
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => router.back()}
+                style={styles.button}
+                textColor={fz.ink}
+                labelStyle={fzText.btnOutline}
+              >
+                Cancel
+              </Button>
+            </View>
+          )}
+        </>
+      )}
+
+      {mode === 'add' && !singlePersonMode && (
+        <FormSection title="Select People">
+          <FormInput
+            placeholder="Search, or type a new name to add…"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            left={<TextInput.Icon icon="magnify" />}
+          />
+
+          {searchQuery.trim().length === 0 && (
+            <Text style={[fzText.sub, styles.searchHint]}>
+              Type a name that isn't in the list to add a new person or pet.
+            </Text>
+          )}
+
+          {loadingPeople && (
+            <CenteredContainer style={styles.centered}>
+              <ActivityIndicator color={fz.ink} />
+            </CenteredContainer>
+          )}
+
+          {searchQuery.trim().length > 0 && (
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={handleCreateAndSelectPerson}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
+                <LineIcon name="plus" size={16} color="#fff" />
+              </View>
+              <View style={styles.listRowBody}>
+                <Text style={fzText.name}>Add "{searchQuery}"</Text>
+                <Text style={fzText.sub}>New person or pet — connect now</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {selectedPersonIds.length > 0 && (
+            <View style={styles.pillRow}>
+              {selectedPersonIds.map((id) => {
+                const person = allPeople.find((p) => p.id === id);
+                return person ? (
+                  <Pill key={id} label={person.name} onClose={() => togglePersonSelection(id)} />
+                ) : null;
+              })}
+            </View>
+          )}
+
+          {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
+            <Text style={[fzText.sub, styles.emptyText]}>
+              No other people found. Add more people first.
+            </Text>
+          )}
+
+          {availablePeople.length > 0 && (
+            <ScrollView style={styles.peopleList} nestedScrollEnabled>
+              {availablePeople.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.listRow}
+                  activeOpacity={0.7}
+                  onPress={() => togglePersonSelection(p.id)}
+                >
+                  <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
+                    <Avatar name={p.name} photoPath={p.photoPath} />
+                  </TouchableOpacity>
+                  <View style={styles.listRowBody}>
+                    <Text style={fzText.name}>{p.name}</Text>
+                    <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
+                  </View>
+                  <Checkbox
+                    status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
+                    color={fz.ink}
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </FormSection>
+      )}
+
+      <Button
+        mode="contained"
+        onPress={handleSubmit}
+        loading={isSubmitting}
+        disabled={
+          isSubmitting || (mode === 'add' && !singlePersonMode && selectedPersonIds.length === 0)
+        }
+        buttonColor={fz.ink}
+        style={styles.submitButton}
+        contentStyle={styles.submitButtonContent}
+        labelStyle={fzText.btn}
+      >
+        {mode === 'add'
+          ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}`
+          : 'Update Connection'}
+      </Button>
+
+      <Button
+        mode="text"
+        onPress={() => router.back()}
+        disabled={isSubmitting}
+        textColor={fz.textMute}
+      >
+        Cancel
+      </Button>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: fz.paper,
-  },
-  content: {
-    padding: fz.s.edge,
-  },
   headerSub: {
     marginTop: 6,
     marginBottom: fz.s.lg,

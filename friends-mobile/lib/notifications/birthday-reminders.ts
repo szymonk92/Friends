@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { eq, and, isNull, ne, isNotNull } from 'drizzle-orm';
+import { parseJsonObject } from '@/lib/utils/json';
 
 const BIRTHDAY_SETTINGS_KEY = 'birthday_reminder_settings';
 
@@ -28,9 +29,7 @@ const IMPORTANCE_ORDER = ['minimal', 'low', 'moderate', 'important', 'very_impor
 export async function getBirthdayReminderSettings(): Promise<BirthdayReminderSettings> {
   try {
     const stored = await AsyncStorage.getItem(BIRTHDAY_SETTINGS_KEY);
-    if (stored) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-    }
+    return parseJsonObject(stored, DEFAULT_SETTINGS);
   } catch (error) {
     console.error('Failed to load birthday settings:', error);
   }

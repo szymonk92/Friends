@@ -1,9 +1,100 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Text, TextInput, type TextInputProps } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { Button, Text, TextInput, type TextInputProps } from 'react-native-paper';
 import type { ReactNode } from 'react';
+import { Stack, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { fz, fzText } from '@/lib/design/tokens';
+
+// The add/edit screen shell every person sub-form shares: fz-styled nav header +
+// keyboard-aware scroll + padded content, plus the standard loading / not-found
+// short-circuits. Keeps connection-form / relation-form / relation screens from
+// each re-deriving the same KeyboardAvoidingView + ScrollView + Stack.Screen.
+export function FormScreen({
+  title,
+  loading = false,
+  notFound = false,
+  notFoundLabel = 'Not found',
+  children,
+}: {
+  title: string;
+  loading?: boolean;
+  notFound?: boolean;
+  notFoundLabel?: string;
+  children: ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+
+  const header = (
+    <Stack.Screen
+      options={{
+        title,
+        headerStyle: { backgroundColor: fz.paper },
+        headerTintColor: fz.ink,
+        headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
+        headerShadowVisible: false,
+      }}
+    />
+  );
+
+  if (loading) {
+    return (
+      <>
+        {header}
+        <View style={styles.screenCentered}>
+          <ActivityIndicator size="large" color={fz.ink} />
+        </View>
+      </>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <>
+        {header}
+        <View style={styles.screenCentered}>
+          <Text style={fzText.title}>{notFoundLabel}</Text>
+          <Button
+            mode="contained"
+            onPress={() => router.back()}
+            buttonColor={fz.ink}
+            style={styles.backButton}
+          >
+            Go Back
+          </Button>
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView
+          style={styles.screen}
+          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.screenContent}>{children}</View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </>
+  );
+}
 
 // Shared fz-styled form shell — flat bordered card + rounded input, used by
 // every edit/add screen so they read as one design system instead of stock
@@ -81,6 +172,25 @@ export function FormInput(props: TextInputProps) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  screen: {
+    flex: 1,
+    backgroundColor: fz.paper,
+  },
+  screenContent: {
+    padding: fz.s.edge,
+  },
+  screenCentered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    gap: 12,
+    backgroundColor: fz.paper,
+  },
+  backButton: {
+    borderRadius: fz.rButton,
+  },
   section: {
     backgroundColor: fz.card,
     borderWidth: 1,

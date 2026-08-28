@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { parseJsonObject } from '@/lib/utils/json';
 
 export interface RelationshipColorMap {
   [key: string]: string;
@@ -39,9 +40,7 @@ const STORAGE_KEY = 'relationship_colors';
 export async function getRelationshipColors(): Promise<RelationshipColorMap> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return { ...DEFAULT_COLORS, ...JSON.parse(stored) };
-    }
+    return parseJsonObject(stored, DEFAULT_COLORS);
   } catch (error) {
     console.error('Failed to load relationship colors:', error);
   }

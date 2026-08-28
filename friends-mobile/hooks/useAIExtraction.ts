@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, stories, pendingExtractions } from '@/lib/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { randomUUID } from 'expo-crypto';
 import {
   extractRelationsFromStorySession,
@@ -49,7 +50,7 @@ export function useExtractRelations() {
       const existingPeople = await db
         .select({ id: people.id, name: people.name })
         .from(people)
-        .where(and(eq(people.userId, userId), isNull(people.deletedAt)));
+        .where(activePeople(userId));
 
       // 3. Fetch existing relations for conflict detection
       const existingRelations = await db

@@ -1,5 +1,6 @@
 import { zipSync } from 'fflate';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { File as ExpoFile } from 'expo-file-system';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, connections, relations, stories, contactEvents, files, type Person } from '@/lib/db/schema';
@@ -20,7 +21,7 @@ export async function buildObsidianVault(): Promise<Uint8Array> {
       db
         .select()
         .from(people)
-        .where(and(eq(people.userId, userId), isNull(people.deletedAt), ne(people.status, 'merged'))),
+        .where(activePeople(userId)),
       db
         .select()
         .from(connections)
