@@ -41,8 +41,7 @@ export default function SocialLinksStrip({ links }: Props) {
         <IconButton
           key={`${link.platform}-${idx}`}
           icon={platformIcon(link.platform)}
-          mode="contained-tonal"
-          size={18}
+          size={22}
           onPress={() => open(link)}
           onLongPress={() => copyHandle(link)}
           accessibilityLabel={`${platformLabel(link.platform)}: ${link.handle}`}
