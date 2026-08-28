@@ -99,6 +99,8 @@
     "birthday": "Birthday (optional)",
     "birthdayPlaceholder": "YYYY, YYYY-MM, or YYYY-MM-DD",
     "birthdayHint": "Enter year only (1990), year-month (1990-06), or full date (1990-06-15)",
+    "species": "Species",
+    "speciesPlaceholder": "e.g. Dog, Cat, Parrot",
     "notes": "Notes",
     "notesPlaceholder": "Any notes about this person...",
     "addButton": "Add Person",

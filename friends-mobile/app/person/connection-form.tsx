@@ -1,10 +1,10 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { Alert, View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Button, TextInput, ActivityIndicator, Checkbox } from 'react-native-paper';
+import { Text, Button, TextInput, ActivityIndicator, Checkbox, IconButton, Menu } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
   useCreateConnection,
@@ -84,6 +84,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [species, setSpecies] = useState('');
   const [birthdayText, setBirthdayText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = [
     'partner',
@@ -547,6 +548,36 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       notFound={notFound}
       notFoundLabel="Connection not found"
     >
+      {mode === 'edit' && (
+        <Stack.Screen
+          options={{
+            headerRight: () => (
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <IconButton
+                    icon="dots-vertical"
+                    onPress={() => setMenuVisible(true)}
+                    iconColor={fz.ink}
+                  />
+                }
+              >
+                <Menu.Item
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleDelete();
+                  }}
+                  title="Delete connection"
+                  leadingIcon="delete"
+                  titleStyle={styles.deleteMenuLabel}
+                />
+              </Menu>
+            ),
+          }}
+        />
+      )}
+
       <Text style={fzText.titleLg}>
         {mode === 'add' ? 'Add Connection' : 'Edit Connection'}
         {(person?.name ?? editConnectedPerson?.name)
@@ -761,151 +792,138 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             </TouchableOpacity>
           )}
 
-          {/* Pet connections aren't human relationship types — no pill picker */}
-          {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
-            <FormSection title="Relationship Type">
-              <RelationshipTypePicker
-                value={relationshipType}
-                onChange={handleRelationshipTypeChange}
+          {/* Add mode: pick the people first, then define the relationship below. */}
+          {mode === 'add' && !singlePersonMode && (
+            <FormSection title="Select People">
+              <FormInput
+                placeholder="Search, or type a new name to add…"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                left={<TextInput.Icon icon="magnify" />}
               />
+
+              {searchQuery.trim().length === 0 && (
+                <Text style={[fzText.sub, styles.searchHint]}>
+                  Type a name that isn't in the list to add a new person or pet.
+                </Text>
+              )}
+
+              {loadingPeople && (
+                <CenteredContainer style={styles.centered}>
+                  <ActivityIndicator color={fz.ink} />
+                </CenteredContainer>
+              )}
+
+              {searchQuery.trim().length > 0 && (
+                <TouchableOpacity
+                  style={styles.listRow}
+                  onPress={handleCreateAndSelectPerson}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
+                    <LineIcon name="plus" size={16} color="#fff" />
+                  </View>
+                  <View style={styles.listRowBody}>
+                    <Text style={fzText.name}>Add "{searchQuery}"</Text>
+                    <Text style={fzText.sub}>New person or pet — connect now</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {selectedPersonIds.length > 0 && (
+                <View style={styles.pillRow}>
+                  {selectedPersonIds.map((id) => {
+                    const person = allPeople.find((p) => p.id === id);
+                    return person ? (
+                      <Pill
+                        key={id}
+                        label={person.name}
+                        onClose={() => togglePersonSelection(id)}
+                      />
+                    ) : null;
+                  })}
+                </View>
+              )}
+
+              {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
+                <Text style={[fzText.sub, styles.emptyText]}>
+                  No other people found. Add more people first.
+                </Text>
+              )}
+
+              {availablePeople.length > 0 && (
+                <ScrollView style={styles.peopleList} nestedScrollEnabled>
+                  {availablePeople.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={styles.listRow}
+                      activeOpacity={0.7}
+                      onPress={() => togglePersonSelection(p.id)}
+                    >
+                      <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
+                        <Avatar name={p.name} photoPath={p.photoPath} />
+                      </TouchableOpacity>
+                      <View style={styles.listRowBody}>
+                        <Text style={fzText.name}>{p.name}</Text>
+                        <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
+                      </View>
+                      <Checkbox
+                        status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
+                        color={fz.ink}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </FormSection>
           )}
 
-          <FormSection title="Connection Status">
-            <View style={styles.pillRow}>
-              {CONNECTION_STATUSES.map((s) => (
-                <Pill
-                  key={s.value}
-                  label={s.label}
-                  selected={status === s.value}
-                  onPress={() => handleStatusChange(s.value)}
+          {/* Relationship + status: always in edit; in add only once people are picked. */}
+          {(mode === 'edit' || selectedPersonIds.length > 0) && (
+            <>
+              {/* Pet connections aren't human relationship types — no pill picker */}
+              {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && (
+                <FormSection title="Relationship Type">
+                  <RelationshipTypePicker
+                    value={relationshipType}
+                    onChange={handleRelationshipTypeChange}
+                  />
+                </FormSection>
+              )}
+
+              <FormSection title="Connection Status">
+                <View style={styles.pillRow}>
+                  {CONNECTION_STATUSES.map((s) => (
+                    <Pill
+                      key={s.value}
+                      label={s.label}
+                      selected={status === s.value}
+                      onPress={() => handleStatusChange(s.value)}
+                    />
+                  ))}
+                </View>
+
+                <FormInput
+                  label="Qualifier (married, sibling, etc.)"
+                  placeholder="e.g., childhood friend, work colleague, cousin"
+                  value={qualifier}
+                  onChangeText={setQualifier}
+                  style={styles.qualifierInput}
                 />
-              ))}
-            </View>
 
-            <FormInput
-              label="Qualifier (married, sibling, etc.)"
-              placeholder="e.g., childhood friend, work colleague, cousin"
-              value={qualifier}
-              onChangeText={setQualifier}
-              style={styles.qualifierInput}
-            />
-
-            <FormInput
-              label="Notes (optional)"
-              placeholder="Where they met, how they get on, past history..."
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-              style={styles.lastInput}
-            />
-          </FormSection>
-
-          {mode === 'edit' && (
-            <View style={styles.topButtons}>
-              <Button
-                mode="outlined"
-                onPress={handleDelete}
-                style={[styles.button, styles.deleteButton]}
-                textColor="#d32f2f"
-                labelStyle={[fzText.btnOutline, styles.deleteLabel]}
-              >
-                Delete
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => router.back()}
-                style={styles.button}
-                textColor={fz.ink}
-                labelStyle={fzText.btnOutline}
-              >
-                Cancel
-              </Button>
-            </View>
+                <FormInput
+                  label="Notes (optional)"
+                  placeholder="Where they met, how they get on, past history..."
+                  value={notes}
+                  onChangeText={setNotes}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.lastInput}
+                />
+              </FormSection>
+            </>
           )}
         </>
-      )}
-
-      {mode === 'add' && !singlePersonMode && (
-        <FormSection title="Select People">
-          <FormInput
-            placeholder="Search, or type a new name to add…"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            left={<TextInput.Icon icon="magnify" />}
-          />
-
-          {searchQuery.trim().length === 0 && (
-            <Text style={[fzText.sub, styles.searchHint]}>
-              Type a name that isn't in the list to add a new person or pet.
-            </Text>
-          )}
-
-          {loadingPeople && (
-            <CenteredContainer style={styles.centered}>
-              <ActivityIndicator color={fz.ink} />
-            </CenteredContainer>
-          )}
-
-          {searchQuery.trim().length > 0 && (
-            <TouchableOpacity
-              style={styles.listRow}
-              onPress={handleCreateAndSelectPerson}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
-                <LineIcon name="plus" size={16} color="#fff" />
-              </View>
-              <View style={styles.listRowBody}>
-                <Text style={fzText.name}>Add "{searchQuery}"</Text>
-                <Text style={fzText.sub}>New person or pet — connect now</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {selectedPersonIds.length > 0 && (
-            <View style={styles.pillRow}>
-              {selectedPersonIds.map((id) => {
-                const person = allPeople.find((p) => p.id === id);
-                return person ? (
-                  <Pill key={id} label={person.name} onClose={() => togglePersonSelection(id)} />
-                ) : null;
-              })}
-            </View>
-          )}
-
-          {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
-            <Text style={[fzText.sub, styles.emptyText]}>
-              No other people found. Add more people first.
-            </Text>
-          )}
-
-          {availablePeople.length > 0 && (
-            <ScrollView style={styles.peopleList} nestedScrollEnabled>
-              {availablePeople.map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={styles.listRow}
-                  activeOpacity={0.7}
-                  onPress={() => togglePersonSelection(p.id)}
-                >
-                  <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                    <Avatar name={p.name} photoPath={p.photoPath} />
-                  </TouchableOpacity>
-                  <View style={styles.listRowBody}>
-                    <Text style={fzText.name}>{p.name}</Text>
-                    <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
-                  </View>
-                  <Checkbox
-                    status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                    color={fz.ink}
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </FormSection>
       )}
 
       <Button
@@ -1028,22 +1046,7 @@ const styles = StyleSheet.create({
   submitButtonContent: {
     paddingVertical: 8,
   },
-  topButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: fz.s.lg,
-  },
-  deleteButton: {
-    flex: 1,
-    borderColor: '#d32f2f',
-  },
-  deleteLabel: {
+  deleteMenuLabel: {
     color: '#d32f2f',
-  },
-  button: {
-    flex: 1,
-    minWidth: 80,
-    borderColor: fz.outline,
   },
 });

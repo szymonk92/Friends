@@ -38,6 +38,7 @@ function mapPersonToForm(person: PersonRecord): Partial<PersonFormValues> {
     importanceToUser: person.importanceToUser || 'unknown',
     gender: !g ? '' : known ? g : 'other',
     genderOther: !g || known || g === 'other' ? '' : g,
+    species: person.species || '',
     dateOfBirth: person.dateOfBirth
       ? new Date(person.dateOfBirth).toISOString().split('T')[0]
       : '',
@@ -164,6 +165,7 @@ export default function EditPersonScreen() {
         nickname: v.nickname.trim() || null,
         relationshipType: v.relationshipType as any,
         dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
+        species: v.species.trim() || null,
         metDate: parseFlexibleDate(v.metDate) || null,
         metLocation: v.metLocation.trim() || null,
         homeLocation: v.homeLocation.trim() || null,
@@ -191,6 +193,7 @@ export default function EditPersonScreen() {
   };
 
   const initial = mapPersonToForm(person);
+  const isPet = person.entityType === 'pet';
 
   return (
     <>
@@ -210,6 +213,7 @@ export default function EditPersonScreen() {
       />
       <PersonForm
         mode="edit"
+        isPet={isPet}
         initial={initial}
         subtitle={t('person.editSubtitle', { name: person.name })}
         submitting={isSubmitting}
@@ -225,6 +229,7 @@ export default function EditPersonScreen() {
         }}
         onBrainDumpApply={handleBrainDumpApply}
         footer={
+          isPet ? null : (
           <>
             <Button
               mode="outlined"
@@ -247,6 +252,7 @@ export default function EditPersonScreen() {
               {t('person.addConnectionButton')}
             </Button>
           </>
+          )
         }
       />
     </>

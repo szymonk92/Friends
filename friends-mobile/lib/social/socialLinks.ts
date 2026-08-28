@@ -21,7 +21,9 @@ export type SocialLink = {
 
 export const socialLinkSchema = z.object({
   platform: z.enum(SOCIAL_PLATFORMS),
-  handle: z.string().trim().min(1).max(60),
+  // Wider than a bare @handle: an opaque Facebook "Copy link" URL (no username)
+  // is stored verbatim as the handle so it stays visible and saves.
+  handle: z.string().trim().min(1).max(200),
   url: z.string().url().max(500).optional(),
   label: z.string().trim().max(40).optional(),
 });
@@ -132,10 +134,19 @@ export function parseSocialInput(
       let candidate = segments[0] ?? '';
       // LinkedIn: /in/<handle>
       if (detected === 'linkedin' && segments[0] === 'in') candidate = segments[1] ?? '';
+      // Facebook "Copy link" gives an opaque redirect (/share/…, /profile.php?id=…)
+      // with no username in it — don't fabricate an "@share" handle.
+      if (detected === 'facebook' && (candidate === 'share' || candidate === 'profile.php')) {
+        candidate = '';
+      }
       // TikTok / Threads: /@<handle>
       if (candidate.startsWith('@')) candidate = candidate.slice(1);
-      const handle = candidate ? `@${candidate}` : '';
-      return { handle, url: stripQueryFragments(url), platform: detected ?? undefined };
+      const cleanUrl = stripQueryFragments(url);
+      // No username in the URL → keep the pasted URL itself as the handle so it
+      // stays visible and saves (the field accepts a full URL); the link still
+      // opens via `url`. User can replace it with the real name.
+      const handle = candidate ? `@${candidate}` : cleanUrl;
+      return { handle, url: cleanUrl, platform: detected ?? undefined };
     } catch {
       // fallthrough
     }

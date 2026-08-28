@@ -99,6 +99,8 @@
     "birthday": "Urodziny (opcjonalnie)",
     "birthdayPlaceholder": "RRRR, RRRR-MM lub RRRR-MM-DD",
     "birthdayHint": "Wprowadź tylko rok (1990), rok-miesiąc (1990-06) lub pełną datę (1990-06-15)",
+    "species": "Gatunek",
+    "speciesPlaceholder": "np. pies, kot, papuga",
     "notes": "Notatki",
     "notesPlaceholder": "Jakiekolwiek notatki o tej osobie...",
     "addButton": "Dodaj osobę",

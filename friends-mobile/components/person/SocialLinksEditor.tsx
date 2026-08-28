@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Button, IconButton, Menu, Text } from 'react-native-paper';
+import { Button, Icon, IconButton, Menu, Text } from 'react-native-paper';
 import { useState } from 'react';
 import {
   parseSocialInput,
@@ -55,7 +55,9 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
 
       {value.map((link, index) => (
         <View key={index} style={styles.row}>
-          <IconButton icon={platformIcon(link.platform)} size={20} iconColor={fz.ink} style={styles.platformIcon} />
+          <View style={styles.platformIcon}>
+            <Icon source={platformIcon(link.platform)} size={22} color={fz.ink} />
+          </View>
           <View style={styles.input}>
             <FormInput
               dense
@@ -115,7 +117,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   platformIcon: {
-    margin: 0,
+    width: 32,
+    alignItems: 'center',
+    marginRight: 4,
   },
   input: {
     flex: 1,

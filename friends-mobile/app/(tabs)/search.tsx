@@ -28,7 +28,7 @@ type SearchCategory = 'all' | 'people' | 'relations' | 'stories';
 
 interface SearchResult {
   id: string;
-  type: 'person' | 'relation' | 'story' | 'connection';
+  type: 'person' | 'pet' | 'relation' | 'story' | 'connection';
   title: string;
   subtitle: string;
   metadata?: string;
@@ -77,7 +77,7 @@ export default function SearchScreen() {
           const isPet = person.entityType === 'pet';
           results.push({
             id: person.id,
-            type: 'person',
+            type: isPet ? 'pet' : 'person',
             title: person.name,
             subtitle: isPet
               ? `🐾 ${person.species?.trim() || 'Pet'}`
@@ -161,7 +161,7 @@ export default function SearchScreen() {
   }, [searchQuery, relations, people]);
 
   const handleResultPress = (result: SearchResult) => {
-    if (result.type === 'person' && result.personId) {
+    if ((result.type === 'person' || result.type === 'pet') && result.personId) {
       router.push(`/person/${result.personId}`);
     } else if (result.type === 'relation' && result.personId) {
       router.push(`/person/${result.personId}`);

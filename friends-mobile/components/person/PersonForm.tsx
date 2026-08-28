@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
+import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MetLocationInput from '@/components/person/MetLocationInput';
@@ -24,6 +25,7 @@ export type PersonFormValues = {
   importanceToUser: string;
   gender: string;
   genderOther: string;
+  species: string;
   dateOfBirth: string;
   metDate: string;
   metLocation: string;
@@ -43,6 +45,7 @@ const DEFAULTS: PersonFormValues = {
   importanceToUser: 'unknown',
   gender: '',
   genderOther: '',
+  species: '',
   dateOfBirth: '',
   metDate: '',
   metLocation: '',
@@ -125,6 +128,8 @@ function buildExistingState(
 
 type Props = {
   mode: 'add' | 'edit';
+  /** Pet records get a stripped form: name, nickname, species, birthday, notes. */
+  isPet?: boolean;
   /** Seeds field state once on mount. Edit passes the mapped person record. */
   initial?: Partial<PersonFormValues>;
   subtitle?: string;
@@ -144,6 +149,7 @@ type Props = {
 
 export default function PersonForm({
   mode,
+  isPet = false,
   initial,
   subtitle,
   submitting,
@@ -166,6 +172,7 @@ export default function PersonForm({
   const [importanceToUser, setImportanceToUser] = useState(seed.importanceToUser);
   const [gender, setGender] = useState(seed.gender);
   const [genderOther, setGenderOther] = useState(seed.genderOther);
+  const [species, setSpecies] = useState(seed.species);
   const [dateOfBirth, setDateOfBirth] = useState(seed.dateOfBirth);
   const [metDate, setMetDate] = useState(seed.metDate);
   const [metLocation, setMetLocation] = useState(seed.metLocation);
@@ -240,6 +247,7 @@ export default function PersonForm({
       importanceToUser,
       gender,
       genderOther,
+      species,
       dateOfBirth,
       metDate,
       metLocation,
@@ -256,6 +264,25 @@ export default function PersonForm({
     mode === 'add' && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType);
 
   return (
+    <>
+    {mode === 'edit' && (
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Button
+              mode="text"
+              onPress={handleSubmitPress}
+              disabled={submitting || name.trim().length < 2}
+              textColor={fz.ink}
+              labelStyle={fzText.btn}
+              compact
+            >
+              {submitLabel}
+            </Button>
+          ),
+        }}
+      />
+    )}
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
@@ -289,12 +316,34 @@ export default function PersonForm({
             />
           </View>
 
-          <FormSection title={t('person.socialAndLanguages')} style={styles.flatSection}>
-            <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
-            <LanguagesEditor value={languages} onChange={setLanguages} />
-          </FormSection>
+          {isPet && (
+            <View style={styles.plainGroup}>
+              <FormInput
+                label={t('person.species')}
+                placeholder={t('person.speciesPlaceholder')}
+                value={species}
+                onChangeText={setSpecies}
+                maxLength={40}
+              />
+              <FormInput
+                label={t('person.birthday')}
+                placeholder={t('person.birthdayPlaceholder')}
+                value={dateOfBirth}
+                onChangeText={setDateOfBirth}
+                style={styles.inputAboveHint}
+              />
+              <Text style={[fzText.sub, styles.hintTile]}>{t('person.birthdayHint')}</Text>
+            </View>
+          )}
 
-          {mode === 'edit' && (
+          {!isPet && (
+            <FormSection title={t('person.socialAndLanguages')} style={styles.flatSection}>
+              <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} />
+              <LanguagesEditor value={languages} onChange={setLanguages} />
+            </FormSection>
+          )}
+
+          {mode === 'edit' && !isPet && (
             <FormSection title={t('person.gender')}>
               <PillGroup
                 value={gender}
@@ -321,6 +370,7 @@ export default function PersonForm({
             </FormSection>
           )}
 
+          {!isPet && (
           <FormSection title={t('person.relationshipType')}>
             <PillGroup
               value={relationshipType}
@@ -353,7 +403,9 @@ export default function PersonForm({
               </View>
             )}
           </FormSection>
+          )}
 
+          {!isPet && (
           <View style={styles.plainGroup}>
             <FormInput
               label={t('person.birthday')}
@@ -415,8 +467,9 @@ export default function PersonForm({
               style={styles.lastInput}
             />
           </View>
+          )}
 
-          {mode === 'edit' && (
+          {mode === 'edit' && !isPet && (
             <FormSection title={t('person.personType')} hint={t('person.personTypeHint')}>
               <PillGroup
                 value={personType}
@@ -429,7 +482,7 @@ export default function PersonForm({
             </FormSection>
           )}
 
-          {mode === 'edit' && (
+          {mode === 'edit' && !isPet && (
             <FormSection title={t('person.importance')} hint={t('person.importanceHint')}>
               <PillGroup
                 value={importanceToUser}
@@ -456,6 +509,7 @@ export default function PersonForm({
             />
           </View>
 
+          {!isPet && (
           <Foldable title={t('person.brainDumpToggle')}>
             <BrainDumpSection
               personName={brainDumpPersonName || name}
@@ -470,6 +524,7 @@ export default function PersonForm({
               onApply={handleBrainDumpApply}
             />
           </Foldable>
+          )}
 
           <Button
             mode="contained"
@@ -495,6 +550,7 @@ export default function PersonForm({
         <StatusBar style={Platform.OS === 'ios' ? 'light' : 'dark'} />
       </ScrollView>
     </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -515,11 +571,14 @@ const styles = StyleSheet.create({
   plainGroup: {
     marginBottom: fz.s.lg,
   },
-  // ponytail: flat variant — keep the white fill, drop the border/rounding/side padding.
+  // ponytail: flat variant — white fill bleeds to the screen edges (cancel the
+  // parent's edge padding with a negative margin, add it back as padding so the
+  // text stays exactly where it was); drop the border/rounding.
   flatSection: {
     borderWidth: 0,
     borderRadius: 0,
-    paddingHorizontal: 0,
+    marginHorizontal: -fz.s.edge,
+    paddingHorizontal: fz.s.edge,
   },
   personTypeBlock: {
     marginTop: fz.s.lg,
