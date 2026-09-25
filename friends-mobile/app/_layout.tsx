@@ -1,15 +1,44 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FloatingDevTools } from '@react-buoy/core';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import ChainLockSplash from '@/components/ChainLockSplash';
 import { runMigrations } from '@/lib/db/migrate';
+import { checkOnboardingComplete } from './onboarding';
+import { appLogger, logPerformance } from '@/lib/logger';
+import { useSettings } from '@/store/useSettings';
+import { createTheme } from '@/lib/theme';
+import { fz } from '@/lib/design/tokens';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://dbe446a4b72a4544455d457e63b864b5@o4510194904137728.ingest.de.sentry.io/4510509906722896',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
+import '@/lib/i18n'; // Initialize i18n
+import '@/lib/i18n/types'; // Import type definitions
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -26,6 +55,16 @@ export {
   ErrorBoundary,
 } from 'expo-router';
 
+// Shared Stack header styling — paper bg, ink title, Space Grotesk.
+// Forces the light FriendZ header on modal/story/quiz screens regardless of
+// the system dark theme (which was rendering these headers black).
+const fzHeader = {
+  headerStyle: { backgroundColor: fz.paper },
+  headerTintColor: fz.ink,
+  headerTitleStyle: { fontFamily: fz.font, fontWeight: '600' as const, fontSize: 18 },
+  headerShadowVisible: false,
+};
+
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
@@ -34,11 +73,22 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+// Minimum time the animated ChainLockSplash stays on screen — long enough to
+// see the links slide in and snap (~1.4s into its 2.8s loop), so it isn't cut
+// off mid-animation when migrations/onboarding resolve in milliseconds.
+const MIN_SPLASH_MS = 1700;
+
+export default Sentry.wrap(function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    InstrumentSans: require('../lib/fonts/InstrumentSans-VariableFont_wdth,wght.ttf'),
+    Inter: require('../lib/fonts/Inter-VariableFont_opsz,wght.ttf'),
+    SpaceGrotesk: require('../lib/fonts/SpaceGrotesk-VariableFont.ttf'),
+    PlayfairDisplay: require('../lib/fonts/PlayfairDisplay-VariableFont_wght.ttf'),
     ...FontAwesome.font,
   });
+  const [appReady, setAppReady] = useState(false);
+  const splashShownAt = useRef(0);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -47,15 +97,46 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
+      const perf = logPerformance(appLogger, 'appInitialization');
+      appLogger.info('App starting', { fontsLoaded: true });
+
+      // Reveal the animated loader while migrations/onboarding check run.
+      SplashScreen.hideAsync();
+      splashShownAt.current = Date.now();
+
+      // Hold the animated splash for one full lock-in cycle so it's actually
+      // seen, instead of getting swapped out mid-animation when local DB work
+      // (migrations/onboarding check) finishes in milliseconds.
+      const revealApp = () => {
+        const elapsed = Date.now() - splashShownAt.current;
+        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+        setTimeout(() => setAppReady(true), remaining);
+      };
+
       // Run database migrations on app start
       runMigrations()
-        .then(() => {
-          console.log('✅ Database ready');
-          SplashScreen.hideAsync();
+        .then(async () => {
+          appLogger.info('Database migrations completed');
+
+          // Check if onboarding is complete
+          const onboardingComplete = await checkOnboardingComplete();
+          appLogger.debug('Onboarding status', { complete: onboardingComplete });
+
+          if (!onboardingComplete) {
+            // Redirect to onboarding after navigation is ready
+            appLogger.info('Redirecting to onboarding');
+            setTimeout(() => {
+              router.replace('/onboarding');
+            }, 100);
+          }
+
+          perf.end(true);
+          revealApp();
         })
         .catch((err) => {
-          console.error('❌ Migration failed:', err);
-          SplashScreen.hideAsync();
+          appLogger.error('Migration failed', { error: err });
+          perf.end(false);
+          revealApp();
         });
     }
   }, [loaded]);
@@ -63,23 +144,60 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
+  if (!appReady) {
+    return <ChainLockSplash />;
+  }
 
   return <RootLayoutNav />;
-}
+});
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const {
+    themeColor, loadThemeColor,
+    fontFamily, loadFontFamily,
+    loadApiKey, loadGeminiApiKey, loadSelectedModel,
+  } = useSettings();
+
+  useEffect(() => {
+    loadThemeColor();
+    loadFontFamily();
+    loadApiKey();
+    loadGeminiApiKey();
+    loadSelectedModel();
+  }, []);
+
+  // Force light themes: the app is redesigned to a light B&W FriendZ design
+  // (fz.paper surfaces). Following the system dark mode left Paper inputs /
+  // dialogs dark-on-light and unreadable. Keep everything light regardless of
+  // the OS theme until color support is intentionally added.
+  const paperTheme = createTheme(themeColor, fontFamily, false);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </Stack>
-        </ThemeProvider>
-      </PaperProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider theme={paperTheme}>
+          <ThemeProvider value={DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="person" options={{ headerShown: false }} />
+              <Stack.Screen name="import-contacts" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="modal"
+                options={{
+                  presentation: 'modal',
+                  title: 'Add a Person',
+                  ...fzHeader,
+                }}
+              />
+              <Stack.Screen name="story/[id]" options={{ ...fzHeader }} />
+              <Stack.Screen name="story/addStory" options={{ ...fzHeader }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
+            </Stack>
+            <FloatingDevTools environment="local" userRole="admin" />
+          </ThemeProvider>
+        </PaperProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

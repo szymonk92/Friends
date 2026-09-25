@@ -1,67 +1,78 @@
-import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, ScrollView, View, Alert } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { StyleSheet, View, Alert, Text as RNText } from 'react-native';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
-import { usePerson, useUpdatePerson } from '@/hooks/usePeople';
+import { useTranslation } from 'react-i18next';
+import {
+  usePerson,
+  useUpdatePerson,
+  useCreatePerson,
+  usePeople,
+} from '@/hooks/usePeople';
+import { useCreateConnection, useUpdateConnection } from '@/hooks/useConnections';
+import { useCreateRelations, useUpdateRelation, usePersonRelations } from '@/hooks/useRelations';
+import { usePersonConnections } from '@/hooks/useConnections';
+import { devLogger } from '@/lib/utils/devLogger';
+import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
+import {
+  parseSocialLinksJson,
+  serializeSocialLinks,
+  type SocialLink,
+} from '@/lib/social/socialLinks';
+import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
+import { normalizePhone } from '@/lib/utils/pii';
+import { parseFlexibleDate } from '@/lib/utils/dates';
+import { fz, fzText } from '@/lib/design/tokens';
+import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
+
+type PersonRecord = NonNullable<ReturnType<typeof usePerson>['data']>;
+
+function mapPersonToForm(person: PersonRecord): Partial<PersonFormValues> {
+  const g = person.gender || '';
+  const known = g === 'male' || g === 'female';
+  return {
+    name: person.name,
+    nickname: person.nickname || '',
+    relationshipType: person.relationshipType || 'friend',
+    personType: person.personType || 'primary',
+    importanceToUser: person.importanceToUser || 'unknown',
+    gender: !g ? '' : known ? g : 'other',
+    genderOther: !g || known || g === 'other' ? '' : g,
+    species: person.species || '',
+    dateOfBirth: person.dateOfBirth
+      ? new Date(person.dateOfBirth).toISOString().split('T')[0]
+      : '',
+    metDate: person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '',
+    metLocation: person.metLocation || '',
+    homeLocation: person.homeLocation || '',
+    phone: person.phone || '',
+    email: person.email || '',
+    languages: parseLanguagesJson(person.languages),
+    socialLinks: parseSocialLinksJson(person.socialLinks),
+    notes: person.notes || '',
+  };
+}
 
 export default function EditPersonScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
+  const { t } = useTranslation();
   const { data: person, isLoading } = usePerson(personId!);
   const updatePerson = useUpdatePerson();
-
-  const [name, setName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [relationshipType, setRelationshipType] = useState<string>('friend');
-  const [notes, setNotes] = useState('');
+  const createPerson = useCreatePerson();
+  const createConnection = useCreateConnection();
+  const updateConnection = useUpdateConnection();
+  const createRelations = useCreateRelations();
+  const updateRelation = useUpdateRelation();
+  const { data: personRelations = [] } = usePersonRelations(personId!);
+  const { data: personConnections = [] } = usePersonConnections(personId!);
+  const { data: allPeople = [] } = usePeople();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Pre-fill form when person data loads
-  useEffect(() => {
-    if (person) {
-      setName(person.name);
-      setNickname(person.nickname || '');
-      setRelationshipType(person.relationshipType || 'friend');
-      setNotes(person.notes || '');
-    }
-  }, [person]);
-
-  const handleSubmit = async () => {
-    if (name.trim().length < 2) {
-      Alert.alert('Invalid Name', 'Please enter a name with at least 2 characters');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await updatePerson.mutateAsync({
-        id: personId!,
-        name: name.trim(),
-        nickname: nickname.trim() || null,
-        relationshipType: relationshipType as any,
-        notes: notes.trim() || null,
-      });
-
-      Alert.alert('Success', `${name} has been updated!`, [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update person. Please try again.');
-      console.error('Update person error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={[fzText.sub, styles.loadingText]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -69,108 +80,197 @@ export default function EditPersonScreen() {
   if (!person) {
     return (
       <View style={styles.centered}>
-        <Text variant="bodyLarge">Person not found</Text>
-        <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-          Go Back
+        <Text style={fzText.title}>{t('person.notFound')}</Text>
+        <Button
+          mode="contained"
+          onPress={() => router.back()}
+          buttonColor={fz.ink}
+          style={styles.backButton}
+        >
+          {t('person.goBack')}
         </Button>
       </View>
     );
   }
 
+  // Side-effect writes that need a saved person + the AI key flow that just ran.
+  // Field merges are handled inside PersonForm.
+  const handleBrainDumpApply = async (applied: AppliedBrainDump) => {
+    try {
+      if (applied.archiveRelationIds.length) {
+        const now = new Date();
+        await Promise.all(
+          applied.archiveRelationIds.map((id) =>
+            updateRelation.mutateAsync({ id, status: 'past', validTo: now })
+          )
+        );
+      }
+
+      if (applied.endsPartnerConnectionId) {
+        await updateConnection.mutateAsync({
+          id: applied.endsPartnerConnectionId,
+          status: 'ended',
+          endDate: new Date(),
+          endReason: 'breakup',
+        });
+      }
+
+      if (applied.partnerName && personId) {
+        const partner = await createPerson.mutateAsync({
+          name: applied.partnerName,
+          personType: 'primary',
+          dataCompleteness: 'minimal',
+          addedBy: 'ai_extraction',
+          status: 'active',
+          relationshipType: 'partner',
+        });
+        if (partner?.id) {
+          await createConnection.mutateAsync({
+            person1Id: personId,
+            person2Id: partner.id,
+            relationshipType: 'partner',
+            status: 'active',
+          });
+        }
+      }
+
+      if (applied.attributes.length && personId) {
+        await createRelations.mutateAsync(
+          applied.attributes.map((a) => ({
+            subjectId: personId,
+            subjectType: 'person',
+            relationType: a.relationType,
+            objectLabel: a.objectLabel,
+            confidence: a.confidence,
+            source: 'ai_extraction',
+            status: a.assertion === 'aspiration' ? 'aspiration' : 'current',
+            assertion: a.assertion,
+          }))
+        );
+      }
+    } catch (e) {
+      Alert.alert(
+        t('person.sideEffectsFailed'),
+        e instanceof Error ? e.message : t('person.sideEffectsFailedMessage')
+      );
+    }
+  };
+
+  const handleSubmit = async (v: PersonFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await updatePerson.mutateAsync({
+        id: personId!,
+        name: v.name.trim(),
+        nickname: v.nickname.trim() || null,
+        relationshipType: v.relationshipType as any,
+        dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
+        species: v.species.trim() || null,
+        metDate: parseFlexibleDate(v.metDate) || null,
+        metLocation: v.metLocation.trim() || null,
+        homeLocation: v.homeLocation.trim() || null,
+        phone: normalizePhone(v.phone) || null,
+        email: v.email.trim() || null,
+        languages: serializeLanguages(v.languages),
+        socialLinks: serializeSocialLinks(v.socialLinks),
+        notes: v.notes.trim() || null,
+        personType: v.personType as any,
+        importanceToUser: v.importanceToUser as any,
+        gender: v.gender === 'other' ? v.genderOther.trim() || 'other' : v.gender || null,
+      });
+      router.back();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('already exists')) {
+        Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
+      } else {
+        Alert.alert(t('common.error'), t('person.errorUpdating'));
+      }
+      devLogger.error('Failed to update person', { error, personId });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const initial = mapPersonToForm(person);
+  const isPet = person.entityType === 'pet';
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Edit Person
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          Update information for {person.name}
-        </Text>
-
-        <TextInput
-          mode="outlined"
-          label="Name *"
-          placeholder="Enter their name"
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          autoFocus
-        />
-
-        <TextInput
-          mode="outlined"
-          label="Nickname"
-          placeholder="Optional nickname"
-          value={nickname}
-          onChangeText={setNickname}
-          style={styles.input}
-        />
-
-        <Text variant="titleSmall" style={styles.label}>
-          Relationship Type
-        </Text>
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'friend', label: 'Friend', icon: 'account-heart' },
-            { value: 'family', label: 'Family', icon: 'home-heart' },
-            { value: 'colleague', label: 'Colleague', icon: 'briefcase' },
-          ]}
-          style={styles.segmented}
-        />
-        <SegmentedButtons
-          value={relationshipType}
-          onValueChange={setRelationshipType}
-          buttons={[
-            { value: 'acquaintance', label: 'Acquaintance' },
-            { value: 'partner', label: 'Partner', icon: 'heart' },
-          ]}
-          style={styles.segmented}
-        />
-
-        <TextInput
-          mode="outlined"
-          label="Notes"
-          placeholder="Any notes about this person..."
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={4}
-          style={styles.input}
-        />
-
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={isSubmitting}
-          disabled={isSubmitting || name.trim().length < 2}
-          style={styles.submitButton}
-          contentStyle={styles.submitButtonContent}
-        >
-          Save Changes
-        </Button>
-
-        <Button mode="text" onPress={() => router.back()} disabled={isSubmitting}>
-          Cancel
-        </Button>
-      </View>
-
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
-    </ScrollView>
+    <>
+      <PersonForm
+        mode="edit"
+        isPet={isPet}
+        initial={initial}
+        subtitle={t('person.editSubtitle', { name: person.name })}
+        headerTitle={
+          <RNText style={styles.headerTitle} numberOfLines={1}>
+            {t('person.editHeader')}{' '}
+            <RNText style={styles.headerTitleName}>{person.name}</RNText>
+          </RNText>
+        }
+        headerBackTitle={t('common.cancel')}
+        submitting={isSubmitting}
+        submitLabel={t('person.saveButton')}
+        onSubmit={handleSubmit}
+        onCancel={() => router.back()}
+        brainDumpPersonName={person.name}
+        brainDumpContext={{
+          personId: personId!,
+          personRelations,
+          personConnections,
+          allPeople,
+        }}
+        onBrainDumpApply={handleBrainDumpApply}
+        footer={
+          isPet ? null : (
+          <>
+            <Button
+              mode="outlined"
+              onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+              style={styles.secondaryButton}
+              contentStyle={styles.secondaryButtonContent}
+              labelStyle={fzText.btnOutline}
+              disabled={isSubmitting}
+            >
+              {t('person.addRelationButton')}
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
+              style={styles.secondaryButton}
+              contentStyle={styles.secondaryButtonContent}
+              labelStyle={fzText.btnOutline}
+              disabled={isSubmitting}
+            >
+              {t('person.addConnectionButton')}
+            </Button>
+          </>
+          )
+        }
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  headerTitle: {
+    fontFamily: fz.font,
+    fontWeight: '500',
+    fontSize: 18,
+    color: fz.ink,
+  },
+  headerTitleName: {
+    fontFamily: fz.font,
+    fontWeight: '700',
+    fontSize: 18,
+    color: fz.ink,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: fz.paper,
   },
   loadingText: {
     marginTop: 12,
@@ -178,31 +278,12 @@ const styles = StyleSheet.create({
   backButton: {
     marginTop: 16,
   },
-  content: {
-    padding: 24,
-  },
-  title: {
+  secondaryButton: {
     marginBottom: 8,
+    borderColor: fz.outline,
+    borderRadius: fz.rButton,
   },
-  subtitle: {
-    marginBottom: 24,
-    opacity: 0.7,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  label: {
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  segmented: {
-    marginBottom: 12,
-  },
-  submitButton: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  submitButtonContent: {
+  secondaryButtonContent: {
     paddingVertical: 8,
   },
 });

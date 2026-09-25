@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { socialLinksSchema } from '@/lib/social/socialLinks';
 
 /**
  * Validation schemas for the Friends app
@@ -13,6 +14,7 @@ export const personTypeEnum = z.enum(['primary', 'mentioned', 'placeholder']);
 export const dataCompletenessEnum = z.enum(['minimal', 'partial', 'complete']);
 export const addedByEnum = z.enum(['user', 'ai_extraction', 'auto_created', 'import']);
 export const importanceEnum = z.enum(['unknown', 'peripheral', 'important', 'very_important']);
+export const entityTypeEnum = z.enum(['person', 'pet']);
 export const personStatusEnum = z.enum(['active', 'archived', 'deceased', 'placeholder', 'merged']);
 export const relationshipTypeEnum = z.enum([
   'friend',
@@ -22,15 +24,33 @@ export const relationshipTypeEnum = z.enum([
   'partner',
 ]);
 
+export const phoneSchema = z
+  .string()
+  .trim()
+  .max(32)
+  .regex(/^[+\d][\d\s().-]{2,31}$/u, 'Invalid phone number');
+
+export const emailSchema = z.string().trim().max(254).email('Invalid email');
+
+export const languagesSchema = z.array(z.string().trim().min(1).max(40)).max(20);
+
 export const newPersonSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  nickname: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be 100 characters or fewer'),
+  nickname: z.string().trim().max(60, 'Nickname must be 60 characters or fewer').optional(),
   relationshipType: relationshipTypeEnum.optional(),
   metDate: z.date().optional(),
+  metLocation: z.string().trim().max(120).optional().nullable(),
+  socialLinks: socialLinksSchema.optional().nullable(),
+  phone: phoneSchema.optional().nullable(),
+  email: emailSchema.optional().nullable(),
+  homeLocation: z.string().trim().max(120).optional().nullable(),
+  languages: languagesSchema.optional().nullable(),
   personType: personTypeEnum.default('placeholder'),
+  entityType: entityTypeEnum.default('person'),
+  species: z.string().trim().max(40, 'Species must be 40 characters or fewer').optional().nullable(),
   dataCompleteness: dataCompletenessEnum.default('minimal'),
   addedBy: addedByEnum.default('user'),
-  notes: z.string().optional(),
+  notes: z.string().trim().max(5000, 'Notes must be 5000 characters or fewer').optional(),
 });
 
 export type NewPersonFormData = z.infer<typeof newPersonSchema>;
@@ -39,30 +59,25 @@ export type NewPersonFormData = z.infer<typeof newPersonSchema>;
 // RELATION SCHEMAS
 // ============================================================================
 
+// 12 story-fact types + HAS_IMPORTANT_DATE (reserved for the dedicated
+// birthday/anniversary feature — not part of the AI/manual vocabulary).
 export const relationTypeEnum = z.enum([
-  'KNOWS',
+  'DOES',
+  'AVOIDS',
   'LIKES',
   'DISLIKES',
-  'ASSOCIATED_WITH',
-  'EXPERIENCED',
-  'HAS_SKILL',
-  'OWNS',
-  'HAS_IMPORTANT_DATE',
+  'HAS',
+  'LIVES_IN',
   'IS',
-  'BELIEVES',
-  'FEARS',
-  'WANTS_TO_ACHIEVE',
+  'CAN',
+  'DID',
   'STRUGGLES_WITH',
-  'CARES_FOR',
-  'DEPENDS_ON',
-  'REGULARLY_DOES',
-  'PREFERS_OVER',
-  'USED_TO_BE',
-  'SENSITIVE_TO',
-  'UNCOMFORTABLE_WITH',
+  'WANTS',
+  'KNOWS',
+  'HAS_IMPORTANT_DATE',
 ]);
 
-export const intensityEnum = z.enum(['weak', 'medium', 'strong', 'very_strong']);
+export const intensityEnum = z.enum(['weak', 'medium', 'strong']);
 export const relationStatusEnum = z.enum(['current', 'past', 'future', 'aspiration']);
 export const sourceEnum = z.enum([
   'manual',
@@ -75,8 +90,8 @@ export const sourceEnum = z.enum([
 export const newRelationSchema = z.object({
   subjectId: z.string().uuid('Invalid person ID'),
   relationType: relationTypeEnum,
-  objectLabel: z.string().min(1, 'Object label is required'),
-  objectType: z.string().optional(),
+  objectLabel: z.string().min(1, 'Object label is required').max(200, 'Object label must be 200 characters or fewer'),
+  objectType: z.string().trim().max(60).optional(),
   intensity: intensityEnum.optional(),
   confidence: z.number().min(0).max(1).default(1.0),
   category: z.string().optional(),
@@ -94,8 +109,8 @@ export type NewRelationFormData = z.infer<typeof newRelationSchema>;
 // ============================================================================
 
 export const newStorySchema = z.object({
-  title: z.string().optional(),
-  content: z.string().min(10, 'Story must be at least 10 characters'),
+  title: z.string().trim().max(200, 'Title must be 200 characters or fewer').optional(),
+  content: z.string().min(10, 'Story must be at least 10 characters').max(20000, 'Story must be 20000 characters or fewer'),
   storyDate: z.date().optional(),
 });
 
@@ -155,14 +170,6 @@ export const likesMetadataSchema = z.object({
   since: z.string().optional(), // "childhood", "2020"
 });
 
-// FEARS metadata
-export const fearsMetadataSchema = z.object({
-  severity: z.enum(['mild', 'moderate', 'severe', 'phobia']).optional(),
-  triggers: z.array(z.string()).optional(),
-  context: z.string().optional(),
-  since: z.string().optional(),
-});
-
 // STRUGGLES_WITH metadata
 export const strugglesMetadataSchema = z.object({
   severity: z.enum(['minor', 'moderate', 'major', 'severe']).optional(),
@@ -171,26 +178,9 @@ export const strugglesMetadataSchema = z.object({
   triggers: z.array(z.string()).optional(),
 });
 
-// CARES_FOR metadata
-export const caresForMetadataSchema = z.object({
-  care_type: z.string().optional(), // "elderly_parent", "child", "pet"
-  level: z.enum(['occasional', 'part_time', 'full_time', 'primary_caregiver']).optional(),
-  since: z.string().optional(),
-  condition: z.string().optional(), // "dementia", "chronic_illness"
-});
-
 // IS metadata (identity)
 export const isMetadataSchema = z.object({
   category: z.enum(['profession', 'role', 'trait', 'identity', 'health', 'relationship_status']),
   since: z.string().optional(),
   context: z.string().optional(),
-});
-
-// BELIEVES metadata
-export const believesMetadataSchema = z.object({
-  category: z
-    .enum(['political', 'religious', 'philosophical', 'ethical', 'scientific', 'lifestyle'])
-    .optional(),
-  strength: z.enum(['mild', 'moderate', 'strong', 'core_value']).optional(),
-  open_to_discussion: z.boolean().optional(),
 });

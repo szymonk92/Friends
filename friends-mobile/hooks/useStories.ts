@@ -2,6 +2,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { stories, type NewStory } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 /**
  * Hook to fetch all stories
@@ -17,6 +18,9 @@ export function useStories() {
         .where(and(eq(stories.userId, userId), isNull(stories.deletedAt)))
         .orderBy(desc(stories.createdAt));
     },
+    retry: 3, // Retry failed queries
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 }
 
@@ -56,6 +60,8 @@ export function useCreateStory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
+    retry: 2, // Retry failed mutations up to 2 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }
 
@@ -83,5 +89,22 @@ export function useMarkStoryProcessed() {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['stories', variables.id] });
     },
+  });
+}
+
+/**
+ * Hook to delete a story (soft delete)
+ */
+export function useDeleteStory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await db.update(stories).set({ deletedAt: new Date() }).where(eq(stories.id, id));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+    retry: 1, // Retry once on failure
   });
 }

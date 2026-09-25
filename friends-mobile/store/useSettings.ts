@@ -1,14 +1,174 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+
+export type ThemeColor =
+  | 'violet'
+  | 'blue'
+  | 'green'
+  | 'rose'
+  | 'orange'
+  | 'teal'
+  | 'inkWash'
+  | 'cherry'
+  | 'lavender';
+export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-3.1-flash-lite' | 'ollama';
+
+
+export interface ColorPalette {
+  primary: string;
+  secondary: string;
+  tertiary: string;
+}
+
+export const THEME_PALETTES: Record<ThemeColor, ColorPalette> = {
+  violet: {
+    primary: '#8b5cf6',
+    secondary: '#ec4899', // Pink
+    tertiary: '#6366f1', // Indigo
+  },
+  blue: {
+    primary: '#3882ddff',
+    secondary: '#0ea5e9', // Sky blue
+    tertiary: '#06b6d4', // Cyan
+  },
+  green: {
+    primary: '#10b981',
+    secondary: '#14b8a6', // Teal
+    tertiary: '#22c55e', // Light green
+  },
+  rose: {
+    primary: '#f43f5e',
+    secondary: '#f97316', // Orange
+    tertiary: '#ec4899', // Pink
+  },
+  orange: {
+    primary: '#f97316',
+    secondary: '#f59e0b', // Amber
+    tertiary: '#ef4444', // Red
+  },
+  teal: {
+    primary: '#08605F',
+    secondary: '#177E89', // Teal blue
+    tertiary: '#598381', // Sage
+  },
+  inkWash: {
+    primary: '#4A4A4A',
+    secondary: '#CBCBCB', // Teal blue
+    tertiary: '#FFFFF3', // Sage
+  },
+  cherry: {
+    primary: '#F2C7C7',
+    secondary: '#F2C7C7', // Teal blue
+    tertiary: '#F2C7C7', // Sage
+  },
+  lavender: {
+    primary: '#3882ddff',
+    secondary: '#9EF0FF', // Teal blue
+    tertiary: '#A4A5F5', // Sage
+  },
+};
+
+export type FontFamily = 'System' | 'InstrumentSans' | 'Inter' | 'PlayfairDisplay';
+
+export const AVAILABLE_FONTS: Record<FontFamily, string> = {
+  System: 'System',
+  InstrumentSans: 'InstrumentSans',
+  Inter: 'Inter',
+  PlayfairDisplay: 'PlayfairDisplay',
+};
+
+// Backward compatibility - export just primary colors
+export const THEME_COLORS: Record<ThemeColor, string> = Object.entries(THEME_PALETTES).reduce(
+  (acc, [key, palette]) => {
+    acc[key as ThemeColor] = palette.primary;
+    return acc;
+  },
+  {} as Record<ThemeColor, string>
+);
+
+export const AI_MODELS: Record<AIModel, { name: string; description: string }> = {
+  anthropic: {
+    name: 'Claude Haiku 4.5',
+    description: 'Anthropic Claude - Fast, budget-friendly',
+  },
+  gemini: {
+    name: 'Gemini 2.5 Flash-Lite',
+    description: 'Google Gemini - Fast, budget-friendly (default)',
+  },
+  'gemini-2.5-flash-lite': {
+    name: 'Gemini 2.5 Flash-Lite',
+    description: 'Google Gemini - Stable, fast, cost-efficient',
+  },
+  'gemini-3.1-flash-lite': {
+    name: 'Gemini 3.1 Flash-Lite',
+    description: 'Google Gemini - Frontier class, preview',
+  },
+  'gemini-1.5-flash': {
+    name: 'Gemini 1.5 Flash',
+    description: 'Google Gemini - Fast and cost-effective',
+  },
+  'gemini-1.5-pro': {
+    name: 'Gemini 1.5 Pro',
+    description: 'Google Gemini - High reasoning capability',
+  },
+  ollama: {
+    name: 'Ollama (Local)',
+    description: 'Free local models via Ollama - runs on your machine',
+  },
+};
 
 interface SettingsState {
   apiKey: string | null;
+  geminiApiKey: string | null;
+  ollamaApiKey: string | null;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
+  selectedModel: AIModel;
+  themeColor: ThemeColor;
+  fontFamily: FontFamily;
+  maxPhotosPerPerson: number;
   setApiKey: (key: string) => Promise<void>;
+  clearApiKey: () => Promise<void>;
   loadApiKey: () => Promise<void>;
   hasApiKey: () => boolean;
+  setGeminiApiKey: (key: string) => Promise<void>;
+  clearGeminiApiKey: () => Promise<void>;
+  loadGeminiApiKey: () => Promise<void>;
+  hasGeminiApiKey: () => boolean;
+  setOllamaApiKey: (key: string) => Promise<void>;
+  clearOllamaApiKey: () => Promise<void>;
+  loadOllamaApiKey: () => Promise<void>;
+  hasOllamaApiKey: () => boolean;
+  setOllamaBaseUrl: (url: string) => Promise<void>;
+  loadOllamaBaseUrl: () => Promise<void>;
+  setOllamaModel: (model: string) => Promise<void>;
+  loadOllamaModel: () => Promise<void>;
+  setSelectedModel: (model: AIModel) => Promise<void>;
+  loadSelectedModel: () => Promise<void>;
+  getActiveApiKey: () => string | null;
+  hasActiveApiKey: () => boolean;
+  setThemeColor: (color: ThemeColor) => Promise<void>;
+  loadThemeColor: () => Promise<void>;
+  getThemeColorValue: () => string;
+  setFontFamily: (font: FontFamily) => Promise<void>;
+  loadFontFamily: () => Promise<void>;
+  setMaxPhotosPerPerson: (limit: number) => Promise<void>;
+  loadMaxPhotosPerPerson: () => Promise<void>;
 }
 
 const API_KEY_STORAGE_KEY = '@friends_api_key';
+const GEMINI_API_KEY_STORAGE_KEY = '@friends_gemini_api_key';
+const OLLAMA_API_KEY_STORAGE_KEY = '@friends_ollama_api_key';
+const OLLAMA_BASE_URL_STORAGE_KEY = '@friends_ollama_base_url';
+const OLLAMA_MODEL_STORAGE_KEY = '@friends_ollama_model';
+const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
+const THEME_COLOR_STORAGE_KEY = '@friends_theme_color';
+const FONT_FAMILY_STORAGE_KEY = '@friends_font_family';
+const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
+
+const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
+const DEFAULT_OLLAMA_MODEL = 'llama3.2:3b';
 
 /**
  * Settings store using Zustand
@@ -16,10 +176,18 @@ const API_KEY_STORAGE_KEY = '@friends_api_key';
  */
 export const useSettings = create<SettingsState>((set, get) => ({
   apiKey: null,
+  geminiApiKey: null,
+  ollamaApiKey: null,
+  ollamaBaseUrl: DEFAULT_OLLAMA_BASE_URL,
+  ollamaModel: DEFAULT_OLLAMA_MODEL,
+  selectedModel: 'anthropic',
+  themeColor: 'violet',
+  fontFamily: 'System',
+  maxPhotosPerPerson: 5,
 
   setApiKey: async (key: string) => {
     try {
-      await AsyncStorage.setItem(API_KEY_STORAGE_KEY, key);
+      await SecureStore.setItemAsync(API_KEY_STORAGE_KEY, key);
       set({ apiKey: key });
     } catch (error) {
       console.error('Failed to save API key:', error);
@@ -27,9 +195,19 @@ export const useSettings = create<SettingsState>((set, get) => ({
     }
   },
 
+  clearApiKey: async () => {
+    try {
+      await SecureStore.deleteItemAsync(API_KEY_STORAGE_KEY);
+      set({ apiKey: null });
+    } catch (error) {
+      console.error('Failed to clear API key:', error);
+      throw error;
+    }
+  },
+
   loadApiKey: async () => {
     try {
-      const key = await AsyncStorage.getItem(API_KEY_STORAGE_KEY);
+      const key = await SecureStore.getItemAsync(API_KEY_STORAGE_KEY);
       set({ apiKey: key });
     } catch (error) {
       console.error('Failed to load API key:', error);
@@ -39,5 +217,220 @@ export const useSettings = create<SettingsState>((set, get) => ({
   hasApiKey: () => {
     const state = get();
     return !!state.apiKey && state.apiKey.trim().length > 0;
+  },
+
+  setGeminiApiKey: async (key: string) => {
+    try {
+      await SecureStore.setItemAsync(GEMINI_API_KEY_STORAGE_KEY, key);
+      set({ geminiApiKey: key });
+    } catch (error) {
+      console.error('Failed to save Gemini API key:', error);
+      throw error;
+    }
+  },
+
+  clearGeminiApiKey: async () => {
+    try {
+      await SecureStore.deleteItemAsync(GEMINI_API_KEY_STORAGE_KEY);
+      set({ geminiApiKey: null });
+    } catch (error) {
+      console.error('Failed to clear Gemini API key:', error);
+      throw error;
+    }
+  },
+
+  loadGeminiApiKey: async () => {
+    try {
+      const key = await SecureStore.getItemAsync(GEMINI_API_KEY_STORAGE_KEY);
+      set({ geminiApiKey: key });
+    } catch (error) {
+      console.error('Failed to load Gemini API key:', error);
+    }
+  },
+
+  hasGeminiApiKey: () => {
+    const state = get();
+    return !!state.geminiApiKey && state.geminiApiKey.trim().length > 0;
+  },
+
+  setOllamaApiKey: async (key: string) => {
+    try {
+      await SecureStore.setItemAsync(OLLAMA_API_KEY_STORAGE_KEY, key);
+      set({ ollamaApiKey: key });
+    } catch (error) {
+      console.error('Failed to save Ollama API key:', error);
+      throw error;
+    }
+  },
+
+  clearOllamaApiKey: async () => {
+    try {
+      await SecureStore.deleteItemAsync(OLLAMA_API_KEY_STORAGE_KEY);
+      set({ ollamaApiKey: null });
+    } catch (error) {
+      console.error('Failed to clear Ollama API key:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaApiKey: async () => {
+    try {
+      const key = await SecureStore.getItemAsync(OLLAMA_API_KEY_STORAGE_KEY);
+      set({ ollamaApiKey: key });
+    } catch (error) {
+      console.error('Failed to load Ollama API key:', error);
+    }
+  },
+
+  hasOllamaApiKey: () => {
+    const state = get();
+    return !!state.ollamaApiKey && state.ollamaApiKey.trim().length > 0;
+  },
+
+  setOllamaBaseUrl: async (url: string) => {
+    try {
+      await AsyncStorage.setItem(OLLAMA_BASE_URL_STORAGE_KEY, url);
+      set({ ollamaBaseUrl: url });
+    } catch (error) {
+      console.error('Failed to save Ollama base URL:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaBaseUrl: async () => {
+    try {
+      const url = await AsyncStorage.getItem(OLLAMA_BASE_URL_STORAGE_KEY);
+      if (url) set({ ollamaBaseUrl: url });
+    } catch (error) {
+      console.error('Failed to load Ollama base URL:', error);
+    }
+  },
+
+  setOllamaModel: async (model: string) => {
+    try {
+      await AsyncStorage.setItem(OLLAMA_MODEL_STORAGE_KEY, model);
+      set({ ollamaModel: model });
+    } catch (error) {
+      console.error('Failed to save Ollama model:', error);
+      throw error;
+    }
+  },
+
+  loadOllamaModel: async () => {
+    try {
+      const model = await AsyncStorage.getItem(OLLAMA_MODEL_STORAGE_KEY);
+      if (model) set({ ollamaModel: model });
+    } catch (error) {
+      console.error('Failed to load Ollama model:', error);
+    }
+  },
+
+  setSelectedModel: async (model: AIModel) => {
+    try {
+      await AsyncStorage.setItem(SELECTED_MODEL_STORAGE_KEY, model);
+      set({ selectedModel: model });
+    } catch (error) {
+      console.error('Failed to save selected model:', error);
+      throw error;
+    }
+  },
+
+  loadSelectedModel: async () => {
+    try {
+      const model = await AsyncStorage.getItem(SELECTED_MODEL_STORAGE_KEY);
+      const valid: AIModel[] = ['anthropic', 'gemini', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'ollama'];
+      if (model && valid.includes(model as AIModel)) {
+        set({ selectedModel: model as AIModel });
+      }
+    } catch (error) {
+      console.error('Failed to load selected model:', error);
+    }
+  },
+
+  getActiveApiKey: () => {
+    const state = get();
+    if (state.selectedModel === 'anthropic') return state.apiKey;
+    if (state.selectedModel === 'ollama') return state.ollamaApiKey;
+    return state.geminiApiKey;
+  },
+
+  hasActiveApiKey: () => {
+    const state = get();
+    const key = state.getActiveApiKey();
+    return !!key && key.trim().length > 0;
+  },
+
+  setThemeColor: async (color: ThemeColor) => {
+    try {
+      await AsyncStorage.setItem(THEME_COLOR_STORAGE_KEY, color);
+      set({ themeColor: color });
+    } catch (error) {
+      console.error('Failed to save theme color:', error);
+      throw error;
+    }
+  },
+
+  loadThemeColor: async () => {
+    try {
+      const color = await AsyncStorage.getItem(THEME_COLOR_STORAGE_KEY);
+      if (color && color in THEME_COLORS) {
+        set({ themeColor: color as ThemeColor });
+      }
+    } catch (error) {
+      console.error('Failed to load theme color:', error);
+    }
+  },
+
+  getThemeColorValue: () => {
+    const state = get();
+    return THEME_COLORS[state.themeColor];
+  },
+
+  setFontFamily: async (font: FontFamily) => {
+    try {
+      await AsyncStorage.setItem(FONT_FAMILY_STORAGE_KEY, font);
+      set({ fontFamily: font });
+    } catch (error) {
+      console.error('Failed to save font family:', error);
+      throw error;
+    }
+  },
+
+  loadFontFamily: async () => {
+    try {
+      const font = await AsyncStorage.getItem(FONT_FAMILY_STORAGE_KEY);
+      if (font && Object.keys(AVAILABLE_FONTS).includes(font)) {
+        set({ fontFamily: font as FontFamily });
+      }
+    } catch (error) {
+      console.error('Failed to load font family:', error);
+    }
+  },
+
+  setMaxPhotosPerPerson: async (limit: number) => {
+    try {
+      if (limit < 1 || limit > 100) {
+        throw new Error('Photo limit must be between 1 and 100');
+      }
+      await AsyncStorage.setItem(MAX_PHOTOS_PER_PERSON_STORAGE_KEY, limit.toString());
+      set({ maxPhotosPerPerson: limit });
+    } catch (error) {
+      console.error('Failed to save max photos per person:', error);
+      throw error;
+    }
+  },
+
+  loadMaxPhotosPerPerson: async () => {
+    try {
+      const limit = await AsyncStorage.getItem(MAX_PHOTOS_PER_PERSON_STORAGE_KEY);
+      if (limit) {
+        const parsedLimit = parseInt(limit, 10);
+        if (!isNaN(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 100) {
+          set({ maxPhotosPerPerson: parsedLimit });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load max photos per person:', error);
+    }
   },
 }));

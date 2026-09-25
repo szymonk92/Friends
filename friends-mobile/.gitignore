@@ -42,3 +42,22 @@ yarn-error.*
 /ios
 /android
 coverage/
+
+# build artifacts
+/build/
+*.apk
+*.aab
+*.ipa
+
+# local user settings
+.idea/
+.vscode/
+
+.env.local
+
+# local AI/IDE configs
+.mcp.json
+.claude/
+
+# package lock (managed at monorepo root)
+package-lock.json
