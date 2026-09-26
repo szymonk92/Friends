@@ -11,15 +11,12 @@ import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson } from '@/hooks/usePeople';
-import {
-  usePersonPhotos,
-  useTakePhoto,
-  useSetProfilePhoto,
-  useAddPhotoToPerson,
-} from '@/hooks/usePhotos';
+import { usePersonPhotos, useSetProfilePhoto } from '@/hooks/usePhotos';
+import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 
 // Components
 import PersonHeader from '@/components/person/PersonHeader';
+import PersonNotes from '@/components/person/PersonNotes';
 import PersonQuickActions from '@/components/person/PersonQuickActions';
 import PersonTags from '@/components/person/PersonTags';
 import PersonImportantDates from '@/components/person/PersonImportantDates';
@@ -37,9 +34,8 @@ export default function PersonProfileScreen() {
   const deletePerson = useDeletePerson();
 
   const { data: personPhotos = [] } = usePersonPhotos(id!);
-  const takePhoto = useTakePhoto();
   const setProfilePhoto = useSetProfilePhoto();
-  const addPhotoToPerson = useAddPhotoToPerson();
+  const pickPhoto = usePhotoPicker(id!);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -54,46 +50,14 @@ export default function PersonProfileScreen() {
     });
   };
 
-  const handleAvatarPress = () => {
-    Alert.alert(
-      'Profile Photo',
-      'Choose how to add a photo',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            try {
-              const result = await takePhoto.mutateAsync({ personId: id! });
-              await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
-              Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: unknown) {
-              const msg = error instanceof Error ? error.message : '';
-              if (!msg.includes('cancelled')) {
-                Alert.alert('Error', msg || 'Failed to take photo');
-              }
-            }
-          },
-        },
-        {
-          text: 'Choose from Library',
-          onPress: async () => {
-            try {
-              const result = await addPhotoToPerson.mutateAsync({ personId: id! });
-              await setProfilePhoto.mutateAsync({ personId: id!, photoId: result.id });
-              Alert.alert('Success', 'Profile photo updated!');
-            } catch (error: unknown) {
-              const msg = error instanceof Error ? error.message : '';
-              if (!msg.includes('cancelled')) {
-                Alert.alert('Error', msg || 'Failed to add photo');
-              }
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  };
+  const handleAvatarPress = () =>
+    pickPhoto({
+      title: 'Profile Photo',
+      onSaved: async (photo) => {
+        await setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id });
+        Alert.alert('Success', 'Profile photo updated!');
+      },
+    });
 
   const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
@@ -207,6 +171,7 @@ export default function PersonProfileScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
         >
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
+          <PersonNotes person={person} />
           <PersonTags personId={id!} personName={person.name} />
           {person.entityType !== 'pet' && (
             <PersonQuickActions personId={id!} personName={person.name} />

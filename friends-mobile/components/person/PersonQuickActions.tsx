@@ -1,5 +1,6 @@
 import { StyleSheet, View, Alert } from 'react-native';
-import { Text, Button, Portal, Dialog, TextInput } from 'react-native-paper';
+import { Text, Button, Portal, TextInput } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';

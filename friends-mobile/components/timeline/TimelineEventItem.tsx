@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, IconButton, Menu } from 'react-native-paper';
 import { router } from 'expo-router';
-import { getInitials } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
@@ -117,13 +117,7 @@ export default function TimelineEventItem({
                   <Text style={styles.avatarEmoji}>🎉</Text>
                 </View>
               ) : person ? (
-                person.photoPath ? (
-                  <Image source={{ uri: person.photoPath }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, { backgroundColor: fz.surface }]}>
-                    <Text style={[styles.avatarText, { color: fz.ink }]}>{getInitials(person.name)}</Text>
-                  </View>
-                )
+                <Avatar name={person.name} photoPath={person.photoPath} size={34} />
               ) : null}
               <Text style={styles.title} numberOfLines={1}>{personName}</Text>
             </TouchableOpacity>
@@ -246,12 +240,6 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: fz.font,
   },
   avatarEmoji: {
     fontSize: 16,

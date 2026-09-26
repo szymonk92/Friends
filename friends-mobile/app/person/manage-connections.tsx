@@ -1,11 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, List, IconButton, Divider, ActivityIndicator, Button } from 'react-native-paper';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Text, IconButton, ActivityIndicator, Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople } from '@/hooks/usePeople';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { describeConnection } from '@/lib/connections/describeConnection';
-import { Avatar } from '@/components/Avatar';
+import { PersonRow } from '@/components/PersonRow';
 import { fz } from '@/lib/design/tokens';
 
 export default function ManageConnectionsScreen() {
@@ -41,7 +41,7 @@ export default function ManageConnectionsScreen() {
         }}
       />
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.list}>
         {connections.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No connections found</Text>
@@ -61,34 +61,26 @@ export default function ManageConnectionsScreen() {
               return connectedPerson ? { connection, connectedPerson } : null;
             })
             .filter((item): item is { connection: any; connectedPerson: any } => item !== null)
-            .map(({ connection, connectedPerson }, index, array) => (
-              <View key={connection.id}>
-                <List.Item
-                  title={connectedPerson.name}
-                  description={`${describeConnection(connection, connectedPerson, personId!)} • ${formatRelativeTime(new Date(connection.createdAt))}`}
-                  left={() => (
-                    <TouchableOpacity
-                      onPress={() => router.push(`/person/${connectedPerson.id}`)}
-                      style={styles.avatarTouchable}
-                    >
-                      <Avatar name={connectedPerson.name} photoPath={connectedPerson.photoPath} />
-                    </TouchableOpacity>
-                  )}
-                  right={() => (
-                    <IconButton
-                      icon="pencil"
-                      size={24}
-                      onPress={() =>
-                        router.push(
-                          `/person/edit-connection?connectionId=${connection.id}&fromPersonId=${personId}`
-                        )
-                      }
-                    />
-                  )}
-                  style={styles.listItem}
-                />
-                {index < array.length - 1 && <Divider />}
-              </View>
+            .map(({ connection, connectedPerson }) => (
+              <PersonRow
+                key={connection.id}
+                name={connectedPerson.name}
+                photoPath={connectedPerson.photoPath}
+                subtitle={`${describeConnection(connection, connectedPerson, personId!)} • ${formatRelativeTime(new Date(connection.createdAt))}`}
+                divider
+                onPress={() => router.push(`/person/${connectedPerson.id}`)}
+                right={
+                  <IconButton
+                    icon="pencil"
+                    size={22}
+                    onPress={() =>
+                      router.push(
+                        `/person/edit-connection?connectionId=${connection.id}&fromPersonId=${personId}`
+                      )
+                    }
+                  />
+                }
+              />
             ))
         )}
 
@@ -119,12 +111,8 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 10,
   },
-  listItem: {
-    backgroundColor: 'white',
-    paddingVertical: 8,
-  },
-  avatarTouchable: {
-    marginLeft: 8,
+  list: {
+    paddingHorizontal: fz.s.edge,
   },
   spacer: {
     height: 40,

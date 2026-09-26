@@ -2,9 +2,9 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { files, people } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, eq, isNull } from 'drizzle-orm';
-import { randomUUID } from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
-import { Paths, File as ExpoFile, Directory } from 'expo-file-system';
+import { File as ExpoFile } from 'expo-file-system';
+import { resolvePhotoUri, saveProfileImageFile, type SavedPhoto } from '@/lib/utils/photos';
 
 export interface PhotoInfo {
   id: string;
@@ -41,7 +41,7 @@ export function usePersonPhotos(personId: string) {
         filename: f.filename,
         mimeType: f.mimeType,
         size: f.size,
-        filePath: f.filePath,
+        filePath: resolvePhotoUri(f.filePath),
         thumbnailPath: f.thumbnailPath || undefined,
         createdAt: new Date(f.createdAt),
       })) as PhotoInfo[];
@@ -50,78 +50,79 @@ export function usePersonPhotos(personId: string) {
   });
 }
 
+// Square crop, compressed: profile photos never need more.
+const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  allowsEditing: true,
+  aspect: [1, 1],
+  quality: 0.8,
+};
+
+/**
+ * Shared cache refresh after a photo is saved for a person.
+ */
+function usePhotoSavedInvalidation() {
+  const queryClient = useQueryClient();
+  return (photo: SavedPhoto) => {
+    if (photo.personId) {
+      queryClient.invalidateQueries({ queryKey: ['photos', 'person', photo.personId] });
+      queryClient.invalidateQueries({ queryKey: ['people', photo.personId] });
+    }
+  };
+}
+
 /**
  * Hook to pick and save a photo for a person
  */
 export function useAddPhotoToPerson() {
-  const queryClient = useQueryClient();
-
+  const onPhotoSaved = usePhotoSavedInvalidation();
   return useMutation({
     mutationFn: async ({ personId }: { personId: string }) => {
-      // Request permissions
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
         throw new Error('Permission to access photos was denied');
       }
 
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
+      const result = await ImagePicker.launchImageLibraryAsync(PICKER_OPTIONS);
       if (result.canceled) {
         throw new Error('Photo selection cancelled');
       }
 
       const asset = result.assets[0];
-      const userId = await getCurrentUserId();
+      return saveProfileImageFile({
+        sourceUri: asset.uri,
+        mimeType: asset.mimeType ?? undefined,
+        personId,
+      });
+    },
+    onSuccess: onPhotoSaved,
+  });
+}
 
-      // Create a directory for photos if it doesn't exist
-      const photoDir = new Directory(Paths.document, 'photos');
-      if (!photoDir.exists) {
-        photoDir.create();
+/**
+ * Hook to take a photo with the camera
+ */
+export function useTakePhoto() {
+  const onPhotoSaved = usePhotoSavedInvalidation();
+  return useMutation({
+    mutationFn: async ({ personId }: { personId: string }) => {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error('Permission to access camera was denied');
       }
 
-      // Generate unique filename
-      const fileId = randomUUID();
-      const extension = asset.uri.split('.').pop() || 'jpg';
-      const filename = `${fileId}.${extension}`;
-      const newFile = new ExpoFile(photoDir, filename);
-
-      // Copy file to app's document directory
-      const sourceFile = new ExpoFile(asset.uri);
-      sourceFile.copy(newFile);
-
-      // Get file size
-      const fileSize = newFile.size || 0;
-      const filePath = newFile.uri;
-
-      // Save to database
-      const fileRecord = await db
-        .insert(files)
-        .values({
-          id: fileId,
-          userId,
-          filename,
-          mimeType: asset.mimeType || 'image/jpeg',
-          size: fileSize,
-          filePath,
-          fileType: 'profile_photo',
-          personId,
-        })
-        .returning();
-
-      return fileRecord[0];
-    },
-    onSuccess: (data) => {
-      if (data?.personId) {
-        queryClient.invalidateQueries({ queryKey: ['photos', 'person', data.personId] });
-        queryClient.invalidateQueries({ queryKey: ['people', data.personId] });
+      const result = await ImagePicker.launchCameraAsync(PICKER_OPTIONS);
+      if (result.canceled) {
+        throw new Error('Photo capture cancelled');
       }
+
+      return saveProfileImageFile({
+        sourceUri: result.assets[0].uri,
+        mimeType: 'image/jpeg',
+        personId,
+      });
     },
+    onSuccess: onPhotoSaved,
   });
 }
 
@@ -164,7 +165,7 @@ export function useDeletePhoto() {
       if (photo.length > 0) {
         // Delete physical file
         try {
-          const fileToDelete = new ExpoFile(photo[0].filePath);
+          const fileToDelete = new ExpoFile(resolvePhotoUri(photo[0].filePath));
           fileToDelete.delete();
         } catch {
           // File may not exist, continue
@@ -182,80 +183,6 @@ export function useDeletePhoto() {
       queryClient.invalidateQueries({ queryKey: ['photos'] });
       if (data?.personId) {
         queryClient.invalidateQueries({ queryKey: ['photos', 'person', data.personId] });
-      }
-    },
-  });
-}
-
-/**
- * Hook to take a photo with the camera
- */
-export function useTakePhoto() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ personId }: { personId: string }) => {
-      // Request camera permissions
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permissionResult.granted) {
-        throw new Error('Permission to access camera was denied');
-      }
-
-      // Launch camera
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (result.canceled) {
-        throw new Error('Photo capture cancelled');
-      }
-
-      const asset = result.assets[0];
-      const userId = await getCurrentUserId();
-
-      // Create a directory for photos if it doesn't exist
-      const photoDir = new Directory(Paths.document, 'photos');
-      if (!photoDir.exists) {
-        photoDir.create();
-      }
-
-      // Generate unique filename
-      const fileId = randomUUID();
-      const extension = 'jpg';
-      const filename = `${fileId}.${extension}`;
-      const newFile = new ExpoFile(photoDir, filename);
-
-      // Copy file to app's document directory
-      const sourceFile = new ExpoFile(asset.uri);
-      sourceFile.copy(newFile);
-
-      // Get file size
-      const fileSize = newFile.size || 0;
-      const filePath = newFile.uri;
-
-      // Save to database
-      const fileRecord = await db
-        .insert(files)
-        .values({
-          id: fileId,
-          userId,
-          filename,
-          mimeType: 'image/jpeg',
-          size: fileSize,
-          filePath,
-          fileType: 'profile_photo',
-          personId,
-        })
-        .returning();
-
-      return fileRecord[0];
-    },
-    onSuccess: (data) => {
-      if (data?.personId) {
-        queryClient.invalidateQueries({ queryKey: ['photos', 'person', data.personId] });
-        queryClient.invalidateQueries({ queryKey: ['people', data.personId] });
       }
     },
   });

@@ -1,6 +1,6 @@
-import { View, StyleSheet, Image, Text } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { getInitials } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { RelationIcon } from '@/components/RelationIcon';
@@ -53,13 +53,13 @@ export default function NetworkPersonDetails({
     <View style={styles.container}>
       {/* Header with avatar */}
       <View style={styles.header}>
-        {person.photoPath ? (
-          <Image source={{ uri: person.photoPath }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-          </View>
-        )}
+        <Avatar
+          name={person.name}
+          photoPath={person.photoPath}
+          size={56}
+          variant="ink"
+          style={styles.avatar}
+        />
         <View style={styles.headerInfo}>
           <Text style={fzText.name}>{person.name}</Text>
           {person.nickname && (
@@ -130,26 +130,7 @@ const styles = StyleSheet.create({
     marginBottom: fz.s.md,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     marginRight: fz.s.md,
-    backgroundColor: fz.surface,
-  },
-  avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginRight: fz.s.md,
-    backgroundColor: fz.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: fz.paper,
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: fz.font,
   },
   headerInfo: {
     flex: 1,

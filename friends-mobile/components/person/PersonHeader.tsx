@@ -1,13 +1,7 @@
-import { StyleSheet, View, TouchableOpacity, Image, Alert, Linking } from 'react-native';
-import { useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Text } from 'react-native-paper';
-import { getInitials, formatShortDate } from '@/lib/utils/format';
-import {
-  usePersonPhotos,
-  useTakePhoto,
-  useSetProfilePhoto,
-  useAddPhotoToPerson,
-} from '@/hooks/usePhotos';
+import { formatShortDate } from '@/lib/utils/format';
+import { usePersonPhotos } from '@/hooks/usePhotos';
 import type { Person } from '@/lib/db/schema';
 import SocialLinksStrip from './SocialLinksStrip';
 import PartnerBadge from './PartnerBadge';
@@ -17,10 +11,11 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
 import { LineIcon } from '@/components/LineIcon';
+import { Avatar } from '@/components/Avatar';
 
 interface PersonHeaderProps {
   person: Person;
-  onAvatarPress?: () => void;
+  onAvatarPress: () => void;
 }
 
 function formatMetLine(metDate: Date | null | undefined, metLocation: string | null | undefined): string {
@@ -73,89 +68,9 @@ function ContactQuickRow({
   );
 }
 
-const NOTES_PREVIEW_CHARS = 220;
-
-function PersonNotes({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const overflow = text.length > NOTES_PREVIEW_CHARS;
-  const visible = !overflow || expanded ? text : `${text.slice(0, NOTES_PREVIEW_CHARS).trimEnd()}…`;
-  return (
-    <View style={styles.notesSection}>
-      <Text style={fzText.body}>{visible}</Text>
-      {overflow && (
-        <Text
-          style={styles.notesToggle}
-          onPress={() => setExpanded((v) => !v)}
-        >
-          {expanded ? 'Show less' : 'Show more'}
-        </Text>
-      )}
-    </View>
-  );
-}
-
 export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProps) {
   const { data: personPhotos = [] } = usePersonPhotos(person.id);
-  const takePhoto = useTakePhoto();
-  const setProfilePhoto = useSetProfilePhoto();
-  const addPhotoToPerson = useAddPhotoToPerson();
-
-  const isCanceledError = (error: unknown) => {
-    const message = error instanceof Error ? error.message.toLowerCase() : '';
-    return message.includes('cancelled') || message.includes('canceled');
-  };
-
-  const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
-
-  const handleAvatarPress = () => {
-    if (onAvatarPress) {
-      onAvatarPress();
-      return;
-    }
-
-    Alert.alert(
-      'Profile Photo',
-      'Choose how to add a photo',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            try {
-              const result = await takePhoto.mutateAsync({ personId: person.id });
-              await setProfilePhoto.mutateAsync({ personId: person.id, photoId: result.id });
-              Alert.alert('Success', 'Profile photo updated!');
-            } catch (error) {
-              if (!isCanceledError(error)) {
-                Alert.alert(
-                  'Error',
-                  error instanceof Error ? error.message : 'Failed to take photo'
-                );
-              }
-            }
-          },
-        },
-        {
-          text: 'Choose from Library',
-          onPress: async () => {
-            try {
-              const result = await addPhotoToPerson.mutateAsync({ personId: person.id });
-              await setProfilePhoto.mutateAsync({ personId: person.id, photoId: result.id });
-              Alert.alert('Success', 'Profile photo updated!');
-            } catch (error) {
-              if (!isCanceledError(error)) {
-                Alert.alert(
-                  'Error',
-                  error instanceof Error ? error.message : 'Failed to add photo'
-                );
-              }
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
-  };
+  const profilePhoto = person.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
   const isPet = person.entityType === 'pet';
   const socialLinks = parseSocialLinksJson(person.socialLinks);
@@ -169,14 +84,8 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
   return (
     <View style={styles.headerSection}>
       <View style={styles.identityRow}>
-        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer} activeOpacity={0.8}>
-          {profilePhoto ? (
-            <Image source={{ uri: profilePhoto.filePath }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-            </View>
-          )}
+        <TouchableOpacity onPress={onAvatarPress} style={styles.avatarContainer} activeOpacity={0.8}>
+          <Avatar name={person.name} photoPath={profilePhoto?.filePath} size={84} variant="ink" />
           <View style={styles.avatarBadge}>
             <LineIcon name="camera" size={12} color="#fff" />
           </View>
@@ -246,7 +155,6 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         </View>
       )}
 
-      {person.notes && <PersonNotes text={person.notes} />}
     </View>
   );
 }
@@ -275,25 +183,6 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: 'relative',
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: fz.ink,
-  },
-  avatarImage: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '600',
-    fontFamily: fz.font,
   },
   avatarBadge: {
     position: 'absolute',
@@ -334,16 +223,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginTop: 12,
     gap: 8,
-  },
-  notesSection: {
-    marginTop: 16,
-    paddingHorizontal: 4,
-  },
-  notesToggle: {
-    marginTop: 6,
-    fontWeight: '600',
-    fontFamily: fz.font,
-    fontSize: 13,
-    color: fz.ink,
   },
 });

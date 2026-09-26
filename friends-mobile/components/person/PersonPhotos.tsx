@@ -1,12 +1,7 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
-import {
-  usePersonPhotos,
-  useAddPhotoToPerson,
-  useTakePhoto,
-  useSetProfilePhoto,
-  useDeletePhoto,
-} from '@/hooks/usePhotos';
+import { usePersonPhotos, useSetProfilePhoto, useDeletePhoto } from '@/hooks/usePhotos';
+import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 import { useState } from 'react';
 import PhotoBrowser from './PhotoBrowser';
 import { useSettings } from '@/store/useSettings';
@@ -21,8 +16,7 @@ interface PersonPhotosProps {
 
 export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosProps) {
   const { data: personPhotos = [] } = usePersonPhotos(personId);
-  const addPhotoToPerson = useAddPhotoToPerson();
-  const takePhoto = useTakePhoto();
+  const pickPhoto = usePhotoPicker(personId);
   const setProfilePhoto = useSetProfilePhoto();
   const deletePhoto = useDeletePhoto();
   const maxPhotosPerPerson = useSettings((state) => state.maxPhotosPerPerson);
@@ -42,11 +36,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
       return;
     }
 
-    Alert.alert('Add Photo', 'Choose how to add a photo', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: () => takePhoto.mutateAsync({ personId }) },
-      { text: 'Choose from Library', onPress: () => addPhotoToPerson.mutateAsync({ personId }) },
-    ]);
+    pickPhoto();
   };
 
   const handlePhotoPress = (index: number) => {

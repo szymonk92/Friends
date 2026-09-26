@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { activePeople } from '@/lib/db/filters';
 import { File as ExpoFile } from 'expo-file-system';
 import { db, getCurrentUserId } from '@/lib/db';
+import { resolvePhotoUri } from '@/lib/utils/photos';
 import { people, connections, relations, stories, contactEvents, files, type Person } from '@/lib/db/schema';
 import {
   buildFilenameMap,
@@ -72,7 +73,7 @@ export async function buildObsidianVault(): Promise<Uint8Array> {
   }
 
   for (const file of fileRows) {
-    const bytes = await new ExpoFile(file.filePath).bytes();
+    const bytes = await new ExpoFile(resolvePhotoUri(file.filePath)).bytes();
     zipInput[`Attachments/${file.id}${fileExtension(file.filename)}`] = bytes;
   }
 

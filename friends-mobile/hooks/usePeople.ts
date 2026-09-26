@@ -7,6 +7,7 @@ import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
 import { COUNTRIES } from '@/lib/data/countries';
 import { entityConstraintFor, type EntityTypeFilter } from '@/lib/people/entityFilter';
+import { resolvePhotoUri } from '@/lib/utils/photos';
 
 /**
  * Extended Person type that includes photoPath from file system
@@ -83,7 +84,7 @@ export function usePeople(filter?: {
             .where(inArray(files.id, photoIds));
 
           for (const photo of photosResults) {
-            photoMap[photo.id] = photo.filePath;
+            photoMap[photo.id] = resolvePhotoUri(photo.filePath);
           }
           peopleLogger.debug('Photos loaded', { count: photosResults.length });
         } catch (error) {

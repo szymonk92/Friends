@@ -40,11 +40,24 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Allow Friends to use Face ID to protect your secrets."
+          "faceIDPermission": "FriendZ uses Face ID to protect the secrets you store about people."
         }
       ],
       "expo-localization",
-      "expo-contacts",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "FriendZ reads your contacts so you can import the people you know, with their names, phone numbers, emails, birthdays and photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FriendZ uses your photo library so you can pick profile photos for the people you save.",
+          "cameraPermission": "FriendZ uses the camera so you can take profile photos of the people you save.",
+          "microphonePermission": false
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {

@@ -4,7 +4,6 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
-  Image,
   TouchableOpacity,
   TextInput,
   StatusBar,
@@ -13,7 +12,8 @@ import { Text, ActivityIndicator, Button, Menu, Divider } from 'react-native-pap
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
-import { getInitials, formatRelationType, formatRelativeShort } from '@/lib/utils/format';
+import { formatRelationType, formatRelativeShort } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 import { usePeople } from '@/hooks/usePeople';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { useTranslation } from 'react-i18next';
@@ -342,13 +342,7 @@ export default function PeopleListScreen() {
                 onPress={() => router.push(`/person/${item.id}`)}
                 activeOpacity={0.7}
               >
-                {item.photoPath ? (
-                  <Image source={{ uri: item.photoPath }} style={s.avatar} />
-                ) : (
-                  <View style={[s.avatar, { backgroundColor: fz.surface }]}>
-                    <Text style={[s.avatarText, { color: fz.ink }]}>{getInitials(item.name)}</Text>
-                  </View>
-                )}
+                <Avatar name={item.name} photoPath={item.photoPath} size={52} />
                 <View style={s.rowBody}>
                   <View style={s.nameRow}>
                     <Text style={fzText.name} numberOfLines={1}>{item.name}</Text>
@@ -417,8 +411,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingVertical: 11, paddingHorizontal: fz.s.edge,
   },
-  avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#fff', fontSize: 18, fontWeight: '600', fontFamily: fz.font },
   rowBody: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
   bday: { backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },

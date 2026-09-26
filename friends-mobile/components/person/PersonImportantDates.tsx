@@ -3,9 +3,9 @@ import {
   Text,
   Button,
   Portal,
-  Dialog,
   TextInput as PaperInput,
 } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
 import { parseFlexibleDate } from '@/lib/utils/dates';
 import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';

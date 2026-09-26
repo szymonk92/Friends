@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useMemo } from 'react';
@@ -12,35 +12,7 @@ import { LIKES } from '@/lib/constants/relations';
 import { ChainLogo } from '@/components/ChainLogo';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
-
-function Avatar({
-  name,
-  photoUri,
-  size,
-}: {
-  name: string;
-  photoUri: string | null | undefined;
-  size: number;
-}) {
-  if (photoUri) {
-    return (
-      <Image
-        source={{ uri: photoUri }}
-        style={{ width: size, height: size, borderRadius: size / 2 }}
-      />
-    );
-  }
-  return (
-    <View
-      style={[
-        styles.avatarFallback,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
-    >
-      <Text style={[styles.avatarText, { fontSize: size * 0.32 }]}>{getInitials(name)}</Text>
-    </View>
-  );
-}
+import { Avatar } from '@/components/Avatar';
 
 export default function RelationshipScreen() {
   const { personId, compareToId } = useLocalSearchParams<{ personId: string; compareToId?: string }>();
@@ -141,9 +113,9 @@ export default function RelationshipScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* the pair */}
           <View style={styles.pairRow}>
-            <Avatar name={isComparingToSelf ? 'Me' : other.name} photoUri={otherPhoto?.filePath} size={74} />
+            <Avatar name={isComparingToSelf ? 'Me' : other.name} photoPath={otherPhoto?.filePath} size={74} variant="ink" />
             <ChainLogo size={50} strokeWidth={6.5} color={fz.ink} connected={isConnected} />
-            <Avatar name={person.name} photoUri={personPhoto?.filePath} size={74} />
+            <Avatar name={person.name} photoPath={personPhoto?.filePath} size={74} variant="ink" />
           </View>
 
           <Text style={styles.pairTitle}>
@@ -294,12 +266,6 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: fz.paper },
   scroll: { paddingHorizontal: fz.s.edge, paddingTop: 22, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: fz.paper },
-  avatarFallback: {
-    backgroundColor: fz.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: { color: '#fff', fontWeight: '600', fontFamily: fz.font },
   pairRow: {
     flexDirection: 'row',
     alignItems: 'center',

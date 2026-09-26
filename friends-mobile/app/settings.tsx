@@ -1,5 +1,6 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Text, Card, Button, List, Divider, Portal, Dialog, TextInput } from 'react-native-paper';
+import { Text, Card, Button, List, Divider, Portal, TextInput } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { Stack, router } from 'expo-router';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import { useExportStats } from '@/hooks/useDataExport';

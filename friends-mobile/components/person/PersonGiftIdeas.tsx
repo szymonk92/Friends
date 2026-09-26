@@ -3,10 +3,10 @@ import {
   Text,
   Button,
   Portal,
-  Dialog,
   TextInput as PaperInput,
   SegmentedButtons,
 } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {

@@ -1,9 +1,9 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
-import { Avatar } from '@/components/Avatar';
+import { PersonRow } from '@/components/PersonRow';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
@@ -60,28 +60,27 @@ export default function PersonConnections({ personId, personName }: PersonConnec
         const isPet = connection.relationshipType === 'pet';
         const description = describeConnection(connection, connectedPerson, personId);
         return (
-          <TouchableOpacity
+          <PersonRow
             key={connection.id}
-            style={styles.row}
-            activeOpacity={0.7}
+            name={connectedPerson.name}
+            photoPath={connectedPerson.photoPath}
+            subtitle={description}
+            avatarVariant="ink"
             onPress={() =>
               router.push(
                 `/person/edit-connection?connectionId=${connection.id}&fromPersonId=${personId}`
               )
             }
+            right={
+              !isPet && connection.status !== 'active' ? (
+                <Pill label={connection.status} variant="soft" />
+              ) : null
+            }
           >
-            <Avatar name={connectedPerson.name} photoPath={connectedPerson.photoPath} size={42} variant="ink" />
-            <View style={styles.rowBody}>
-              <Text style={fzText.name} numberOfLines={1}>{connectedPerson.name}</Text>
-              <Text style={fzText.sub} numberOfLines={1}>{description}</Text>
-              {connection.notes ? (
-                <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
-              ) : null}
-            </View>
-            {!isPet && connection.status !== 'active' && (
-              <Pill label={connection.status} variant="soft" />
-            )}
-          </TouchableOpacity>
+            {connection.notes ? (
+              <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
+            ) : null}
+          </PersonRow>
         );
       })}
 
@@ -109,16 +108,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyButton: { borderColor: fz.outline },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-  rowBody: {
-    flex: 1,
-    minWidth: 0,
-  },
   notes: {
     ...fzText.sub,
     fontStyle: 'italic',

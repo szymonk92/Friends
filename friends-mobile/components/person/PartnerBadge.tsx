@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { HeartIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
-import { getInitials } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 
 type Props = {
   personId: string;
@@ -59,15 +59,7 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
           style={styles.row}
         >
           <HeartIcon size={14} color={theme.colors.onSurface} weight="fill" />
-          {partner.photoPath ? (
-            <Image source={{ uri: partner.photoPath }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarFallback, { backgroundColor: theme.colors.secondary }]}>
-              <Text style={[styles.initials, { color: theme.colors.onSecondary }]}>
-                {getInitials(partner.name)}
-              </Text>
-            </View>
-          )}
+          <Avatar name={partner.name} photoPath={partner.photoPath} size={24} variant="ink" />
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
             {partner.name}
           </Text>
@@ -92,22 +84,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     alignSelf: 'center',
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  avatarFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initials: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   addButton: {
     marginTop: 6,

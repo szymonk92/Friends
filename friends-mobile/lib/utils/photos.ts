@@ -3,6 +3,7 @@ import { files } from '@/lib/db/schema';
 import { randomUUID } from 'expo-crypto';
 import { Paths, File as ExpoFile, Directory } from 'expo-file-system';
 import { copyAsync } from 'expo-file-system/legacy';
+import { rebaseDocumentUri } from './fileUri';
 
 export interface SavedPhoto {
   id: string;
@@ -20,15 +21,17 @@ function photosDir(): Directory {
 }
 
 /**
+ * The current on-device URI for a stored `files.filePath`. Photos are saved with
+ * absolute URIs, which go stale on iOS after an app update (see rebaseDocumentUri).
+ */
+export function resolvePhotoUri(storedUri: string): string {
+  return rebaseDocumentUri(storedUri, Paths.document.uri);
+}
+
+/**
  * Save an image — by local file `sourceUri` (copied) or `base64` (written) — into
  * the app's photos dir and insert a `files` row of type 'profile_photo'.
- *
- * Extracted from the inline copies in `usePhotos.ts` (`useAddPhotoToPerson`,
- * `useTakePhoto`) so the contacts-import path reuses the same pipeline instead
- * of duplicating it a third time.
- *
- * ponytail: the two existing inline copies in usePhotos.ts still work; migrate
- * them to call this helper later — not touching working code in this change.
+ * The one save pipeline for the camera, the photo library and contacts import.
  */
 export async function saveProfileImageFile(opts: {
   sourceUri?: string;

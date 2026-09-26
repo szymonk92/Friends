@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { getInitials } from '@/lib/utils/format';
 import { fz } from '@/lib/design/tokens';
@@ -13,12 +14,18 @@ interface AvatarProps {
 
 /** Profile photo when available, initials fallback otherwise. Shared across every people list. */
 export function Avatar({ name, photoPath, size = 40, variant = 'surface', style }: AvatarProps) {
+  // A photo whose file is gone falls back to initials instead of an empty circle.
+  const [failedPath, setFailedPath] = useState<string | null>(null);
   const dimensions = { width: size, height: size, borderRadius: size / 2 };
 
-  if (photoPath) {
+  if (photoPath && photoPath !== failedPath) {
     return (
       <View style={[dimensions, { overflow: 'hidden' }, style]}>
-        <Image source={{ uri: photoPath }} style={dimensions} />
+        <Image
+          source={{ uri: photoPath }}
+          style={dimensions}
+          onError={() => setFailedPath(photoPath)}
+        />
       </View>
     );
   }
@@ -33,7 +40,9 @@ export function Avatar({ name, photoPath, size = 40, variant = 'surface', style 
         style,
       ]}
     >
-      <Text style={[styles.text, { color: isInk ? '#fff' : fz.ink, fontSize: size * 0.36 }]}>
+      <Text
+        style={[styles.text, { color: isInk ? '#fff' : fz.ink, fontSize: Math.max(10, size * 0.36) }]}
+      >
         {getInitials(name)}
       </Text>
     </View>

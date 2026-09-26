@@ -3,7 +3,6 @@ import { useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import {
   View,
-  Image,
   ActivityIndicator,
   StatusBar,
   TouchableOpacity,
@@ -17,7 +16,8 @@ import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
 import { useConnections } from '@/hooks/useConnections';
-import { getInitials, formatRelativeTime } from '@/lib/utils/format';
+import { formatRelativeTime } from '@/lib/utils/format';
+import { Avatar } from '@/components/Avatar';
 import { parseJsonArray } from '@/lib/utils/json';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
 import { fz, fzText } from '@/lib/design/tokens';
@@ -202,13 +202,7 @@ export default function SearchScreen() {
         activeOpacity={0.7}
         onPress={() => router.push(`/person/${item.personId}`)}
       >
-        {person?.photoPath ? (
-          <Image source={{ uri: person.photoPath }} style={s.summaryAvatar} />
-        ) : (
-          <View style={s.summaryAvatar}>
-            <Text style={s.summaryAvatarText}>{getInitials(item.personName)}</Text>
-          </View>
-        )}
+        <Avatar name={item.personName} photoPath={person?.photoPath} size={36} />
         <View style={s.summaryBody}>
           <Text style={fzText.name} numberOfLines={1}>{item.personName}</Text>
           <Text style={fzText.sub} numberOfLines={1}>
@@ -337,15 +331,8 @@ function ResultAvatar({
   person: PersonWithPhoto | null | undefined;
   type: SearchResult['type'];
 }) {
-  if (person?.photoPath) {
-    return <Image source={{ uri: person.photoPath }} style={s.avatar} />;
-  }
   if (person) {
-    return (
-      <View style={[s.avatar, { backgroundColor: fz.surface }]}>
-        <Text style={[s.avatarText, { color: fz.ink }]}>{getInitials(person.name)}</Text>
-      </View>
-    );
+    return <Avatar name={person.name} photoPath={person.photoPath} size={40} />;
   }
   return (
     <View style={[s.avatar, { backgroundColor: fz.surface }]}>
@@ -378,11 +365,6 @@ const s = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8,
   },
-  summaryAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: fz.surface,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  summaryAvatarText: { color: fz.ink, fontSize: 13, fontWeight: '600', fontFamily: fz.font },
   summaryBody: { flex: 1, minWidth: 0 },
   resultsHeader: { paddingHorizontal: fz.s.edge, paddingVertical: 8 },
   resultsList: { paddingHorizontal: fz.s.edge, paddingTop: 0, paddingBottom: 110 },
@@ -395,7 +377,6 @@ const s = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: { color: '#fff', fontSize: 14, fontWeight: '600', fontFamily: fz.font },
   rowTop: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     gap: 8, marginBottom: 6,

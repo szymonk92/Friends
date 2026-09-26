@@ -23,11 +23,11 @@ import {
   Text,
   Button,
   Chip,
-  Dialog,
   Portal,
   TextInput,
   SegmentedButtons,
 } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
 
 export default function ReviewExtractionsScreen() {

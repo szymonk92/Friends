@@ -9,7 +9,8 @@ import {
   Platform,
   Text as RNText,
 } from 'react-native';
-import { Text, TextInput, Button, Dialog, Portal } from 'react-native-paper';
+import { Text, TextInput, Button, Portal } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState, useEffect, useCallback } from 'react';
 import { useCreateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
@@ -25,7 +26,8 @@ import MentionTextInput from '@/components/story/MentionTextInput';
 import { devLogger } from '@/lib/utils/devLogger';
 import PersonSelector from '@/components/story/PersonSelector';
 import AmbiguityResolutionDialog from '@/components/story/AmbiguityResolutionDialog';
-import { Chip, Avatar } from 'react-native-paper';
+import { Chip } from 'react-native-paper';
+import { Avatar } from '@/components/Avatar';
 import { usePeople, usePerson } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 
@@ -395,13 +397,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
                 {selectedPeopleObjects.map((person) => (
                   <Chip
                     key={person.id}
-                    avatar={
-                      person.photoPath ? (
-                        <Avatar.Image size={24} source={{ uri: person.photoPath }} />
-                      ) : (
-                        <Avatar.Text size={24} label={person.name.substring(0, 2).toUpperCase()} />
-                      )
-                    }
+                    avatar={<Avatar name={person.name} photoPath={person.photoPath} size={24} />}
                     onClose={() => handleRemovePerson(person.id)}
                     style={styles.chip}
                     textStyle={styles.chipText}

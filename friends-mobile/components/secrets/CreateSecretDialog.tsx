@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { Dialog, Portal, TextInput, Menu, Button, Text } from 'react-native-paper';
+import { Portal, TextInput, Menu, Button, Text } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
 
 interface CreateSecretDialogProps {

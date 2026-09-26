@@ -1,17 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, View, ScrollView, FlatList } from 'react-native';
-import {
-  Portal,
-  Dialog,
-  Searchbar,
-  List,
-  Checkbox,
-  Button,
-  Text,
-  Avatar,
-  useTheme,
-} from 'react-native-paper';
-import { usePeople } from '@/hooks/usePeople';
+import { StyleSheet, View, FlatList, useWindowDimensions } from 'react-native';
+import { Portal, Searchbar, Checkbox, Button, Text } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
+import { PersonRow } from '@/components/PersonRow';
+import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { fz } from '@/lib/design/tokens';
 
 interface PersonSelectorProps {
@@ -29,7 +21,7 @@ export default function PersonSelector({
   initialSelectedIds = [],
   title = 'Tag People',
 }: PersonSelectorProps) {
-  const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const { data: people, isLoading } = usePeople();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedIds));
@@ -65,39 +57,32 @@ export default function PersonSelector({
     onDismiss();
   };
 
-  const renderItem = ({ item }: { item: any }) => {
-    const isSelected = selectedIds.has(item.id);
-
-    return (
-      <List.Item
-        title={item.name}
-        description={item.relationshipType || 'Acquaintance'}
-        left={(props) => (
-          <View style={styles.avatarContainer}>
-            {item.photoPath ? (
-              <Avatar.Image size={40} source={{ uri: item.photoPath }} />
-            ) : (
-              <Avatar.Text size={40} label={item.name.substring(0, 2).toUpperCase()} />
-            )}
-          </View>
-        )}
-        right={(props) => (
-          <Checkbox
-            status={isSelected ? 'checked' : 'unchecked'}
-            onPress={() => toggleSelection(item.id)}
-          />
-        )}
-        onPress={() => toggleSelection(item.id)}
-        style={styles.listItem}
-      />
-    );
-  };
+  const renderItem = ({ item }: { item: PersonWithPhoto }) => (
+    <PersonRow
+      name={item.name}
+      photoPath={item.photoPath}
+      subtitle={item.relationshipType || 'Acquaintance'}
+      avatarSize={40}
+      avatarVariant="ink"
+      onPress={() => toggleSelection(item.id)}
+      right={
+        <Checkbox
+          status={selectedIds.has(item.id) ? 'checked' : 'unchecked'}
+          onPress={() => toggleSelection(item.id)}
+        />
+      }
+      style={styles.listItem}
+    />
+  );
 
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} style={[styles.dialog, styles.dialogShape]}>
         <Dialog.Title style={styles.dialogTitle}>{title}</Dialog.Title>
-        <Dialog.Content style={styles.content}>
+        {/* Short enough that the whole dialog fits above the iOS keyboard while searching. */}
+        <Dialog.Content
+          style={[styles.content, { height: Math.min(400, Math.round(windowHeight * 0.4)) }]}
+        >
           <Searchbar
             placeholder="Search people..."
             onChangeText={setSearchQuery}
@@ -157,7 +142,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 0,
     paddingBottom: 0,
-    height: 400, // Fixed height for scrolling
   },
   searchBar: {
     marginHorizontal: 16,
@@ -172,10 +156,6 @@ const styles = StyleSheet.create({
   },
   listItem: {
     paddingHorizontal: 16,
-  },
-  avatarContainer: {
-    justifyContent: 'center',
-    marginRight: 12,
   },
   loadingText: {
     textAlign: 'center',

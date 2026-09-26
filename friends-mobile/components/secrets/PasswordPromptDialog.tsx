@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { Dialog, Text, TextInput, Button } from 'react-native-paper';
+import { Text, TextInput, Button } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
 
 interface PasswordPromptDialogProps {

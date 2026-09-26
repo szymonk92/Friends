@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native';
-import { Text, Card, Button, Portal, Dialog, TextInput } from 'react-native-paper';
+import { Text, Card, Button, Portal, TextInput } from 'react-native-paper';
+import { Dialog } from '@/components/KeyboardAwareDialog';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { fz } from '@/lib/design/tokens';
 

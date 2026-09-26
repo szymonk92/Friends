@@ -1,8 +1,8 @@
-import { StyleSheet, View, FlatList, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePeople, usePerson } from '@/hooks/usePeople';
-import { getInitials } from '@/lib/utils/format';
+import { PersonRow } from '@/components/PersonRow';
 import { fz, fzText } from '@/lib/design/tokens';
 
 export default function ComparePickerScreen() {
@@ -38,29 +38,20 @@ export default function ComparePickerScreen() {
             keyExtractor={(p) => p.id}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.row}
-                activeOpacity={0.7}
+              <PersonRow
+                name={item.name}
+                photoPath={item.photoPath}
+                subtitle={
+                  item.relationshipType &&
+                  item.relationshipType.charAt(0).toUpperCase() + item.relationshipType.slice(1)
+                }
+                avatarSize={46}
+                avatarVariant="ink"
+                divider
                 onPress={() =>
                   router.replace(`/person/relationship?personId=${personId}&compareToId=${item.id}`)
                 }
-              >
-                {item.photoPath ? (
-                  <Image source={{ uri: item.photoPath }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
-                  </View>
-                )}
-                <View style={styles.rowInfo}>
-                  <Text style={fzText.name}>{item.name}</Text>
-                  {item.relationshipType && (
-                    <Text style={fzText.sub}>
-                      {item.relationshipType.charAt(0).toUpperCase() + item.relationshipType.slice(1)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
+              />
             )}
           />
         )}
@@ -74,22 +65,4 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { textAlign: 'center' },
   list: { paddingHorizontal: fz.s.edge, paddingTop: 8, paddingBottom: 40 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: fz.hairline,
-    gap: 14,
-  },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: fz.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: { color: '#fff', fontWeight: '600', fontSize: 15, fontFamily: fz.font },
-  rowInfo: { flex: 1 },
 });

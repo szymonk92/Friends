@@ -1,8 +1,8 @@
-import { StyleSheet, View, ScrollView, Image, Text, TextInput, TouchableOpacity } from 'react-native';
-import { getInitials } from '@/lib/utils/format';
-import { fz, fzText } from '@/lib/design/tokens';
+import { StyleSheet, View, ScrollView, TextInput } from 'react-native';
+import { fz } from '@/lib/design/tokens';
 import { FormSection } from '@/components/FormKit';
 import { Pill } from '@/components/Pill';
+import { PersonRow } from '@/components/PersonRow';
 
 interface Person {
   id: string;
@@ -57,23 +57,21 @@ export default function GuestSelector({
         {people.slice(0, 10).map((person) => {
           const selected = selectedGuests.includes(person.id);
           return (
-            <View key={person.id} style={styles.personRow}>
-              {person.photoPath ? (
-                <Image source={{ uri: person.photoPath }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials(person.name)}</Text>
-                </View>
-              )}
-              <Text style={[fzText.name, styles.personName]} numberOfLines={1}>
-                {person.name}
-              </Text>
-              <Pill
-                label={selected ? 'Selected' : 'Add'}
-                selected={selected}
-                onPress={() => onToggleGuest(person.id)}
-              />
-            </View>
+            <PersonRow
+              key={person.id}
+              name={person.name}
+              photoPath={person.photoPath}
+              avatarSize={36}
+              divider
+              onPress={() => onToggleGuest(person.id)}
+              right={
+                <Pill
+                  label={selected ? 'Selected' : 'Add'}
+                  selected={selected}
+                  onPress={() => onToggleGuest(person.id)}
+                />
+              }
+            />
           );
         })}
       </ScrollView>
@@ -109,35 +107,5 @@ const styles = StyleSheet.create({
   },
   peopleList: {
     maxHeight: 300,
-  },
-  personRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: fz.s.md,
-    paddingVertical: fz.s.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: fz.hairline,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: fz.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  avatarText: {
-    fontFamily: fz.font,
-    fontWeight: '600',
-    fontSize: 12,
-    color: fz.ink,
-  },
-  personName: {
-    flex: 1,
   },
 });
