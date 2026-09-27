@@ -58,6 +58,3 @@ coverage/
 # local AI/IDE configs
 .mcp.json
 .claude/
-
-# package lock (managed at monorepo root)
-package-lock.json
