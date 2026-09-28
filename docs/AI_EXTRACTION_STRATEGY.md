@@ -18,6 +18,13 @@
 
 ---
 
+## 🔗 Related Guides
+
+- **[AGENT_MENTION_REFERENCE.md](AGENT_MENTION_REFERENCE.md)** - How to use @mentions for clear person references
+- **[RELATION_USAGE_GUIDE.md](RELATION_USAGE_GUIDE.md)** - How to choose the correct relation types
+
+---
+
 ## 1. Architecture Overview
 
 ### Design Philosophy

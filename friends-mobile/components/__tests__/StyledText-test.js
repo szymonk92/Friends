@@ -1,9 +1,7 @@
-import * as React from 'react';
-import renderer from 'react-test-renderer';
+const renderer = require('react-test-renderer');
+const { MonoText } = require('../StyledText');
 
-import { MonoText } from '../StyledText';
-
-it(`renders correctly`, () => {
+it('renders correctly', () => {
   const tree = renderer.create(<MonoText>Snapshot test!</MonoText>).toJSON();
 
   expect(tree).toMatchSnapshot();

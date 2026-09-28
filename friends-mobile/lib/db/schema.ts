@@ -89,10 +89,18 @@ export const people = sqliteTable(
       enum: ['friend', 'family', 'colleague', 'acquaintance', 'partner'],
     }),
     metDate: integer('met_date', { mode: 'timestamp' }),
+    metLocation: text('met_location'),
+    socialLinks: text('social_links'),
+    phone: text('phone'),
+    email: text('email'),
+    homeLocation: text('home_location'),
+    languages: text('languages'), // JSON array of language strings
+    entityType: text('entity_type', { enum: ['person', 'pet'] }).default('person'),
+    species: text('species'),
 
     // Person Classification & Management
     personType: text('person_type', {
-      enum: ['primary', 'mentioned', 'placeholder'],
+      enum: ['primary', 'mentioned', 'placeholder', 'self'],
     }).default('placeholder'),
     dataCompleteness: text('data_completeness', {
       enum: ['minimal', 'partial', 'complete'],
@@ -114,8 +122,11 @@ export const people = sqliteTable(
     extractionContext: text('extraction_context'),
     mentionCount: integer('mention_count').default(0),
 
+    // Free text: 'male' | 'female' | '' (unknown) | any custom value the user typed
+    // under "Other". No enum constraint so custom gender identities round-trip.
+    gender: text('gender'),
     status: text('status', {
-      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged'],
+      enum: ['active', 'archived', 'deceased', 'placeholder', 'merged', 'expected'],
     })
       .notNull()
       .default('active'),
@@ -126,7 +137,9 @@ export const people = sqliteTable(
     dateOfDeath: integer('date_of_death', { mode: 'timestamp' }),
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
+    lifeMilestones: text('life_milestones'),
     notes: text('notes'),
+    tags: text('tags'), // JSON array of tag strings, e.g., '["college", "work"]'
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -137,14 +150,14 @@ export const people = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('people_user_id_idx').on(table.userId),
-    statusIdx: index('people_status_idx').on(table.status),
-    nameIdx: index('people_name_idx').on(table.name),
-    personTypeIdx: index('people_person_type_idx').on(table.personType),
-    importanceIdx: index('people_importance_idx').on(table.importanceToUser),
-    canonicalIdIdx: index('people_canonical_id_idx').on(table.canonicalId),
-  })
+  (table) => [
+    index('people_user_id_idx').on(table.userId),
+    index('people_status_idx').on(table.status),
+    index('people_name_idx').on(table.name),
+    index('people_person_type_idx').on(table.personType),
+    index('people_importance_idx').on(table.importanceToUser),
+    index('people_canonical_id_idx').on(table.canonicalId),
+  ]
 );
 
 export const connections = sqliteTable(
@@ -163,7 +176,7 @@ export const connections = sqliteTable(
       .notNull()
       .references(() => people.id, { onDelete: 'cascade' }),
     relationshipType: text('relationship_type', {
-      enum: ['friend', 'family', 'colleague', 'partner', 'acquaintance'],
+      enum: ['friend', 'family', 'colleague', 'partner', 'ex-partner', 'acquaintance', 'parent', 'child', 'sibling', 'pet'],
     }).notNull(),
     status: text('status', { enum: ['active', 'inactive', 'ended', 'complicated'] })
       .notNull()
@@ -187,12 +200,12 @@ export const connections = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('connections_user_id_idx').on(table.userId),
-    person1Idx: index('connections_person1_idx').on(table.person1Id),
-    person2Idx: index('connections_person2_idx').on(table.person2Id),
-    statusIdx: index('connections_status_idx').on(table.status),
-  })
+  (table) => [
+    index('connections_user_id_idx').on(table.userId),
+    index('connections_person1_idx').on(table.person1Id),
+    index('connections_person2_idx').on(table.person2Id),
+    index('connections_status_idx').on(table.status),
+  ]
 );
 
 export const relations = sqliteTable(
@@ -209,34 +222,30 @@ export const relations = sqliteTable(
       .references(() => people.id, { onDelete: 'cascade' }),
     subjectType: text('subject_type').notNull().default('person'),
     relationType: text('relation_type', {
+      // 12 story-fact types + HAS_IMPORTANT_DATE, reserved for the dedicated
+      // birthday/anniversary feature (see PersonImportantDates) — kept out of
+      // the AI vocabulary and manual picker on purpose.
       enum: [
-        'KNOWS',
+        'DOES',
+        'AVOIDS',
         'LIKES',
         'DISLIKES',
-        'ASSOCIATED_WITH',
-        'EXPERIENCED',
-        'HAS_SKILL',
-        'OWNS',
-        'HAS_IMPORTANT_DATE',
+        'HAS',
+        'LIVES_IN',
         'IS',
-        'BELIEVES',
-        'FEARS',
-        'WANTS_TO_ACHIEVE',
+        'CAN',
+        'DID',
         'STRUGGLES_WITH',
-        'CARES_FOR',
-        'DEPENDS_ON',
-        'REGULARLY_DOES',
-        'PREFERS_OVER',
-        'USED_TO_BE',
-        'SENSITIVE_TO',
-        'UNCOMFORTABLE_WITH',
+        'WANTS',
+        'KNOWS',
+        'HAS_IMPORTANT_DATE',
       ],
     }).notNull(),
     objectId: text('object_id'),
     objectType: text('object_type'),
     objectLabel: text('object_label').notNull(),
     metadata: text('metadata'),
-    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'very_strong'] }),
+    intensity: text('intensity', { enum: ['weak', 'medium', 'strong', 'unknown'] }),
     confidence: real('confidence').default(1.0),
     category: text('category'),
     source: text('source', {
@@ -247,6 +256,18 @@ export const relations = sqliteTable(
     status: text('status', { enum: ['current', 'past', 'future', 'aspiration'] }).default(
       'current'
     ),
+    /**
+     * Epistemic stance — orthogonal to `status`:
+     *   asserted    "she is a doctor"            (default)
+     *   speculation "I think she's a doctor"     — hedged, low confidence
+     *   reported    "she told me she's a doctor" — indirect speech
+     *   aspiration  "she wants to be a doctor"   — explicit aspiration
+     * Note: `status='aspiration'` covers tense, while assertion='aspiration' covers
+     * the speech-act flavour. We allow both for now and use assertion in the UI.
+     */
+    assertion: text('assertion', {
+      enum: ['asserted', 'speculation', 'reported', 'aspiration'],
+    }).default('asserted'),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -257,12 +278,12 @@ export const relations = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('relations_user_id_idx').on(table.userId),
-    subjectIdx: index('relations_subject_idx').on(table.subjectId),
-    relationTypeIdx: index('relations_type_idx').on(table.relationType),
-    categoryIdx: index('relations_category_idx').on(table.category),
-  })
+  (table) => [
+    index('relations_user_id_idx').on(table.userId),
+    index('relations_subject_idx').on(table.subjectId),
+    index('relations_type_idx').on(table.relationType),
+    index('relations_category_idx').on(table.category),
+  ]
 );
 
 export const stories = sqliteTable(
@@ -292,10 +313,10 @@ export const stories = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('stories_user_id_idx').on(table.userId),
-    storyDateIdx: index('stories_date_idx').on(table.storyDate),
-  })
+  (table) => [
+    index('stories_user_id_idx').on(table.userId),
+    index('stories_date_idx').on(table.storyDate),
+  ]
 );
 
 export const secrets = sqliteTable(
@@ -321,10 +342,10 @@ export const secrets = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('secrets_user_id_idx').on(table.userId),
-    personIdIdx: index('secrets_person_id_idx').on(table.personId),
-  })
+  (table) => [
+    index('secrets_user_id_idx').on(table.userId),
+    index('secrets_person_id_idx').on(table.personId),
+  ]
 );
 
 export const contactEvents = sqliteTable(
@@ -355,11 +376,11 @@ export const contactEvents = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('contact_events_user_id_idx').on(table.userId),
-    personIdIdx: index('contact_events_person_id_idx').on(table.personId),
-    eventDateIdx: index('contact_events_date_idx').on(table.eventDate),
-  })
+  (table) => [
+    index('contact_events_user_id_idx').on(table.userId),
+    index('contact_events_person_id_idx').on(table.personId),
+    index('contact_events_date_idx').on(table.eventDate),
+  ]
 );
 
 export const relationshipHistory = sqliteTable(
@@ -385,10 +406,10 @@ export const relationshipHistory = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('relationship_history_user_id_idx').on(table.userId),
-    connectionIdIdx: index('relationship_history_connection_idx').on(table.connectionId),
-  })
+  (table) => [
+    index('relationship_history_user_id_idx').on(table.userId),
+    index('relationship_history_connection_idx').on(table.connectionId),
+  ]
 );
 
 export const events = sqliteTable(
@@ -425,11 +446,11 @@ export const events = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('events_user_id_idx').on(table.userId),
-    eventDateIdx: index('events_date_idx').on(table.eventDate),
-    statusIdx: index('events_status_idx').on(table.status),
-  })
+  (table) => [
+    index('events_user_id_idx').on(table.userId),
+    index('events_date_idx').on(table.eventDate),
+    index('events_status_idx').on(table.status),
+  ]
 );
 
 export const files = sqliteTable(
@@ -457,11 +478,11 @@ export const files = sqliteTable(
     syncVersion: integer('sync_version').default(1),
     lastSyncedAt: integer('last_synced_at', { mode: 'timestamp' }),
   },
-  (table) => ({
-    userIdIdx: index('files_user_id_idx').on(table.userId),
-    personIdIdx: index('files_person_id_idx').on(table.personId),
-    storyIdIdx: index('files_story_id_idx').on(table.storyId),
-  })
+  (table) => [
+    index('files_user_id_idx').on(table.userId),
+    index('files_person_id_idx').on(table.personId),
+    index('files_story_id_idx').on(table.storyId),
+  ]
 );
 
 export const pendingExtractions = sqliteTable(
@@ -505,6 +526,12 @@ export const pendingExtractions = sqliteTable(
     // AI reasoning
     extractionReason: text('extraction_reason'), // Why AI extracted this
 
+    // Conflict metadata (set when this item was queued due to a detected conflict)
+    isConflict: integer('is_conflict', { mode: 'boolean' }).default(false),
+    conflictType: text('conflict_type'), // e.g. 'direct_contradiction', 'ingredient_conflict', 'duplicate'
+    conflictingRelationId: text('conflicting_relation_id').references(() => relations.id, { onDelete: 'set null' }),
+    conflictDescription: text('conflict_description'), // Human-readable explanation
+
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -512,12 +539,86 @@ export const pendingExtractions = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (table) => ({
-    userIdIdx: index('pending_extractions_user_id_idx').on(table.userId),
-    storyIdIdx: index('pending_extractions_story_id_idx').on(table.storyId),
-    subjectIdIdx: index('pending_extractions_subject_id_idx').on(table.subjectId),
-    reviewStatusIdx: index('pending_extractions_review_status_idx').on(table.reviewStatus),
-  })
+  (table) => [
+    index('pending_extractions_user_id_idx').on(table.userId),
+    index('pending_extractions_story_id_idx').on(table.storyId),
+    index('pending_extractions_subject_id_idx').on(table.subjectId),
+    index('pending_extractions_review_status_idx').on(table.reviewStatus),
+  ]
+);
+
+// ============================================================================
+// QUIZ DISMISSALS TABLE
+// ============================================================================
+
+export const quizDismissals = sqliteTable(
+  'quiz_dismissals',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    quizType: text('quiz_type', { enum: ['food', 'hobby', 'general'] }).notNull(),
+    questionKey: text('question_key').notNull(), // e.g., "Tomatoes", "Hiking"
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index('quiz_dismissals_user_id_idx').on(table.userId),
+    index('quiz_dismissals_person_id_idx').on(table.personId),
+    index('quiz_dismissals_quiz_type_idx').on(table.quizType),
+    // Unique constraint: one dismissal per person+quiz+question
+    index('quiz_dismissals_unique_idx').on(
+      table.personId,
+      table.quizType,
+      table.questionKey
+    ),
+  ]
+);
+
+// ============================================================================
+// REMINDERS TABLE
+// ============================================================================
+
+export const reminders = sqliteTable(
+  'reminders',
+  {
+    id: text('id').primaryKey().notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: text('person_id').references(() => people.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    message: text('message'),
+    reminderType: text('reminder_type', {
+      enum: ['contact', 'birthday', 'anniversary', 'custom'],
+    }).notNull(),
+    scheduledFor: integer('scheduled_for', { mode: 'timestamp' }).notNull(),
+    repeatInterval: text('repeat_interval', {
+      enum: ['none', 'daily', 'weekly', 'monthly', 'yearly'],
+    }).default('none'),
+    notificationId: text('notification_id'), // Expo notification ID
+    status: text('status', { enum: ['pending', 'sent', 'cancelled'] }).default('pending'),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  },
+  (table) => [
+    index('reminders_user_id_idx').on(table.userId),
+    index('reminders_person_id_idx').on(table.personId),
+    index('reminders_scheduled_for_idx').on(table.scheduledFor),
+    index('reminders_status_idx').on(table.status),
+  ]
 );
 
 // ============================================================================
@@ -556,3 +657,9 @@ export type NewFile = typeof files.$inferInsert;
 
 export type PendingExtraction = typeof pendingExtractions.$inferSelect;
 export type NewPendingExtraction = typeof pendingExtractions.$inferInsert;
+
+export type QuizDismissal = typeof quizDismissals.$inferSelect;
+export type NewQuizDismissal = typeof quizDismissals.$inferInsert;
+
+export type Reminder = typeof reminders.$inferSelect;
+export type NewReminder = typeof reminders.$inferInsert;
