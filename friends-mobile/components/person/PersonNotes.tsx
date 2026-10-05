@@ -91,17 +91,24 @@ export default function PersonNotes({ person }: { person: Person }) {
               placeholder={t('person.notePlaceholder')}
               multiline
               autoFocus
-              style={styles.font}
+              style={styles.input}
               contentStyle={styles.inputContent}
+              outlineColor={fz.outline}
+              activeOutlineColor={fz.ink}
+              outlineStyle={styles.inputOutline}
             />
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button labelStyle={styles.font} onPress={close}>
+          <Dialog.Actions style={styles.actions}>
+            <Button labelStyle={styles.font} textColor={fz.ink} onPress={close}>
               {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.font}
               mode="contained"
+              buttonColor={fz.ink}
+              textColor="#FFFFFF"
+              style={styles.save}
+              contentStyle={styles.saveContent}
               onPress={save}
               loading={updatePerson.isPending}
               disabled={updatePerson.isPending || (mode === 'add' && !draft.trim())}
@@ -134,10 +141,22 @@ const styles = StyleSheet.create({
   font: {
     fontFamily: fz.font,
   },
+  input: {
+    fontFamily: fz.font,
+    backgroundColor: fz.card,
+  },
+  inputOutline: { borderRadius: fz.rRow },
   // Grows with the text, then scrolls, so long notes never push Save off screen.
+  // Explicit padding: Paper's multiline default hugs the top-left corner.
   inputContent: {
-    minHeight: 96,
+    minHeight: 110,
     maxHeight: 220,
+    paddingTop: 14,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
     textAlignVertical: 'top',
   },
+  actions: { paddingHorizontal: fz.s.xl, paddingBottom: fz.s.xl, gap: fz.s.sm },
+  save: { borderRadius: fz.rButton },
+  saveContent: { paddingHorizontal: 22, paddingVertical: 6 },
 });
