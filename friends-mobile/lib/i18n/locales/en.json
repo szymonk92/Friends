@@ -168,7 +168,10 @@
     "notFound": "Person not found",
     "goBack": "Go Back",
     "sideEffectsFailed": "Some changes didn't save",
-    "sideEffectsFailedMessage": "Could not write partner or attributes."
+    "sideEffectsFailedMessage": "Could not write partner or attributes.",
+    "allNotes": "All notes ({{count}})",
+    "deleteNote": "Delete note",
+    "deleteNoteConfirm": "This note will be removed."
   },
   "onboarding": {
     "skip": "Skip",
