@@ -1,4 +1,4 @@
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet, Alert, View } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,24 @@ const PREVIEW_CHARS = 220;
 
 type DialogMode = 'add' | 'edit';
 
+function NoteEntry({ text }: { text: string }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const overflow = text.length > PREVIEW_CHARS;
+  return (
+    <View style={styles.entry}>
+      <Text style={fzText.body}>
+        {!overflow || expanded ? text : `${text.slice(0, PREVIEW_CHARS).trimEnd()}…`}
+      </Text>
+      {overflow && (
+        <Text style={styles.toggle} onPress={() => setExpanded((v) => !v)}>
+          {expanded ? t('person.showLess') : t('person.showMore')}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 /**
  * The person's notes, right on the profile: `+` appends a dated note, the
  * pencil edits the whole text. Backed by `people.notes`, so the edit form,
@@ -27,11 +45,10 @@ export default function PersonNotes({ person }: { person: Person }) {
   const [mode, setMode] = useState<DialogMode>('add');
   const [dialogVisible, setDialogVisible] = useState(false);
   const [draft, setDraft] = useState('');
-  const [expanded, setExpanded] = useState(false);
 
   const notes = person.notes?.trim() ?? '';
-  const overflow = notes.length > PREVIEW_CHARS;
-  const visible = !overflow || expanded ? notes : `${notes.slice(0, PREVIEW_CHARS).trimEnd()}…`;
+  // Entries are blank-line separated (see appendNote); each collapses on its own.
+  const entries: string[] = notes ? notes.split(/\n{2,}/) : [];
 
   const open = (next: DialogMode) => {
     setDraft(next === 'edit' ? notes : '');
@@ -45,8 +62,6 @@ export default function PersonNotes({ person }: { person: Person }) {
       mode === 'add' ? appendNote(notes, draft, formatShortDate(new Date())) : draft.trim() || null;
     try {
       await updatePerson.mutateAsync({ id: person.id, notes: value });
-      // New notes land at the end; make sure the one just added is on screen.
-      if (mode === 'add') setExpanded(true);
       close();
     } catch {
       Alert.alert(t('common.error'), t('person.notesSaveError'));
@@ -65,14 +80,7 @@ export default function PersonNotes({ person }: { person: Person }) {
         }
       >
         {notes ? (
-          <>
-            <Text style={fzText.body}>{visible}</Text>
-            {overflow && (
-              <Text style={styles.toggle} onPress={() => setExpanded((v) => !v)}>
-                {expanded ? t('person.showLess') : t('person.showMore')}
-              </Text>
-            )}
-          </>
+          entries.map((entry, i) => <NoteEntry key={`${i}-${entry.length}`} text={entry} />)
         ) : (
           <Text style={styles.empty}>{t('person.notesEmpty')}</Text>
         )}
@@ -123,6 +131,11 @@ export default function PersonNotes({ person }: { person: Person }) {
 }
 
 const styles = StyleSheet.create({
+  entry: {
+    paddingVertical: fz.s.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: fz.outline,
+  },
   toggle: {
     marginTop: 6,
     fontWeight: '600',

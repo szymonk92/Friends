@@ -1,8 +1,9 @@
-import { useState, useCallback, type ReactElement } from 'react';
+import { useState, useCallback, useEffect, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Portal } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz, fzText } from '@/lib/design/tokens';
+import { registerConfirmHost } from '@/lib/utils/confirm';
 
 type Button = { text: string; onPress?: () => void };
 type Notice = { title: string; message?: string; buttons: Button[] };
@@ -56,6 +57,21 @@ export function useFzAlert(): {
   );
 
   return { alert, dialog };
+}
+
+/** Mount once in the root layout: renders confirmDestructive() in the FriendZ dialog. */
+export function FzConfirmHost() {
+  const { alert, dialog } = useFzAlert();
+  useEffect(() => {
+    registerConfirmHost((o) =>
+      alert(o.title, o.message, [
+        { text: o.confirmLabel ?? 'Delete', onPress: () => void o.onConfirm() },
+        { text: 'Cancel' },
+      ])
+    );
+    return () => registerConfirmHost(null);
+  }, [alert]);
+  return dialog;
 }
 
 const styles = StyleSheet.create({
