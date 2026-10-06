@@ -168,7 +168,10 @@
     "notFound": "Nie znaleziono osoby",
     "goBack": "Wróć",
     "sideEffectsFailed": "Część zmian nie została zapisana",
-    "sideEffectsFailedMessage": "Nie udało się zapisać partnera lub cech."
+    "sideEffectsFailedMessage": "Nie udało się zapisać partnera lub cech.",
+    "allNotes": "Wszystkie notatki ({{count}})",
+    "deleteNote": "Usuń notatkę",
+    "deleteNoteConfirm": "Ta notatka zostanie usunięta."
   },
   "onboarding": {
     "skip": "Pomiń",
