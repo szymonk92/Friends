@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useMemo } from 'react';
@@ -49,14 +49,12 @@ export default function RelationshipScreen() {
     const theirs = new Set(
       theirConnections
         .map((c) => otherIdOf(c, personId!))
-        .filter((id) => id !== personId && id !== other.id)
+        .filter((id) => id !== personId && id !== other.id && id !== me?.id)
     );
     // Comparing to yourself: everyone this person is connected to is someone you know.
     if (isComparingToSelf) return theirs;
     const mine = new Set(otherConnections.map((c) => otherIdOf(c, other.id)));
-    const mutual = new Set([...theirs].filter((id) => mine.has(id)));
-    if (me) mutual.add(me.id); // You know both people being compared.
-    return mutual;
+    return new Set([...theirs].filter((id) => mine.has(id)));
   }, [otherConnections, theirConnections, other, personId, isComparingToSelf, me]);
 
   // Direct edge between the two people being compared, if one exists.
@@ -66,6 +64,9 @@ export default function RelationshipScreen() {
   }, [theirConnections, personId, other, isComparingToSelf]);
 
   const isConnected = isComparingToSelf || !!directConnection;
+  const isPartner = isComparingToSelf
+    ? person?.relationshipType === 'partner'
+    : directConnection?.relationshipType === 'partner' && directConnection.status !== 'ended';
 
   const likes = useMemo(() => {
     const likeLabels = (rs: typeof otherRelations) =>
@@ -114,7 +115,7 @@ export default function RelationshipScreen() {
           {/* the pair */}
           <View style={styles.pairRow}>
             <Avatar name={isComparingToSelf ? 'Me' : other.name} photoPath={otherPhoto?.filePath} size={74} variant="ink" />
-            <ChainLogo size={50} strokeWidth={6.5} color={fz.ink} connected={isConnected} />
+            <ChainLogo size={50} strokeWidth={6.5} color={fz.ink} variant={isPartner ? 'partner' : isConnected ? 'linked' : 'apart'} />
             <Avatar name={person.name} photoPath={personPhoto?.filePath} size={74} variant="ink" />
           </View>
 
@@ -140,10 +141,20 @@ export default function RelationshipScreen() {
 
           {/* stats */}
           <View style={styles.statsRow}>
-            <View style={styles.statTile}>
-              <Text style={styles.statValue}>{yearsKnown ?? '—'}</Text>
+            <Pressable
+              style={styles.statTile}
+              disabled={!directConnection || !!yearsKnown}
+              onPress={() =>
+                router.push(
+                  `/person/edit-connection?connectionId=${directConnection!.id}&fromPersonId=${personId}`
+                )
+              }
+            >
+              <Text style={styles.statValue}>
+                {yearsKnown ?? (directConnection ? 'Add date' : '—')}
+              </Text>
               <Text style={styles.statLabel}>known</Text>
-            </View>
+            </Pressable>
             {isComparingToSelf && (
               <View style={styles.statTile}>
                 <Text style={styles.statValue}>{contactEvents.length}</Text>
@@ -155,6 +166,14 @@ export default function RelationshipScreen() {
               <Text style={styles.statLabel}>mutuals</Text>
             </View>
           </View>
+
+          {/* how they met (two other people) */}
+          {!isComparingToSelf && directConnection?.notes ? (
+            <View style={styles.card}>
+              <Text style={fzText.label}>How they met</Text>
+              <Text style={styles.cardBody}>{directConnection.notes}</Text>
+            </View>
+          ) : null}
 
           {/* how you met */}
           {isComparingToSelf && (person.metDate || person.metLocation) && (
@@ -231,7 +250,7 @@ export default function RelationshipScreen() {
                   return (
                     <View key={id} style={[styles.mutualAvatar, i > 0 && styles.mutualOverlap]}>
                       <Text style={styles.mutualInitials}>
-                        {id === me?.id ? 'You' : getInitials(mutual.name)}
+                        {getInitials(mutual.name)}
                       </Text>
                     </View>
                   );

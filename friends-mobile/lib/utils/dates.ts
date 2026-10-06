@@ -39,3 +39,10 @@ export function parseFlexibleDate(input: string): Date | null {
   }
   return null;
 }
+
+/** Inverse of parseFlexibleDate for a full date: "2014-06-05". */
+export function toDateText(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}

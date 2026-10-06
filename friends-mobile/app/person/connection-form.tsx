@@ -4,7 +4,15 @@ import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Button, TextInput, ActivityIndicator, Checkbox, IconButton, Menu } from 'react-native-paper';
+import {
+  Text,
+  Button,
+  TextInput,
+  ActivityIndicator,
+  Checkbox,
+  IconButton,
+  Menu,
+} from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
   useCreateConnection,
@@ -19,7 +27,7 @@ import {
   useCreatePerson,
   PersonWithPhoto,
 } from '@/hooks/usePeople';
-import { parseFlexibleDate } from '@/lib/utils/dates';
+import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { connections, type Connection } from '@/lib/db/schema';
 import { useEntityById } from '@/hooks/useEntityById';
@@ -84,6 +92,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [status, setStatus] = useState<ConnectionStatus>('active');
   const [qualifier, setQualifier] = useState('');
   const [notes, setNotes] = useState('');
+  const [sinceText, setSinceText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingPersonName, setPendingPersonName] = useState<string | null>(null);
   const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
@@ -145,6 +154,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setQualifier(connection.qualifier || '');
     setStatus(connection.status || 'active');
     setNotes(connection.notes || '');
+    setSinceText(connection.startDate ? toDateText(new Date(connection.startDate)) : '');
   }, [connection]);
 
   // Combine regular people with ME
@@ -245,6 +255,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setStatus('active');
     setQualifier('');
     setNotes('');
+    setSinceText('');
     setNewEntityKind('person');
     setSpecies('');
     setBirthdayText('');
@@ -304,6 +315,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   };
 
   const handleSubmit = async () => {
+    const sinceDate = sinceText.trim() ? parseFlexibleDate(sinceText) : null;
+    if (sinceText.trim() && !sinceDate) {
+      alert('Invalid Date', 'Enter "since" as YYYY, YYYY-MM, or YYYY-MM-DD');
+      return;
+    }
     if (mode === 'edit') {
       // Edit mode - update existing connection
       if (!connection) return;
@@ -315,15 +331,13 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           relationshipType,
           qualifier: qualifier.trim() || null,
           notes: notes.trim() || null,
+          startDate: sinceDate,
           status,
         });
 
         router.back();
       } catch (error) {
-        alert(
-          'Error',
-          error instanceof Error ? error.message : 'Failed to update connection'
-        );
+        alert('Error', error instanceof Error ? error.message : 'Failed to update connection');
       } finally {
         setIsSubmitting(false);
       }
@@ -400,6 +414,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           status,
           qualifier: qualifier.trim() || undefined,
           notes: notes.trim() || undefined,
+          startDate: sinceDate ?? undefined,
           strength: 0.5,
         });
 
@@ -435,6 +450,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 setStatus('active');
                 setQualifier('');
                 setNotes('');
+                setSinceText('');
                 setNewEntityKind('person');
                 setSpecies('');
                 setBirthdayText('');
@@ -514,6 +530,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             status,
             qualifier: qualifier.trim() || undefined,
             notes: notes.trim() || undefined,
+            startDate: sinceDate ?? undefined,
             strength: 0.5,
           })
         );
@@ -538,6 +555,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               setStatus('active');
               setQualifier('');
               setNotes('');
+              setSinceText('');
               setNewEntityKind('person');
               setSpecies('');
               setBirthdayText('');
@@ -576,14 +594,40 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           alert('Success', 'Connection deleted successfully!');
           router.back();
         } catch (error) {
-          alert(
-            'Error',
-            error instanceof Error ? error.message : 'Failed to delete connection'
-          );
+          alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
         }
       },
     });
   };
+
+  // "Since" — a year is usually all anyone remembers, so quick-picks fill in the year.
+  const thisYear = new Date().getFullYear();
+  const sinceFields = (
+    <>
+      <FormInput
+        label="Known since (optional)"
+        value={sinceText}
+        onChangeText={setSinceText}
+        placeholder="YYYY, YYYY-MM or YYYY-MM-DD"
+        keyboardType="numbers-and-punctuation"
+      />
+      <View style={styles.pillRow}>
+        {[
+          ['This year', 0],
+          ['5 yrs ago', 5],
+          ['10 yrs ago', 10],
+          ['20 yrs ago', 20],
+        ].map(([label, ago]) => (
+          <Pill
+            key={label}
+            label={label as string}
+            selected={sinceText === String(thisYear - (ago as number))}
+            onPress={() => setSinceText(String(thisYear - (ago as number)))}
+          />
+        ))}
+      </View>
+    </>
+  );
 
   return (
     <FormScreen
@@ -844,13 +888,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               onChangeText={setQualifier}
               placeholder="How to qualify this relationship"
             />
+            {sinceFields}
             <FormInput
-              label="Notes"
+              label="How you met / notes"
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
-              placeholder="Any additional context"
+              placeholder="e.g. Met at Anna's wedding"
               style={styles.lastInput}
             />
           </FormSection>
@@ -1007,8 +1052,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                   style={styles.qualifierInput}
                 />
 
+                {sinceFields}
                 <FormInput
-                  label="Notes (optional)"
+                  label="How you met / notes"
                   placeholder="Where they met, how they get on, past history..."
                   value={notes}
                   onChangeText={setNotes}
