@@ -3,7 +3,7 @@ import { confirmDestructive } from '@/lib/utils/confirm';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
-import { Alert, View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Button, TextInput, ActivityIndicator, Checkbox, IconButton, Menu } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
@@ -25,6 +25,7 @@ import { connections, type Connection } from '@/lib/db/schema';
 import { useEntityById } from '@/hooks/useEntityById';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { useFzAlert } from '@/components/FzDialog';
 import { LineIcon } from '@/components/LineIcon';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 import { Avatar } from '@/components/Avatar';
@@ -45,6 +46,7 @@ interface ConnectionFormProps {
 }
 
 export default function ConnectionForm({ mode }: ConnectionFormProps) {
+  const { alert, dialog } = useFzAlert();
   const params = useLocalSearchParams();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const connectionId = mode === 'edit' ? (params.connectionId as string) : undefined;
@@ -318,7 +320,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
         router.back();
       } catch (error) {
-        Alert.alert(
+        alert(
           'Error',
           error instanceof Error ? error.message : 'Failed to update connection'
         );
@@ -351,7 +353,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         );
 
         if (duplicateConnection) {
-          Alert.alert(
+          alert(
             'Duplicate Connection',
             `A ${dupRelType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
             [{ text: 'OK' }]
@@ -364,7 +366,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       if (pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child')) {
         const trimmedBirthday = birthdayText.trim();
         if (trimmedBirthday && !parseFlexibleDate(trimmedBirthday)) {
-          Alert.alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
+          alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
           return;
         }
       }
@@ -416,7 +418,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           });
         }
 
-        Alert.alert(
+        alert(
           'Success!',
           `Connection added: ${person?.name} ↔️ ${selectedSinglePerson?.name} (${effectiveRelType})`,
           [
@@ -451,7 +453,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           fromPersonId: personId,
           toPersonId: singlePersonId,
         });
-        Alert.alert(
+        alert(
           'Error',
           error instanceof Error ? error.message : 'Failed to create connection. Please try again.'
         );
@@ -463,7 +465,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
     // Multi-select mode
     if (selectedPersonIds.length === 0) {
-      Alert.alert('Select People', 'Please select at least one person to connect to.');
+      alert('Select People', 'Please select at least one person to connect to.');
       return;
     }
 
@@ -483,7 +485,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     }
 
     if (duplicates.length > 0) {
-      Alert.alert(
+      alert(
         'Duplicate Connections',
         `${relationshipType} connection already exists with: ${duplicates.join(', ')}. They will be skipped.`,
         [{ text: 'OK' }]
@@ -523,7 +525,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         .filter(Boolean)
         .join(', ');
 
-      Alert.alert(
+      alert(
         'Success!',
         `Added ${promises.length} connection(s): ${person?.name} ↔️ ${selectedNames} (${relationshipType})`,
         [
@@ -546,12 +548,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {
             text: 'Done',
             onPress: () => router.back(),
-            style: 'cancel',
           },
         ]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to add connection. Please try again.');
+      alert('Error', 'Failed to add connection. Please try again.');
       devLogger.error('Failed to add connection', { error });
     } finally {
       setIsSubmitting(false);
@@ -572,10 +573,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       onConfirm: async () => {
         try {
           await deleteConnection.mutateAsync(connectionId!);
-          Alert.alert('Success', 'Connection deleted successfully!');
+          alert('Success', 'Connection deleted successfully!');
           router.back();
         } catch (error) {
-          Alert.alert(
+          alert(
             'Error',
             error instanceof Error ? error.message : 'Failed to delete connection'
           );
@@ -1046,6 +1047,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       >
         Cancel
       </Button>
+      {dialog}
     </FormScreen>
   );
 }

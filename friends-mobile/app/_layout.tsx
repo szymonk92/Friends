@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
+import { FzConfirmHost } from '@/components/FzDialog';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FloatingDevTools } from '@react-buoy/core';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -194,6 +195,7 @@ function RootLayoutNav() {
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
             </Stack>
+            <FzConfirmHost />
             <FloatingDevTools environment="local" userRole="admin" />
           </ThemeProvider>
         </PaperProvider>
