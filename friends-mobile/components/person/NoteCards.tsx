@@ -88,9 +88,8 @@ export function NoteCard({
       onLongPress={onLongPress}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}
     >
-      {entry.date && <Text style={fzText.time}>{entry.date}</Text>}
       <Text style={fzText.body} numberOfLines={3}>
-        {entry.body}
+        {entry.date ? `${entry.date} — ${entry.body}` : entry.body}
       </Text>
     </Pressable>
   );
@@ -98,14 +97,10 @@ export function NoteCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: fz.card,
-    borderWidth: 1,
-    borderColor: fz.cardBorder,
-    borderRadius: fz.rRow,
-    paddingHorizontal: fz.s.lg,
-    paddingVertical: fz.s.md,
-    marginBottom: fz.s.sm,
-    gap: 4,
+    // Flat entry like the original notes list: plain text between hairlines.
+    paddingVertical: fz.s.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: fz.outline,
   },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
