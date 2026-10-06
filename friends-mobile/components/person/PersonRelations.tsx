@@ -1,5 +1,5 @@
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { usePersonRelations } from '@/hooks/useRelations';
@@ -62,16 +62,8 @@ export default function PersonRelations({ personId, personName }: PersonRelation
       {!relationsLoading && personRelations && personRelations.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            Nothing yet. Add likes, fears, or facts about {personName}.
+            Nothing yet. Tap + to add likes, fears, or facts about {personName}.
           </Text>
-          <Button
-            mode="outlined"
-            textColor={fz.ink}
-            style={styles.emptyButton}
-            onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-          >
-            Add Something
-          </Button>
         </View>
       )}
 
@@ -126,9 +118,7 @@ const styles = StyleSheet.create({
     ...fzText.sub,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginBottom: 12,
   },
-  emptyButton: { borderColor: fz.outline },
   relationTypeSection: { marginBottom: 14 },
   relationTypeHeader: {
     flexDirection: 'row',
