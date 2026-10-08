@@ -131,9 +131,10 @@ export default function TimelineEventItem({
           </View>
 
           <View style={styles.tagRow}>
-            <Pill label={getEventLabel(item.eventType)} variant="surface" />
-            {isBirthday && <Pill label={t('timeline.types.birthday')} variant="soft" />}
-            {isImportantDate && <Pill label={t('timeline.types.anniversary')} variant="soft" />}
+            <Pill
+              label={getEventLabel(item.eventType)}
+              variant={isBirthday || isImportantDate ? 'soft' : 'surface'}
+            />
           </View>
 
           {item.notes && <Text style={fzText.body}>{item.notes}</Text>}

@@ -723,15 +723,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {pendingPersonName && (
             <FormSection title={t('connectionForm.whatAdding')}>
               <View style={styles.pillRow}>
-                {(subjectIsPet
-                  ? (['person', 'pet'] as const)
-                  : (['person', 'child', 'pet'] as const)
-                ).map((kind) => (
+                {/* Person is the default, so it has no pill; tapping the selected one goes back to it. */}
+                {(subjectIsPet ? (['pet'] as const) : (['child', 'pet'] as const)).map((pick) => (
                   <Pill
-                    key={kind}
-                    label={t(`connectionForm.kind.${kind}`)}
-                    selected={newEntityKind === kind}
+                    key={pick}
+                    label={t(`connectionForm.kind.${pick}`)}
+                    selected={newEntityKind === pick}
                     onPress={() => {
+                      const kind = newEntityKind === pick ? 'person' : pick;
                       setNewEntityKind(kind);
                       if (kind === 'pet') {
                         setRelationshipType('pet');

@@ -220,6 +220,7 @@ export function useDeletePerson() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });
 }

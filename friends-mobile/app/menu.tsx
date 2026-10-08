@@ -1,5 +1,5 @@
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, List } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import {
   useExportData,
@@ -10,11 +10,20 @@ import {
 } from '@/hooks/useDataExport';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fz } from '@/lib/design/tokens';
 import { FormSection } from '@/components/FormKit';
 import ExportImportSettings from '@/components/settings/ExportImportSettings';
+import DataStatistics from '@/components/settings/DataStatistics';
+import BirthdayReminderSettingsSection from '@/components/settings/BirthdayReminderSettings';
+import {
+  getBirthdayReminderSettings,
+  saveBirthdayReminderSettings,
+  scheduleBirthdayReminders,
+  getUpcomingBirthdays,
+  type BirthdayReminderSettings,
+} from '@/lib/notifications/birthday-reminders';
 
 export default function MenuScreen() {
   const { t } = useTranslation();
@@ -23,6 +32,38 @@ export default function MenuScreen() {
   const exportObsidian = useExportObsidian();
   const importData = useImportData();
   const [importLoading, setImportLoading] = useState(false);
+  const { data: stats, isLoading: statsLoading } = useExportStats();
+
+  const [birthdaySettings, setBirthdaySettings] = useState<BirthdayReminderSettings | null>(null);
+  const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
+  const [savingBirthdaySettings, setSavingBirthdaySettings] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setBirthdaySettings(await getBirthdayReminderSettings());
+      setUpcomingBirthdays(await getUpcomingBirthdays(30));
+    })();
+  }, []);
+
+  const handleBirthdaySettingChange = async (key: keyof BirthdayReminderSettings, value: any) => {
+    if (!birthdaySettings) return;
+
+    const newSettings = { ...birthdaySettings, [key]: value };
+    setBirthdaySettings(newSettings);
+
+    setSavingBirthdaySettings(true);
+    try {
+      await saveBirthdayReminderSettings(newSettings);
+      if (key === 'enabled' && value === true) {
+        const count = await scheduleBirthdayReminders();
+        Alert.alert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), t('settingsScreen.saveFailed'));
+    } finally {
+      setSavingBirthdaySettings(false);
+    }
+  };
 
   const handleExportJSON = async () => {
     try {
@@ -91,7 +132,7 @@ export default function MenuScreen() {
     <>
       <Stack.Screen
         options={{
-          title: t('menu.title'),
+          title: t('common.moreOptions'),
           headerStyle: { backgroundColor: fz.paper },
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
@@ -99,6 +140,26 @@ export default function MenuScreen() {
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <FormSection title={t('settings.security')} hint={t('settingsScreen.secretsIntro')}>
+          <Button
+            mode="outlined"
+            onPress={() => router.push('/secrets')}
+            icon="shield-lock"
+            textColor={fz.ink}
+            style={[styles.button, styles.lastButton]}
+            labelStyle={styles.buttonLabel}
+          >
+            {t('settingsScreen.manageSecrets')}
+          </Button>
+        </FormSection>
+
+        <BirthdayReminderSettingsSection
+          birthdaySettings={birthdaySettings}
+          savingBirthdaySettings={savingBirthdaySettings}
+          handleBirthdaySettingChange={handleBirthdaySettingChange}
+          upcomingBirthdays={upcomingBirthdays}
+        />
+
         <FormSection
           title={t('settings.experimental')}
           hint={t('menu.experimentalHint')}
@@ -172,6 +233,26 @@ export default function MenuScreen() {
           importLoading={importLoading}
           importDataPending={importData.isPending}
         />
+
+        <DataStatistics stats={stats} loading={statsLoading} />
+
+        <FormSection title={t('settings.about')}>
+          <List.Item
+            title={t('settingsScreen.appName')}
+            description={t('settingsScreen.appDesc')}
+            left={(props) => <List.Icon {...props} icon="account-group" />}
+          />
+          <List.Item
+            title={t('settingsScreen.version')}
+            description="1.0.0"
+            left={(props) => <List.Icon {...props} icon="information" />}
+          />
+          <List.Item
+            title={t('settingsScreen.dataStorage')}
+            description={t('settingsScreen.dataStorageDesc')}
+            left={(props) => <List.Icon {...props} icon="database" />}
+          />
+        </FormSection>
 
         <View style={styles.spacer} />
       </ScrollView>

@@ -1,20 +1,12 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
-import { Text, Card, Button, List, Divider, Portal, TextInput } from 'react-native-paper';
+import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { useExportStats } from '@/hooks/useDataExport';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/store/useSettings';
-import {
-  getBirthdayReminderSettings,
-  saveBirthdayReminderSettings,
-  scheduleBirthdayReminders,
-  getUpcomingBirthdays,
-  type BirthdayReminderSettings,
-} from '@/lib/notifications/birthday-reminders';
 import {
   getRelationshipColors,
   setRelationshipColor,
@@ -29,14 +21,10 @@ import { fz } from '@/lib/design/tokens';
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
 import AIConfiguration from '@/components/settings/AIConfiguration';
 import RelationshipColorsSettings from '@/components/settings/RelationshipColorsSettings';
-import DataStatistics from '@/components/settings/DataStatistics';
-import BirthdayReminderSettingsSection from '@/components/settings/BirthdayReminderSettings';
 import LanguageSelector from '@/components/settings/LanguageSelector';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-
-  const { data: stats, isLoading: statsLoading } = useExportStats();
 
   // API Key state
   const {
@@ -73,11 +61,6 @@ export default function SettingsScreen() {
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState('');
   const [tempOllamaApiKey, setTempOllamaApiKey] = useState('');
 
-  // Birthday reminder settings
-  const [birthdaySettings, setBirthdaySettings] = useState<BirthdayReminderSettings | null>(null);
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
-  const [savingBirthdaySettings, setSavingBirthdaySettings] = useState(false);
-
   // Relationship color settings
   const [relationshipColors, setRelationshipColors] =
     useState<RelationshipColorMap>(DEFAULT_COLORS);
@@ -94,16 +77,8 @@ export default function SettingsScreen() {
     loadThemeColor();
     loadFontFamily();
     loadMaxPhotosPerPerson();
-    loadBirthdaySettings();
     loadRelationshipColors();
   }, []);
-
-  const loadBirthdaySettings = async () => {
-    const settings = await getBirthdayReminderSettings();
-    setBirthdaySettings(settings);
-    const upcoming = await getUpcomingBirthdays(30);
-    setUpcomingBirthdays(upcoming);
-  };
 
   const loadRelationshipColors = async () => {
     const colors = await getRelationshipColors();
@@ -128,26 +103,6 @@ export default function SettingsScreen() {
         },
       },
     ]);
-  };
-
-  const handleBirthdaySettingChange = async (key: keyof BirthdayReminderSettings, value: any) => {
-    if (!birthdaySettings) return;
-
-    const newSettings = { ...birthdaySettings, [key]: value };
-    setBirthdaySettings(newSettings);
-
-    setSavingBirthdaySettings(true);
-    try {
-      await saveBirthdayReminderSettings(newSettings);
-      if (key === 'enabled' && value === true) {
-        const count = await scheduleBirthdayReminders();
-        Alert.alert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
-      }
-    } catch (error) {
-      Alert.alert(t('common.error'), t('settingsScreen.saveFailed'));
-    } finally {
-      setSavingBirthdaySettings(false);
-    }
   };
 
   const handleSaveApiKey = async () => {
@@ -262,70 +217,12 @@ export default function SettingsScreen() {
           handleClearOllamaApiKey={handleClearOllamaApiKey}
         />
 
-        {/* Security */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t('settings.security')}
-            </Text>
-            <Divider style={styles.divider} />
-
-            <Text variant="bodySmall" style={styles.description}>
-              {t('settingsScreen.secretsIntro')}
-            </Text>
-
-            <Button
-              mode="contained"
-              onPress={() => router.push('/secrets')}
-              icon="shield-lock"
-              style={styles.button}
-            >
-              {t('settingsScreen.manageSecrets')}
-            </Button>
-          </Card.Content>
-        </Card>
-
         <RelationshipColorsSettings
           relationshipColors={relationshipColors}
           setSelectedRelationType={setSelectedRelationType}
           setColorPickerVisible={setColorPickerVisible}
           handleResetColors={handleResetColors}
         />
-
-        <BirthdayReminderSettingsSection
-          birthdaySettings={birthdaySettings}
-          savingBirthdaySettings={savingBirthdaySettings}
-          handleBirthdaySettingChange={handleBirthdaySettingChange}
-          upcomingBirthdays={upcomingBirthdays}
-        />
-
-        <DataStatistics stats={stats} loading={statsLoading} />
-
-        {/* App Info */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t('settings.about')}
-            </Text>
-            <Divider style={styles.divider} />
-
-            <List.Item
-              title={t('settingsScreen.appName')}
-              description={t('settingsScreen.appDesc')}
-              left={(props) => <List.Icon {...props} icon="account-group" />}
-            />
-            <List.Item
-              title={t('settingsScreen.version')}
-              description="1.0.0"
-              left={(props) => <List.Icon {...props} icon="information" />}
-            />
-            <List.Item
-              title={t('settingsScreen.dataStorage')}
-              description={t('settingsScreen.dataStorageDesc')}
-              left={(props) => <List.Icon {...props} icon="database" />}
-            />
-          </Card.Content>
-        </Card>
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -479,23 +376,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     paddingTop: 16,
-  },
-  card: {
-    marginBottom: 16,
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  description: {
-    marginBottom: 16,
-    opacity: 0.7,
-  },
-  button: {
-    marginBottom: 12,
   },
   spacer: {
     height: 40,
