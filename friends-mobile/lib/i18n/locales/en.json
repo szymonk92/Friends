@@ -520,7 +520,10 @@
     "precisionDay": "Exact day",
     "precisionMonth": "Month",
     "precisionYear": "Year",
-    "editTitle": "Edit Important Date"
+    "editTitle": "Edit Important Date",
+    "reminderOn": "Remind me",
+    "reminderOff": "Stop reminding",
+    "addToCalendar": "Add to calendar"
   },
   "brainDump": {
     "keyNeededTitle": "AI key needed",
@@ -794,7 +797,6 @@
     "noMatch": "No one matches “{{query}}”."
   },
   "timeline": {
-    "birthdayOf": "{{name}}'s birthday",
     "unknown": "Unknown",
     "withNames": "with {{names}}",
     "andMore": "and {{count}} more",
@@ -1064,20 +1066,22 @@
   },
   "birthdayReminders": {
     "title": "Birthday Reminders",
-    "enable": "Enable Reminders",
-    "enableDesc": "Get notified about upcoming birthdays",
     "onDay": "Remind on Birthday",
     "onDayDesc": "Notify me on the actual birthday",
     "daysBefore": "Days before reminder:",
     "none": "None",
-    "onlyImportant": "Only Important People",
-    "onlyImportantDesc": "Only remind for important+ people",
-    "minImportance": "Minimum importance:",
-    "important": "Important",
-    "very": "Very",
-    "critical": "Critical",
-    "upcoming": "Upcoming Birthdays (30 days):",
-    "inDays": "In {{days}} days (turning {{age}})"
+    "inDays": "In {{days}} days (turning {{age}})",
+    "perPersonHint": "Choose who to be reminded about, or add their birthday to your calendar. Only exact dates (day known) are listed.",
+    "people": "Birthdays",
+    "today": "Today (turning {{age}})",
+    "addToCalendar": "Add to calendar",
+    "calendarTitle": "🎂 {{name}}'s birthday",
+    "calendarFailed": "Could not open the calendar",
+    "noMatch": "No birthdays match",
+    "notifyBeforeTitle": "🎂 Upcoming birthday",
+    "notifyBeforeBody": "{{name}}'s birthday is in {{count}} days",
+    "notifyTodayTitle": "🎉 Birthday today",
+    "notifyTodayBody": "Today is {{name}}'s birthday!"
   },
   "dataStats": {
     "title": "Your Data",

@@ -1,3 +1,4 @@
+import type { DatePrecision } from '@/lib/utils/dates';
 /**
  * Formatting utilities for the Friends app
  */
@@ -64,6 +65,15 @@ export function formatYearsKnown(date: Date): string {
 /**
  * Format a date as a short date string
  */
+/** formatShortDate that omits parts the user never gave (null precision = exact day). */
+export function formatFlexibleDate(date: Date, precision: DatePrecision | null): string {
+  if (!precision || precision === 'day') return formatShortDate(date);
+  return new Intl.DateTimeFormat(undefined, {
+    month: precision === 'month' ? 'short' : undefined,
+    year: 'numeric',
+  }).format(date);
+}
+
 export function formatShortDate(date: Date): string {
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',

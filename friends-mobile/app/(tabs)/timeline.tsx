@@ -20,7 +20,7 @@ import TimelineEventItem, { type TimelineEvent } from '@/components/timeline/Tim
 import { ActionSheet } from '@/components/ActionSheet';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
-import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
+import { metadataPrecision, parseFlexibleDate, toDateText } from '@/lib/utils/dates';
 import { parseJsonArray } from '@/lib/utils/json';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
@@ -80,7 +80,7 @@ export default function TimelineScreen() {
         personId: p.id,
         eventType: 'birthday',
         eventDate: p.dateOfBirth!,
-        notes: t('timeline.birthdayOf', { name: p.name }),
+        datePrecision: p.dateOfBirthPrecision,
         isBirthday: true,
       }));
   }, [people]);
@@ -94,6 +94,7 @@ export default function TimelineScreen() {
         personId: r.subjectId,
         eventType: 'anniversary',
         eventDate: r.validFrom,
+        datePrecision: metadataPrecision(r.metadata),
         notes: r.objectLabel,
         isImportantDate: true,
       }));

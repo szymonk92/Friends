@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { FullScreenModal } from '@/components/FullScreenModal';
 import { PersonRow } from '@/components/PersonRow';
+import { SearchField } from '@/components/SearchField';
 import { LineIcon } from '@/components/LineIcon';
 import { fz, fzText } from '@/lib/design/tokens';
 import { foldText } from '@/lib/utils/format';
@@ -57,22 +58,7 @@ export function PersonPickerModal({
       }
     >
       <View style={styles.searchRow}>
-        <View style={styles.searchInput}>
-          <LineIcon name="search" size={16} color={fz.textMute} />
-          <TextInput
-            placeholder={t('comparePicker.search')}
-            placeholderTextColor={fz.textMute}
-            value={query}
-            onChangeText={setQuery}
-            autoCorrect={false}
-            style={styles.searchText}
-          />
-          {!!query && (
-            <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel={t('common.clear')}>
-              <LineIcon name="close" size={14} color={fz.textMute} />
-            </Pressable>
-          )}
-        </View>
+        <SearchField value={query} onChangeText={setQuery} placeholder={t('comparePicker.search')} />
       </View>
       <FlatList
         data={matches}
@@ -118,16 +104,6 @@ const styles = StyleSheet.create({
   },
   // Same pill search field as the Search tab.
   searchRow: { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md },
-  searchInput: {
-    height: 44,
-    borderRadius: fz.rPill,
-    backgroundColor: fz.surface,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  searchText: { flex: 1, fontFamily: fz.font, fontSize: 15, color: fz.ink, padding: 0 },
   list: { paddingHorizontal: fz.s.edge, paddingBottom: 40 },
   empty: { textAlign: 'center', marginTop: 32 },
   check: {

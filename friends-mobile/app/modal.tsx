@@ -9,7 +9,7 @@ import { devLogger } from '@/lib/utils/devLogger';
 import { serializeSocialLinks } from '@/lib/social/socialLinks';
 import { serializeLanguages } from '@/lib/utils/languages';
 import { normalizePhone } from '@/lib/utils/pii';
-import { parseFlexibleDate } from '@/lib/utils/dates';
+import { flexiblePrecision, parseFlexibleDate } from '@/lib/utils/dates';
 import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import type { BrainDumpAttribute } from '@/lib/ai/brain-dump';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
@@ -42,6 +42,7 @@ export default function AddPersonModal() {
         nickname: v.nickname.trim() || undefined,
         relationshipType: v.relationshipType as any,
         dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
+        dateOfBirthPrecision: flexiblePrecision(v.dateOfBirth),
         metDate: parseFlexibleDate(v.metDate) || undefined,
         metLocation: v.metLocation.trim() || undefined,
         homeLocation: v.homeLocation.trim() || undefined,

@@ -520,7 +520,10 @@
     "precisionDay": "Dokładny dzień",
     "precisionMonth": "Miesiąc",
     "precisionYear": "Rok",
-    "editTitle": "Edytuj ważną datę"
+    "editTitle": "Edytuj ważną datę",
+    "reminderOn": "Przypominaj",
+    "reminderOff": "Nie przypominaj",
+    "addToCalendar": "Dodaj do kalendarza"
   },
   "brainDump": {
     "keyNeededTitle": "Potrzebny klucz AI",
@@ -806,7 +809,6 @@
     "noMatch": "Nikt nie pasuje do „{{query}}”."
   },
   "timeline": {
-    "birthdayOf": "Urodziny: {{name}}",
     "unknown": "Nieznana",
     "withNames": "z: {{names}}",
     "andMore": "i {{count}} więcej",
@@ -1092,20 +1094,22 @@
   },
   "birthdayReminders": {
     "title": "Przypomnienia o urodzinach",
-    "enable": "Włącz przypomnienia",
-    "enableDesc": "Otrzymuj powiadomienia o nadchodzących urodzinach",
     "onDay": "Przypomnij w dniu urodzin",
     "onDayDesc": "Powiadom mnie w dniu urodzin",
     "daysBefore": "Dni przed urodzinami:",
     "none": "Brak",
-    "onlyImportant": "Tylko ważne osoby",
-    "onlyImportantDesc": "Przypominaj tylko o ważnych osobach",
-    "minImportance": "Minimalna ważność:",
-    "important": "Ważna",
-    "very": "Bardzo",
-    "critical": "Krytyczna",
-    "upcoming": "Nadchodzące urodziny (30 dni):",
-    "inDays": "Za {{days}} dni (skończy {{age}} lat)"
+    "inDays": "Za {{days}} dni (skończy {{age}} lat)",
+    "perPersonHint": "Wybierz, o kim przypominać, albo dodaj urodziny do kalendarza. Na liście są tylko dokładne daty (ze znanym dniem).",
+    "people": "Urodziny",
+    "today": "Dziś (kończy {{age}} lat)",
+    "addToCalendar": "Dodaj do kalendarza",
+    "calendarTitle": "🎂 Urodziny: {{name}}",
+    "calendarFailed": "Nie udało się otworzyć kalendarza",
+    "noMatch": "Brak pasujących urodzin",
+    "notifyBeforeTitle": "🎂 Zbliżają się urodziny",
+    "notifyBeforeBody": "{{name}} ma urodziny za {{count}} dni",
+    "notifyTodayTitle": "🎉 Dziś urodziny",
+    "notifyTodayBody": "Dziś urodziny: {{name}}!"
   },
   "dataStats": {
     "title": "Twoje dane",

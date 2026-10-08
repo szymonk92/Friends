@@ -3,7 +3,18 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
-import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
+import {
+  flexiblePrecision,
+  metadataPrecision,
+  parseFlexibleDate,
+  toFlexibleText,
+  type DatePrecision,
+} from '@/lib/utils/dates';
+import {
+  addBirthdayToCalendar,
+  scheduleBirthdayReminders,
+} from '@/lib/notifications/birthday-reminders';
+import { LineIcon } from '@/components/LineIcon';
 import {
   usePersonRelations,
   useDeleteRelation,
@@ -11,7 +22,7 @@ import {
   useUpdateRelation,
 } from '@/hooks/useRelations';
 import { useUpdatePerson } from '@/hooks/usePeople';
-import { formatShortDate } from '@/lib/utils/format';
+import { formatFlexibleDate } from '@/lib/utils/format';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 import type { Person, Relation } from '@/lib/db/schema';
 import { ActionSheet } from '@/components/ActionSheet';
@@ -19,6 +30,11 @@ import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
+
+// Important dates keep their precision in relation.metadata so "2019-06" never becomes June 1st.
+const relationPrecision = (r: Relation) => metadataPrecision(r.metadata);
+const precisionMetadata = (precision: DatePrecision | null) =>
+  precision && precision !== 'day' ? JSON.stringify({ precision }) : null;
 
 interface PersonImportantDatesProps {
   person: Person;
@@ -56,10 +72,16 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     setEditing(target);
     if (target === 'birthday') {
       setDateName(t('dates.birthday'));
-      setDateValue(person.dateOfBirth ? toDateText(new Date(person.dateOfBirth)) : '');
+      setDateValue(
+        person.dateOfBirth
+          ? toFlexibleText(new Date(person.dateOfBirth), person.dateOfBirthPrecision)
+          : ''
+      );
     } else {
       setDateName(target.objectLabel);
-      setDateValue(target.validFrom ? toDateText(new Date(target.validFrom)) : '');
+      setDateValue(
+        target.validFrom ? toFlexibleText(new Date(target.validFrom), relationPrecision(target)) : ''
+      );
     }
     setAddDateDialogVisible(true);
   };
@@ -76,16 +98,32 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
           : deleteRelation.mutateAsync(target.id),
     });
 
+  const toggleReminder = async () => {
+    try {
+      await updatePerson.mutateAsync({ id: person.id, birthdayReminder: !person.birthdayReminder });
+      await scheduleBirthdayReminders();
+    } catch (error) {
+      fzAlert(t('common.error'), t('settingsScreen.saveFailed'));
+    }
+  };
+
   const handleSaveEdit = async (target: DateTarget, parsedDate: Date) => {
+    const precision = flexiblePrecision(dateValue);
     setIsAddingDate(true);
     try {
       if (target === 'birthday') {
-        await updatePerson.mutateAsync({ id: person.id, dateOfBirth: parsedDate });
+        await updatePerson.mutateAsync({
+          id: person.id,
+          dateOfBirth: parsedDate,
+          dateOfBirthPrecision: precision,
+        });
+        await scheduleBirthdayReminders();
       } else {
         await updateRelation.mutateAsync({
           id: target.id,
           objectLabel: dateName.trim(),
           validFrom: parsedDate,
+          metadata: precisionMetadata(precision),
         });
       }
       closeDialog();
@@ -131,16 +169,21 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
       dateName.trim().toLowerCase().includes(keyword)
     );
 
+    const precision = flexiblePrecision(dateValue);
     setIsAddingDate(true);
     try {
       if (isBirthday) {
-        await updatePerson.mutateAsync({ id: person.id, dateOfBirth: parsedDate });
+        await updatePerson.mutateAsync({
+          id: person.id,
+          dateOfBirth: parsedDate,
+          dateOfBirthPrecision: precision,
+        });
         setAddDateDialogVisible(false);
         setDateName('');
         setDateValue('');
         fzAlert(
           t('common.success'),
-          t('dates.birthdaySet', { date: formatShortDate(parsedDate) })
+          t('dates.birthdaySet', { date: formatFlexibleDate(parsedDate, precision) })
         );
       } else {
         await createRelation.mutateAsync({
@@ -150,6 +193,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
             ? t('dates.anniversaryLabel', { name: dateName.trim() })
             : dateName.trim(),
           validFrom: parsedDate,
+          metadata: precisionMetadata(precision),
           category: 'important_date',
           source: 'manual',
           intensity: 'strong',
@@ -168,6 +212,9 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   };
 
   const count = (person.dateOfBirth ? 1 : 0) + importantDates.length;
+  // Reminders need a real day; month/year-only birthdays cannot be scheduled.
+  const exactBirthday =
+    !!person.dateOfBirth && (!person.dateOfBirthPrecision || person.dateOfBirthPrecision === 'day');
 
   return (
     <>
@@ -185,7 +232,12 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               accessibilityRole="button"
             >
               <Pill label={t('dates.birthday')} icon="cake" variant="soft" />
-              <Text style={styles.dateText}>{formatShortDate(new Date(person.dateOfBirth))}</Text>
+              <Text style={styles.dateText}>
+                {formatFlexibleDate(new Date(person.dateOfBirth), person.dateOfBirthPrecision)}
+              </Text>
+              {exactBirthday && person.birthdayReminder && (
+                <LineIcon name="bell" size={16} color={fz.textMute} />
+              )}
             </Pressable>
           )}
 
@@ -198,7 +250,9 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
             >
               <Pill label={date.objectLabel} variant="soft" />
               <Text style={styles.dateText}>
-                {date.validFrom ? formatShortDate(new Date(date.validFrom)) : t('dates.noDate')}
+                {date.validFrom
+                  ? formatFlexibleDate(new Date(date.validFrom), relationPrecision(date))
+                  : t('dates.noDate')}
               </Text>
             </Pressable>
           ))}
@@ -211,6 +265,28 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
         actions={
           selected
             ? [
+                ...(selected === 'birthday' && exactBirthday
+                  ? [
+                      {
+                        label: person.birthdayReminder
+                          ? t('dates.reminderOff')
+                          : t('dates.reminderOn'),
+                        icon: 'bell' as const,
+                        onPress: toggleReminder,
+                      },
+                      {
+                        label: t('dates.addToCalendar'),
+                        icon: 'clock' as const,
+                        onPress: () =>
+                          addBirthdayToCalendar(
+                            new Date(person.dateOfBirth!),
+                            t('birthdayReminders.calendarTitle', { name: person.name })
+                          ).catch(() =>
+                            fzAlert(t('common.error'), t('birthdayReminders.calendarFailed'))
+                          ),
+                      },
+                    ]
+                  : []),
                 { label: t('common.edit'), icon: 'pencil', onPress: () => openEdit(selected) },
                 { label: t('common.delete'), icon: 'trash', onPress: () => confirmDelete(selected) },
               ]

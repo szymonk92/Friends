@@ -21,7 +21,7 @@ import {
 } from '@/lib/social/socialLinks';
 import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
 import { normalizePhone } from '@/lib/utils/pii';
-import { parseFlexibleDate } from '@/lib/utils/dates';
+import { flexiblePrecision, parseFlexibleDate, toFlexibleText } from '@/lib/utils/dates';
 import { fz, fzText } from '@/lib/design/tokens';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
 import { fzAlert } from '@/lib/utils/confirm';
@@ -41,7 +41,7 @@ function mapPersonToForm(person: PersonRecord): Partial<PersonFormValues> {
     genderOther: !g || known || g === 'other' ? '' : g,
     species: person.species || '',
     dateOfBirth: person.dateOfBirth
-      ? new Date(person.dateOfBirth).toISOString().split('T')[0]
+      ? toFlexibleText(new Date(person.dateOfBirth), person.dateOfBirthPrecision)
       : '',
     metDate: person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '',
     metLocation: person.metLocation || '',
@@ -166,6 +166,7 @@ export default function EditPersonScreen() {
         nickname: v.nickname.trim() || null,
         relationshipType: v.relationshipType as any,
         dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
+        dateOfBirthPrecision: flexiblePrecision(v.dateOfBirth) ?? undefined,
         species: v.species.trim() || null,
         metDate: parseFlexibleDate(v.metDate) || null,
         metLocation: v.metLocation.trim() || null,

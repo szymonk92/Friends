@@ -1,3 +1,4 @@
+import type { DatePrecision } from '@/lib/utils/dates';
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
@@ -19,6 +20,8 @@ export interface TimelineEvent {
   duration?: number | null;
   isBirthday?: boolean;
   isImportantDate?: boolean;
+  /** Partial birthdays / important dates: don't print a day we never had. */
+  datePrecision?: DatePrecision | null;
   isPartyEvent?: boolean;
   partyDetails?: {
     id: string;
@@ -43,8 +46,11 @@ interface TimelineEventItemProps {
   getEventLabel: (type: string) => string;
 }
 
-function formatTimelineDate(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+function formatTimelineDate(date: Date, precision?: DatePrecision | null): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: precision === 'month' ? undefined : 'numeric',
+  })
     .format(date)
     .toUpperCase();
 }
@@ -105,7 +111,11 @@ export default function TimelineEventItem({
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={fzText.label}>{formatTimelineDate(new Date(item.eventDate!))}</Text>
+          {item.datePrecision !== 'year' && (
+            <Text style={fzText.label}>
+              {formatTimelineDate(new Date(item.eventDate!), item.datePrecision)}
+            </Text>
+          )}
 
           <View style={styles.titleRow}>
             <TouchableOpacity style={styles.personRow} onPress={navigate} activeOpacity={0.7}>

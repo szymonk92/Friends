@@ -20,8 +20,6 @@ import BirthdayReminderSettingsSection from '@/components/settings/BirthdayRemin
 import {
   getBirthdayReminderSettings,
   saveBirthdayReminderSettings,
-  scheduleBirthdayReminders,
-  getUpcomingBirthdays,
   type BirthdayReminderSettings,
 } from '@/lib/notifications/birthday-reminders';
 import { fzAlert } from '@/lib/utils/confirm';
@@ -36,13 +34,11 @@ export default function MenuScreen() {
   const { data: stats, isLoading: statsLoading } = useExportStats();
 
   const [birthdaySettings, setBirthdaySettings] = useState<BirthdayReminderSettings | null>(null);
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState<any[]>([]);
   const [savingBirthdaySettings, setSavingBirthdaySettings] = useState(false);
 
   useEffect(() => {
     (async () => {
       setBirthdaySettings(await getBirthdayReminderSettings());
-      setUpcomingBirthdays(await getUpcomingBirthdays(30));
     })();
   }, []);
 
@@ -55,10 +51,6 @@ export default function MenuScreen() {
     setSavingBirthdaySettings(true);
     try {
       await saveBirthdayReminderSettings(newSettings);
-      if (key === 'enabled' && value === true) {
-        const count = await scheduleBirthdayReminders();
-        fzAlert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
-      }
     } catch (error) {
       fzAlert(t('common.error'), t('settingsScreen.saveFailed'));
     } finally {
@@ -158,7 +150,6 @@ export default function MenuScreen() {
           birthdaySettings={birthdaySettings}
           savingBirthdaySettings={savingBirthdaySettings}
           handleBirthdaySettingChange={handleBirthdaySettingChange}
-          upcomingBirthdays={upcomingBirthdays}
         />
 
         <FormSection

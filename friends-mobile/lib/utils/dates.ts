@@ -1,3 +1,5 @@
+import { parseJsonObject } from './json';
+
 /**
  * Parses flexible date strings used across forms in the app.
  *
@@ -68,4 +70,22 @@ export function flexibleDateText(
   const isNowMonth = year === now.getFullYear() && mm === now.getMonth() + 1;
   const dd = Math.min(day ?? (isNowMonth ? now.getDate() : 1), new Date(year, mm, 0).getDate());
   return `${year}-${pad(mm)}-${pad(dd)}`;
+}
+
+/** Precision implied by a flexible date string: "1990" year, "1990-06" month, else day. */
+export function flexiblePrecision(input: string): DatePrecision | null {
+  if (!input.trim()) return null;
+  const n = input.trim().split('-').length;
+  return n === 1 ? 'year' : n === 2 ? 'month' : 'day';
+}
+
+/** Inverse of parseFlexibleDate that keeps unknown parts unknown: "1990-06", not "1990-06-01". */
+export function toFlexibleText(d: Date, precision: DatePrecision | null = 'day'): string {
+  const full = toDateText(d);
+  return precision === 'year' ? full.slice(0, 4) : precision === 'month' ? full.slice(0, 7) : full;
+}
+
+/** Precision of an important-date relation, kept in its metadata JSON (null = exact day). */
+export function metadataPrecision(metadata: string | null | undefined): DatePrecision | null {
+  return parseJsonObject<{ precision?: DatePrecision }>(metadata, {}).precision ?? null;
 }
