@@ -63,7 +63,7 @@ export function ProfileSection({
   );
   return (
     <View style={[styles.section, divider && styles.divider]}>
-      <View style={styles.header}>
+      <View style={[styles.header, collapsed && styles.headerCollapsed]}>
         {collapsible ? (
           <Pressable
             style={styles.toggle}
@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     minHeight: 30,
   },
+  headerCollapsed: { marginBottom: 0 },
   toggle: {
     flexDirection: 'row',
     alignItems: 'center',

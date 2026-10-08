@@ -2,6 +2,7 @@ import { StyleSheet, View, Alert } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
 import { useCreateContactReminder } from '@/hooks/useReminders';
@@ -17,24 +18,25 @@ interface PersonQuickActionsProps {
 }
 
 type QuickAction = {
-  label: string;
+  labelKey: 'met' | 'called' | 'messaged' | 'hungOut' | 'special' | 'remind';
   icon: LineIconName;
   eventType: NewContactEvent['eventType'];
 };
 
 const ACTIONS_ROW_1: QuickAction[] = [
-  { label: 'Met', icon: 'users', eventType: 'in_person' },
-  { label: 'Called', icon: 'phone', eventType: 'phone' },
-  { label: 'Messaged', icon: 'message', eventType: 'message' },
+  { labelKey: 'met', icon: 'users', eventType: 'in_person' },
+  { labelKey: 'called', icon: 'phone', eventType: 'phone' },
+  { labelKey: 'messaged', icon: 'message', eventType: 'message' },
 ];
 
 const ACTIONS_ROW_2: QuickAction[] = [
-  { label: 'Hung Out', icon: 'clock', eventType: 'in_person' },
-  { label: 'Special', icon: 'star', eventType: 'social_media' },
-  { label: 'Remind', icon: 'bell', eventType: 'in_person' }, // ponytail: eventType unused for the remind path
+  { labelKey: 'hungOut', icon: 'clock', eventType: 'in_person' },
+  { labelKey: 'special', icon: 'star', eventType: 'social_media' },
+  { labelKey: 'remind', icon: 'bell', eventType: 'in_person' }, // ponytail: eventType unused for the remind path
 ];
 
 export default function PersonQuickActions({ personId, personName }: PersonQuickActionsProps) {
+  const { t } = useTranslation();
   const createContactEvent = useCreateContactEvent();
   const createContactReminder = useCreateContactReminder();
 
@@ -59,57 +61,59 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         notes: noteText.trim() || null,
       });
     } catch {
-      Alert.alert('Error', 'Failed to log event');
+      Alert.alert(t('common.error'), t('profile.logFailed'));
     }
   };
 
   const handleSetReminder = () => {
-    Alert.alert('Set Reminder', `Remind me to contact ${personName} in:`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.reminderTitle'), t('profile.reminderPrompt', { name: personName }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: '1 Day',
+        text: t('profile.day1'),
         onPress: () =>
           createContactReminder
             .mutateAsync({ personId, personName, daysFromNow: 1 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded tomorrow at 10 AM')),
+            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindTomorrow'))),
       },
       {
-        text: '1 Week',
+        text: t('profile.week1'),
         onPress: () =>
           createContactReminder
             .mutateAsync({ personId, personName, daysFromNow: 7 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 week')),
+            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindWeek'))),
       },
       {
-        text: '1 Month',
+        text: t('profile.month1'),
         onPress: () =>
           createContactReminder
             .mutateAsync({ personId, personName, daysFromNow: 30 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 month')),
+            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindMonth'))),
       },
     ]);
   };
 
   const onPress = (a: QuickAction) =>
-    a.label === 'Remind' ? handleSetReminder() : openNoteDialog(a.eventType, a.label);
+    a.labelKey === 'remind'
+      ? handleSetReminder()
+      : openNoteDialog(a.eventType, t(`profile.${a.labelKey}`));
 
   return (
     <>
       <ProfileSection
-        label="Quick Actions"
+        label={t('profile.quickTitle')}
         collapsible
         storageKey="quickActions"
         onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
       >
-        <Text style={styles.subtitle}>One-tap logging for today</Text>
+        <Text style={styles.subtitle}>{t('profile.quickSubtitle')}</Text>
         <View style={styles.row}>
           {ACTIONS_ROW_1.map((a) => (
-            <Pill key={a.label} label={a.label} icon={a.icon} onPress={() => onPress(a)} />
+            <Pill key={a.labelKey} label={t(`profile.${a.labelKey}`)} icon={a.icon} onPress={() => onPress(a)} />
           ))}
         </View>
         <View style={styles.row}>
           {ACTIONS_ROW_2.map((a) => (
-            <Pill key={a.label} label={a.label} icon={a.icon} onPress={() => onPress(a)} />
+            <Pill key={a.labelKey} label={t(`profile.${a.labelKey}`)} icon={a.icon} onPress={() => onPress(a)} />
           ))}
         </View>
       </ProfileSection>
@@ -117,13 +121,13 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={styles.dialog}>
           <Dialog.Title style={styles.dialogTitle}>
-            {pendingEvent?.label} with {personName}
+            {t('profile.withPerson', { action: pendingEvent?.label, name: personName })}
           </Dialog.Title>
           <Dialog.Content>
             <TextInput
               mode="outlined"
-              label="Note (optional)"
-              placeholder="What did you talk about?"
+              label={t('profile.noteOptional')}
+              placeholder={t('profile.notePlaceholder')}
               value={noteText}
               onChangeText={setNoteText}
               multiline
@@ -134,10 +138,10 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} mode="contained" onPress={handleSave}>
-              Log
+              {t('profile.log')}
             </Button>
           </Dialog.Actions>
         </Dialog>

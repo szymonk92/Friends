@@ -42,7 +42,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
   const handleAddTag = async () => {
     if (!newTagName.trim()) {
-      Alert.alert('Error', 'Please enter a tag name');
+      Alert.alert(t('common.error'), t('profile.tagEnterName'));
       return;
     }
 
@@ -52,7 +52,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
       setAddTagDialogVisible(false);
       setNewTagName('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add tag');
+      Alert.alert(t('common.error'), t('profile.tagAddFailed'));
     } finally {
       setIsAddingTag(false);
     }
@@ -60,18 +60,18 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
   const handleRemoveTag = (tag: string) => {
     confirmDestructive({
-      title: 'Remove Tag',
-      message: `Remove "${tag}" from ${personName}?`,
-      confirmLabel: 'Remove',
+      title: t('profile.tagRemoveTitle'),
+      message: t('profile.tagRemoveMessage', { tag, name: personName }),
+      confirmLabel: t('profile.tagRemove'),
       onConfirm: () => removeTagFromPerson.mutateAsync({ personId, tag }),
     });
   };
 
   return (
     <>
-      <ProfileSection label="Tags" count={personTags.length || null} onAdd={() => setAddTagDialogVisible(true)}>
+      <ProfileSection label={t('profile.tagsTitle')} count={personTags.length || null} onAdd={() => setAddTagDialogVisible(true)}>
         {personTags.length === 0 ? (
-          <Text style={styles.empty}>No tags yet. Add tags to organize and filter contacts.</Text>
+          <Text style={styles.empty}>{t('profile.tagsEmpty')}</Text>
         ) : (
           <View style={styles.tagsContainer}>
             {personTags.map((tag) => (
@@ -95,7 +95,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
             label: t('person.showPeopleWithTag'),
             icon: 'users',
             onPress: () =>
-              selectedTag && router.navigate({ pathname: '/', params: { tag: selectedTag } }),
+              selectedTag && router.navigate({ pathname: '/', params: { tag: selectedTag, at: String(Date.now()) } }),
           },
           {
             label: t('person.removeTag'),
@@ -111,12 +111,12 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
           onDismiss={() => setAddTagDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Add Tag</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('profile.tagAddTitle')}</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
-              label="Tag Name"
-              placeholder="e.g., college, work, family"
+              label={t('profile.tagName')}
+              placeholder={t('profile.tagPlaceholder')}
               value={newTagName}
               onChangeText={setNewTagName}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
@@ -126,7 +126,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
             {availableTags.length > 0 && (
               <>
                 <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
-                  Existing Tags
+                  {t('profile.tagExisting')}
                 </Text>
                 <View style={styles.existingTagsContainer}>
                   {availableTags.slice(0, 10).map((tag) => (
@@ -138,7 +138,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setAddTagDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -146,7 +146,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
               loading={isAddingTag}
               disabled={isAddingTag}
             >
-              Add
+              {t('profile.tagAddButton')}
             </Button>
           </Dialog.Actions>
         </Dialog>

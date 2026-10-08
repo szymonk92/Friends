@@ -2,6 +2,7 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { formatRelationType } from '@/lib/utils/format';
 import { WEAK, MEDIUM, STRONG, TYPES_WITHOUT_INTENSITY } from '@/lib/constants/relations';
@@ -24,6 +25,7 @@ interface PersonRelationsProps {
 }
 
 export default function PersonRelations({ personId, personName }: PersonRelationsProps) {
+  const { t } = useTranslation();
   const { data: personRelations, isLoading: relationsLoading } = usePersonRelations(personId);
 
   const relationsByType = personRelations?.reduce(
@@ -48,7 +50,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
 
   return (
     <ProfileSection
-      label="What they're into"
+      label={t('profile.intoTitle')}
       count={personRelations?.length || 0}
       onAdd={() => router.push(`/person/add-relation?personId=${personId}`)}
       onMore={() => router.push(`/person/manage-relations?personId=${personId}`)}
@@ -62,7 +64,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
       {!relationsLoading && personRelations && personRelations.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            Nothing yet. Add likes, fears, or facts about {personName}.
+            {t('profile.intoEmpty', { name: personName })}
           </Text>
           <Button
             mode="outlined"
@@ -70,7 +72,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
             style={styles.emptyButton}
             onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
           >
-            Add Something
+            {t('profile.intoAdd')}
           </Button>
         </View>
       )}

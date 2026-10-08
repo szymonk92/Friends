@@ -46,13 +46,13 @@ export default function PeopleListScreen() {
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
   // Deep link from a person's tag menu: /?tag=<tag> filters everyone with that tag.
-  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  const { tag: tagParam, at: tagStamp } = useLocalSearchParams<{ tag?: string; at?: string }>();
   useEffect(() => {
     if (typeof tagParam === 'string' && tagParam) {
       setSelectedTags([tagParam]);
       setViewMode('all');
     }
-  }, [tagParam]);
+  }, [tagParam, tagStamp]);
   const {
     data: people = [],
     isLoading,

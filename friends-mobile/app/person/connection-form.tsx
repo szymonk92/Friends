@@ -319,7 +319,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const handleSubmit = async () => {
     const sinceDate = sinceText.trim() ? parseFlexibleDate(sinceText) : null;
     if (sinceText.trim() && !sinceDate) {
-      alert('Invalid Date', 'Enter "since" as YYYY, YYYY-MM, or YYYY-MM-DD');
+      alert(t('connectionForm.invalidDate'), t('connectionForm.invalidSince'));
       return;
     }
     if (mode === 'edit') {
@@ -339,7 +339,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
         router.back();
       } catch (error) {
-        alert('Error', error instanceof Error ? error.message : 'Failed to update connection');
+        alert(t('common.error'), error instanceof Error ? error.message : t('connectionForm.updateFailed'));
       } finally {
         setIsSubmitting(false);
       }
@@ -370,9 +370,13 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
         if (duplicateConnection) {
           alert(
-            'Duplicate Connection',
-            `A ${dupRelType} connection already exists between ${person?.name} and ${selectedSinglePerson?.name}. You can add a different relationship type or edit the existing one.`,
-            [{ text: 'OK' }]
+            t('connectionForm.duplicateTitle'),
+            t('connectionForm.duplicateMessage', {
+              type: dupRelType,
+              a: person?.name,
+              b: selectedSinglePerson?.name,
+            }),
+            [{ text: t('common.ok') }]
           );
           return;
         }
@@ -382,7 +386,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       if (pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child')) {
         const trimmedBirthday = birthdayText.trim();
         if (trimmedBirthday && !parseFlexibleDate(trimmedBirthday)) {
-          alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
+          alert(t('connectionForm.invalidDate'), t('connectionForm.invalidDateMessage'));
           return;
         }
       }
@@ -436,17 +440,21 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         }
 
         alert(
-          'Success!',
-          `Connection added: ${person?.name} ↔️ ${selectedSinglePerson?.name} (${effectiveRelType})`,
+          t('connectionForm.successTitle'),
+          t('connectionForm.addedOne', {
+            a: person?.name,
+            b: selectedSinglePerson?.name,
+            type: effectiveRelType,
+          }),
           [
             {
-              text: 'Add Another',
+              text: t('connectionForm.addAnother'),
               onPress: () => {
                 backToMultiMode();
               },
             },
             {
-              text: 'Add Different Type',
+              text: t('connectionForm.addDifferentType'),
               onPress: () => {
                 setRelationshipType('friend');
                 setStatus('active');
@@ -460,7 +468,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               },
             },
             {
-              text: 'Done',
+              text: t('connectionForm.done'),
               onPress: () => router.back(),
             },
           ]
@@ -472,8 +480,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           toPersonId: singlePersonId,
         });
         alert(
-          'Error',
-          error instanceof Error ? error.message : 'Failed to create connection. Please try again.'
+          t('common.error'),
+          error instanceof Error ? error.message : t('connectionForm.createFailed')
         );
       } finally {
         setIsSubmitting(false);
@@ -483,7 +491,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
     // Multi-select mode
     if (selectedPersonIds.length === 0) {
-      alert('Select People', 'Please select at least one person to connect to.');
+      alert(t('connectionForm.selectPeopleTitle'), t('connectionForm.selectPeopleMessage'));
       return;
     }
 
@@ -498,15 +506,18 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       );
       if (dupConn) {
         const selectedPerson = allPeople.find((p) => p.id === selectedPersonId);
-        duplicates.push(selectedPerson?.name || 'Unknown');
+        duplicates.push(selectedPerson?.name || t('connectionForm.unknown'));
       }
     }
 
     if (duplicates.length > 0) {
       alert(
-        'Duplicate Connections',
-        `${relationshipType} connection already exists with: ${duplicates.join(', ')}. They will be skipped.`,
-        [{ text: 'OK' }]
+        t('connectionForm.duplicatesTitle'),
+        t('connectionForm.duplicatesMessage', {
+          type: relationshipType,
+          names: duplicates.join(', '),
+        }),
+        [{ text: t('common.ok') }]
       );
     }
 
@@ -545,11 +556,16 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         .join(', ');
 
       alert(
-        'Success!',
-        `Added ${promises.length} connection(s): ${person?.name} ↔️ ${selectedNames} (${relationshipType})`,
+        t('connectionForm.successTitle'),
+        t('connectionForm.addedMany', {
+          count: promises.length,
+          a: person?.name,
+          names: selectedNames,
+          type: relationshipType,
+        }),
         [
           {
-            text: 'Add More',
+            text: t('connectionForm.addMore'),
             onPress: () => {
               // Reset form to add more connections
               setSelectedPersonIds([]);
@@ -566,13 +582,13 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             },
           },
           {
-            text: 'Done',
+            text: t('connectionForm.done'),
             onPress: () => router.back(),
           },
         ]
       );
     } catch (error) {
-      alert('Error', 'Failed to add connection. Please try again.');
+      alert(t('common.error'), t('connectionForm.addFailed'));
       devLogger.error('Failed to add connection', { error });
     } finally {
       setIsSubmitting(false);
@@ -588,15 +604,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     );
 
     confirmDestructive({
-      title: 'Delete Connection',
-      message: `Are you sure you want to delete the connection with ${connectedPerson?.name}?`,
+      title: t('connectionForm.deleteTitle'),
+      message: t('connectionForm.deleteMessage', { name: connectedPerson?.name }),
       onConfirm: async () => {
         try {
           await deleteConnection.mutateAsync(connectionId!);
-          alert('Success', 'Connection deleted successfully!');
+          alert(t('common.success'), t('connectionForm.deleted'));
           router.back();
         } catch (error) {
-          alert('Error', error instanceof Error ? error.message : 'Failed to delete connection');
+          alert(t('common.error'), error instanceof Error ? error.message : t('connectionForm.deleteFailed'));
         }
       },
     });
@@ -607,21 +623,21 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const sinceFields = (
     <>
       <FormInput
-        label="Known since (optional)"
+        label={t('connectionForm.knownSince')}
         value={sinceText}
         onChangeText={setSinceText}
-        placeholder="YYYY, YYYY-MM or YYYY-MM-DD"
+        placeholder={t('connectionForm.datePlaceholder')}
         keyboardType="numbers-and-punctuation"
       />
       <View style={styles.pillRow}>
         {[
-          ['This year', 0],
-          ['5 yrs ago', 5],
-          ['10 yrs ago', 10],
-          ['20 yrs ago', 20],
+          [t('connectionForm.thisYear'), 0],
+          [t('connectionForm.yearsAgo', { count: 5 }), 5],
+          [t('connectionForm.yearsAgo', { count: 10 }), 10],
+          [t('connectionForm.yearsAgo', { count: 20 }), 20],
         ].map(([label, ago]) => (
           <Pill
-            key={label}
+            key={ago}
             label={label as string}
             selected={sinceText === String(thisYear - (ago as number))}
             onPress={() => setSinceText(String(thisYear - (ago as number)))}
@@ -633,10 +649,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
   return (
     <FormScreen
-      title={mode === 'add' ? 'Add Connection' : 'Edit Connection'}
+      title={mode === 'add' ? t('connectionForm.addTitle') : t('connectionForm.editTitle')}
       loading={isLoading}
       notFound={notFound}
-      notFoundLabel="Connection not found"
+      notFoundLabel={t('connectionForm.notFound')}
     >
       {mode === 'edit' && (
         <Stack.Screen
@@ -658,7 +674,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     setMenuVisible(false);
                     handleDelete();
                   }}
-                  title="Delete connection"
+                  title={t('connectionForm.deleteMenu')}
                   leadingIcon="delete"
                   titleStyle={styles.deleteMenuLabel}
                 />
@@ -669,22 +685,25 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       )}
 
       <Text style={fzText.titleLg}>
-        {mode === 'add' ? 'Add Connection' : 'Edit Connection'}
         {(person?.name ?? editConnectedPerson?.name)
-          ? ` for ${person?.name ?? editConnectedPerson?.name}`
-          : ''}
+          ? t(mode === 'add' ? 'connectionForm.addFor' : 'connectionForm.editFor', {
+              name: person?.name ?? editConnectedPerson?.name,
+            })
+          : mode === 'add'
+            ? t('connectionForm.addTitle')
+            : t('connectionForm.editTitle')}
       </Text>
       <Text style={[fzText.sub, styles.headerSub]}>
         {mode === 'add'
-          ? 'Select multiple people or tap one for a detailed connection'
-          : 'Update connection details'}
+          ? t('connectionForm.addSubtitle')
+          : t('connectionForm.editSubtitle')}
       </Text>
 
       {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
         // Single person detailed mode (add only)
         <>
           <Button mode="text" icon="arrow-left" onPress={backToMultiMode} style={styles.backLink}>
-            Back to Multi-Select
+            {t('connectionForm.backToMulti')}
           </Button>
 
           <View style={styles.selectedCard}>
@@ -720,7 +739,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           </View>
 
           {pendingPersonName && (
-            <FormSection title="What are you adding?">
+            <FormSection title={t('connectionForm.whatAdding')}>
               <View style={styles.pillRow}>
                 {(subjectIsPet
                   ? (['person', 'pet'] as const)
@@ -728,7 +747,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 ).map((kind) => (
                   <Pill
                     key={kind}
-                    label={kind === 'person' ? 'Person' : kind === 'pet' ? 'Pet' : 'Child'}
+                    label={t(`connectionForm.kind.${kind}`)}
                     selected={newEntityKind === kind}
                     onPress={() => {
                       setNewEntityKind(kind);
@@ -750,30 +769,30 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           )}
 
           {pendingPersonName && newEntityKind === 'pet' && (
-            <FormSection title="Species">
+            <FormSection title={t('connectionForm.species')}>
               <FormInput
-                label="Species (e.g. Dog, Cat, Parrot)"
+                label={t('connectionForm.speciesLabel')}
                 value={species}
                 onChangeText={setSpecies}
-                placeholder="Dog"
+                placeholder={t('connectionForm.speciesPlaceholder')}
               />
             </FormSection>
           )}
 
           {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
-            <FormSection title="Birthday (optional)">
+            <FormSection title={t('connectionForm.birthdayOptional')}>
               <FormInput
-                label="Birthday"
+                label={t('connectionForm.birthday')}
                 value={birthdayText}
                 onChangeText={setBirthdayText}
-                placeholder="YYYY, YYYY-MM, or YYYY-MM-DD"
+                placeholder={t('connectionForm.datePlaceholder')}
               />
             </FormSection>
           )}
 
           {pendingPersonName && (newEntityKind === 'pet' || newEntityKind === 'child') && (
             <FormSection
-              title={newEntityKind === 'pet' ? 'Other owner (optional)' : 'Other parent (optional)'}
+              title={newEntityKind === 'pet' ? t('connectionForm.otherOwner') : t('connectionForm.otherParent')}
             >
               {/* ponytail: plain Menu list; swap for a search field if the people list grows large. */}
               <Menu
@@ -787,17 +806,17 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     onPress={() => setParentMenuVisible(true)}
                   >
                     {secondParentId
-                      ? (allPeople.find((p) => p.id === secondParentId)?.name ?? 'Selected')
+                      ? (allPeople.find((p) => p.id === secondParentId)?.name ?? t('connectionForm.selected'))
                       : newEntityKind === 'pet'
-                        ? 'Link a second owner'
-                        : 'Link the other parent'}
+                        ? t('connectionForm.linkOwner')
+                        : t('connectionForm.linkParent')}
                   </Button>
                 }
               >
                 {secondParentId && (
                   <Menu.Item
                     leadingIcon="close"
-                    title="None"
+                    title={t('connectionForm.none')}
                     onPress={() => {
                       setSecondParentId(null);
                       setParentMenuVisible(false);
@@ -823,29 +842,29 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {pendingPersonName &&
             newEntityKind === 'person' &&
             !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
-              <FormSection title="Person Type">
+              <FormSection title={t('connectionForm.personType')}>
                 <View style={styles.pillRow}>
                   <Pill
-                    label="Primary"
+                    label={t('connectionForm.primary')}
                     selected={personType === 'primary'}
                     onPress={() => setPersonType('primary')}
                   />
                   <Pill
-                    label="Mentioned"
+                    label={t('connectionForm.mentioned')}
                     selected={personType === 'mentioned'}
                     onPress={() => setPersonType('mentioned')}
                   />
                 </View>
                 <Text style={[fzText.sub, styles.pillHint]}>
                   {personType === 'primary'
-                    ? 'Visible in main lists and search.'
-                    : 'Hidden from main lists, used for context only.'}
+                    ? t('connectionForm.primaryHint')
+                    : t('connectionForm.mentionedHint')}
                 </Text>
               </FormSection>
             )}
 
           {newEntityKind === 'person' && !hideRelationshipType && (
-            <FormSection title="Relationship Type">
+            <FormSection title={t('connectionForm.relationshipType')}>
               <RelationshipTypePicker
                 value={relationshipType}
                 onChange={(v) => {
@@ -864,18 +883,18 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               />
               {pendingPersonName && personType === 'mentioned' && (
                 <Text style={[fzText.sub, styles.pillHint]}>
-                  This person will be created as "Mentioned" (hidden).
+                  {t('connectionForm.createdMentioned')}
                 </Text>
               )}
             </FormSection>
           )}
 
-          <FormSection title="Status">
+          <FormSection title={t('connectionForm.status')}>
             <View style={styles.pillRow}>
-              {['active', 'inactive', 'complicated'].map((s) => (
+              {(['active', 'inactive', 'complicated'] as const).map((s) => (
                 <Pill
                   key={s}
-                  label={s.charAt(0).toUpperCase() + s.slice(1)}
+                  label={t(`connectionForm.statuses.${s}`)}
                   selected={status === s}
                   onPress={() => setStatus(s as ConnectionStatus)}
                 />
@@ -883,12 +902,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             </View>
           </FormSection>
 
-          <FormSection title="Additional Details">
+          <FormSection title={t('connectionForm.additional')}>
             <FormInput
-              label="Qualifier (e.g., best, close, ex)"
+              label={t('connectionForm.qualifierShort')}
               value={qualifier}
               onChangeText={setQualifier}
-              placeholder="How to qualify this relationship"
+              placeholder={t('connectionForm.qualifierShortPlaceholder')}
             />
             {sinceFields}
             <FormInput
@@ -897,7 +916,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               onChangeText={setNotes}
               multiline
               numberOfLines={3}
-              placeholder="e.g. Met at Anna's wedding"
+              placeholder={t('connectionForm.notesExample')}
               style={styles.lastInput}
             />
           </FormSection>
@@ -937,9 +956,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
           {/* Add mode: pick the people first, then define the relationship below. */}
           {mode === 'add' && !singlePersonMode && (
-            <FormSection title="Select People">
+            <FormSection title={t('connectionForm.selectPeople')}>
               <FormInput
-                placeholder="Search, or type a new name to add…"
+                placeholder={t('connectionForm.searchPlaceholder')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 left={<TextInput.Icon icon="magnify" />}
@@ -947,7 +966,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
               {searchQuery.trim().length === 0 && (
                 <Text style={[fzText.sub, styles.searchHint]}>
-                  Type a name that isn't in the list to add a new person or pet.
+                  {t('connectionForm.searchHint')}
                 </Text>
               )}
 
@@ -967,8 +986,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                     <LineIcon name="plus" size={16} color="#fff" />
                   </View>
                   <View style={styles.listRowBody}>
-                    <Text style={fzText.name}>Add "{searchQuery}"</Text>
-                    <Text style={fzText.sub}>New person or pet — connect now</Text>
+                    <Text style={fzText.name}>{t('connectionForm.addNamed', { name: searchQuery })}</Text>
+                    <Text style={fzText.sub}>{t('connectionForm.newPersonOrPet')}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -990,7 +1009,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
               {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
                 <Text style={[fzText.sub, styles.emptyText]}>
-                  No other people found. Add more people first.
+                  {t('connectionForm.noOthers')}
                 </Text>
               )}
 
@@ -1026,7 +1045,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             <>
               {/* Pet connections aren't human relationship types — no pill picker */}
               {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && !hideRelationshipType && (
-                <FormSection title="Relationship Type">
+                <FormSection title={t('connectionForm.relationshipType')}>
                   <RelationshipTypePicker
                     value={relationshipType}
                     onChange={handleRelationshipTypeChange}
@@ -1034,12 +1053,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </FormSection>
               )}
 
-              <FormSection title="Connection Status">
+              <FormSection title={t('connectionForm.connectionStatus')}>
                 <View style={styles.pillRow}>
                   {CONNECTION_STATUSES.map((s) => (
                     <Pill
                       key={s.value}
-                      label={s.label}
+                      label={t(`connectionForm.statuses.${s.value}`, { defaultValue: s.label })}
                       selected={status === s.value}
                       onPress={() => handleStatusChange(s.value)}
                     />
@@ -1047,8 +1066,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </View>
 
                 <FormInput
-                  label="Qualifier (married, sibling, etc.)"
-                  placeholder="e.g., childhood friend, work colleague, cousin"
+                  label={t('connectionForm.qualifierLong')}
+                  placeholder={t('connectionForm.qualifierLongPlaceholder')}
                   value={qualifier}
                   onChangeText={setQualifier}
                   style={styles.qualifierInput}
@@ -1057,7 +1076,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 {sinceFields}
                 <FormInput
                   label={t('person.connectionNotes')}
-                  placeholder="Where they met, how they get on, past history..."
+                  placeholder={t('connectionForm.notesPlaceholder')}
                   value={notes}
                   onChangeText={setNotes}
                   multiline
@@ -1083,8 +1102,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         labelStyle={fzText.btn}
       >
         {mode === 'add'
-          ? `Add ${singlePersonMode ? 'Connection' : `${selectedPersonIds.length} Connection(s)`}`
-          : 'Update Connection'}
+          ? singlePersonMode
+            ? t('connectionForm.submitOne')
+            : t('connectionForm.submitMany', { count: selectedPersonIds.length })
+          : t('connectionForm.update')}
       </Button>
 
       <Button
@@ -1093,7 +1114,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         disabled={isSubmitting}
         textColor={fz.textMute}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
       {dialog}
     </FormScreen>
