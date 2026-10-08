@@ -158,9 +158,10 @@ interface SettingsState {
   loadMaxPhotosPerPerson: () => Promise<void>;
 }
 
-const API_KEY_STORAGE_KEY = '@friends_api_key';
-const GEMINI_API_KEY_STORAGE_KEY = '@friends_gemini_api_key';
-const OLLAMA_API_KEY_STORAGE_KEY = '@friends_ollama_api_key';
+// SecureStore keys: only [A-Za-z0-9._-] allowed — no '@'.
+const API_KEY_STORAGE_KEY = 'friends_api_key';
+const GEMINI_API_KEY_STORAGE_KEY = 'friends_gemini_api_key';
+const OLLAMA_API_KEY_STORAGE_KEY = 'friends_ollama_api_key';
 const OLLAMA_BASE_URL_STORAGE_KEY = '@friends_ollama_base_url';
 const OLLAMA_MODEL_STORAGE_KEY = '@friends_ollama_model';
 const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
