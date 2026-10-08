@@ -1,6 +1,7 @@
 import { StyleSheet, View, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Text } from 'react-native-paper';
 import { formatShortDate } from '@/lib/utils/format';
+import { tr, relationshipTypeLabel, personTypeLabel, importanceLabel } from '@/lib/i18n/labels';
 import { usePersonPhotos } from '@/hooks/usePhotos';
 import type { Person } from '@/lib/db/schema';
 import SocialLinksStrip from './SocialLinksStrip';
@@ -12,6 +13,7 @@ import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
 import { LineIcon } from '@/components/LineIcon';
 import { Avatar } from '@/components/Avatar';
+import { useTranslation } from 'react-i18next';
 
 interface PersonHeaderProps {
   person: Person;
@@ -21,9 +23,13 @@ interface PersonHeaderProps {
 function formatMetLine(metDate: Date | null | undefined, metLocation: string | null | undefined): string {
   const datePart = metDate ? formatShortDate(new Date(metDate)) : '';
   const locationPart = metLocation?.trim() || '';
-  if (datePart && locationPart) return `Met in ${locationPart} · ${datePart}`;
-  if (locationPart) return `Met in ${locationPart}`;
-  return `Met ${datePart}`;
+  if (datePart && locationPart)
+    return tr('header.metInOn', `Met in ${locationPart} · ${datePart}`, {
+      place: locationPart,
+      date: datePart,
+    });
+  if (locationPart) return tr('header.metIn', `Met in ${locationPart}`, { place: locationPart });
+  return tr('header.metOn', `Met ${datePart}`, { date: datePart });
 }
 
 function ContactQuickRow({
@@ -33,6 +39,7 @@ function ContactQuickRow({
   phone: string | null | undefined;
   email: string | null | undefined;
 }) {
+  const { t } = useTranslation();
   if (!phone && !email) return null;
 
   const callOrText = async (value: string, scheme: 'tel:' | 'mailto:') => {
@@ -40,9 +47,9 @@ function ContactQuickRow({
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) await Linking.openURL(url);
-      else Alert.alert(scheme === 'tel:' ? 'Phone' : 'Email', value);
+      else Alert.alert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
     } catch {
-      Alert.alert(scheme === 'tel:' ? 'Phone' : 'Email', value);
+      Alert.alert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
     }
   };
 
@@ -69,6 +76,7 @@ function ContactQuickRow({
 }
 
 export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProps) {
+  const { t } = useTranslation();
   const { data: personPhotos = [] } = usePersonPhotos(person.id);
   const profilePhoto = person.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
@@ -101,20 +109,16 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
             <View style={styles.chips}>
               {person.relationshipType && (
                 <Pill
-                  label={person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
+                  label={relationshipTypeLabel(person.relationshipType)}
                   variant="solid"
                 />
               )}
               {person.personType && (
-                <Pill label={person.personType.charAt(0).toUpperCase() + person.personType.slice(1)} />
+                <Pill label={personTypeLabel(person.personType)} />
               )}
               {person.importanceToUser && person.importanceToUser !== 'unknown' && (
                 <Pill
-                  label={person.importanceToUser
-                    .replace('_', ' ')
-                    .split(' ')
-                    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ')}
+                  label={importanceLabel(person.importanceToUser)}
                 />
               )}
               {person.homeLocation && <Pill label={person.homeLocation} />}
@@ -123,7 +127,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
 
           {isPet && (
             <View style={styles.chips}>
-              <Pill label={`🐾 ${person.species?.trim() || 'Pet'}`} variant="solid" />
+              <Pill label={`🐾 ${person.species?.trim() || t('header.pet')}`} variant="solid" />
             </View>
           )}
 
@@ -163,8 +167,10 @@ const styles = StyleSheet.create({
   headerSection: {
     paddingHorizontal: fz.s.edge,
     paddingTop: 16,
-    paddingBottom: 12,
+    paddingBottom: fz.s.xs,
     alignItems: 'stretch',
+    // One rhythm between identity, partner, contacts and languages rows.
+    gap: fz.s.sm,
     backgroundColor: fz.paper,
   },
   identityRow: {
@@ -215,13 +221,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
+    gap: fz.s.sm,
   },
   languagesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 12,
-    gap: 8,
+    gap: fz.s.xs,
   },
 });

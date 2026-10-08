@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, IconButton, Menu } from 'react-native-paper';
+import { Text, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { Avatar } from '@/components/Avatar';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 /** Shape of all timeline items after merging contact events, birthdays, party events etc. */
 export interface TimelineEvent {
@@ -36,10 +37,8 @@ interface TimelineEventItemProps {
   index: number;
   filteredEvents: TimelineEvent[];
   people: PersonWithPhoto[];
-  eventMenuVisible: string | null;
-  setEventMenuVisible: (id: string | null) => void;
-  handleEditEvent: (event: TimelineEvent) => void;
-  handleDeleteEvent: (id: string) => void;
+  /** Opens the edit/delete sheet for this event. */
+  onMenu: (event: TimelineEvent) => void;
   getPersonName: (id: string) => string;
   getEventLabel: (type: string) => string;
 }
@@ -55,15 +54,13 @@ export default function TimelineEventItem({
   index,
   filteredEvents,
   people,
-  eventMenuVisible,
-  setEventMenuVisible,
-  handleEditEvent,
-  handleDeleteEvent,
+  onMenu,
   getPersonName,
   getEventLabel,
 }: TimelineEventItemProps) {
+  const { t } = useTranslation();
   const personName = item.isPartyEvent
-    ? item.partyDetails?.name || 'Party'
+    ? item.partyDetails?.name || t('timeline.types.party')
     : getPersonName(item.personId ?? '');
   const person = people.find((p) => p.id === item.personId);
   const isBirthday = item.isBirthday || item.eventType === 'birthday';
@@ -123,37 +120,20 @@ export default function TimelineEventItem({
             </TouchableOpacity>
 
             {!isBirthday && !isImportantDate && (
-              <Menu
-                visible={eventMenuVisible === item.id}
-                onDismiss={() => setEventMenuVisible(null)}
-                anchor={
-                  <IconButton
-                    icon="dots-vertical"
-                    size={18}
-                    onPress={() => setEventMenuVisible(item.id)}
-                    style={styles.menuButton}
-                    iconColor={fz.textMute}
-                  />
-                }
-              >
-                <Menu.Item
-                  onPress={() => { setEventMenuVisible(null); handleEditEvent(item); }}
-                  title="Edit"
-                  leadingIcon="pencil-outline"
-                />
-                <Menu.Item
-                  onPress={() => { setEventMenuVisible(null); handleDeleteEvent(item.id); }}
-                  title="Delete"
-                  leadingIcon="delete-outline"
-                />
-              </Menu>
+              <IconButton
+                icon="dots-vertical"
+                size={18}
+                onPress={() => onMenu(item)}
+                style={styles.menuButton}
+                iconColor={fz.textMute}
+              />
             )}
           </View>
 
           <View style={styles.tagRow}>
             <Pill label={getEventLabel(item.eventType)} variant="surface" />
-            {isBirthday && <Pill label="Birthday" variant="soft" />}
-            {isImportantDate && <Pill label="Anniversary" variant="soft" />}
+            {isBirthday && <Pill label={t('timeline.types.birthday')} variant="soft" />}
+            {isImportantDate && <Pill label={t('timeline.types.anniversary')} variant="soft" />}
           </View>
 
           {item.notes && <Text style={fzText.body}>{item.notes}</Text>}

@@ -1,22 +1,20 @@
 import { StyleSheet, View, Alert } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import {
-  Text,
-  Button,
-  Portal,
-  TextInput as PaperInput,
-} from 'react-native-paper';
+import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   usePersonTags,
   useAddTagToPerson,
   useRemoveTagFromPerson,
   useAllTags,
 } from '@/hooks/useTags';
-import { ProfileSection } from './ProfileSection';
+import { ProfileSection, chipRow } from './ProfileSection';
 import { Pill } from '@/components/Pill';
-import { fz, fzText } from '@/lib/design/tokens';
+import { ActionSheet } from '@/components/ActionSheet';
+import { fz } from '@/lib/design/tokens';
 
 interface PersonTagsProps {
   personId: string;
@@ -24,6 +22,7 @@ interface PersonTagsProps {
 }
 
 export default function PersonTags({ personId, personName }: PersonTagsProps) {
+  const { t } = useTranslation();
   const { data: personTags = [] } = usePersonTags(personId);
   const { data: allTags = [] } = useAllTags();
   const addTagToPerson = useAddTagToPerson();
@@ -32,12 +31,13 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
   const [addTagDialogVisible, setAddTagDialogVisible] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const availableTags = allTags.filter((tag) => !personTags.includes(tag));
 
   const handleAddTag = async () => {
     if (!newTagName.trim()) {
-      Alert.alert('Error', 'Please enter a tag name');
+      Alert.alert(t('common.error'), t('profile.tagEnterName'));
       return;
     }
 
@@ -47,7 +47,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
       setAddTagDialogVisible(false);
       setNewTagName('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add tag');
+      Alert.alert(t('common.error'), t('profile.tagAddFailed'));
     } finally {
       setIsAddingTag(false);
     }
@@ -55,31 +55,52 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
   const handleRemoveTag = (tag: string) => {
     confirmDestructive({
-      title: 'Remove Tag',
-      message: `Remove "${tag}" from ${personName}?`,
-      confirmLabel: 'Remove',
+      title: t('profile.tagRemoveTitle'),
+      message: t('profile.tagRemoveMessage', { tag, name: personName }),
+      confirmLabel: t('profile.tagRemove'),
       onConfirm: () => removeTagFromPerson.mutateAsync({ personId, tag }),
     });
   };
 
   return (
     <>
-      <ProfileSection label="Tags" count={personTags.length || null} onAdd={() => setAddTagDialogVisible(true)}>
-        {personTags.length === 0 ? (
-          <Text style={styles.empty}>No tags yet. Add tags to organize and filter contacts.</Text>
-        ) : (
-          <View style={styles.tagsContainer}>
+      <ProfileSection
+        label={t('profile.tagsTitle')}
+        count={personTags.length || null}
+        onAdd={() => setAddTagDialogVisible(true)}
+        empty={personTags.length === 0 && t('profile.tagsEmpty')}
+      >
+        {personTags.length > 0 && (
+          <View style={chipRow}>
             {personTags.map((tag) => (
-              <Pill
-                key={tag}
-                label={tag}
-                icon="tag"
-                onClose={() => handleRemoveTag(tag)}
-              />
+              <Pill key={tag} label={tag} icon="tag" onPress={() => setSelectedTag(tag)} />
             ))}
           </View>
         )}
       </ProfileSection>
+
+      <ActionSheet
+        visible={selectedTag !== null}
+        title={selectedTag ?? undefined}
+        onDismiss={() => setSelectedTag(null)}
+        actions={[
+          {
+            label: t('person.showPeopleWithTag'),
+            icon: 'users',
+            onPress: () =>
+              selectedTag &&
+              router.navigate({
+                pathname: '/',
+                params: { tag: selectedTag, at: String(Date.now()) },
+              }),
+          },
+          {
+            label: t('person.removeTag'),
+            icon: 'trash',
+            onPress: () => selectedTag && handleRemoveTag(selectedTag),
+          },
+        ]}
+      />
 
       <Portal>
         <Dialog
@@ -87,12 +108,12 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
           onDismiss={() => setAddTagDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Add Tag</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('profile.tagAddTitle')}</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
-              label="Tag Name"
-              placeholder="e.g., college, work, family"
+              label={t('profile.tagName')}
+              placeholder={t('profile.tagPlaceholder')}
               value={newTagName}
               onChangeText={setNewTagName}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
@@ -102,7 +123,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
             {availableTags.length > 0 && (
               <>
                 <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
-                  Existing Tags
+                  {t('profile.tagExisting')}
                 </Text>
                 <View style={styles.existingTagsContainer}>
                   {availableTags.slice(0, 10).map((tag) => (
@@ -114,7 +135,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setAddTagDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -122,7 +143,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
               loading={isAddingTag}
               disabled={isAddingTag}
             >
-              Add
+              {t('profile.tagAddButton')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -132,19 +153,10 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 }
 
 const styles = StyleSheet.create({
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   existingTagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  empty: {
-    ...fzText.sub,
-    fontStyle: 'italic',
   },
   dialog: {
     borderRadius: fz.rCard,

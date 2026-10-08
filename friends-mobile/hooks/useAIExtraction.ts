@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, stories, pendingExtractions } from '@/lib/db/schema';
@@ -24,7 +25,9 @@ export function useExtractRelations() {
     mutationFn: async (storyId: string) => {
       const apiKey = getActiveApiKey();
       if (!apiKey) {
-        throw new Error('AI API key not configured. Please set it in Settings.');
+        throw new Error(
+          tr('errors.noAiKey', 'AI API key not configured. Please set it in Settings.')
+        );
       }
 
       const config: AIServiceConfig = {

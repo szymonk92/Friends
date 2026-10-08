@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { z } from 'zod';
 
 export const SOCIAL_PLATFORMS = [
@@ -83,7 +84,7 @@ function stripAt(h: string): string {
 }
 
 export function platformLabel(p: SocialPlatform): string {
-  return PLATFORM_META[p].label;
+  return p === 'other' ? tr('socialEditor.other', 'Other') : PLATFORM_META[p].label;
 }
 
 export function platformIcon(p: SocialPlatform): string {

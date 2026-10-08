@@ -10,8 +10,10 @@ import { formatRelativeTime } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 export default function StoriesListScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -24,18 +26,18 @@ export default function StoriesListScreen() {
 
   const handleDeleteStory = (storyId: string, aiProcessed: boolean) => {
     const message = aiProcessed
-      ? 'Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.'
-      : 'Are you sure you want to delete this story?';
+      ? t('storiesList.deleteMessageAi')
+      : t('storiesList.deleteMessage');
 
     confirmDestructive({
-      title: 'Delete Story',
+      title: t('storiesList.deleteTitle'),
       message,
       onConfirm: async () => {
         try {
           await deleteStory.mutateAsync(storyId);
-          Alert.alert('Success', 'Story deleted successfully');
+          Alert.alert(t('common.success'), t('storiesList.deleted'));
         } catch (err) {
-          Alert.alert('Error', 'Failed to delete story. Please try again.');
+          Alert.alert(t('common.error'), t('storiesList.deleteFailed'));
         }
       },
     });
@@ -45,7 +47,7 @@ export default function StoriesListScreen() {
     return (
       <View style={s.centered}>
         <ActivityIndicator size="large" color={fz.ink} />
-        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading stories...</Text>
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>{t('storiesList.loading')}</Text>
       </View>
     );
   }
@@ -53,9 +55,9 @@ export default function StoriesListScreen() {
   if (error) {
     return (
       <View style={s.centered}>
-        <Text style={{ ...fzText.sub, marginBottom: 16 }}>Failed to load stories</Text>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('storiesList.loadFailed')}</Text>
         <TouchableOpacity style={s.primaryBtn} onPress={() => refetch()} activeOpacity={0.8}>
-          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>Retry</Text>
+          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('timeline.retry')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -76,8 +78,8 @@ export default function StoriesListScreen() {
         <View style={s.cardHeader}>
           <Text style={fzText.time}>{formatRelativeTime(new Date(item.createdAt))}</Text>
           <View style={s.chips}>
-            {item.aiProcessed && <Pill label="AI Processed" variant="soft" />}
-            <Pill label={`${wordCount} words`} variant="surface" />
+            {item.aiProcessed && <Pill label={t('storiesList.aiProcessed')} variant="soft" />}
+            <Pill label={t('storiesList.words', { count: wordCount })} variant="surface" />
           </View>
         </View>
 
@@ -87,11 +89,11 @@ export default function StoriesListScreen() {
 
         {item.storyDate && (
           <Text style={{ ...fzText.time, marginTop: 8 }}>
-            Event date: {new Date(item.storyDate).toLocaleDateString()}
+            {t('storiesList.eventDate', { date: new Date(item.storyDate).toLocaleDateString() })}
           </Text>
         )}
 
-        <Text style={s.tapHint}>Tap to view • Long press to delete</Text>
+        <Text style={s.tapHint}>{t('storiesList.tapHint')}</Text>
       </TouchableOpacity>
     );
   };
@@ -104,7 +106,7 @@ export default function StoriesListScreen() {
       <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
         {!searchVisible ? (
           <View style={s.appBarRow}>
-            <Text style={fzText.screenTitle}>Stories</Text>
+            <Text style={fzText.screenTitle}>{t('navigation.stories')}</Text>
             <View style={s.appBarActions}>
               <IconCircle icon="plus" onPress={() => router.push('/story/addStory')} />
               <IconCircle icon="search" onPress={() => setSearchVisible(true)} />
@@ -115,7 +117,7 @@ export default function StoriesListScreen() {
             <IconCircle icon="back" onPress={() => { setSearchVisible(false); setSearchQuery(''); }} />
             <View style={s.searchInput}>
               <TextInput
-                placeholder="Search stories..."
+                placeholder={t('storiesList.search')}
                 placeholderTextColor={fz.textMute}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -127,16 +129,16 @@ export default function StoriesListScreen() {
         )}
         {stories.length > 0 && (
           <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
-            {stories.length} {stories.length === 1 ? 'story' : 'stories'} captured
+            {t('storiesList.captured', { count: stories.length })}
           </Text>
         )}
       </View>
 
       {stories.length === 0 ? (
         <View style={s.empty}>
-          <Text style={fzText.title}>No stories yet</Text>
+          <Text style={fzText.title}>{t('storiesList.emptyTitle')}</Text>
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
-            Start capturing memories by adding your first story. Tell us about your friends, family, and the moments you share together.
+            {t('storiesList.emptyMessage')}
           </Text>
           <TouchableOpacity
             style={s.primaryBtn}
@@ -144,7 +146,7 @@ export default function StoriesListScreen() {
             activeOpacity={0.8}
           >
             <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
-              Add Your First Story
+              {t('storiesList.addFirst')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -156,7 +158,7 @@ export default function StoriesListScreen() {
           contentContainerStyle={s.list}
           ListEmptyComponent={
             <View style={s.noResults}>
-              <Text style={fzText.sub}>No stories match your search</Text>
+              <Text style={fzText.sub}>{t('storiesList.noMatch')}</Text>
             </View>
           }
         />

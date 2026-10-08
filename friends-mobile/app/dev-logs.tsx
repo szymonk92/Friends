@@ -4,12 +4,14 @@ import { confirmDestructive } from '@/lib/utils/confirm';
 import { Text, Button, Card, Chip } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Development Logs Viewer
  * Shows logs saved by devLogger and allows viewing/sharing/clearing
  */
 export default function DevLogsScreen() {
+  const { t } = useTranslation();
   const [logs, setLogs] = React.useState<string>('');
   const [logInfo, setLogInfo] = React.useState<any>(null);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -31,28 +33,28 @@ export default function DevLogsScreen() {
     try {
       const logFile = devLogger.getLogFile();
       if (!logFile) {
-        Alert.alert('No Logs', 'No log file exists yet');
+        Alert.alert(t('devLogs.noLogs'), t('devLogs.noLogsMessage'));
         return;
       }
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(logFile.uri, {
           mimeType: 'text/plain',
-          dialogTitle: 'Share Development Logs',
+          dialogTitle: t('devLogs.shareTitle'),
         });
       } else {
-        Alert.alert('Not Available', 'Sharing is not available on this device');
+        Alert.alert(t('devLogs.notAvailable'), t('devLogs.notAvailableMessage'));
       }
     } catch (error) {
-      Alert.alert('Error', `Failed to share logs: ${error}`);
+      Alert.alert(t('common.error'), t('devLogs.shareFailed', { error: String(error) }));
     }
   };
 
   const handleClear = () => {
     confirmDestructive({
-      title: 'Clear Logs?',
-      message: 'Are you sure you want to delete all development logs?',
-      confirmLabel: 'Clear',
+      title: t('devLogs.clearTitle'),
+      message: t('devLogs.clearMessage'),
+      confirmLabel: t('settingsScreen.clear'),
       onConfirm: () => {
         devLogger.clearLogs();
         loadLogs();
@@ -64,13 +66,13 @@ export default function DevLogsScreen() {
     <View style={styles.container}>
       <Card style={styles.infoCard}>
         <Card.Content>
-          <Text variant="titleMedium">Log File Info</Text>
+          <Text variant="titleMedium">{t('devLogs.info')}</Text>
           {logInfo && (
             <View style={styles.infoRow}>
               <Chip icon="file-document">
-                {logInfo.exists ? `${logInfo.sizeKB} KB` : 'No file'}
+                {logInfo.exists ? `${logInfo.sizeKB} KB` : t('devLogs.noFile')}
               </Chip>
-              <Chip icon="folder">{logInfo.exists ? 'Exists' : 'Empty'}</Chip>
+              <Chip icon="folder">{logInfo.exists ? t('devLogs.exists') : t('devLogs.empty')}</Chip>
             </View>
           )}
         </Card.Content>
@@ -78,18 +80,18 @@ export default function DevLogsScreen() {
 
       <View style={styles.actions}>
         <Button mode="contained" onPress={loadLogs} style={styles.button} loading={refreshing}>
-          Refresh
+          {t('devLogs.refresh')}
         </Button>
         <Button mode="contained-tonal" onPress={handleShare} style={styles.button}>
-          Share
+          {t('devLogs.share')}
         </Button>
         <Button mode="outlined" onPress={handleClear} style={styles.button}>
-          Clear
+          {t('settingsScreen.clear')}
         </Button>
       </View>
 
       <Text variant="titleSmall" style={styles.logsTitle}>
-        Logs:
+        {t('devLogs.logs')}
       </Text>
 
       <ScrollView style={styles.logsContainer}>

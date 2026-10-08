@@ -1,3 +1,4 @@
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { View, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
@@ -69,7 +70,7 @@ export default function NetworkPersonDetails({
           )}
           <View style={styles.metaRow}>
             {person.relationshipType && (
-              <Pill label={person.relationshipType} variant="surface" />
+              <Pill label={relationshipTypeLabel(person.relationshipType)} variant="surface" />
             )}
             <Pill
               label={t('network.connectionCount', { count: connectionCount })}

@@ -5,7 +5,6 @@ import {
   Modal,
   Dimensions,
   TouchableOpacity,
-  Alert,
   FlatList,
   ViewToken,
 } from 'react-native';
@@ -18,6 +17,8 @@ import Animated, {
   withTiming,
   withSpring,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
+import { PhotoOptionsSheet } from './PhotoOptionsSheet';
 
 interface Photo {
   id: string;
@@ -45,6 +46,7 @@ export default function PhotoBrowser({
   onSetAsProfile,
   onDelete,
 }: PhotoBrowserProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
@@ -54,28 +56,7 @@ export default function PhotoBrowser({
     }
   };
 
-  const handleOptions = () => {
-    const photo = photos[currentIndex];
-    if (!photo) return;
-
-    Alert.alert('Photo Options', 'What would you like to do?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Set as Profile',
-        onPress: () => onSetAsProfile(photo.id),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          onDelete(photo.id);
-          if (photos.length === 1) {
-            onClose();
-          }
-        },
-      },
-    ]);
-  };
+  const [optionsPhotoId, setOptionsPhotoId] = useState<string | null>(null);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -86,7 +67,8 @@ export default function PhotoBrowser({
           <Text variant="titleMedium" style={styles.counter}>
             {currentIndex + 1} / {photos.length}
           </Text>
-          <IconButton icon="dots-vertical" iconColor="#fff" size={24} onPress={handleOptions} />
+          <IconButton icon="dots-vertical" iconColor="#fff" size={24} onPress={() => setOptionsPhotoId(photos[currentIndex]?.id ?? null)}
+          />
         </View>
 
         {/* Photo viewer with horizontal scroll */}
@@ -116,11 +98,21 @@ export default function PhotoBrowser({
           <View style={[styles.footer, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
             <IconButton icon="account-check" iconColor="#4caf50" size={20} />
             <Text variant="bodySmall" style={styles.profileText}>
-              Profile Photo
+              {t('photos.profilePhoto')}
             </Text>
           </View>
         )}
       </View>
+      <PhotoOptionsSheet
+        photoId={optionsPhotoId}
+        onDismiss={() => setOptionsPhotoId(null)}
+        onSetAsProfile={onSetAsProfile}
+        onDelete={(photoId) => {
+          // The delete confirmation lives in the app root, behind this modal — close first.
+          onClose();
+          onDelete(photoId);
+        }}
+      />
     </Modal>
   );
 }

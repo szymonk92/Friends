@@ -4,10 +4,13 @@ import { usePersonPhotos, useSetProfilePhoto, useDeletePhoto } from '@/hooks/use
 import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 import { useState } from 'react';
 import PhotoBrowser from './PhotoBrowser';
+import { PhotoOptionsSheet } from './PhotoOptionsSheet';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { useSettings } from '@/store/useSettings';
 import { ProfileSection } from './ProfileSection';
 import { LineIcon } from '@/components/LineIcon';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PersonPhotosProps {
   personId: string;
@@ -15,29 +18,42 @@ interface PersonPhotosProps {
 }
 
 export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosProps) {
+  const { t } = useTranslation();
   const { data: personPhotos = [] } = usePersonPhotos(personId);
-  const pickPhoto = usePhotoPicker(personId);
+  const { pickPhoto, photoSheet } = usePhotoPicker(personId);
   const setProfilePhoto = useSetProfilePhoto();
   const deletePhoto = useDeletePhoto();
   const maxPhotosPerPerson = useSettings((state) => state.maxPhotosPerPerson);
 
   const [browserVisible, setBrowserVisible] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [optionsPhotoId, setOptionsPhotoId] = useState<string | null>(null);
 
   if (personPhotos.length === 0) return null;
 
   const handleAddPhoto = () => {
     if (personPhotos.length >= maxPhotosPerPerson) {
       Alert.alert(
-        'Photo Limit Reached',
-        `You can only add up to ${maxPhotosPerPerson} photos per person. Delete a photo first or adjust the limit in Dev settings.`,
-        [{ text: 'OK' }]
+        t('photos.limitTitle'),
+        t('photos.limitMessage', { max: maxPhotosPerPerson }),
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     pickPhoto();
   };
+
+  const handleSetAsProfile = (photoId: string) =>
+    setProfilePhoto.mutateAsync({ personId, photoId });
+
+  // A sheet tap is one touch away from losing the photo — always confirm.
+  const handleDelete = (photoId: string) =>
+    confirmDestructive({
+      title: t('photos.deleteTitle'),
+      message: t('photos.deleteMessage'),
+      onConfirm: () => deletePhoto.mutateAsync(photoId),
+    });
 
   const handlePhotoPress = (index: number) => {
     setSelectedPhotoIndex(index);
@@ -46,7 +62,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
 
   return (
     <ProfileSection
-      label="Photos"
+      label={t('photos.title')}
       count={`${personPhotos.length}/${maxPhotosPerPerson}`}
       onAdd={handleAddPhoto}
       divider={false}
@@ -56,20 +72,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
           <TouchableOpacity
             key={photo.id}
             onPress={() => handlePhotoPress(index)}
-            onLongPress={() => {
-              Alert.alert('Photo Options', 'What would you like to do?', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Set as Profile',
-                  onPress: () => setProfilePhoto.mutateAsync({ personId, photoId: photo.id }),
-                },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => deletePhoto.mutateAsync(photo.id),
-                },
-              ]);
-            }}
+            onLongPress={() => setOptionsPhotoId(photo.id)}
             style={styles.thumbWrap}
           >
             <Image source={{ uri: photo.filePath }} style={styles.thumb} />
@@ -90,13 +93,18 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
         currentPhotoId={currentPhotoId}
         onClose={() => setBrowserVisible(false)}
         onSetAsProfile={(photoId) => {
-          setProfilePhoto.mutateAsync({ personId, photoId });
+          handleSetAsProfile(photoId);
           setBrowserVisible(false);
         }}
-        onDelete={(photoId) => {
-          deletePhoto.mutateAsync(photoId);
-        }}
+        onDelete={handleDelete}
       />
+      <PhotoOptionsSheet
+        photoId={optionsPhotoId}
+        onDismiss={() => setOptionsPhotoId(null)}
+        onSetAsProfile={handleSetAsProfile}
+        onDelete={handleDelete}
+      />
+      {photoSheet}
     </ProfileSection>
   );
 }

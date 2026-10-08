@@ -2,13 +2,15 @@ import { StyleSheet, View, Alert } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
 import { useCreateContactReminder } from '@/hooks/useReminders';
 import type { NewContactEvent } from '@/lib/db/schema';
-import { ProfileSection } from './ProfileSection';
+import { ProfileSection, chipRow } from './ProfileSection';
 import { Pill } from '@/components/Pill';
-import { fz, fzText } from '@/lib/design/tokens';
+import { ActionSheet } from '@/components/ActionSheet';
+import { fz } from '@/lib/design/tokens';
 import type { LineIconName } from '@/components/LineIcon';
 
 interface PersonQuickActionsProps {
@@ -17,30 +19,35 @@ interface PersonQuickActionsProps {
 }
 
 type QuickAction = {
-  label: string;
+  labelKey: 'met' | 'called' | 'messaged' | 'hungOut' | 'special' | 'remind';
   icon: LineIconName;
   eventType: NewContactEvent['eventType'];
 };
 
 const ACTIONS_ROW_1: QuickAction[] = [
-  { label: 'Met', icon: 'users', eventType: 'in_person' },
-  { label: 'Called', icon: 'phone', eventType: 'phone' },
-  { label: 'Messaged', icon: 'message', eventType: 'message' },
+  { labelKey: 'met', icon: 'users', eventType: 'in_person' },
+  { labelKey: 'called', icon: 'phone', eventType: 'phone' },
+  { labelKey: 'messaged', icon: 'message', eventType: 'message' },
 ];
 
 const ACTIONS_ROW_2: QuickAction[] = [
-  { label: 'Hung Out', icon: 'clock', eventType: 'in_person' },
-  { label: 'Special', icon: 'star', eventType: 'social_media' },
-  { label: 'Remind', icon: 'bell', eventType: 'in_person' }, // ponytail: eventType unused for the remind path
+  { labelKey: 'hungOut', icon: 'clock', eventType: 'in_person' },
+  { labelKey: 'special', icon: 'star', eventType: 'social_media' },
+  { labelKey: 'remind', icon: 'bell', eventType: 'in_person' }, // ponytail: eventType unused for the remind path
 ];
 
 export default function PersonQuickActions({ personId, personName }: PersonQuickActionsProps) {
+  const { t } = useTranslation();
   const createContactEvent = useCreateContactEvent();
   const createContactReminder = useCreateContactReminder();
 
   const [dialogVisible, setDialogVisible] = useState(false);
-  const [pendingEvent, setPendingEvent] = useState<{ type: NewContactEvent['eventType']; label: string } | null>(null);
+  const [pendingEvent, setPendingEvent] = useState<{
+    type: NewContactEvent['eventType'];
+    label: string;
+  } | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [reminderSheetVisible, setReminderSheetVisible] = useState(false);
 
   const openNoteDialog = (eventType: NewContactEvent['eventType'], label: string) => {
     setPendingEvent({ type: eventType, label });
@@ -59,69 +66,78 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         notes: noteText.trim() || null,
       });
     } catch {
-      Alert.alert('Error', 'Failed to log event');
+      Alert.alert(t('common.error'), t('profile.logFailed'));
     }
   };
 
-  const handleSetReminder = () => {
-    Alert.alert('Set Reminder', `Remind me to contact ${personName} in:`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: '1 Day',
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 1 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded tomorrow at 10 AM')),
-      },
-      {
-        text: '1 Week',
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 7 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 week')),
-      },
-      {
-        text: '1 Month',
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 30 })
-            .then(() => Alert.alert('Reminder Set', 'You will be reminded in 1 month')),
-      },
-    ]);
-  };
+  const remindIn = (daysFromNow: number) => () =>
+    createContactReminder
+      .mutateAsync({ personId, personName, daysFromNow })
+      .catch(() => Alert.alert(t('common.error'), t('profile.reminderFailed')));
 
   const onPress = (a: QuickAction) =>
-    a.label === 'Remind' ? handleSetReminder() : openNoteDialog(a.eventType, a.label);
+    a.labelKey === 'remind'
+      ? setReminderSheetVisible(true)
+      : openNoteDialog(a.eventType, t(`profile.${a.labelKey}`));
 
   return (
     <>
       <ProfileSection
-        label="Quick Actions"
+        label={t('profile.quickTitle')}
+        subtitle={t('profile.quickSubtitle')}
+        collapsible
+        storageKey="quickActions"
         onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
       >
-        <Text style={styles.subtitle}>One-tap logging for today</Text>
-        <View style={styles.row}>
-          {ACTIONS_ROW_1.map((a) => (
-            <Pill key={a.label} label={a.label} icon={a.icon} onPress={() => onPress(a)} />
-          ))}
-        </View>
-        <View style={styles.row}>
-          {ACTIONS_ROW_2.map((a) => (
-            <Pill key={a.label} label={a.label} icon={a.icon} onPress={() => onPress(a)} />
-          ))}
+        <View style={styles.rows}>
+          <View style={chipRow}>
+            {ACTIONS_ROW_1.map((a) => (
+              <Pill
+                key={a.labelKey}
+                label={t(`profile.${a.labelKey}`)}
+                icon={a.icon}
+                onPress={() => onPress(a)}
+              />
+            ))}
+          </View>
+          <View style={chipRow}>
+            {ACTIONS_ROW_2.map((a) => (
+              <Pill
+                key={a.labelKey}
+                label={t(`profile.${a.labelKey}`)}
+                icon={a.icon}
+                onPress={() => onPress(a)}
+              />
+            ))}
+          </View>
         </View>
       </ProfileSection>
 
+      <ActionSheet
+        visible={reminderSheetVisible}
+        title={t('profile.reminderPrompt', { name: personName })}
+        onDismiss={() => setReminderSheetVisible(false)}
+        actions={[
+          { label: t('profile.day1'), icon: 'bell', onPress: remindIn(1) },
+          { label: t('profile.week1'), icon: 'bell', onPress: remindIn(7) },
+          { label: t('profile.month1'), icon: 'bell', onPress: remindIn(30) },
+        ]}
+      />
+
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={styles.dialog}>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={styles.dialog}
+        >
           <Dialog.Title style={styles.dialogTitle}>
-            {pendingEvent?.label} with {personName}
+            {t('profile.withPerson', { action: pendingEvent?.label, name: personName })}
           </Dialog.Title>
           <Dialog.Content>
             <TextInput
               mode="outlined"
-              label="Note (optional)"
-              placeholder="What did you talk about?"
+              label={t('profile.noteOptional')}
+              placeholder={t('profile.notePlaceholder')}
               value={noteText}
               onChangeText={setNoteText}
               multiline
@@ -132,10 +148,10 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} mode="contained" onPress={handleSave}>
-              Log
+              {t('profile.log')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -145,16 +161,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
 }
 
 const styles = StyleSheet.create({
-  subtitle: {
-    ...fzText.sub,
-    marginBottom: 12,
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
+  rows: { gap: fz.s.xs },
   dialog: {
     borderRadius: fz.rCard,
     backgroundColor: fz.card,

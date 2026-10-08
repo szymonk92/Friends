@@ -7,7 +7,6 @@ import {
   SegmentedButtons,
 } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
-import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   usePersonGiftIdeas,
@@ -15,10 +14,13 @@ import {
   useUpdateGiftIdea,
   useDeleteGiftIdea,
 } from '@/hooks/useGifts';
+import { ProfileSection, chipRow } from './ProfileSection';
 import { formatShortDate } from '@/lib/utils/format';
-import { ProfileSection } from './ProfileSection';
-import { IconCircle } from '@/components/IconCircle';
-import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { ActionSheet } from '@/components/ActionSheet';
+import { confirmDestructive } from '@/lib/utils/confirm';
+import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PersonGiftIdeasProps {
   personId: string;
@@ -26,21 +28,24 @@ interface PersonGiftIdeasProps {
 }
 
 export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdeasProps) {
+  const { t } = useTranslation();
   const { data: giftIdeas = [] } = usePersonGiftIdeas(personId);
   const createGiftIdea = useCreateGiftIdea();
   const updateGiftIdea = useUpdateGiftIdea();
   const deleteGiftIdea = useDeleteGiftIdea();
 
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [addGiftDialogVisible, setAddGiftDialogVisible] = useState(false);
   const [giftItem, setGiftItem] = useState('');
   const [giftNotes, setGiftNotes] = useState('');
   const [giftPriority, setGiftPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [giftOccasion, setGiftOccasion] = useState('');
   const [isAddingGift, setIsAddingGift] = useState(false);
+  const selectedGift = giftIdeas.find((g) => g.id === selectedGiftId) ?? null;
 
   const handleAddGiftIdea = async () => {
     if (!giftItem.trim()) {
-      Alert.alert('Error', 'Please enter a gift idea');
+      Alert.alert(t('common.error'), t('gifts.enterItem'));
       return;
     }
 
@@ -58,77 +63,84 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
       setGiftNotes('');
       setGiftPriority('medium');
       setGiftOccasion('');
-      Alert.alert('Success', 'Gift idea added!');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add gift idea');
+      Alert.alert(t('common.error'), t('gifts.addFailed'));
     } finally {
       setIsAddingGift(false);
     }
   };
 
-  const handleMarkGiftGiven = (giftId: string, item: string) => {
-    Alert.alert('Mark as Given', `Mark "${item}" as given?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Given',
-        onPress: () => updateGiftIdea.mutateAsync({ id: giftId, given: true }),
-      },
-    ]);
-  };
+  const handleDeleteGift = (giftId: string, item: string) =>
+    confirmDestructive({
+      title: t('manageGifts.deleteTitle'),
+      message: t('manageGifts.deleteMessage', { item }),
+      onConfirm: () => deleteGiftIdea.mutateAsync(giftId),
+    });
 
   return (
     <>
       <ProfileSection
-        label="Gift Ideas"
+        label={t('gifts.title')}
         count={giftIdeas.length || null}
         onAdd={() => setAddGiftDialogVisible(true)}
-        onMore={() => router.push(`/person/manage-gifts?personId=${personId}`)}
+        empty={giftIdeas.length === 0 && t('gifts.empty', { name: personName })}
       >
-        {giftIdeas.length === 0 ? (
-          <Text style={styles.empty}>No gift ideas yet. Add ideas for {personName}!</Text>
-        ) : (
-          giftIdeas.map((gift) => (
-            <View key={gift.id} style={styles.giftItem}>
-              <View style={styles.giftInfo}>
-                <Text
-                  style={[
-                    styles.giftItemText,
-                    gift.status === 'given' && styles.giftGiven,
-                  ]}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {gift.item}
-                </Text>
-                {gift.occasion && (
-                  <Text style={styles.giftOccasion}>For: {gift.occasion}</Text>
-                )}
-                {gift.notes && <Text style={styles.giftNotes}>{gift.notes}</Text>}
-                {gift.status === 'given' && gift.givenDate && (
-                  <Text style={styles.giftGivenDate}>Given on {formatShortDate(gift.givenDate)}</Text>
-                )}
-              </View>
-              <View style={styles.giftActions}>
-                {gift.status !== 'given' && (
-                  <IconCircle
-                    icon="check"
-                    size={30}
-                    iconSize={16}
-                    color="#4caf50"
-                    onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
-                  />
-                )}
-                <IconCircle
-                  icon="trash"
-                  size={30}
-                  iconSize={14}
-                  onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
-                />
-              </View>
-            </View>
-          ))
+        {giftIdeas.length > 0 && (
+          <View style={chipRow}>
+            {giftIdeas.map((gift) => (
+              <Pill
+                key={gift.id}
+                label={gift.item}
+                icon={gift.status === 'given' ? 'check' : 'gift'}
+                variant={gift.status === 'given' ? 'outline' : 'surface'}
+                onPress={() => setSelectedGiftId(gift.id)}
+              />
+            ))}
+          </View>
         )}
       </ProfileSection>
+
+      <ActionSheet
+        visible={selectedGift !== null}
+        title={selectedGift?.item}
+        message={
+          selectedGift
+            ? [
+                [t(`gifts.${selectedGift.priority ?? 'medium'}`), selectedGift.occasion]
+                  .filter(Boolean)
+                  .join(' · '),
+                selectedGift.notes,
+                selectedGift.status === 'given' && selectedGift.givenDate
+                  ? t('manageGifts.given', { date: formatShortDate(selectedGift.givenDate) })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join('\n')
+            : null
+        }
+        onDismiss={() => setSelectedGiftId(null)}
+        actions={
+          selectedGift
+            ? [
+                ...(selectedGift.status !== 'given'
+                  ? [
+                      {
+                        label: t('gifts.markGivenTitle'),
+                        icon: 'check' as const,
+                        onPress: () =>
+                          updateGiftIdea.mutateAsync({ id: selectedGift.id, given: true }),
+                      },
+                    ]
+                  : []),
+                {
+                  label: t('common.delete'),
+                  icon: 'trash' as const,
+                  onPress: () => handleDeleteGift(selectedGift.id, selectedGift.item),
+                },
+              ]
+            : []
+        }
+      />
 
       <Portal>
         <Dialog
@@ -136,35 +148,35 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
           onDismiss={() => setAddGiftDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Add Gift Idea</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('gifts.addTitle')}</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
-              label="Gift Item *"
-              placeholder="e.g., Hiking boots, Coffee machine"
+              label={t('gifts.itemLabel')}
+              placeholder={t('gifts.itemPlaceholder')}
               value={giftItem}
               onChangeText={setGiftItem}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
             />
 
             <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
-              Priority
+              {t('gifts.priority')}
             </Text>
             <SegmentedButtons
               value={giftPriority}
               onValueChange={(v) => setGiftPriority(v as 'low' | 'medium' | 'high')}
               buttons={[
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' },
+                { value: 'low', label: t('gifts.low') },
+                { value: 'medium', label: t('gifts.medium') },
+                { value: 'high', label: t('gifts.high') },
               ]}
               style={{ marginBottom: 12 }}
             />
 
             <PaperInput
               mode="outlined"
-              label="Occasion (optional)"
-              placeholder="e.g., Birthday, Christmas"
+              label={t('gifts.occasionLabel')}
+              placeholder={t('gifts.occasionPlaceholder')}
               value={giftOccasion}
               onChangeText={setGiftOccasion}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
@@ -172,8 +184,8 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
             <PaperInput
               mode="outlined"
-              label="Notes (optional)"
-              placeholder="Size, color, where to buy, etc."
+              label={t('gifts.notesLabel')}
+              placeholder={t('gifts.notesPlaceholder')}
               value={giftNotes}
               onChangeText={setGiftNotes}
               multiline
@@ -183,7 +195,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setAddGiftDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -191,7 +203,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               loading={isAddingGift}
               disabled={isAddingGift}
             >
-              Add
+              {t('gifts.add')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -201,53 +213,6 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 }
 
 const styles = StyleSheet.create({
-  giftItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-    padding: 14,
-    borderRadius: fz.rCard,
-    backgroundColor: fz.card,
-    borderWidth: 1,
-    borderColor: fz.cardBorder,
-  },
-  giftInfo: {
-    flex: 1,
-  },
-  giftItemText: {
-    ...fzText.name,
-    fontSize: 14.5,
-  },
-  giftGiven: {
-    textDecorationLine: 'line-through',
-    opacity: 0.5,
-  },
-  giftOccasion: {
-    ...fzText.sub,
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  giftNotes: {
-    ...fzText.sub,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  giftGivenDate: {
-    ...fzText.time,
-    color: '#4caf50',
-    marginTop: 4,
-  },
-  giftActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  empty: {
-    ...fzText.sub,
-    fontStyle: 'italic',
-  },
   dialog: {
     borderRadius: fz.rCard,
     backgroundColor: fz.card,

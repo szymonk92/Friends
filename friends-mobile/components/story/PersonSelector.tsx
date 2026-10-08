@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, FlatList, useWindowDimensions } from 'react-native';
 import { Portal, Searchbar, Checkbox, Button, Text } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { PersonRow } from '@/components/PersonRow';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PersonSelectorProps {
   visible: boolean;
@@ -19,8 +21,9 @@ export default function PersonSelector({
   onDismiss,
   onSelect,
   initialSelectedIds = [],
-  title = 'Tag People',
+  title,
 }: PersonSelectorProps) {
+  const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
   const { data: people, isLoading } = usePeople();
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +64,7 @@ export default function PersonSelector({
     <PersonRow
       name={item.name}
       photoPath={item.photoPath}
-      subtitle={item.relationshipType || 'Acquaintance'}
+      subtitle={relationshipTypeLabel(item.relationshipType || 'acquaintance')}
       avatarSize={40}
       avatarVariant="ink"
       onPress={() => toggleSelection(item.id)}
@@ -78,13 +81,13 @@ export default function PersonSelector({
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} style={[styles.dialog, styles.dialogShape]}>
-        <Dialog.Title style={styles.dialogTitle}>{title}</Dialog.Title>
+        <Dialog.Title style={styles.dialogTitle}>{title ?? t('personSelector.title')}</Dialog.Title>
         {/* Short enough that the whole dialog fits above the iOS keyboard while searching. */}
         <Dialog.Content
           style={[styles.content, { height: Math.min(400, Math.round(windowHeight * 0.4)) }]}
         >
           <Searchbar
-            placeholder="Search people..."
+            placeholder={t('comparePicker.search')}
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchBar}
@@ -94,9 +97,9 @@ export default function PersonSelector({
 
           <View style={styles.listContainer}>
             {isLoading ? (
-              <Text style={[styles.loadingText, styles.dialogFont]}>Loading people...</Text>
+              <Text style={[styles.loadingText, styles.dialogFont]}>{t('personSelector.loading')}</Text>
             ) : filteredPeople.length === 0 ? (
-              <Text style={[styles.emptyText, styles.dialogFont]}>No people found</Text>
+              <Text style={[styles.emptyText, styles.dialogFont]}>{t('personSelector.none')}</Text>
             ) : (
               <FlatList
                 data={filteredPeople}
@@ -109,7 +112,7 @@ export default function PersonSelector({
         </Dialog.Content>
         <Dialog.Actions>
           <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             labelStyle={styles.dialogFont}
@@ -117,7 +120,7 @@ export default function PersonSelector({
             mode="contained"
             style={styles.saveButton}
           >
-            Done ({selectedIds.size})
+            {t('personSelector.done', { count: selectedIds.size })}
           </Button>
         </Dialog.Actions>
       </Dialog>

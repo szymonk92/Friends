@@ -1,3 +1,5 @@
+import { tr, relationTypeLabel } from '@/lib/i18n/labels';
+
 /**
  * Constants for relation types used in UI components
  * These map the enum values to display labels and icons
@@ -119,7 +121,11 @@ export function findDirectContradiction(
   for (const r of existing) {
     if (r.status === 'past') continue;
     if (opposites.includes(r.relationType) && norm(r.objectLabel) === target) {
-      return `Already ${r.relationType.toLowerCase()} "${newObjectLabel}" for this person. Edit or archive that entry instead of adding a contradictory one.`;
+      return tr(
+        'errors.contradiction',
+        `Already ${r.relationType.toLowerCase()} "${newObjectLabel}" for this person. Edit or archive that entry instead of adding a contradictory one.`,
+        { type: relationTypeLabel(r.relationType).toLowerCase(), item: newObjectLabel }
+      );
     }
   }
   return null;

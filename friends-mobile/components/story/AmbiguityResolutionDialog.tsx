@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 import { Portal, Dialog, Button, Text, RadioButton, Avatar, List } from 'react-native-paper';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface AmbiguityMatch {
   nameInStory: string;
@@ -21,6 +22,7 @@ export default function AmbiguityResolutionDialog({
   onResolve,
   onCancel,
 }: AmbiguityResolutionDialogProps) {
+  const { t } = useTranslation();
   const [resolutions, setResolutions] = useState<{ [name: string]: string | 'NEW' | 'IGNORE' }>({});
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -50,11 +52,11 @@ export default function AmbiguityResolutionDialog({
     <Portal>
       <Dialog visible={visible} onDismiss={onCancel} style={[styles.dialog, styles.dialogShape]}>
         <Dialog.Title style={styles.dialogTitle}>
-          Who is "{currentMatch.nameInStory}"?
+          {t('ambiguity.title', { name: currentMatch.nameInStory })}
         </Dialog.Title>
         <Dialog.Content>
           <Text style={[styles.helperText, styles.dialogFont]}>
-            The AI is not sure which "{currentMatch.nameInStory}" you are referring to.
+            {t('ambiguity.helper', { name: currentMatch.nameInStory })}
           </Text>
 
           <RadioButton.Group
@@ -67,7 +69,7 @@ export default function AmbiguityResolutionDialog({
                 <List.Item
                   key={match.id}
                   title={match.name}
-                  description="Existing Contact"
+                  description={t('ambiguity.existing')}
                   left={() => <RadioButton value={match.id} />}
                   onPress={() => handleSelect(match.id)}
                   style={styles.optionItem}
@@ -76,8 +78,8 @@ export default function AmbiguityResolutionDialog({
 
               {/* Create New Option */}
               <List.Item
-                title={`Create new "${currentMatch.nameInStory}"`}
-                description="Add as a new person"
+                title={t('ambiguity.createNew', { name: currentMatch.nameInStory })}
+                description={t('ambiguity.addAsNew')}
                 left={() => <RadioButton value="NEW" />}
                 onPress={() => handleSelect('NEW')}
                 style={styles.optionItem}
@@ -85,8 +87,8 @@ export default function AmbiguityResolutionDialog({
 
               {/* Ignore Option */}
               <List.Item
-                title="Ignore / Not a person"
-                description="Skip this name"
+                title={t('ambiguity.ignore')}
+                description={t('ambiguity.skip')}
                 left={() => <RadioButton value="IGNORE" />}
                 onPress={() => handleSelect('IGNORE')}
                 style={styles.optionItem}
@@ -96,7 +98,7 @@ export default function AmbiguityResolutionDialog({
         </Dialog.Content>
         <Dialog.Actions>
           <Button labelStyle={styles.dialogFont} onPress={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             labelStyle={styles.dialogFont}
@@ -104,7 +106,7 @@ export default function AmbiguityResolutionDialog({
             onPress={handleNext}
             disabled={!resolutions[currentMatch.nameInStory]}
           >
-            {currentIndex < ambiguousMatches.length - 1 ? 'Next' : 'Confirm'}
+            {currentIndex < ambiguousMatches.length - 1 ? t('ambiguity.next') : t('ambiguity.confirm')}
           </Button>
         </Dialog.Actions>
       </Dialog>

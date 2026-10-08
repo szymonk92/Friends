@@ -1,6 +1,7 @@
 /**
  * Formatting utilities for the Friends app
  */
+import { tr, anyRelationLabel, importanceLabel } from '@/lib/i18n/labels';
 
 /**
  * Format a date as a relative time string
@@ -16,13 +17,19 @@ export function formatRelativeTime(date: Date): string {
   const diffMonth = Math.floor(diffDay / 30);
   const diffYear = Math.floor(diffDay / 365);
 
-  if (diffYear > 0) return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
-  if (diffMonth > 0) return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
-  if (diffWeek > 0) return `${diffWeek} week${diffWeek > 1 ? 's' : ''} ago`;
-  if (diffDay > 0) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-  if (diffHour > 0) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
-  if (diffMin > 0) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
-  return 'just now';
+  const plural = (n: number, unit: string) => `${n} ${unit}${n > 1 ? 's' : ''} ago`;
+  if (diffYear > 0)
+    return tr('time.yearsAgo', plural(diffYear, 'year'), { count: diffYear });
+  if (diffMonth > 0)
+    return tr('time.monthsAgo', plural(diffMonth, 'month'), { count: diffMonth });
+  if (diffWeek > 0)
+    return tr('time.weeksAgo', plural(diffWeek, 'week'), { count: diffWeek });
+  if (diffDay > 0) return tr('time.daysAgo', plural(diffDay, 'day'), { count: diffDay });
+  if (diffHour > 0)
+    return tr('time.hoursAgo', plural(diffHour, 'hour'), { count: diffHour });
+  if (diffMin > 0)
+    return tr('time.minutesAgo', plural(diffMin, 'minute'), { count: diffMin });
+  return tr('time.justNow', 'just now');
 }
 
 /**
@@ -31,13 +38,15 @@ export function formatRelativeTime(date: Date): string {
 export function formatRelativeShort(date: Date): string {
   const diffMs = Date.now() - date.getTime();
   const diffDay = Math.floor(diffMs / 86400000);
-  if (diffDay >= 365) return `${Math.floor(diffDay / 365)}y`;
-  if (diffDay >= 30) return `${Math.floor(diffDay / 30)}mo`;
-  if (diffDay >= 7) return `${Math.floor(diffDay / 7)}w`;
-  if (diffDay >= 1) return `${diffDay}d`;
+  const short = (key: string, count: number, suffix: string) =>
+    tr(`time.${key}`, `${count}${suffix}`, { count });
+  if (diffDay >= 365) return short('shortYear', Math.floor(diffDay / 365), 'y');
+  if (diffDay >= 30) return short('shortMonth', Math.floor(diffDay / 30), 'mo');
+  if (diffDay >= 7) return short('shortWeek', Math.floor(diffDay / 7), 'w');
+  if (diffDay >= 1) return short('shortDay', diffDay, 'd');
   const diffHr = Math.floor(diffMs / 3600000);
-  if (diffHr >= 1) return `${diffHr}h`;
-  return 'now';
+  if (diffHr >= 1) return short('shortHour', diffHr, 'h');
+  return tr('time.now', 'now');
 }
 
 /**
@@ -45,9 +54,11 @@ export function formatRelativeShort(date: Date): string {
  */
 export function formatYearsKnown(date: Date): string {
   const days = Math.floor((Date.now() - date.getTime()) / 86400000);
-  if (days >= 365) return `${Math.floor(days / 365)}y`;
-  if (days >= 30) return `${Math.floor(days / 30)}mo`;
-  return '<1mo';
+  if (days >= 365)
+    return tr('time.shortYear', `${Math.floor(days / 365)}y`, { count: Math.floor(days / 365) });
+  if (days >= 30)
+    return tr('time.shortMonth', `${Math.floor(days / 30)}mo`, { count: Math.floor(days / 30) });
+  return tr('time.lessThanMonth', '<1mo');
 }
 
 /**
@@ -65,10 +76,7 @@ export function formatShortDate(date: Date): string {
  * Format relation type for display
  */
 export function formatRelationType(relationType: string): string {
-  return relationType
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  return anyRelationLabel(relationType);
 }
 
 /**
@@ -102,7 +110,7 @@ export function formatImportance(importance: string): string {
     important: 'Important',
     very_important: 'Very Important',
   };
-  return labels[importance] || importance;
+  return labels[importance] ? importanceLabel(importance, labels[importance]) : importance;
 }
 
 /**

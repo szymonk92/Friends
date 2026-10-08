@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz } from '@/lib/design/tokens';
 import { LineIcon, type LineIconName } from '@/components/LineIcon';
+import { useTranslation } from 'react-i18next';
 
 // Bottom tab bar — kept (the design mockups omit it), restyled to the
 // FriendZ language: line icons, ink active tint, warm paper surface.
@@ -12,6 +13,7 @@ function TabIcon({ name, color, size = 22 }: { name: LineIconName; color: string
 }
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   return (
     <Tabs
@@ -35,28 +37,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'People',
+          title: t('navigation.people'),
           tabBarIcon: ({ color }) => <TabIcon name="users" color={color} />,
         }}
       />
       <Tabs.Screen
         name="stories"
         options={{
-          title: 'Stories',
+          title: t('navigation.stories'),
           tabBarIcon: ({ color }) => <TabIcon name="book" color={color} />,
         }}
       />
       <Tabs.Screen
         name="timeline"
         options={{
-          title: 'Timeline',
+          title: t('navigation.timeline'),
           tabBarIcon: ({ color }) => <TabIcon name="clock" color={color} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: t('navigation.search'),
           tabBarIcon: ({ color }) => <TabIcon name="search" color={color} />,
         }}
       />

@@ -23,6 +23,7 @@ import {
   type FieldDiff,
 } from '@/lib/ai/brain-dump-diff';
 import type { SocialLink } from '@/lib/social/socialLinks';
+import { useTranslation } from 'react-i18next';
 
 const CONSENT_KEY = 'brainDump.consentSeen.v1';
 
@@ -65,6 +66,7 @@ type FieldChipState = { value: string; accepted: boolean; diff?: DiffClass; exis
 type ListChipState<T> = { value: T; accepted: boolean; diff?: DiffClass; existing?: T };
 
 export default function BrainDumpSection({ personName, existing, onApply }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { selectedModel, apiKey: anthropicKey, geminiApiKey } = useSettings();
   const [brainDump, setBrainDump] = useState('');
@@ -101,8 +103,10 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
     const activeApiKey = (activeModel === 'anthropic' ? anthropicKey : geminiApiKey) ?? '';
     if (!activeApiKey.trim()) {
       Alert.alert(
-        'AI key needed',
-        `Add ${activeModel === 'anthropic' ? 'an Anthropic' : 'a Gemini'} API key in Settings to use brain-dump extraction.`
+        t('brainDump.keyNeededTitle'),
+        t('brainDump.keyNeededMessage', {
+          provider: activeModel === 'anthropic' ? 'Anthropic' : 'Gemini',
+        })
       );
       return;
     }
@@ -258,27 +262,29 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
   return (
     <Card style={styles.card} mode="outlined">
       <Card.Content>
-        <Text variant="titleSmall">Quick brain-dump (optional)</Text>
+        <Text variant="titleSmall">{t('brainDump.title')}</Text>
         <Text
           variant="bodySmall"
           style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
         >
-          Type everything you remember. Tap Extract — review, accept the bits you want, ignore the rest.
+          {t('brainDump.hint')}
         </Text>
 
         {showConsent && (
           <Banner visible icon="information" style={styles.banner}>
-            Your text is sent to {selectedModel === 'anthropic' ? 'Anthropic' : 'Google Gemini'} using
-            your API key. Friends doesn't keep a copy on any server.{'  '}
+            {t('brainDump.consent', {
+              provider: selectedModel === 'anthropic' ? 'Anthropic' : 'Google Gemini',
+            })}
+            {'  '}
             <Text style={styles.consentDismiss} onPress={dismissConsent}>
-              Got it
+              {t('brainDump.gotIt')}
             </Text>
           </Banner>
         )}
 
         <TextInput
           mode="outlined"
-          placeholder='e.g. "Met Agata + Tom in Chile during W-trek. Couple from UK, met in Vietnam. Agata studied in London, parents are doctors, dad has a campervan. IG @agata.x"'
+          placeholder={t('brainDump.placeholder')}
           value={brainDump}
           onChangeText={setBrainDump}
           multiline
@@ -311,11 +317,11 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             loading={extracting}
             disabled={extracting || !brainDump.trim()}
           >
-            Extract
+            {t('brainDump.extract')}
           </Button>
           {brainDump && !extracting && (
             <Button mode="text" onPress={() => setBrainDump('')}>
-              Clear
+              {t('brainDump.clear')}
             </Button>
           )}
         </View>
@@ -331,7 +337,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
         {result && (
           <View style={styles.results}>
             <Text variant="titleSmall" style={styles.sectionLabel}>
-              Found {countAccepted({
+              {t('brainDump.found')} {countAccepted({
                 metLocationChip,
                 metDateChip,
                 homeLocationChip,
@@ -342,26 +348,33 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                 languageChips,
                 attributeChips,
               })}{' '}
-              of {countTotal(result)} facts
+              {t('brainDump.ofFacts', { total: countTotal(result) })}
               {diff && (
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  {'  '}· {diff.summary.new} new · {diff.summary.update} update
-                  {diff.summary.conflict > 0 ? ` · ${diff.summary.conflict} conflict` : ''}
-                  {diff.summary.match > 0 ? ` · ${diff.summary.match} already on file` : ''}
+                  {'  '}· {t('brainDump.nNew', { count: diff.summary.new })} ·{' '}
+                  {t('brainDump.nUpdate', { count: diff.summary.update })}
+                  {diff.summary.conflict > 0
+                    ? ` · ${t('brainDump.nConflict', { count: diff.summary.conflict })}`
+                    : ''}
+                  {diff.summary.match > 0
+                    ? ` · ${t('brainDump.nMatch', { count: diff.summary.match })}`
+                    : ''}
                 </Text>
               )}
             </Text>
 
             {result.mentionedOthers.length > 0 && (
               <Banner visible icon="account-multiple" style={styles.banner}>
-                Other people mentioned: {result.mentionedOthers.join(', ')}. Their facts were
-                NOT attributed to {personName}.
+                {t('brainDump.mentionedOthers', {
+                  names: result.mentionedOthers.join(', '),
+                  name: personName,
+                })}
               </Banner>
             )}
 
             <FieldRow
               icon="map-marker"
-              label="Met in"
+              label={t('brainDump.metIn')}
               chip={metLocationChip}
               onToggle={() =>
                 metLocationChip &&
@@ -371,7 +384,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             />
             <FieldRow
               icon="calendar"
-              label="Met"
+              label={t('brainDump.met')}
               chip={metDateChip}
               onToggle={() =>
                 metDateChip &&
@@ -381,7 +394,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             />
             <FieldRow
               icon="home"
-              label="Lives in"
+              label={t('brainDump.livesIn')}
               chip={homeLocationChip}
               onToggle={() =>
                 homeLocationChip &&
@@ -393,9 +406,9 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             />
             <FieldRow
               icon="heart"
-              label="Partner"
+              label={t('brainDump.partner')}
               chip={partnerChip}
-              note={partnerChip ? 'Will create a placeholder person + connection' : undefined}
+              note={partnerChip ? t('brainDump.partnerNote') : undefined}
               onToggle={() =>
                 partnerChip && setPartnerChip({ ...partnerChip, accepted: !partnerChip.accepted })
               }
@@ -403,9 +416,9 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             />
             <FieldRow
               icon="phone"
-              label="Phone"
+              label={t('brainDump.phone')}
               chip={phoneChip}
-              note="PII — off by default. Tap to keep."
+              note={t('brainDump.piiNote')}
               onToggle={() =>
                 phoneChip && setPhoneChip({ ...phoneChip, accepted: !phoneChip.accepted })
               }
@@ -413,9 +426,9 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             />
             <FieldRow
               icon="email"
-              label="Email"
+              label={t('brainDump.email')}
               chip={emailChip}
-              note="PII — off by default. Tap to keep."
+              note={t('brainDump.piiNote')}
               onToggle={() =>
                 emailChip && setEmailChip({ ...emailChip, accepted: !emailChip.accepted })
               }
@@ -425,7 +438,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             {socialChips.length > 0 && (
               <View style={styles.group}>
                 <Text variant="labelSmall" style={styles.groupLabel}>
-                  Social
+                  {t('brainDump.social')}
                 </Text>
                 <View style={styles.chipsRow}>
                   {socialChips.map((c, i) => (
@@ -451,7 +464,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             {languageChips.length > 0 && (
               <View style={styles.group}>
                 <Text variant="labelSmall" style={styles.groupLabel}>
-                  Languages
+                  {t('brainDump.languages')}
                 </Text>
                 <View style={styles.chipsRow}>
                   {languageChips.map((c, i) => (
@@ -477,7 +490,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             {attributeChips.length > 0 && (
               <View style={styles.group}>
                 <Text variant="labelSmall" style={styles.groupLabel}>
-                  Attributes
+                  {t('brainDump.attributes')}
                 </Text>
                 {attributeChips.map((c, i) => (
                   <View key={i} style={styles.attrRow}>
@@ -506,7 +519,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                               },
                             ]}
                           >
-                            {c.value.assertion}
+                            {t(`brainDump.assertion.${c.value.assertion}`)}
                           </Text>
                         )}
                       </View>
@@ -515,7 +528,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                         style={{ color: theme.colors.onSurfaceVariant }}
                       >
                         {c.value.relationType.toLowerCase().replace('_', ' ')} ·{' '}
-                        {Math.round(c.value.confidence * 100)}% confidence
+                        {t('brainDump.confidence', { percent: Math.round(c.value.confidence * 100) })}
                       </Text>
                     </View>
                   </View>
@@ -530,11 +543,11 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                 onPress={apply}
                 style={styles.applyButton}
               >
-                Apply selected
+                {t('brainDump.apply')}
               </Button>
             ) : (
               <Text variant="bodySmall" style={[styles.error, { color: theme.colors.onSurfaceVariant }]}>
-                Nothing extracted from that note.
+                {t('brainDump.nothing')}
               </Text>
             )}
           </View>
@@ -573,6 +586,7 @@ function FieldRow({
   onEdit: (next: string) => void;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   if (!chip) return null;
   const cls = chip.diff ?? 'NEW';
@@ -595,7 +609,7 @@ function FieldRow({
               variant="labelSmall"
               style={[styles.diffBadge, { color: badgeColor, borderColor: badgeColor }]}
             >
-              {chip.diff}
+              {t(`brainDump.diff.${chip.diff}`)}
             </Text>
           )}
         </View>
@@ -615,7 +629,7 @@ function FieldRow({
         )}
         {chip.existing && (cls === 'UPDATE' || cls === 'CONFLICT') && (
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            was: {chip.existing}
+            {t('brainDump.was', { value: chip.existing })}
           </Text>
         )}
         {note && (

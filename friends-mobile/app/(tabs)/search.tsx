@@ -21,9 +21,11 @@ import { Avatar } from '@/components/Avatar';
 import { parseJsonArray } from '@/lib/utils/json';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
 import { fz, fzText } from '@/lib/design/tokens';
+import { relationshipTypeLabel, relationTypeLabel, intensityLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
 import { LineIcon } from '@/components/LineIcon';
 import { RelationIcon } from '@/components/RelationIcon';
+import { useTranslation } from 'react-i18next';
 
 type SearchCategory = 'all' | 'people' | 'relations' | 'stories';
 
@@ -36,14 +38,15 @@ interface SearchResult {
   personId?: string;
 }
 
-const CATEGORIES: { key: SearchCategory; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'people', label: 'People' },
-  { key: 'relations', label: 'Preferences' },
-  { key: 'stories', label: 'Stories' },
+const CATEGORIES: { key: SearchCategory }[] = [
+  { key: 'all' },
+  { key: 'people' },
+  { key: 'relations' },
+  { key: 'stories' },
 ];
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<SearchCategory>('all');
@@ -58,7 +61,7 @@ export default function SearchScreen() {
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
-    return person?.name || 'Unknown';
+    return person?.name || t('timeline.unknown');
   };
 
   const searchResults = useMemo(() => {
@@ -73,21 +76,23 @@ export default function SearchScreen() {
         const nicknameMatch = person.nickname?.toLowerCase().includes(query);
         const notesMatch = person.notes?.toLowerCase().includes(query);
         const speciesMatch = person.species?.toLowerCase().includes(query);
-        const matchedTags = parseJsonArray(person.tags).filter((t) =>
-          t.toLowerCase().includes(query)
+        const matchedTags = parseJsonArray(person.tags).filter((tag) =>
+          tag.toLowerCase().includes(query)
         );
 
         if (nameMatch || nicknameMatch || notesMatch || speciesMatch || matchedTags.length) {
           const isPet = person.entityType === 'pet';
           const base = isPet
-            ? `🐾 ${person.species?.trim() || 'Pet'}`
-            : person.relationshipType || 'No relationship type';
+            ? `🐾 ${person.species?.trim() || t('header.pet')}`
+            : person.relationshipType
+              ? relationshipTypeLabel(person.relationshipType)
+              : t('search.noRelationshipType');
           results.push({
             id: person.id,
             type: isPet ? 'pet' : 'person',
             title: person.name,
             subtitle: matchedTags.length
-              ? `${base} · ${matchedTags.map((t) => `#${t}`).join(' ')}`
+              ? `${base} · ${matchedTags.map((tag) => `#${tag}`).join(' ')}`
               : base,
             metadata: person.nickname ? `"${person.nickname}"` : undefined,
             personId: person.id,
@@ -107,8 +112,8 @@ export default function SearchScreen() {
           results.push({
             id: relation.id,
             type: 'relation',
-            title: `${personName} ${relation.relationType.replace('_', ' ')} ${relation.objectLabel}`,
-            subtitle: relation.category || relation.intensity || 'No category',
+            title: `${personName} ${relationTypeLabel(relation.relationType).toLowerCase()} ${relation.objectLabel}`,
+            subtitle: relation.category || relation.intensity || t('search.noCategory'),
             metadata: relation.confidence ? `${Math.round(relation.confidence * 100)}%` : undefined,
             personId: relation.subjectId,
           });
@@ -126,7 +131,7 @@ export default function SearchScreen() {
           results.push({
             id: story.id,
             type: 'story',
-            title: story.title || 'Untitled Story',
+            title: story.title || t('search.untitled'),
             subtitle: preview + (story.content.length > 100 ? '...' : ''),
             metadata: formatRelativeTime(new Date(story.createdAt)),
           });
@@ -184,7 +189,7 @@ export default function SearchScreen() {
         <ResultAvatar person={person} type={item.type} />
         <View style={s.rowBody}>
           <View style={s.rowTop}>
-            {category === 'all' && <Pill label={item.type} variant="surface" />}
+            {category === 'all' && <Pill label={t(`search.types.${item.type}`)} variant="surface" />}
             {item.metadata && <Text style={fzText.time}>{item.metadata}</Text>}
           </View>
           <Text style={fzText.name} numberOfLines={1}>{item.title}</Text>
@@ -206,7 +211,8 @@ export default function SearchScreen() {
         <View style={s.summaryBody}>
           <Text style={fzText.name} numberOfLines={1}>{item.personName}</Text>
           <Text style={fzText.sub} numberOfLines={1}>
-            {item.item}{item.intensity ? ` · ${item.intensity}` : ''}
+            {item.item}
+            {item.intensity ? ` · ${intensityLabel(item.intensity, item.intensity)}` : ''}
           </Text>
         </View>
       </TouchableOpacity>
@@ -222,7 +228,7 @@ export default function SearchScreen() {
         <View style={s.searchRow}>
           <View style={s.searchInput}>
             <TextInput
-              placeholder="Search people, preferences, stories..."
+              placeholder={t('search.placeholder')}
               placeholderTextColor={fz.textMute}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -240,7 +246,7 @@ export default function SearchScreen() {
           {CATEGORIES.map((c) => (
             <Pill
               key={c.key}
-              label={c.label}
+              label={t(`search.categories.${c.key}`)}
               selected={category === c.key}
               onPress={() => setCategory(c.key)}
             />
@@ -256,11 +262,11 @@ export default function SearchScreen() {
 
       {!isLoading && searchQuery.length < 2 && (
         <View style={s.empty}>
-          <Text style={fzText.title}>Start searching</Text>
+          <Text style={fzText.title}>{t('search.startTitle')}</Text>
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 16, textAlign: 'center' }]}>
-            Search for people, preferences (who likes/dislikes what), or story content.
+            {t('search.startMessage')}
           </Text>
-          <Text style={s.exampleText}>Examples: "carrot", "vegan", "hiking", "Sarah"</Text>
+          <Text style={s.exampleText}>{t('search.examples')}</Text>
         </View>
       )}
 
@@ -269,13 +275,13 @@ export default function SearchScreen() {
           {preferenceSummary &&
             (preferenceSummary.likes.length > 0 || preferenceSummary.dislikes.length > 0) && (
               <View style={s.summaryCard}>
-                <Text style={fzText.title}>Who likes/dislikes "{searchQuery}"?</Text>
+                <Text style={fzText.title}>{t('search.whoLikes', { query: searchQuery })}</Text>
 
                 {preferenceSummary.likes.length > 0 && (
                   <View style={s.summarySection}>
                     <View style={s.summaryLabelRow}>
                       <RelationIcon type={LIKES} size={13} color={fz.ink} />
-                      <Text style={fzText.label}>Likes ({preferenceSummary.likes.length})</Text>
+                      <Text style={fzText.label}>{t('search.likes', { count: preferenceSummary.likes.length })}</Text>
                     </View>
                     {preferenceSummary.likes.map((item, index) => (
                       <View key={`like-${index}`}>{renderSummaryRow(item)}</View>
@@ -287,7 +293,7 @@ export default function SearchScreen() {
                   <View style={s.summarySection}>
                     <View style={s.summaryLabelRow}>
                       <RelationIcon type={DISLIKES} size={13} color={fz.ink} />
-                      <Text style={fzText.label}>Dislikes ({preferenceSummary.dislikes.length})</Text>
+                      <Text style={fzText.label}>{t('search.dislikes', { count: preferenceSummary.dislikes.length })}</Text>
                     </View>
                     {preferenceSummary.dislikes.map((item, index) => (
                       <View key={`dislike-${index}`}>{renderSummaryRow(item)}</View>
@@ -299,14 +305,14 @@ export default function SearchScreen() {
 
           <View style={s.resultsHeader}>
             <Text style={fzText.meta}>
-              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+              {t('search.resultsFound', { count: searchResults.length })}
             </Text>
           </View>
 
           {searchResults.length === 0 ? (
             <View style={s.noResults}>
-              <Text style={fzText.sub}>No results found</Text>
-              <Text style={[fzText.time, { marginTop: 6 }]}>Try a different search term or category</Text>
+              <Text style={fzText.sub}>{t('search.noResults')}</Text>
+              <Text style={[fzText.time, { marginTop: 6 }]}>{t('search.tryDifferent')}</Text>
             </View>
           ) : (
             <FlatList

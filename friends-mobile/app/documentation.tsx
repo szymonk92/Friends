@@ -5,12 +5,14 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Documentation screen explaining app terminology and nomenclature
  * Accessible via /documentation route
  */
 export default function DocumentationScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const Row = ({
@@ -43,138 +45,137 @@ export default function DocumentationScreen() {
       <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.appBarRow}>
           <HeaderBack onPress={() => router.back()} />
-          <RNText style={fzText.screenTitle}>Documentation</RNText>
+          <RNText style={fzText.screenTitle}>{t('documentation.documentation')}</RNText>
           <View style={{ width: 38 }} />
         </View>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <RNText style={styles.title}>Friends App — Nomenclature Guide</RNText>
+        <RNText style={styles.title}>{t('documentation.friendsAppNomenclatureGuide')}</RNText>
         <RNText style={styles.subtitle}>
-          Understanding the terminology and symbols used in the app
+          {t('documentation.understandingTheTerminologyAndSymbols')}
         </RNText>
 
         {/* Relations Section */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>📊 Relation Types</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.relationTypes')}</RNText>
           <View style={styles.divider} />
           <RNText style={styles.description}>
-            Relations describe what people like, avoid, know, do, and more. Each relation has a type
-            that defines the kind of connection — 12 in total.
+            {t('documentation.relationsDescribeWhatPeopleLike')}
           </RNText>
 
           <View style={styles.section}>
-            <SectionTitle>Preferences</SectionTitle>
-            <Row title="LIKES ❤️" description="Things a person enjoys, prefers, or has positive feelings about" />
-            <Row title="DISLIKES 👎" description="Things a person dislikes or finds unpleasant — a taste, not a rule" />
-            <Row title="AVOIDS 🚨" description="A hard rule: allergy, medical restriction, diet, sobriety, or ethics" />
+            <SectionTitle>{t('documentation.preferences')}</SectionTitle>
+            <Row title="LIKES ❤️" description={t('documentation.thingsAPersonEnjoysPrefers')} />
+            <Row title="DISLIKES 👎" description={t('documentation.thingsAPersonDislikesOr')} />
+            <Row title="AVOIDS 🚨" description={t('documentation.aHardRuleAllergyMedical')} />
           </View>
 
           <View style={styles.section}>
-            <SectionTitle>Identity & Skills</SectionTitle>
-            <Row title="IS 👤" description="Who someone is — profession, role, trait, belief, or identity" />
-            <Row title="CAN 🎯" description="Skills, abilities, or expertise a person possesses" />
-            <Row title="HAS 🎒" description="Possessions and physical traits — objects, property, appearance" />
-            <Row title="LIVES_IN 📍" description="Current, past, or future residence" />
+            <SectionTitle>{t('documentation.identitySkills')}</SectionTitle>
+            <Row title="IS 👤" description={t('documentation.whoSomeoneIsProfessionRole')} />
+            <Row title="CAN 🎯" description={t('documentation.skillsAbilitiesOrExpertiseA')} />
+            <Row title="HAS 🎒" description={t('documentation.possessionsAndPhysicalTraitsObjects')} />
+            <Row title="LIVES_IN 📍" description={t('documentation.currentPastOrFutureResidence')} />
           </View>
 
           <View style={styles.section}>
-            <SectionTitle>Behaviors & Events</SectionTitle>
-            <Row title="DOES 🔄" description="A habit, routine, or regularly repeated activity" />
-            <Row title="DID 📅" description="A one-off past event or experience" />
+            <SectionTitle>{t('documentation.behaviorsEvents')}</SectionTitle>
+            <Row title="DOES 🔄" description={t('documentation.aHabitRoutineOrRegularly')} />
+            <Row title="DID 📅" description={t('documentation.aOneOffPastEvent')} />
           </View>
 
           <View style={styles.section}>
-            <SectionTitle>Other Types</SectionTitle>
-            <Row title="KNOWS 🤝" description="An unquantified social connection — people, places, or groups" />
-            <Row title="WANTS 🎯" description="Goals, aspirations, or future objectives" />
-            <Row title="STRUGGLES_WITH 😔" description="Ongoing difficulties, health conditions, or hardship" />
+            <SectionTitle>{t('documentation.otherTypes')}</SectionTitle>
+            <Row title="KNOWS 🤝" description={t('documentation.anUnquantifiedSocialConnectionPeople')} />
+            <Row title="WANTS 🎯" description={t('documentation.goalsAspirationsOrFutureObjectives')} />
+            <Row title="STRUGGLES_WITH 😔" description={t('documentation.ongoingDifficultiesHealthConditionsOr')} />
           </View>
         </View>
 
         {/* Status Section */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>📌 Relation Status</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.relationStatus')}</RNText>
           <View style={styles.divider} />
           <RNText style={styles.description}>
-            Each relation has a status indicating its timeframe and relevance.
+            {t('documentation.eachRelationHasAStatus')}
           </RNText>
 
-          <Row title="current" description="Active right now (default for most relations)" left={<Pill label="current" variant="outline" />} />
-          <Row title="past" description="Was true in the past but no longer applies" left={<Pill label="past" variant="outline" />} />
-          <Row title="future" description="Expected or planned for the future" left={<Pill label="future" variant="outline" />} />
-          <Row title="aspiration" description="Something they hope to achieve or become" left={<Pill label="aspiration" variant="outline" />} />
+          <Row title={t('documentation.current')} description={t('documentation.activeRightNowDefaultFor')} left={<Pill label={t('documentation.current')} variant="outline" />} />
+          <Row title={t('documentation.past')} description={t('documentation.wasTrueInThePast')} left={<Pill label={t('documentation.past')} variant="outline" />} />
+          <Row title={t('documentation.future')} description={t('documentation.expectedOrPlannedForThe')} left={<Pill label={t('documentation.future')} variant="outline" />} />
+          <Row title={t('documentation.aspiration')} description={t('documentation.somethingTheyHopeToAchieve')} left={<Pill label={t('documentation.aspiration')} variant="outline" />} />
         </View>
 
         {/* Intensity Section */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>📈 Intensity Levels</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.intensityLevels')}</RNText>
           <View style={styles.divider} />
-          <RNText style={styles.description}>Intensity indicates how strong a relation is.</RNText>
+          <RNText style={styles.description}>{t('documentation.intensityIndicatesHowStrongA')}</RNText>
 
-          <Row title="Weak +" description="Mild preference or light connection" />
-          <Row title="Medium ++" description="Moderate preference or notable connection" />
-          <Row title="Strong +++" description="Strong, defining, or extreme preference" />
+          <Row title={t('documentation.weak')} description={t('documentation.mildPreferenceOrLightConnection')} />
+          <Row title={t('documentation.medium')} description={t('documentation.moderatePreferenceOrNotableConnection')} />
+          <Row title={t('documentation.strong')} description={t('documentation.strongDefiningOrExtremePreference')} />
         </View>
 
         {/* Connections Section */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>🔗 Person Connections</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.personConnections')}</RNText>
           <View style={styles.divider} />
           <RNText style={styles.description}>
-            Connections represent relationships between people in your network.
+            {t('documentation.connectionsRepresentRelationshipsBetweenPeople')}
           </RNText>
 
           <View style={styles.section}>
-            <SectionTitle>Relationship Types</SectionTitle>
-            <Row title="Friend 💙" description="Personal friendship" />
-            <Row title="Family 🏠" description="Blood relatives or close family" />
-            <Row title="Colleague 💼" description="Work or professional relationships" />
-            <Row title="Partner ❤️" description="Romantic or life partner" />
-            <Row title="Acquaintance 👋" description="Casual or limited connection" />
+            <SectionTitle>{t('documentation.relationshipTypes')}</SectionTitle>
+            <Row title={t('documentation.friend')} description={t('documentation.personalFriendship')} />
+            <Row title={t('documentation.family')} description={t('documentation.bloodRelativesOrCloseFamily')} />
+            <Row title={t('documentation.colleague')} description={t('documentation.workOrProfessionalRelationships')} />
+            <Row title={t('documentation.partner')} description={t('documentation.romanticOrLifePartner')} />
+            <Row title={t('documentation.acquaintance')} description={t('documentation.casualOrLimitedConnection')} />
           </View>
 
           <View style={styles.section}>
-            <SectionTitle>Connection Status</SectionTitle>
-            <Row title="Active" description="Currently maintaining this relationship" left={<Pill label="active" variant="outline" />} />
-            <Row title="Inactive" description="Not actively in touch but connection exists" left={<Pill label="inactive" variant="outline" />} />
-            <Row title="Ended" description="Relationship has concluded" left={<Pill label="ended" variant="outline" />} />
-            <Row title="Complicated" description="Complex or mixed relationship status" left={<Pill label="complicated" variant="outline" />} />
+            <SectionTitle>{t('documentation.connectionStatus')}</SectionTitle>
+            <Row title={t('documentation.active')} description={t('documentation.currentlyMaintainingThisRelationship')} left={<Pill label={t('documentation.active2')} variant="outline" />} />
+            <Row title={t('documentation.inactive')} description={t('documentation.notActivelyInTouchBut')} left={<Pill label={t('documentation.inactive2')} variant="outline" />} />
+            <Row title={t('documentation.ended')} description={t('documentation.relationshipHasConcluded')} left={<Pill label={t('documentation.ended2')} variant="outline" />} />
+            <Row title={t('documentation.complicated')} description={t('documentation.complexOrMixedRelationshipStatus')} left={<Pill label={t('documentation.complicated2')} variant="outline" />} />
           </View>
         </View>
 
         {/* UI Symbols */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>🔤 UI Symbols Explained</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.uiSymbolsExplained')}</RNText>
           <View style={styles.divider} />
-          <Row title="+ Pluses" description="Represent intensity. More pluses = stronger intensity (+ to ++++)" />
-          <Row title="− Minuses" description="Not currently used in the app, reserved for future features" />
-          <Row title="Numbers (3/5)" description="Current count / Maximum limit (e.g., photos: 3 out of 5 allowed)" />
-          <Row title="✓ Checkmark Badge" description="Indicates the profile photo on person cards" />
+          <Row title={t('documentation.pluses')} description={t('documentation.representIntensityMorePlusesStronger')} />
+          <Row title={t('documentation.minuses')} description={t('documentation.notCurrentlyUsedInThe')} />
+          <Row title={t('documentation.numbers35')} description={t('documentation.currentCountMaximumLimitE')} />
+          <Row title={t('documentation.checkmarkBadge')} description={t('documentation.indicatesTheProfilePhotoOn')} />
         </View>
 
         {/* Tips */}
         <View style={styles.card}>
-          <RNText style={styles.cardTitle}>💡 Pro Tips</RNText>
+          <RNText style={styles.cardTitle}>{t('documentation.proTips')}</RNText>
           <View style={styles.divider} />
           <Row
-            title="Quick Actions"
-            description="Long press on items for quick actions and options"
+            title={t('documentation.quickActions')}
+            description={t('documentation.longPressOnItemsFor')}
             left={<IconCircle icon="more" size={32} iconSize={15} />}
           />
           <Row
-            title="Photo Browser"
-            description="Tap photos to view full-screen with pinch-to-zoom"
+            title={t('documentation.photoBrowser')}
+            description={t('documentation.tapPhotosToViewFull')}
             left={<IconCircle icon="camera" size={32} iconSize={15} />}
           />
           <Row
-            title="AI Extraction"
-            description="Write natural stories and let AI automatically extract relations"
+            title={t('documentation.aiExtraction')}
+            description={t('documentation.writeNaturalStoriesAndLet')}
             left={<IconCircle icon="network" size={32} iconSize={15} />}
           />
           <Row
-            title="Timeline Filters"
-            description="Use filters to view specific types of relations in the timeline"
+            title={t('documentation.timelineFilters')}
+            description={t('documentation.useFiltersToViewSpecific')}
             left={<IconCircle icon="filter" size={32} iconSize={15} />}
           />
         </View>

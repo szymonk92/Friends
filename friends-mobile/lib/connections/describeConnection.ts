@@ -1,4 +1,5 @@
 import type { Connection, Person } from '@/lib/db/schema';
+import { tr, relationshipTypeLabel, connectionStatusLabel } from '@/lib/i18n/labels';
 
 /**
  * Human label for the *other* side of a connection, as seen from `viewerId`'s profile.
@@ -20,9 +21,11 @@ export function describeConnection(
 
   if (connection.relationshipType === 'pet') {
     // The connected side is the pet → viewer is the owner; otherwise viewer is the pet.
-    if (connectedEntity?.entityType !== 'pet') return 'Owner';
+    if (connectedEntity?.entityType !== 'pet') return tr('labels.owner', 'Owner');
     const species = connectedEntity.species?.trim();
-    return species ? `Pet · ${species}` : 'Pet';
+    return species
+      ? tr('labels.petSpecies', `Pet · ${species}`, { species })
+      : tr('labels.relationshipType.pet', 'Pet');
   }
   // Reciprocal family types: `relationshipType` names person2's role relative to
   // person1 (the profile the link was created from). 'child' → person1 is the
@@ -30,9 +33,17 @@ export function describeConnection(
   if (connection.relationshipType === 'child' || connection.relationshipType === 'parent') {
     const connectedIsChild =
       (connection.relationshipType === 'child') === (connection.person1Id === viewerId);
-    return connectedIsChild ? `Child${qualifier}` : `Parent${qualifier}`;
+    return connectedIsChild
+      ? `${relationshipTypeLabel('child', 'Child')}${qualifier}`
+      : `${relationshipTypeLabel('parent', 'Parent')}${qualifier}`;
   }
 
-  const status = connection.status && connection.status !== 'active' ? ` • ${connection.status}` : '';
-  return `${connection.relationshipType ?? ''}${qualifier}${status}`;
+  const status =
+    connection.status && connection.status !== 'active'
+      ? ` • ${connectionStatusLabel(connection.status).toLowerCase()}`
+      : '';
+  const type = connection.relationshipType
+    ? relationshipTypeLabel(connection.relationshipType, connection.relationshipType).toLowerCase()
+    : '';
+  return `${type}${qualifier}${status}`;
 }

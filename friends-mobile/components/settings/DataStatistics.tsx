@@ -1,5 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, ActivityIndicator } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 
 interface DataStats {
   people: number;
@@ -15,11 +16,12 @@ interface DataStatisticsProps {
 }
 
 export default function DataStatistics({ stats, loading }: DataStatisticsProps) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.card}>
       <Card.Content>
         <Text variant="titleLarge" style={styles.sectionTitle}>
-          Your Data
+          {t('dataStats.title')}
         </Text>
         <Divider style={styles.divider} />
 
@@ -28,31 +30,31 @@ export default function DataStatistics({ stats, loading }: DataStatisticsProps) 
         ) : (
           <View style={styles.statsContainer}>
             <View style={styles.statRow}>
-              <Text variant="bodyMedium">People:</Text>
+              <Text variant="bodyMedium">{t('dataStats.people')}</Text>
               <Text variant="bodyMedium" style={styles.statValue}>
                 {stats?.people || 0}
               </Text>
             </View>
             <View style={styles.statRow}>
-              <Text variant="bodyMedium">Relations:</Text>
+              <Text variant="bodyMedium">{t('dataStats.relations')}</Text>
               <Text variant="bodyMedium" style={styles.statValue}>
                 {stats?.relations || 0}
               </Text>
             </View>
             <View style={styles.statRow}>
-              <Text variant="bodyMedium">Connections:</Text>
+              <Text variant="bodyMedium">{t('dataStats.connections')}</Text>
               <Text variant="bodyMedium" style={styles.statValue}>
                 {stats?.connections || 0}
               </Text>
             </View>
             <View style={styles.statRow}>
-              <Text variant="bodyMedium">Stories:</Text>
+              <Text variant="bodyMedium">{t('dataStats.stories')}</Text>
               <Text variant="bodyMedium" style={styles.statValue}>
                 {stats?.stories || 0}
               </Text>
             </View>
             <View style={styles.statRow}>
-              <Text variant="bodyMedium">Events:</Text>
+              <Text variant="bodyMedium">{t('dataStats.events')}</Text>
               <Text variant="bodyMedium" style={styles.statValue}>
                 {stats?.events || 0}
               </Text>

@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -410,7 +411,7 @@ export const useSettings = create<SettingsState>((set, get) => ({
   setMaxPhotosPerPerson: async (limit: number) => {
     try {
       if (limit < 1 || limit > 100) {
-        throw new Error('Photo limit must be between 1 and 100');
+        throw new Error(tr('dev.invalidLimitMessage', 'Photo limit must be between 1 and 100'));
       }
       await AsyncStorage.setItem(MAX_PHOTOS_PER_PERSON_STORAGE_KEY, limit.toString());
       set({ maxPhotosPerPerson: limit });

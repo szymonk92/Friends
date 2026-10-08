@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { Text, ActivityIndicator, Button, Menu, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useCallback, useMemo } from 'react';
-import { router } from 'expo-router';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { formatRelationType, formatRelativeShort } from '@/lib/utils/format';
 import { Avatar } from '@/components/Avatar';
 import { usePeople } from '@/hooks/usePeople';
@@ -45,6 +45,14 @@ export default function PeopleListScreen() {
   const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
+  // Deep link from a person's tag menu: /?tag=<tag> filters everyone with that tag.
+  const { tag: tagParam, at: tagStamp } = useLocalSearchParams<{ tag?: string; at?: string }>();
+  useEffect(() => {
+    if (typeof tagParam === 'string' && tagParam) {
+      setSelectedTags([tagParam]);
+      setViewMode('all');
+    }
+  }, [tagParam, tagStamp]);
   const {
     data: people = [],
     isLoading,
@@ -186,7 +194,7 @@ export default function PeopleListScreen() {
                 />
                 <Menu.Item
                   onPress={() => { setMenuVisible(false); router.push('/import-contacts'); }}
-                  title="Import from contacts"
+                  title={t('importContacts.menu')}
                   leadingIcon="contacts"
                 />
                 <Divider />
@@ -252,12 +260,12 @@ export default function PeopleListScreen() {
           contentContainerStyle={s.chipsContent}
         >
           <Pill
-            label="My Network"
+            label={t('people.myNetwork')}
             selected={viewMode === 'network'}
             onPress={() => setViewMode('network')}
           />
           <Pill
-            label="All People"
+            label={t('timeline.allPeople')}
             selected={viewMode === 'all'}
             onPress={() => setViewMode('all')}
           />
@@ -279,7 +287,7 @@ export default function PeopleListScreen() {
             />
           ))}
           {hasActiveFilters && (
-            <Pill label="Clear" icon="filterRemove" variant="surface" onPress={clearAllFilters} />
+            <Pill label={t('importContacts.clear')} icon="filterRemove" variant="surface" onPress={clearAllFilters} />
           )}
         </ScrollView>
       </View>
@@ -305,7 +313,7 @@ export default function PeopleListScreen() {
             onPress={() => router.push('/import-contacts')}
             activeOpacity={0.8}
           >
-            <Text style={fzText.btnOutline}>Import from contacts</Text>
+            <Text style={fzText.btnOutline}>{t('importContacts.menu')}</Text>
           </TouchableOpacity>
         </View>
       )}

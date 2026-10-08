@@ -4,6 +4,7 @@ import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
+import { useTranslation } from 'react-i18next';
 
 interface SecretListProps {
   secrets: any[];
@@ -26,18 +27,21 @@ export default function SecretList({
   handleViewSecret,
   handleDeleteSecret,
 }: SecretListProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <View style={styles.statusRow}>
         <Pill
-          label={`Protected by ${
+          label={
             isPasswordBased
-              ? 'Password'
-              : getBiometricTypeName(biometricStatus?.biometricType || 'none')
-          }`}
+              ? t('secrets.protectedByPassword')
+              : t('secrets.protectedBy', {
+                  method: getBiometricTypeName(biometricStatus?.biometricType || 'none'),
+                })
+          }
           icon="checkCircle"
         />
-        <RNText style={fzText.meta}>{secrets.length} secret(s) stored</RNText>
+        <RNText style={fzText.meta}>{t('secrets.stored', { count: secrets.length })}</RNText>
       </View>
 
       {loadingSecrets ? (
@@ -46,9 +50,9 @@ export default function SecretList({
         </View>
       ) : secrets.length === 0 ? (
         <View style={styles.emptyState}>
-          <RNText style={fzText.title}>No Secrets Yet</RNText>
+          <RNText style={fzText.title}>{t('secrets.none')}</RNText>
           <RNText style={[fzText.sub, { marginTop: fz.s.sm, textAlign: 'center' }]}>
-            Tap the + button to add your first secret
+            {t('secrets.tapPlus')}
           </RNText>
         </View>
       ) : (

@@ -10,11 +10,14 @@ import { usePersonPhotos } from '@/hooks/usePhotos';
 import { getInitials, formatYearsKnown } from '@/lib/utils/format';
 import { LIKES } from '@/lib/constants/relations';
 import { ChainLogo } from '@/components/ChainLogo';
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Avatar } from '@/components/Avatar';
+import { useTranslation } from 'react-i18next';
 
 export default function RelationshipScreen() {
+  const { t } = useTranslation();
   const { personId, compareToId } = useLocalSearchParams<{ personId: string; compareToId?: string }>();
   const { data: person, isLoading: personLoading } = usePerson(personId!);
   const { data: me } = useMePerson();
@@ -103,7 +106,7 @@ export default function RelationshipScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Relationship',
+          title: t('relationship.title'),
           headerStyle: { backgroundColor: fz.paper },
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
@@ -114,29 +117,30 @@ export default function RelationshipScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* the pair */}
           <View style={styles.pairRow}>
-            <Avatar name={isComparingToSelf ? 'Me' : other.name} photoPath={otherPhoto?.filePath} size={74} variant="ink" />
+            <Avatar name={isComparingToSelf ? t('relationship.me') : other.name} photoPath={otherPhoto?.filePath} size={74} variant="ink" />
             <ChainLogo size={50} strokeWidth={6.5} color={fz.ink} variant={isPartner ? 'partner' : isConnected ? 'linked' : 'apart'} />
             <Avatar name={person.name} photoPath={personPhoto?.filePath} size={74} variant="ink" />
           </View>
 
           <Text style={styles.pairTitle}>
-            {isComparingToSelf ? 'You' : other.name.split(' ')[0]} &amp; {person.name.split(' ')[0]}
+            {isComparingToSelf ? t('relationship.you') : other.name.split(' ')[0]} &amp; {person.name.split(' ')[0]}
           </Text>
           {isComparingToSelf && person.relationshipType && (
             <Text style={styles.pairSub}>
-              {person.relationshipType.charAt(0).toUpperCase() + person.relationshipType.slice(1)}
-              {person.metLocation ? ` · Met in ${person.metLocation}` : ''}
+              {relationshipTypeLabel(person.relationshipType)}
+              {person.metLocation
+                ? ` · ${t('relationship.metIn', { place: person.metLocation })}`
+                : ''}
             </Text>
           )}
           {!isComparingToSelf && directConnection && (
             <Text style={styles.pairSub}>
-              {directConnection.relationshipType.charAt(0).toUpperCase() +
-                directConnection.relationshipType.slice(1)}
+              {relationshipTypeLabel(directConnection.relationshipType)}
               {directConnection.qualifier ? ` · ${directConnection.qualifier}` : ''}
             </Text>
           )}
           {!isComparingToSelf && !directConnection && (
-            <Text style={[styles.pairSub, styles.notConnected]}>Not connected yet</Text>
+            <Text style={[styles.pairSub, styles.notConnected]}>{t('relationship.notConnected')}</Text>
           )}
 
           {/* stats */}
@@ -151,26 +155,26 @@ export default function RelationshipScreen() {
               }
             >
               <Text style={styles.statValue}>
-                {yearsKnown ?? (directConnection ? 'Add date' : '—')}
+                {yearsKnown ?? (directConnection ? t('relationship.addDate') : '—')}
               </Text>
-              <Text style={styles.statLabel}>known</Text>
+              <Text style={styles.statLabel}>{t('relationship.known')}</Text>
             </Pressable>
             {isComparingToSelf && (
               <View style={styles.statTile}>
                 <Text style={styles.statValue}>{contactEvents.length}</Text>
-                <Text style={styles.statLabel}>notes</Text>
+                <Text style={styles.statLabel}>{t('relationship.notes')}</Text>
               </View>
             )}
             <View style={styles.statTile}>
               <Text style={styles.statValue}>{mutualConnectionIds.size}</Text>
-              <Text style={styles.statLabel}>mutuals</Text>
+              <Text style={styles.statLabel}>{t('relationship.mutuals')}</Text>
             </View>
           </View>
 
           {/* how they met (two other people) */}
           {!isComparingToSelf && directConnection?.notes ? (
             <View style={styles.card}>
-              <Text style={fzText.label}>How they met</Text>
+              <Text style={fzText.label}>{t('relationship.howTheyMet')}</Text>
               <Text style={styles.cardBody}>{directConnection.notes}</Text>
             </View>
           ) : null}
@@ -178,10 +182,10 @@ export default function RelationshipScreen() {
           {/* how you met */}
           {isComparingToSelf && (person.metDate || person.metLocation) && (
             <View style={styles.card}>
-              <Text style={fzText.label}>How you met</Text>
+              <Text style={fzText.label}>{t('relationship.howYouMet')}</Text>
               <Text style={styles.cardBody}>
                 {[
-                  person.metLocation ? `Met in ${person.metLocation}` : null,
+                  person.metLocation ? t('relationship.metIn', { place: person.metLocation }) : null,
                   person.metDate ? new Date(person.metDate).getFullYear().toString() : null,
                 ]
                   .filter(Boolean)
@@ -191,7 +195,7 @@ export default function RelationshipScreen() {
           )}
           {!isComparingToSelf && directConnection && (directConnection.qualifier || directConnection.notes) && (
             <View style={styles.card}>
-              <Text style={fzText.label}>How they know each other</Text>
+              <Text style={fzText.label}>{t('relationship.howTheyKnow')}</Text>
               <Text style={styles.cardBody}>
                 {[directConnection.qualifier, directConnection.notes].filter(Boolean).join(' · ')}
               </Text>
@@ -201,10 +205,10 @@ export default function RelationshipScreen() {
           {/* interests */}
           {(likes.common.length > 0 || likes.otherOnly.length > 0 || likes.personOnly.length > 0) && (
             <View style={styles.card}>
-              <Text style={fzText.label}>Interests</Text>
+              <Text style={fzText.label}>{t('relationship.interests')}</Text>
               {likes.common.length > 0 && (
                 <>
-                  <Text style={styles.likesWho}>In common</Text>
+                  <Text style={styles.likesWho}>{t('relationship.inCommon')}</Text>
                   <View style={styles.chips}>
                     {likes.common.map((label) => (
                       <Pill key={`c-${label}`} label={label} variant="surface" />
@@ -215,7 +219,9 @@ export default function RelationshipScreen() {
               {likes.otherOnly.length > 0 && (
                 <>
                   <Text style={styles.likesWho}>
-                    {isComparingToSelf ? 'You like' : `${other.name.split(' ')[0]} likes`}
+                    {isComparingToSelf
+                      ? t('relationship.youLike')
+                      : t('relationship.nameLikes', { name: other.name.split(' ')[0] })}
                   </Text>
                   <View style={styles.chips}>
                     {likes.otherOnly.map((label) => (
@@ -226,7 +232,9 @@ export default function RelationshipScreen() {
               )}
               {likes.personOnly.length > 0 && (
                 <>
-                  <Text style={styles.likesWho}>{person.name.split(' ')[0]} likes</Text>
+                  <Text style={styles.likesWho}>
+                    {t('relationship.nameLikes', { name: person.name.split(' ')[0] })}
+                  </Text>
                   <View style={styles.chips}>
                     {likes.personOnly.map((label) => (
                       <Pill key={`p-${label}`} label={label} variant="surface" />
@@ -239,9 +247,9 @@ export default function RelationshipScreen() {
 
           {/* mutual connections */}
           <View style={styles.card}>
-            <Text style={fzText.label}>Mutual connections</Text>
+            <Text style={fzText.label}>{t('relationship.mutualConnections')}</Text>
             {mutualConnectionIds.size === 0 ? (
-              <Text style={styles.emptyText}>No mutual connections yet.</Text>
+              <Text style={styles.emptyText}>{t('relationship.noMutuals')}</Text>
             ) : (
               <View style={styles.mutualsRow}>
                 {[...mutualConnectionIds].slice(0, 6).map((id, i) => {
@@ -257,7 +265,7 @@ export default function RelationshipScreen() {
                 })}
                 <Text style={styles.mutualNames} numberOfLines={1}>
                   {[...mutualConnectionIds]
-                    .map((id) => (id === me?.id ? 'You' : peopleById.get(id)?.name))
+                    .map((id) => (id === me?.id ? t('relationship.you') : peopleById.get(id)?.name))
                     .filter(Boolean)
                     .join(', ')}
                 </Text>
@@ -273,7 +281,7 @@ export default function RelationshipScreen() {
             labelStyle={fzText.chipOn}
             onPress={() => router.push(`/(tabs)/timeline?filterPersonId=${personId}`)}
           >
-            View shared timeline
+            {t('relationship.viewTimeline')}
           </Button>
         </ScrollView>
       </View>

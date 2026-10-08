@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { fz } from '@/lib/design/tokens';
 import { FormSection, FormInput } from '@/components/FormKit';
 import { PillGroup } from '@/components/PillGroup';
+import { useTranslation } from 'react-i18next';
 
 interface PartyDetailsFormProps {
   name: string;
@@ -14,11 +15,7 @@ interface PartyDetailsFormProps {
   setLocation: (location: string) => void;
 }
 
-const TYPES: Array<{ value: 'dinner' | 'party' | 'gathering'; label: string }> = [
-  { value: 'dinner', label: 'Dinner' },
-  { value: 'party', label: 'Party' },
-  { value: 'gathering', label: 'Gathering' },
-];
+const TYPES = ['dinner', 'party', 'gathering'] as const;
 
 export default function PartyDetailsForm({
   name,
@@ -30,29 +27,30 @@ export default function PartyDetailsForm({
   location,
   setLocation,
 }: PartyDetailsFormProps) {
+  const { t } = useTranslation();
   return (
-    <FormSection title="Party Details">
+    <FormSection title={t('party.details')}>
       <FormInput
-        label="Party Name"
+        label={t('party.name')}
         value={name}
         onChangeText={setName}
-        placeholder="e.g., Summer BBQ, Birthday Dinner"
+        placeholder={t('party.namePlaceholder')}
       />
 
-      <PillGroup value={type} onChange={setType} options={TYPES} style={styles.pillRow} />
+      <PillGroup value={type} onChange={setType} options={TYPES.map((value) => ({ value, label: t(`timeline.types.${value}`) }))} style={styles.pillRow} />
 
       <FormInput
-        label="Date (YYYY-MM-DD)"
+        label={t('party.date')}
         value={date}
         onChangeText={setDate}
         placeholder="2024-12-25"
       />
 
       <FormInput
-        label="Location"
+        label={t('party.location')}
         value={location}
         onChangeText={setLocation}
-        placeholder="e.g., My place, Restaurant name"
+        placeholder={t('party.locationPlaceholder')}
         style={styles.lastInput}
       />
     </FormSection>

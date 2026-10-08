@@ -35,7 +35,7 @@ export default function AppearanceSettings({
         </Text>
 
         <Text variant="labelMedium" style={styles.themeLabel}>
-          Font Family
+          {t('settings.fontFamily')}
         </Text>
         <View style={styles.themeGrid}>
           {(Object.keys(AVAILABLE_FONTS) as FontFamily[]).map((font) => (

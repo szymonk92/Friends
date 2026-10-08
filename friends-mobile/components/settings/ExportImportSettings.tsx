@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
 import { fz } from '@/lib/design/tokens';
 import { FormSection } from '@/components/FormKit';
+import { useTranslation } from 'react-i18next';
 
 interface ExportImportSettingsProps {
   handleExportJSON: () => void;
@@ -27,11 +28,12 @@ export default function ExportImportSettings({
   importLoading,
   importDataPending,
 }: ExportImportSettingsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <FormSection
-        title="Export Data"
-        hint="Export your data to back it up or transfer to another device."
+        title={t('exportImport.exportTitle')}
+        hint={t('exportImport.exportHint')}
       >
         <Button
           mode="contained"
@@ -44,7 +46,7 @@ export default function ExportImportSettings({
           style={styles.button}
           labelStyle={styles.buttonLabel}
         >
-          Export All Data (JSON)
+          {t('exportImport.json')}
         </Button>
 
         <Button
@@ -57,7 +59,7 @@ export default function ExportImportSettings({
           style={styles.button}
           labelStyle={styles.buttonLabel}
         >
-          Export People (CSV)
+          {t('exportImport.csv')}
         </Button>
 
         <Button
@@ -70,13 +72,13 @@ export default function ExportImportSettings({
           style={[styles.button, styles.lastButton]}
           labelStyle={styles.buttonLabel}
         >
-          Export to Obsidian
+          {t('exportImport.obsidian')}
         </Button>
       </FormSection>
 
       <FormSection
-        title="Import Data"
-        hint="Import data from a previously exported JSON file. Duplicate people (by name) will be skipped."
+        title={t('exportImport.importTitle')}
+        hint={t('exportImport.importHint')}
       >
         <Button
           mode="contained"
@@ -89,7 +91,7 @@ export default function ExportImportSettings({
           style={[styles.button, styles.lastButton]}
           labelStyle={styles.buttonLabel}
         >
-          Import from JSON
+          {t('exportImport.importJson')}
         </Button>
       </FormSection>
     </>

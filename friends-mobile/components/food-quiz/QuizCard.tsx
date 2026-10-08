@@ -4,6 +4,8 @@ import { QuestionIcon, ForkKnifeIcon } from 'phosphor-react-native';
 import { RelationIcon } from '@/components/RelationIcon';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
 import { fz } from '@/lib/design/tokens';
+import { tr } from '@/lib/i18n/labels';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +32,7 @@ export default function QuizCard({
   dislikeOpacity,
   skipOpacity,
 }: QuizCardProps) {
+  const { t } = useTranslation();
   return (
     <Animated.View
       style={[
@@ -48,21 +51,21 @@ export default function QuizCard({
       {/* Overlay indicators */}
       <Animated.View style={[styles.likeOverlay, { opacity: likeOpacity }]}>
         <View style={styles.overlayBadge}>
-          <Text style={styles.overlayText}>LIKES</Text>
+          <Text style={styles.overlayText}>{t('foodQuiz.overlayLikes')}</Text>
           <RelationIcon type={LIKES} size={28} />
         </View>
       </Animated.View>
 
       <Animated.View style={[styles.dislikeOverlay, { opacity: dislikeOpacity }]}>
         <View style={styles.overlayBadge}>
-          <Text style={styles.overlayText}>DISLIKES</Text>
+          <Text style={styles.overlayText}>{t('foodQuiz.overlayDislikes')}</Text>
           <RelationIcon type={DISLIKES} size={28} />
         </View>
       </Animated.View>
 
       <Animated.View style={[styles.skipOverlay, { opacity: skipOpacity }]}>
         <View style={styles.overlayBadge}>
-          <Text style={styles.overlayText}>IDK</Text>
+          <Text style={styles.overlayText}>{t('foodQuiz.overlayIdk')}</Text>
           <QuestionIcon size={28} color="#1B1815" weight="bold" />
         </View>
       </Animated.View>
@@ -71,12 +74,14 @@ export default function QuizCard({
         <Card.Content style={styles.questionContent}>
           <ForkKnifeIcon size={40} color="#1B1815" weight="bold" style={styles.foodIcon} />
           <Text variant="headlineMedium" style={styles.questionText}>
-            Does {currentPerson?.name?.split(' ')[0]} like
+            {t('foodQuiz.question', { name: currentPerson?.name?.split(' ')[0] })}
           </Text>
           <Text variant="displaySmall" style={styles.foodItem}>
-            {currentFood?.item}?
+            {currentFood ? tr(`foodQuiz.items.${currentFood.item}`, currentFood.item) : ''}?
           </Text>
-          <Chip style={styles.categoryChip}>{currentFood?.category}</Chip>
+          <Chip style={styles.categoryChip}>
+            {currentFood ? tr(`foodQuiz.categories.${currentFood.category}`, currentFood.category) : ''}
+          </Chip>
         </Card.Content>
       </Card>
     </Animated.View>

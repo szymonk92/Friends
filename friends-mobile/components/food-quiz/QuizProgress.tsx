@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text, ProgressBar } from 'react-native-paper';
 import { getInitials } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface QuizProgressProps {
   currentQuestionIndex: number;
@@ -16,11 +17,12 @@ export default function QuizProgress({
   progress,
   currentPerson,
 }: QuizProgressProps) {
+  const { t } = useTranslation();
   return (
     <View>
       <View style={styles.progressContainer}>
         <Text variant="bodySmall" style={styles.progressText}>
-          Question {currentQuestionIndex + 1} of {totalQuestions}
+          {t('foodQuiz.questionOf', { current: currentQuestionIndex + 1, total: totalQuestions })}
         </Text>
         <ProgressBar progress={progress} style={styles.progressBar} />
       </View>

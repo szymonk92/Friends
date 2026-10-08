@@ -4,6 +4,8 @@ import { List, Text } from 'react-native-paper';
 import { useLocationSuggestions, type LocationKind, type LocationSuggestion } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { FormInput } from '@/components/FormKit';
+import { tr } from '@/lib/i18n/labels';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   value: string;
@@ -20,18 +22,19 @@ export default function MetLocationInput({
   label,
   placeholder,
 }: Props) {
+  const { t } = useTranslation();
   // Shown while the input is focused; only explicit selection hides it — NOT
   // the input's onBlur, which fires (and would unmount this list) before a
   // tap on a suggestion row below it can register as a press.
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { data: suggestions = [] } = useLocationSuggestions(value, kind);
 
-  const resolvedLabel = label ?? (kind === 'home' ? 'Where they live' : 'Where you met');
+  const resolvedLabel = label ?? (kind === 'home' ? t('location.whereLive') : t('location.whereMet'));
   const resolvedPlaceholder =
     placeholder ??
     (kind === 'home'
-      ? 'e.g. London, Krakow, Bay Area'
-      : 'e.g. Chile, Krakow wedding, Vietnam hostel');
+      ? t('location.homePlaceholder')
+      : t('location.metPlaceholder'));
 
   const visibleSuggestions = useMemo(() => {
     const trimmed = value.trim().toLowerCase();
@@ -53,8 +56,8 @@ export default function MetLocationInput({
         label={resolvedLabel}
         placeholder={resolvedPlaceholder}
         value={value}
-        onChangeText={(t) => {
-          onChangeText(t);
+        onChangeText={(text) => {
+          onChangeText(text);
           setShowSuggestions(true);
         }}
         onFocus={() => setShowSuggestions(true)}
@@ -98,13 +101,21 @@ function describe(s: LocationSuggestion): { icon: string; subtitle?: string } {
   if (s.source === 'history') {
     return {
       icon: 'history',
-      subtitle: s.count && s.count > 1 ? `Used ${s.count}× before` : 'Used before',
+      subtitle:
+        s.count && s.count > 1
+          ? tr('location.usedTimes', `Used ${s.count}× before`, { count: s.count })
+          : tr('location.usedBefore', 'Used before'),
     };
   }
   if (s.source === 'trip') {
-    return { icon: 'airplane', subtitle: s.trip ? `Trip: ${s.trip.name}` : 'From a trip' };
+    return {
+      icon: 'airplane',
+      subtitle: s.trip
+        ? tr('location.trip', `Trip: ${s.trip.name}`, { name: s.trip.name })
+        : tr('location.fromTrip', 'From a trip'),
+    };
   }
-  return { icon: 'earth', subtitle: 'Country' };
+  return { icon: 'earth', subtitle: tr('location.country', 'Country') };
 }
 
 const styles = StyleSheet.create({

@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { Alert } from 'react-native';
 
 type Opts = {
@@ -21,9 +22,9 @@ export const registerConfirmHost = (fn: typeof present) => {
 export function confirmDestructive(opts: Opts) {
   if (present) return present(opts);
   Alert.alert(opts.title, opts.message, [
-    { text: 'Cancel', style: 'cancel' },
+    { text: tr('common.cancel', 'Cancel'), style: 'cancel' },
     {
-      text: opts.confirmLabel ?? 'Delete',
+      text: opts.confirmLabel ?? tr('common.delete', 'Delete'),
       style: 'destructive',
       onPress: () => {
         void opts.onConfirm();

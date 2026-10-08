@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Chip, Menu, useTheme, Icon } from 'react-native-paper';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
+import { useTranslation } from 'react-i18next';
 
 interface EventTypeOption {
   value: string;
@@ -34,14 +35,15 @@ export default function TimelineFilters({
   eventTypes,
   getPersonName,
 }: TimelineFiltersProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   // Sort event types to move selected to the front
   const sortedEventTypes = useMemo(() => {
     if (!filterEventType) return eventTypes;
 
-    const selected = eventTypes.find((t) => t.value === filterEventType);
-    const others = eventTypes.filter((t) => t.value !== filterEventType);
+    const selected = eventTypes.find((et) => et.value === filterEventType);
+    const others = eventTypes.filter((et) => et.value !== filterEventType);
 
     return selected ? [selected, ...others] : eventTypes;
   }, [eventTypes, filterEventType]);
@@ -74,7 +76,7 @@ export default function TimelineFilters({
                 ]}
                 selectedColor={filterPersonId ? theme.colors.onPrimary : undefined}
               >
-                {filterPersonId ? getPersonName(filterPersonId) : 'All People'}
+                {filterPersonId ? getPersonName(filterPersonId) : t('timeline.allPeople')}
               </Chip>
             }
           >
@@ -83,7 +85,7 @@ export default function TimelineFilters({
                 setFilterPersonId(null);
                 setPersonMenuVisible(false);
               }}
-              title="All People"
+              title={t('timeline.allPeople')}
             />
             {people.map((person) => (
               <Menu.Item
@@ -104,7 +106,7 @@ export default function TimelineFilters({
             selected={!filterEventType}
             style={styles.filterChip}
           >
-            All Types
+            {t('timeline.allTypes')}
           </Chip>
           {sortedEventTypes.map((type) => {
             const isSelected = filterEventType === type.value;

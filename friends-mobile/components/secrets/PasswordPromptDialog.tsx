@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PasswordPromptDialogProps {
   visible: boolean;
@@ -22,15 +23,16 @@ export default function PasswordPromptDialog({
   handlePasswordSubmit,
   loading,
 }: PasswordPromptDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
-      <Dialog.Title style={styles.dialogTitle}>Enter Password</Dialog.Title>
+      <Dialog.Title style={styles.dialogTitle}>{t('secrets.enterPassword')}</Dialog.Title>
       <Dialog.Content>
         <Text variant="bodySmall" style={[styles.passwordPromptText, styles.dialogFont]}>
-          Enter your password to {pendingAction === 'create' ? 'save' : 'decrypt'} the secret
+          {pendingAction === 'create' ? t('secrets.promptSave') : t('secrets.promptDecrypt')}
         </Text>
         <TextInput
-          label="Password"
+          label={t('secrets.password')}
           value={accessPassword}
           onChangeText={setAccessPassword}
           mode="outlined"
@@ -41,7 +43,7 @@ export default function PasswordPromptDialog({
       </Dialog.Content>
       <Dialog.Actions>
         <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           labelStyle={styles.dialogFont}
@@ -49,7 +51,7 @@ export default function PasswordPromptDialog({
           loading={loading}
           disabled={!accessPassword || loading}
         >
-          Submit
+          {t('secrets.submit')}
         </Button>
       </Dialog.Actions>
     </Dialog>

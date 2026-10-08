@@ -14,8 +14,10 @@ import {
   TYPES_WITHOUT_INTENSITY,
 } from '@/lib/constants/relations';
 import { fz, fzText } from '@/lib/design/tokens';
+import { relationTypeLabel, relationStatusLabel, intensityLabel } from '@/lib/i18n/labels';
 import { PillGroup } from '@/components/PillGroup';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
+import { useTranslation } from 'react-i18next';
 
 type RelationFormMode = 'add' | 'edit';
 
@@ -24,6 +26,7 @@ interface RelationFormProps {
 }
 
 export default function RelationForm({ mode }: RelationFormProps) {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const relationId = mode === 'edit' ? (params.relationId as string) : undefined;
@@ -55,7 +58,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
 
   const handleSubmit = async () => {
     if (!objectLabel.trim()) {
-      Alert.alert('Missing Information', 'Please enter what they like/dislike/etc.');
+      Alert.alert(t('relationForm.missingTitle'), t('relationForm.missingMessage'));
       return;
     }
 
@@ -101,8 +104,10 @@ export default function RelationForm({ mode }: RelationFormProps) {
       const msg =
         mode === 'add' && error instanceof Error
           ? error.message
-          : `Failed to ${mode === 'add' ? 'add' : 'update'} relation. Please try again.`;
-      Alert.alert(mode === 'add' ? 'Cannot add relation' : 'Error', msg);
+          : mode === 'add'
+            ? t('relationForm.addFailed')
+            : t('relationForm.updateFailed');
+      Alert.alert(mode === 'add' ? t('relationForm.cannotAdd') : t('common.error'), msg);
       devLogger.error(`Failed to ${mode} relation`, { error, relationType, personId });
     } finally {
       setIsSubmitting(false);
@@ -112,61 +117,54 @@ export default function RelationForm({ mode }: RelationFormProps) {
   const getPlaceholder = () => {
     switch (relationType) {
       case 'LIKES':
-        return 'e.g., coffee, hiking, classical music';
       case 'DISLIKES':
-        return 'e.g., mushrooms, loud noises, crowds';
       case 'AVOIDS':
-        return 'e.g., peanuts, alcohol, meat';
       case 'IS':
-        return 'e.g., vegan, software engineer, introvert';
       case 'HAS':
-        return 'e.g., glasses, a car, a house';
       case 'LIVES_IN':
-        return 'e.g., Kraków, Brooklyn';
       case 'CAN':
-        return 'e.g., programming, guitar, cooking';
       case 'DOES':
-        return 'e.g., yoga, meditation, running';
       case 'DID':
-        return 'e.g., ran a marathon, moved abroad';
       case 'WANTS':
-        return 'e.g., learn piano, run a marathon';
       case 'STRUGGLES_WITH':
-        return 'e.g., anxiety, procrastination, sleep';
       case 'KNOWS':
-        return 'e.g., a lot of people in Berlin';
+        return t(`relationForm.placeholder.${relationType}`);
       default:
-        return 'Enter details...';
+        return t('relationForm.placeholder.default');
     }
   };
 
   return (
     <FormScreen
-      title={displayPerson?.name || (mode === 'add' ? 'Add Something' : 'Edit')}
+      title={displayPerson?.name || (mode === 'add' ? t('relationForm.addSomething') : t('common.edit'))}
       loading={isLoading}
       notFound={notFound}
-      notFoundLabel="Relation not found"
+      notFoundLabel={t('relationForm.notFound')}
     >
       <Text style={fzText.titleLg}>
-        {mode === 'add' ? 'Add something they’re into' : 'Edit'} for {displayPerson?.name}
+        {t(mode === 'add' ? 'relationForm.addFor' : 'relationForm.editFor', {
+          name: displayPerson?.name,
+        })}
       </Text>
       <Text style={[fzText.sub, styles.headerSub]}>
         {mode === 'add'
-          ? 'A like, dislike, fear, skill, or anything worth remembering.'
-          : 'Update this entry.'}
+          ? t('relationForm.addSubtitle')
+          : t('relationForm.editSubtitle')}
       </Text>
 
-      <FormSection title="Type">
+      <FormSection title={t('relationForm.type')}>
         <PillGroup
           value={relationType}
           onChange={setRelationType}
-          options={RELATION_TYPE_OPTIONS}
+          options={RELATION_TYPE_OPTIONS.map((o) => ({ ...o, label: relationTypeLabel(o.value, o.label) }))}
         />
       </FormSection>
 
       <FormSection>
         <FormInput
-          label={`What they ${relationType.toLowerCase().replace('_', ' ')}`}
+          label={t('relationForm.whatThey', {
+            verb: relationTypeLabel(relationType).toLowerCase(),
+          })}
           placeholder={getPlaceholder()}
           value={objectLabel}
           onChangeText={setObjectLabel}
@@ -174,21 +172,21 @@ export default function RelationForm({ mode }: RelationFormProps) {
         />
 
         <FormInput
-          label="Category (optional)"
-          placeholder="e.g., food, activity, music, sport"
+          label={t('relationForm.category')}
+          placeholder={t('relationForm.categoryPlaceholder')}
           value={category}
           onChangeText={setCategory}
           style={styles.lastInput}
         />
       </FormSection>
 
-      <FormSection title="When">
-        <PillGroup value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+      <FormSection title={t('relationForm.when')}>
+        <PillGroup value={status} onChange={setStatus} options={STATUS_OPTIONS.map((o) => ({ ...o, label: relationStatusLabel(o.value, o.label) }))} />
       </FormSection>
 
       {!TYPES_WITHOUT_INTENSITY.includes(relationType) && (
-        <FormSection title="Intensity">
-          <PillGroup value={intensity} onChange={setIntensity} options={INTENSITY_OPTIONS} />
+        <FormSection title={t('relationForm.intensity')}>
+          <PillGroup value={intensity} onChange={setIntensity} options={INTENSITY_OPTIONS.map((o) => ({ ...o, label: intensityLabel(o.value, o.label) }))} />
         </FormSection>
       )}
 
@@ -202,7 +200,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
         contentStyle={styles.submitButtonContent}
         labelStyle={fzText.btn}
       >
-        {mode === 'add' ? 'Add' : 'Save Changes'}
+        {mode === 'add' ? t('relationForm.add') : t('relationForm.save')}
       </Button>
 
       <Button
@@ -211,7 +209,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
         disabled={isSubmitting}
         textColor={fz.textMute}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </FormScreen>
   );

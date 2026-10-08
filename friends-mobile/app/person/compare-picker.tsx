@@ -3,8 +3,10 @@ import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, ActivityIndicator, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePeople, usePerson } from '@/hooks/usePeople';
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { PersonRow } from '@/components/PersonRow';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 // Lowercase, strip accents; ł has no decomposition so map it by hand.
 const fold = (v: string) =>
@@ -15,6 +17,7 @@ const fold = (v: string) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 export default function ComparePickerScreen() {
+  const { t } = useTranslation();
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person } = usePerson(personId!);
   const { data: people = [], isLoading } = usePeople();
@@ -31,7 +34,9 @@ export default function ComparePickerScreen() {
     <>
       <Stack.Screen
         options={{
-          title: person ? `Compare ${person.name.split(' ')[0]} with…` : 'Compare with…',
+          title: person
+            ? t('comparePicker.titleWithName', { name: person.name.split(' ')[0] })
+            : t('comparePicker.title'),
           headerStyle: { backgroundColor: fz.paper },
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 17 },
@@ -45,7 +50,7 @@ export default function ComparePickerScreen() {
           </View>
         ) : noOthers ? (
           <View style={styles.centered}>
-            <Text style={[fzText.sub, styles.emptyText]}>Add another person first to compare.</Text>
+            <Text style={[fzText.sub, styles.emptyText]}>{t('comparePicker.noOthers')}</Text>
           </View>
         ) : (
           <>
@@ -53,7 +58,7 @@ export default function ComparePickerScreen() {
               mode="outlined"
               value={query}
               onChangeText={setQuery}
-              placeholder="Search people..."
+              placeholder={t('comparePicker.search')}
               left={<TextInput.Icon icon="magnify" />}
               autoCorrect={false}
               style={styles.search}
@@ -64,7 +69,7 @@ export default function ComparePickerScreen() {
             <FlatList
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <Text style={[fzText.sub, styles.emptyText]}>No one matches “{query.trim()}”.</Text>
+                <Text style={[fzText.sub, styles.emptyText]}>{t('comparePicker.noMatch', { query: query.trim() })}</Text>
               }
               data={candidates}
               keyExtractor={(p) => p.id}
@@ -74,8 +79,7 @@ export default function ComparePickerScreen() {
                   name={item.name}
                   photoPath={item.photoPath}
                   subtitle={
-                    item.relationshipType &&
-                    item.relationshipType.charAt(0).toUpperCase() + item.relationshipType.slice(1)
+                    item.relationshipType && relationshipTypeLabel(item.relationshipType)
                   }
                   avatarSize={46}
                   avatarVariant="ink"

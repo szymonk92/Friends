@@ -19,6 +19,7 @@ import QuizCard from '@/components/food-quiz/QuizCard';
 import QuizControls from '@/components/food-quiz/QuizControls';
 import QuizProgress from '@/components/food-quiz/QuizProgress';
 import QuizComplete from '@/components/food-quiz/QuizComplete';
+import { useTranslation } from 'react-i18next';
 
 // Suppress reanimated warnings from react-native-paper
 LogBox.ignoreLogs(['It looks like you might be using shared value']);
@@ -44,6 +45,7 @@ const FOOD_QUESTIONS = [
 const FOOD_ITEM_SET = new Set(FOOD_QUESTIONS.map((q) => q.item));
 
 export default function FoodQuizScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: allPeople = [] } = usePeople();
   const { data: existingRelations = [] } = useRelations();
@@ -291,14 +293,14 @@ export default function FoodQuizScreen() {
   if (primaryPeople.length === 0) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Food Quiz' }} />
+        <Stack.Screen options={{ title: t('foodQuiz.title') }} />
         <CenteredContainer style={styles.centered}>
-          <Text variant="titleLarge">No Primary People</Text>
+          <Text variant="titleLarge">{t('foodQuiz.noPrimary')}</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            Add some primary people first to use the food quiz.
+            {t('foodQuiz.noPrimaryMessage')}
           </Text>
           <Button mode="contained" onPress={() => router.back()}>
-            Go Back
+            {t('person.goBack')}
           </Button>
         </CenteredContainer>
       </>
@@ -308,15 +310,15 @@ export default function FoodQuizScreen() {
   if (questionsToAsk.length === 0 && !isComplete) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Food Quiz' }} />
+        <Stack.Screen options={{ title: t('foodQuiz.title') }} />
         <CenteredContainer style={styles.centered}>
           <Text style={styles.completeIcon}>✅</Text>
-          <Text variant="titleLarge">All Questions Answered!</Text>
+          <Text variant="titleLarge">{t('foodQuiz.allAnswered')}</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            You've already answered all food preference questions for your people.
+            {t('foodQuiz.allAnsweredMessage')}
           </Text>
           <Button mode="contained" onPress={() => router.back()}>
-            Go Back
+            {t('person.goBack')}
           </Button>
         </CenteredContainer>
       </>
@@ -329,7 +331,7 @@ export default function FoodQuizScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Food Quiz' }} />
+      <Stack.Screen options={{ title: t('foodQuiz.title') }} />
       <View style={styles.container}>
         <QuizProgress
           currentQuestionIndex={currentQuestionIndex}

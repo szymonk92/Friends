@@ -16,28 +16,35 @@ import { useRelations } from '@/hooks/useRelations';
 import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 
-import TimelineEventItem from '@/components/timeline/TimelineEventItem';
+import TimelineEventItem, { type TimelineEvent } from '@/components/timeline/TimelineEventItem';
+import { ActionSheet } from '@/components/ActionSheet';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
 import { parseFlexibleDate } from '@/lib/utils/dates';
 import { parseJsonArray } from '@/lib/utils/json';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
+import { useTranslation } from 'react-i18next';
 
 const EVENT_TYPES = [
-  { value: 'met', label: 'Met', icon: 'account-check' },
-  { value: 'called', label: 'Called', icon: 'phone' },
-  { value: 'messaged', label: 'Messaged', icon: 'message' },
-  { value: 'hung_out', label: 'Hung Out', icon: 'coffee' },
-  { value: 'special', label: 'Special Event', icon: 'star' },
-  { value: 'birthday', label: 'Birthday', icon: 'cake-variant' },
-  { value: 'anniversary', label: 'Anniversary', icon: 'calendar-star' },
-  { value: 'party', label: 'Party', icon: 'party-popper' },
-  { value: 'dinner', label: 'Dinner', icon: 'silverware-fork-knife' },
-  { value: 'gathering', label: 'Gathering', icon: 'account-group' },
+  { value: 'met' as const, icon: 'account-check' },
+  { value: 'called' as const, icon: 'phone' },
+  { value: 'messaged' as const, icon: 'message' },
+  { value: 'hung_out' as const, icon: 'coffee' },
+  { value: 'special' as const, icon: 'star' },
+  { value: 'birthday' as const, icon: 'cake-variant' },
+  { value: 'anniversary' as const, icon: 'calendar-star' },
+  { value: 'party' as const, icon: 'party-popper' },
+  { value: 'dinner' as const, icon: 'silverware-fork-knife' },
+  { value: 'gathering' as const, icon: 'account-group' },
 ];
 
 export default function TimelineScreen() {
+  const { t } = useTranslation();
+  const eventTypes = EVENT_TYPES.map((e) => ({
+    ...e,
+    label: t(`timeline.types.${e.value}`),
+  }));
   const insets = useSafeAreaInsets();
   const { filterPersonId: initialFilterPersonId } = useLocalSearchParams<{ filterPersonId?: string }>();
   const { data: events = [], isLoading, error, refetch } = useContactEvents();
@@ -61,7 +68,7 @@ export default function TimelineScreen() {
   const [filterPersonId, setFilterPersonId] = useState<string | null>(initialFilterPersonId ?? null);
   const [filterEventType, setFilterEventType] = useState<string | null>(null);
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
-  const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
+  const [menuEvent, setMenuEvent] = useState<TimelineEvent | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
 
   // Generate birthday events from people with birthday
@@ -73,7 +80,7 @@ export default function TimelineScreen() {
         personId: p.id,
         eventType: 'birthday',
         eventDate: p.dateOfBirth!,
-        notes: `${p.name}'s birthday`,
+        notes: t('timeline.birthdayOf', { name: p.name }),
         isBirthday: true,
       }));
   }, [people]);
@@ -100,7 +107,7 @@ export default function TimelineScreen() {
         const guestIds = parseJsonArray(event.guestIds);
         const guestNames = guestIds.map((gid) => {
           const person = people.find((p) => p.id === gid);
-          return person?.name || 'Unknown';
+          return person?.name || t('timeline.unknown');
         });
 
         // Create ONE event for the entire party
@@ -109,7 +116,19 @@ export default function TimelineScreen() {
           personId: null as any, // No specific person - it's a group event
           eventType: event.eventType || 'party',
           eventDate: event.eventDate,
-          notes: `${event.name || 'Party'}${guestIds.length > 0 ? ` with ${guestNames.slice(0, 3).join(', ')}${guestNames.length > 3 ? ` and ${guestNames.length - 3} more` : ''}` : ''}${event.location ? ` at ${event.location}` : ''}`,
+          notes: [
+            event.name || t('timeline.types.party'),
+            guestIds.length > 0
+              ? `${t('timeline.withNames', { names: guestNames.slice(0, 3).join(', ') })}${
+                  guestNames.length > 3
+                    ? ` ${t('timeline.andMore', { count: guestNames.length - 3 })}`
+                    : ''
+                }`
+              : '',
+            event.location ? t('timeline.atPlace', { place: event.location }) : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
           isPartyEvent: true,
           partyDetails: event,
           guestCount: guestIds.length,
@@ -147,11 +166,11 @@ export default function TimelineScreen() {
 
   const getPersonName = (personId: string) => {
     const person = people.find((p) => p.id === personId);
-    return person?.name || 'Unknown';
+    return person?.name || t('timeline.unknown');
   };
 
   const getEventLabel = (type: string) => {
-    const eventConfig = EVENT_TYPES.find((e) => e.value === type);
+    const eventConfig = eventTypes.find((e) => e.value === type);
     return eventConfig?.label || type;
   };
 
@@ -163,13 +182,13 @@ export default function TimelineScreen() {
 
   const handleAddEvent = async () => {
     if (selectedPersonIds.length === 0) {
-      Alert.alert('Select Person', 'Please select at least one person for this event');
+      Alert.alert(t('timeline.selectPersonTitle'), t('timeline.selectPersonMessage'));
       return;
     }
 
     const parsedDate = parseFlexibleDate(dateInput);
     if (!parsedDate) {
-      Alert.alert('Invalid Date', 'Enter date as YYYY, YYYY-MM, or YYYY-MM-DD');
+      Alert.alert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
       return;
     }
 
@@ -183,7 +202,7 @@ export default function TimelineScreen() {
           notes: notes.trim() || undefined,
           eventDate: parsedDate,
         });
-        Alert.alert('Success', 'Event updated!');
+        Alert.alert(t('common.success'), t('timeline.updated'));
       } else {
         await Promise.all(
           selectedPersonIds.map((personId) =>
@@ -195,12 +214,15 @@ export default function TimelineScreen() {
             })
           )
         );
-        Alert.alert('Success', 'Event added to timeline!');
+        Alert.alert(t('common.success'), t('timeline.added'));
       }
 
       closeDialog();
     } catch (err) {
-      Alert.alert('Error', editingEvent ? 'Failed to update event' : 'Failed to add event');
+      Alert.alert(
+        t('common.error'),
+        editingEvent ? t('timeline.updateFailed') : t('timeline.addFailed')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -245,8 +267,9 @@ export default function TimelineScreen() {
     const actualEventId = isPartyEvent ? eventId.replace('party-', '') : eventId;
 
     confirmDestructive({
-      title: `Delete ${eventType === 'party' ? 'Party' : 'Event'}`,
-      message: `Are you sure you want to remove this ${eventType}?`,
+      title: eventType === 'party' ? t('timeline.deleteParty') : t('timeline.deleteEvent'),
+      message:
+        eventType === 'party' ? t('timeline.removePartyMessage') : t('timeline.removeEventMessage'),
       onConfirm: () => deleteFunction.mutateAsync(actualEventId),
     });
   };
@@ -255,7 +278,7 @@ export default function TimelineScreen() {
     return (
       <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" color={fz.ink} />
-        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading timeline...</Text>
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>{t('timeline.loading')}</Text>
       </CenteredContainer>
     );
   }
@@ -263,8 +286,8 @@ export default function TimelineScreen() {
   if (error) {
     return (
       <CenteredContainer style={styles.centered}>
-        <Text style={{ ...fzText.sub, marginBottom: 16 }}>Failed to load timeline</Text>
-        <Button mode="contained" onPress={() => refetch()}>Retry</Button>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('timeline.loadFailed')}</Text>
+        <Button mode="contained" onPress={() => refetch()}>{t('timeline.retry')}</Button>
       </CenteredContainer>
     );
   }
@@ -278,7 +301,7 @@ export default function TimelineScreen() {
       {/* App bar */}
       <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.appBarRow}>
-          <Text style={fzText.screenTitle}>Timeline</Text>
+          <Text style={fzText.screenTitle}>{t('timeline.title')}</Text>
           <View style={styles.appBarActions}>
             <IconCircle icon="plus" onPress={() => setAddDialogVisible(true)} />
             <IconCircle
@@ -290,7 +313,7 @@ export default function TimelineScreen() {
           </View>
         </View>
         <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
-          {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
+          {t('timeline.notesCount', { count: filteredEvents.length })}
         </Text>
       </View>
 
@@ -303,23 +326,23 @@ export default function TimelineScreen() {
         personMenuVisible={personMenuVisible}
         setPersonMenuVisible={setPersonMenuVisible}
         people={people}
-        eventTypes={EVENT_TYPES}
+        eventTypes={eventTypes}
         getPersonName={getPersonName}
       />
 
       {filteredEvents.length === 0 ? (
         <CenteredContainer style={styles.emptyState}>
           <Text style={fzText.title}>
-            {filterPersonId || filterEventType ? 'No matching events' : 'No events yet'}
+            {filterPersonId || filterEventType ? t('timeline.noMatching') : t('timeline.noEvents')}
           </Text>
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
             {filterPersonId || filterEventType
-              ? 'Try adjusting your filters or add new events.'
-              : 'Start tracking when you meet, call, or interact with people in your network.'}
+              ? t('timeline.adjustFilters')
+              : t('timeline.startTracking')}
           </Text>
           {!filterPersonId && !filterEventType && (
             <Button mode="contained" onPress={() => setAddDialogVisible(true)}>
-              Add First Event
+              {t('timeline.addFirst')}
             </Button>
           )}
           {(filterPersonId || filterEventType) && (
@@ -331,7 +354,7 @@ export default function TimelineScreen() {
                 setFilterEventType(null);
               }}
             >
-              Clear Filters
+              {t('timeline.clearFilters')}
             </Button>
           )}
         </CenteredContainer>
@@ -344,10 +367,7 @@ export default function TimelineScreen() {
               index={index}
               filteredEvents={filteredEvents}
               people={people}
-              eventMenuVisible={eventMenuVisible}
-              setEventMenuVisible={setEventMenuVisible}
-              handleEditEvent={handleEditEvent}
-              handleDeleteEvent={handleDeleteEvent}
+              onMenu={setMenuEvent}
               getPersonName={getPersonName}
               getEventLabel={getEventLabel}
             />
@@ -356,6 +376,19 @@ export default function TimelineScreen() {
           contentContainerStyle={styles.list}
         />
       )}
+
+      <ActionSheet
+        visible={menuEvent !== null}
+        onDismiss={() => setMenuEvent(null)}
+        actions={
+          menuEvent
+            ? [
+                { label: t('common.edit'), icon: 'pencil', onPress: () => handleEditEvent(menuEvent) },
+                { label: t('common.delete'), icon: 'trash', onPress: () => handleDeleteEvent(menuEvent.id) },
+              ]
+            : []
+        }
+      />
 
       <AddEventDialog
         visible={addDialogVisible}
@@ -366,7 +399,7 @@ export default function TimelineScreen() {
         people={people}
         eventType={eventType}
         setEventType={setEventType}
-        eventTypes={EVENT_TYPES}
+        eventTypes={eventTypes}
         dateInput={dateInput}
         setDateInput={setDateInput}
         notes={notes}

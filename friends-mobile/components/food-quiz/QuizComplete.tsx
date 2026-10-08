@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Stack } from 'expo-router';
 import CenteredContainer from '@/components/CenteredContainer';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface QuizCompleteProps {
   savedCount: {
@@ -14,36 +15,37 @@ interface QuizCompleteProps {
 }
 
 export default function QuizComplete({ savedCount }: QuizCompleteProps) {
+  const { t } = useTranslation();
   const totalSaved = savedCount.likes + savedCount.dislikes;
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Quiz Complete' }} />
+      <Stack.Screen options={{ title: t('foodQuiz.completeTitle') }} />
       <CenteredContainer style={styles.centered}>
         <Text style={styles.completeIcon}>🎉</Text>
         <Text variant="headlineMedium" style={styles.completeTitle}>
-          Quiz Complete!
+          {t('foodQuiz.completeBang')}
         </Text>
         <Text variant="bodyLarge" style={styles.completeSummary}>
-          Saved {totalSaved} preferences automatically.
+          {t('foodQuiz.saved', { count: totalSaved })}
         </Text>
         <Text variant="titleMedium" style={styles.statsTitle}>
-          Results:
+          {t('foodQuiz.results')}
         </Text>
         <View style={styles.statsContainer}>
           <Chip icon="thumb-up" style={styles.statChip}>
-            {savedCount.likes} Likes
+            {t('foodQuiz.likesCount', { count: savedCount.likes })}
           </Chip>
           <Chip icon="thumb-down" style={styles.statChip}>
-            {savedCount.dislikes} Dislikes
+            {t('foodQuiz.dislikesCount', { count: savedCount.dislikes })}
           </Chip>
           <Chip icon="help-circle" style={styles.statChip}>
-            {savedCount.skipped} Skipped
+            {t('foodQuiz.skippedCount', { count: savedCount.skipped })}
           </Chip>
         </View>
 
         <Button mode="contained" onPress={() => router.back()} style={styles.saveButton}>
-          Done
+          {t('connectionForm.done')}
         </Button>
       </CenteredContainer>
     </>

@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
@@ -69,13 +70,13 @@ export async function checkBiometricStatus(): Promise<BiometricStatus> {
 export function getBiometricTypeName(type: 'fingerprint' | 'facial' | 'iris' | 'none'): string {
   switch (type) {
     case 'fingerprint':
-      return 'Fingerprint';
+      return tr('secrets.fingerprint', 'Fingerprint');
     case 'facial':
-      return 'Face ID';
+      return tr('secrets.faceId', 'Face ID');
     case 'iris':
-      return 'Iris Scan';
+      return tr('secrets.iris', 'Iris Scan');
     default:
-      return 'Device PIN';
+      return tr('secrets.devicePin', 'Device PIN');
   }
 }
 
@@ -83,7 +84,7 @@ export function getBiometricTypeName(type: 'fingerprint' | 'facial' | 'iris' | '
  * Authenticate user with biometric or device PIN
  */
 export async function authenticateUser(
-  promptMessage: string = 'Authenticate to access secrets'
+  promptMessage: string = tr('secrets.authenticate', 'Authenticate to access secrets')
 ): Promise<AuthenticationResult> {
   try {
     const status = await checkBiometricStatus();
