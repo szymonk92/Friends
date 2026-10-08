@@ -7,14 +7,7 @@ import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { PersonRow } from '@/components/PersonRow';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
-
-// Lowercase, strip accents; ł has no decomposition so map it by hand.
-const fold = (v: string) =>
-  v
-    .toLowerCase()
-    .replace(/ł/g, 'l')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+import { foldText as fold } from '@/lib/utils/format';
 
 export default function ComparePickerScreen() {
   const { t } = useTranslation();

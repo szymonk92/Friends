@@ -140,3 +140,12 @@ export function getRelationshipColor(relationshipType: string): string {
 
   return defaultColors[relationshipType] || '#6200ee'; // Default to purple if unknown
 }
+
+/** Lowercase + strip accents for search matching; ł has no decomposition so map it by hand. */
+export function foldText(v: string): string {
+  return v
+    .toLowerCase()
+    .replace(/ł/g, 'l')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}

@@ -2,8 +2,8 @@ import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, StatusBar, Alert, ActivityIndicator, FlatList } from 'react-native';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { View, StyleSheet, StatusBar, ActivityIndicator, FlatList } from 'react-native';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { Text, Button } from 'react-native-paper';
 import {
   useContactEvents,
@@ -20,7 +20,7 @@ import TimelineEventItem, { type TimelineEvent } from '@/components/timeline/Tim
 import { ActionSheet } from '@/components/ActionSheet';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
-import { parseFlexibleDate } from '@/lib/utils/dates';
+import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
 import { parseJsonArray } from '@/lib/utils/json';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
@@ -60,7 +60,7 @@ export default function TimelineScreen() {
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
   const [eventType, setEventType] = useState('met');
-  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
+  const [dateInput, setDateInput] = useState(toDateText(new Date()));
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -182,13 +182,13 @@ export default function TimelineScreen() {
 
   const handleAddEvent = async () => {
     if (selectedPersonIds.length === 0) {
-      Alert.alert(t('timeline.selectPersonTitle'), t('timeline.selectPersonMessage'));
+      fzAlert(t('timeline.selectPersonTitle'), t('timeline.selectPersonMessage'));
       return;
     }
 
     const parsedDate = parseFlexibleDate(dateInput);
     if (!parsedDate) {
-      Alert.alert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
+      fzAlert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
       return;
     }
 
@@ -202,7 +202,7 @@ export default function TimelineScreen() {
           notes: notes.trim() || undefined,
           eventDate: parsedDate,
         });
-        Alert.alert(t('common.success'), t('timeline.updated'));
+        fzAlert(t('common.success'), t('timeline.updated'));
       } else {
         await Promise.all(
           selectedPersonIds.map((personId) =>
@@ -214,12 +214,12 @@ export default function TimelineScreen() {
             })
           )
         );
-        Alert.alert(t('common.success'), t('timeline.added'));
+        fzAlert(t('common.success'), t('timeline.added'));
       }
 
       closeDialog();
     } catch (err) {
-      Alert.alert(
+      fzAlert(
         t('common.error'),
         editingEvent ? t('timeline.updateFailed') : t('timeline.addFailed')
       );
@@ -233,7 +233,7 @@ export default function TimelineScreen() {
     setEditingEvent(null);
     setSelectedPersonIds([]);
     setEventType('met');
-    setDateInput(new Date().toISOString().split('T')[0]);
+    setDateInput(toDateText(new Date()));
     setNotes('');
   };
 
@@ -250,8 +250,8 @@ export default function TimelineScreen() {
       setEventType(event.eventType);
       setDateInput(
         event.eventDate
-          ? new Date(event.eventDate).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0]
+          ? toDateText(new Date(event.eventDate))
+          : toDateText(new Date())
       );
       setNotes(event.notes || '');
       setAddDialogVisible(true);
@@ -287,7 +287,7 @@ export default function TimelineScreen() {
     return (
       <CenteredContainer style={styles.centered}>
         <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('timeline.loadFailed')}</Text>
-        <Button mode="contained" onPress={() => refetch()}>{t('timeline.retry')}</Button>
+        <Button mode="contained" buttonColor={fz.ink} onPress={() => refetch()}>{t('timeline.retry')}</Button>
       </CenteredContainer>
     );
   }
@@ -341,7 +341,7 @@ export default function TimelineScreen() {
               : t('timeline.startTracking')}
           </Text>
           {!filterPersonId && !filterEventType && (
-            <Button mode="contained" onPress={() => setAddDialogVisible(true)}>
+            <Button mode="contained" buttonColor={fz.ink} onPress={() => setAddDialogVisible(true)}>
               {t('timeline.addFirst')}
             </Button>
           )}

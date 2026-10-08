@@ -46,3 +46,26 @@ export function toDateText(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
+
+export type DatePrecision = 'day' | 'month' | 'year';
+
+/**
+ * Builds the flexible date string for a picker selection. Missing month/day
+ * default to today's month / today (if in the current month) else the 1st;
+ * day is clamped to the month's length (Jan 31 → Feb 29).
+ */
+export function flexibleDateText(
+  year: number,
+  month: number | null,
+  day: number | null,
+  precision: DatePrecision,
+  now: Date = new Date()
+): string {
+  if (precision === 'year') return String(year);
+  const mm = month ?? now.getMonth() + 1;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (precision === 'month') return `${year}-${pad(mm)}`;
+  const isNowMonth = year === now.getFullYear() && mm === now.getMonth() + 1;
+  const dd = Math.min(day ?? (isNowMonth ? now.getDate() : 1), new Date(year, mm, 0).getDate());
+  return `${year}-${pad(mm)}-${pad(dd)}`;
+}

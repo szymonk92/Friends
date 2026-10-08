@@ -28,7 +28,8 @@
     "show": "Pokaż",
     "hide": "Ukryj",
     "unknownError": "Nieznany błąd",
-    "notFound": "Nie znaleziono"
+    "notFound": "Nie znaleziono",
+    "done": "Gotowe"
   },
   "splash": {
     "connecting": "Łączenie z Twoim kręgiem…"
@@ -515,7 +516,10 @@
     "hint": "Wpisz sam rok (2020), rok i miesiąc (2020-06) lub pełną datę (2020-06-15)",
     "add": "Dodaj",
     "deleteTitle": "Usuń datę",
-    "deleteMessage": "Usunąć „{{item}}”?"
+    "deleteMessage": "Usunąć „{{item}}”?",
+    "precisionDay": "Dokładny dzień",
+    "precisionMonth": "Miesiąc",
+    "precisionYear": "Rok"
   },
   "brainDump": {
     "keyNeededTitle": "Potrzebny klucz AI",
@@ -846,15 +850,15 @@
     "addTitle": "Dodaj wydarzenie",
     "people": "Osoby",
     "eventType": "Rodzaj wydarzenia",
-    "eventDate": "Data wydarzenia (RRRR, RRRR-MM lub RRRR-MM-DD)",
     "date": "Data",
-    "datePlaceholder": "2024 lub 2024-03 lub 2024-03-15",
     "notesLabel": "Notatki (opcjonalnie)",
     "notesPlaceholder": "Co się wydarzyło?",
     "save": "Zapisz",
     "add": "Dodaj",
     "allPeople": "Wszystkie osoby",
-    "allTypes": "Wszystkie rodzaje"
+    "allTypes": "Wszystkie rodzaje",
+    "addPeople": "Dodaj osoby",
+    "pickPerson": "Filtruj według osoby"
   },
   "storiesList": {
     "deleteMessageAi": "Czy na pewno chcesz usunąć tę historię?\n\nUwaga: Osoby, relacje i informacje wyciągnięte z tej historii NIE zostaną usunięte. Usunięty zostanie tylko tekst historii.",

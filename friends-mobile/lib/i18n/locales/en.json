@@ -28,7 +28,8 @@
     "show": "Show",
     "hide": "Hide",
     "unknownError": "Unknown error",
-    "notFound": "Not found"
+    "notFound": "Not found",
+    "done": "Done"
   },
   "splash": {
     "connecting": "Connecting your circle…"
@@ -515,7 +516,10 @@
     "hint": "Enter year only (2020), year-month (2020-06), or full date (2020-06-15)",
     "add": "Add",
     "deleteTitle": "Delete Date",
-    "deleteMessage": "Delete \"{{item}}\"?"
+    "deleteMessage": "Delete \"{{item}}\"?",
+    "precisionDay": "Exact day",
+    "precisionMonth": "Month",
+    "precisionYear": "Year"
   },
   "brainDump": {
     "keyNeededTitle": "AI key needed",
@@ -832,15 +836,15 @@
     "addTitle": "Add Timeline Event",
     "people": "People",
     "eventType": "Event Type",
-    "eventDate": "Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)",
     "date": "Date",
-    "datePlaceholder": "2024 or 2024-03 or 2024-03-15",
     "notesLabel": "Notes (optional)",
     "notesPlaceholder": "What happened?",
     "save": "Save",
     "add": "Add",
     "allPeople": "All People",
-    "allTypes": "All Types"
+    "allTypes": "All Types",
+    "addPeople": "Add people",
+    "pickPerson": "Filter by person"
   },
   "storiesList": {
     "deleteMessageAi": "Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.",
