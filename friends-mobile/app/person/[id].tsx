@@ -1,11 +1,6 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import {
-  Text,
-  ActivityIndicator,
-  Button,
-  IconButton,
-} from 'react-native-paper';
+import { Text, ActivityIndicator, Button, IconButton } from 'react-native-paper';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -78,8 +73,10 @@ export default function PersonProfileScreen() {
   const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
   const isHuman = person?.entityType !== 'pet';
   const isOther = person?.personType !== 'self' && isHuman;
-  const menuActions: ActionSheetAction[] = [
-    ...(profilePhoto ? [{ label: t('profile.changePhoto'), icon: 'camera' as const, onPress: handleAvatarPress }] : []),
+  const topActions: ActionSheetAction[] = [
+    ...(profilePhoto
+      ? [{ label: t('profile.changePhoto'), icon: 'camera' as const, onPress: handleAvatarPress }]
+      : []),
     ...(isOther
       ? [
           {
@@ -94,9 +91,6 @@ export default function PersonProfileScreen() {
           },
         ]
       : []),
-    ...(isHuman
-      ? [{ label: t('profile.addRelation'), icon: 'plus' as const, onPress: () => router.push(`/person/add-relation?personId=${id}`) }]
-      : []),
     ...(isChild
       ? [
           {
@@ -106,7 +100,16 @@ export default function PersonProfileScreen() {
           },
         ]
       : []),
-    { label: t('common.edit'), icon: 'pencil', onPress: () => router.push(`/person/edit?personId=${id}`) },
+  ];
+  const menuActions: ActionSheetAction[] = [
+    ...topActions,
+    {
+      label: t('common.edit'),
+      icon: 'pencil',
+      onPress: () => router.push(`/person/edit?personId=${id}`),
+      // Hairline between "look at" actions and edit/delete, only when both groups exist.
+      divider: topActions.length > 0,
+    },
     { label: t('common.delete'), icon: 'trash', onPress: handleDelete },
   ];
 

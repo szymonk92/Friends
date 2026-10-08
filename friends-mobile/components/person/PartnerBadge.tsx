@@ -81,14 +81,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
     alignSelf: 'center',
   },
   addButton: {
-    marginTop: 6,
     alignSelf: 'center',
   },
 });

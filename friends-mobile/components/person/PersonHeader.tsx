@@ -167,8 +167,10 @@ const styles = StyleSheet.create({
   headerSection: {
     paddingHorizontal: fz.s.edge,
     paddingTop: 16,
-    paddingBottom: 12,
+    paddingBottom: fz.s.xs,
     alignItems: 'stretch',
+    // One rhythm between identity, partner, contacts and languages rows.
+    gap: fz.s.sm,
     backgroundColor: fz.paper,
   },
   identityRow: {
@@ -219,13 +221,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
+    gap: fz.s.sm,
   },
   languagesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 12,
-    gap: 8,
+    gap: fz.s.xs,
   },
 });

@@ -8,6 +8,8 @@ export type ActionSheetAction = {
   label: string;
   icon?: LineIconName;
   onPress: () => void;
+  /** Hairline above this row, to separate groups of actions. */
+  divider?: boolean;
 };
 
 /**
@@ -43,7 +45,11 @@ export function ActionSheet({
             <Pressable
               key={a.label}
               accessibilityRole="button"
-              style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.row,
+                a.divider && styles.divider,
+                pressed && { opacity: 0.7 },
+              ]}
               onPress={() => {
                 onDismiss();
                 a.onPress();
@@ -71,5 +77,6 @@ const styles = StyleSheet.create({
   },
   title: { ...fzText.label, marginBottom: fz.s.sm },
   message: { ...fzText.sub, marginBottom: fz.s.sm },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: fz.hairline },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
 });
