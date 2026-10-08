@@ -12,7 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
+import { useMePerson, usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
 import { useConnections } from '@/hooks/useConnections';
@@ -53,6 +53,7 @@ export default function SearchScreen() {
 
   // 'all' so pets (and their species) and mentioned children are searchable too.
   const { data: people = [], isLoading: loadingPeople } = usePeople({ entityType: 'all' });
+  const { data: me } = useMePerson();
   const { data: relations = [], isLoading: loadingRelations } = useRelations();
   const { data: stories = [], isLoading: loadingStories } = useStories();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
@@ -60,7 +61,8 @@ export default function SearchScreen() {
   const isLoading = loadingPeople || loadingRelations || loadingStories || loadingConnections;
 
   const getPersonName = (personId: string) => {
-    const person = people.find((p) => p.id === personId);
+    // usePeople leaves out self, so the user's own relations need `me`.
+    const person = people.find((p) => p.id === personId) ?? (me?.id === personId ? me : null);
     return person?.name || t('timeline.unknown');
   };
 

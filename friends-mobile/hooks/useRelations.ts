@@ -1,7 +1,8 @@
 import { db, getCurrentUserId } from '@/lib/db';
-import { relations, type NewRelation, type Relation } from '@/lib/db/schema';
+import { people, relations, type NewRelation, type Relation } from '@/lib/db/schema';
+import { activePeople } from '@/lib/db/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { relationsLogger, logPerformance } from '@/lib/logger';
 import { findDirectContradiction } from '@/lib/constants/relations';
@@ -38,10 +39,13 @@ export function useRelations() {
     queryKey: ['relations'],
     queryFn: async () => {
       const userId = await getCurrentUserId();
+      // Join on active people: deleting a person is a soft delete that leaves their
+      // relations behind, which would otherwise surface with an "Unknown" subject.
       return db
-        .select()
+        .select(getTableColumns(relations))
         .from(relations)
-        .where(and(eq(relations.userId, userId), isNull(relations.deletedAt)))
+        .innerJoin(people, eq(relations.subjectId, people.id))
+        .where(and(eq(relations.userId, userId), isNull(relations.deletedAt), activePeople(userId)))
         .orderBy(desc(relations.createdAt));
     },
   });
