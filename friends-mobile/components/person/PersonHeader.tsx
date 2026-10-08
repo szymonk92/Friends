@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity, Alert, Linking } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Linking } from 'react-native';
 import { Text } from 'react-native-paper';
 import { formatShortDate } from '@/lib/utils/format';
 import { tr, relationshipTypeLabel, personTypeLabel, importanceLabel } from '@/lib/i18n/labels';
@@ -14,6 +14,7 @@ import { IconCircle } from '@/components/IconCircle';
 import { LineIcon } from '@/components/LineIcon';
 import { Avatar } from '@/components/Avatar';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 interface PersonHeaderProps {
   person: Person;
@@ -47,9 +48,9 @@ function ContactQuickRow({
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) await Linking.openURL(url);
-      else Alert.alert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
+      else fzAlert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
     } catch {
-      Alert.alert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
+      fzAlert(scheme === 'tel:' ? t('header.phone') : t('header.email'), value);
     }
   };
 

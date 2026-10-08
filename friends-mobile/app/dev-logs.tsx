@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { Text, Button, Card, Chip } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import * as Sharing from 'expo-sharing';
@@ -33,7 +33,7 @@ export default function DevLogsScreen() {
     try {
       const logFile = devLogger.getLogFile();
       if (!logFile) {
-        Alert.alert(t('devLogs.noLogs'), t('devLogs.noLogsMessage'));
+        fzAlert(t('devLogs.noLogs'), t('devLogs.noLogsMessage'));
         return;
       }
 
@@ -43,10 +43,10 @@ export default function DevLogsScreen() {
           dialogTitle: t('devLogs.shareTitle'),
         });
       } else {
-        Alert.alert(t('devLogs.notAvailable'), t('devLogs.notAvailableMessage'));
+        fzAlert(t('devLogs.notAvailable'), t('devLogs.notAvailableMessage'));
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('devLogs.shareFailed', { error: String(error) }));
+      fzAlert(t('common.error'), t('devLogs.shareFailed', { error: String(error) }));
     }
   };
 

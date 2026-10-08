@@ -1,4 +1,4 @@
-import { Alert, Linking, StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { IconButton, useTheme } from 'react-native-paper';
 import {
@@ -8,6 +8,7 @@ import {
   type SocialLink,
 } from '@/lib/social/socialLinks';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 type Props = {
   links: SocialLink[];
@@ -25,16 +26,16 @@ export default function SocialLinksStrip({ links }: Props) {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert(platformLabel(link.platform), url);
+        fzAlert(platformLabel(link.platform), url);
       }
     } catch {
-      Alert.alert(t('socialStrip.openFailed'), url);
+      fzAlert(t('socialStrip.openFailed'), url);
     }
   };
 
   const copyHandle = async (link: SocialLink) => {
     await Clipboard.setStringAsync(link.handle);
-    Alert.alert(t('socialStrip.copied'), t('socialStrip.copiedMessage', { handle: link.handle }));
+    fzAlert(t('socialStrip.copied'), t('socialStrip.copiedMessage', { handle: link.handle }));
   };
 
   return (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useCreatePerson } from '@/hooks/usePeople';
@@ -13,6 +13,7 @@ import { parseFlexibleDate } from '@/lib/utils/dates';
 import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import type { BrainDumpAttribute } from '@/lib/ai/brain-dump';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export default function AddPersonModal() {
   const { t } = useTranslation();
@@ -98,9 +99,9 @@ export default function AddPersonModal() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('common.unknownError');
       if (errorMessage.includes('already exists')) {
-        Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
+        fzAlert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
       } else {
-        Alert.alert(t('common.error'), t('person.errorAdding'));
+        fzAlert(t('common.error'), t('person.errorAdding'));
       }
       devLogger.error('Failed to create person', { error, personData: { name: v.name } });
     } finally {

@@ -1,5 +1,5 @@
-import { confirmDestructive } from '@/lib/utils/confirm';
-import { StyleSheet, View, Alert } from 'react-native';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
+import { StyleSheet, View } from 'react-native';
 import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
@@ -36,12 +36,12 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
 
   const handleAddImportantDate = async () => {
     if (!dateName.trim()) {
-      Alert.alert(t('common.error'), t('dates.enterName'));
+      fzAlert(t('common.error'), t('dates.enterName'));
       return;
     }
     const parsedDate = parseFlexibleDate(dateValue);
     if (!parsedDate) {
-      Alert.alert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
+      fzAlert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
       return;
     }
 
@@ -72,7 +72,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
         setAddDateDialogVisible(false);
         setDateName('');
         setDateValue('');
-        Alert.alert(
+        fzAlert(
           t('common.success'),
           t('dates.birthdaySet', { date: formatShortDate(parsedDate) })
         );
@@ -92,10 +92,10 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
         setAddDateDialogVisible(false);
         setDateName('');
         setDateValue('');
-        Alert.alert(t('common.success'), t('dates.added', { name: dateName }));
+        fzAlert(t('common.success'), t('dates.added', { name: dateName }));
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('dates.addFailed'));
+      fzAlert(t('common.error'), t('dates.addFailed'));
     } finally {
       setIsAddingDate(false);
     }

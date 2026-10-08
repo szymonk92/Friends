@@ -1,4 +1,4 @@
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
@@ -12,6 +12,7 @@ import { Pill } from '@/components/Pill';
 import { ActionSheet } from '@/components/ActionSheet';
 import { fz } from '@/lib/design/tokens';
 import type { LineIconName } from '@/components/LineIcon';
+import { fzAlert } from '@/lib/utils/confirm';
 
 interface PersonQuickActionsProps {
   personId: string;
@@ -66,14 +67,14 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         notes: noteText.trim() || null,
       });
     } catch {
-      Alert.alert(t('common.error'), t('profile.logFailed'));
+      fzAlert(t('common.error'), t('profile.logFailed'));
     }
   };
 
   const remindIn = (daysFromNow: number) => () =>
     createContactReminder
       .mutateAsync({ personId, personName, daysFromNow })
-      .catch(() => Alert.alert(t('common.error'), t('profile.reminderFailed')));
+      .catch(() => fzAlert(t('common.error'), t('profile.reminderFailed')));
 
   const onPress = (a: QuickAction) =>
     a.labelKey === 'remind'

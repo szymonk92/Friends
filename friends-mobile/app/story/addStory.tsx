@@ -2,7 +2,6 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  Alert,
   StatusBar,
   BackHandler,
   KeyboardAvoidingView,
@@ -31,6 +30,7 @@ import { Avatar } from '@/components/Avatar';
 import { usePeople, usePerson } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export default function StoryInputScreen() {
   const { t } = useTranslation();
@@ -131,13 +131,13 @@ export default function StoryInputScreen() {
 
   const handleSubmit = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
+      fzAlert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
     // Check if API key is set for selected model
     if (!hasActiveApiKey()) {
-      Alert.alert(
+      fzAlert(
         t('addStory.keyRequiredTitle'),
         t('addStory.keyRequiredMessage'),
         [
@@ -166,7 +166,7 @@ export default function StoryInputScreen() {
 
       router.back();
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.saveFailed'));
+      fzAlert(t('common.error'), t('addStory.saveFailed'));
       devLogger.error('Failed to save story', { error, storyText: storyText.substring(0, 50) });
     } finally {
       setIsProcessing(false);
@@ -257,10 +257,10 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         });
       }
 
-      Alert.alert(t('addStory.successTitle'), message, buttons);
+      fzAlert(t('addStory.successTitle'), message, buttons);
     } catch (error: any) {
       devLogger.ai('AI extraction failed', { error, storyId: currentStoryId });
-      Alert.alert(
+      fzAlert(
         t('addStory.extractionFailedTitle'),
         t('addStory.extractionFailedMessage', {
           error: error.message || t('common.unknownError'),
@@ -274,7 +274,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
-      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
+      fzAlert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -282,15 +282,15 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert(t('common.success'), t('addStory.keySaved'));
+      fzAlert(t('common.success'), t('addStory.keySaved'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
+      fzAlert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleShowPrompt = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
+      fzAlert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
@@ -311,13 +311,13 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
       setPromptPreviewText(prompt);
       setPromptPreviewDialogVisible(true);
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.promptFailed'));
+      fzAlert(t('common.error'), t('addStory.promptFailed'));
     }
   };
 
   const handleCopyPrompt = async () => {
     await Clipboard.setStringAsync(promptPreviewText);
-    Alert.alert(t('addStory.copiedTitle'), t('addStory.promptCopied'));
+    fzAlert(t('addStory.copiedTitle'), t('addStory.promptCopied'));
   };
 
   const handleAmbiguityResolved = (resolutions: { [name: string]: string | 'NEW' | 'IGNORE' }) => {
@@ -599,7 +599,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               labelStyle={styles.dialogFont}
               onPress={() => {
                 Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
-                Alert.alert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
+                fzAlert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
               }}
             >
               {t('addStory.copyAll')}

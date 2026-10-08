@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Alert, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
 import { Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { IconCircle } from '@/components/IconCircle';
@@ -92,7 +92,7 @@ export default function SecretsScreen() {
       secretViewTimerRef.current = setTimeout(() => {
         setShowViewDialog(false);
         setViewedSecret(null);
-        Alert.alert(t('secrets.securityTitle'), t('secrets.autoClosed'));
+        fzAlert(t('secrets.securityTitle'), t('secrets.autoClosed'));
       }, 60000);
     }
 
@@ -109,24 +109,24 @@ export default function SecretsScreen() {
   const handleSetup = async () => {
     try {
       await initializeSecrets.mutateAsync();
-      Alert.alert(t('common.success'), t('secrets.setupDone'));
+      fzAlert(t('common.success'), t('secrets.setupDone'));
     } catch (error) {
-      Alert.alert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
+      fzAlert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
     }
   };
 
   const handlePasswordSetup = async () => {
     if (setupPassword.length < 8) {
-      Alert.alert(t('secrets.weakTitle'), t('secrets.weakMessage'));
+      fzAlert(t('secrets.weakTitle'), t('secrets.weakMessage'));
       return;
     }
 
     if (setupPassword !== confirmPassword) {
-      Alert.alert(t('secrets.mismatchTitle'), t('secrets.mismatchMessage'));
+      fzAlert(t('secrets.mismatchTitle'), t('secrets.mismatchMessage'));
       return;
     }
 
-    Alert.alert(
+    fzAlert(
       t('secrets.importantTitle'),
       t('secrets.importantMessage'),
       [
@@ -140,9 +140,9 @@ export default function SecretsScreen() {
               setShowPasswordSetupDialog(false);
               setSetupPassword('');
               setConfirmPassword('');
-              Alert.alert(t('common.success'), t('secrets.passwordSetupDone'));
+              fzAlert(t('common.success'), t('secrets.passwordSetupDone'));
             } catch (error) {
-              Alert.alert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
+              fzAlert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
             }
           },
         },
@@ -152,7 +152,7 @@ export default function SecretsScreen() {
 
   const handleCreateSecret = async (password?: string) => {
     if (!newSecretTitle.trim() || !newSecretContent.trim()) {
-      Alert.alert(t('common.error'), t('secrets.needBoth'));
+      fzAlert(t('common.error'), t('secrets.needBoth'));
       return;
     }
 
@@ -174,13 +174,13 @@ export default function SecretsScreen() {
       setNewSecretTitle('');
       setNewSecretContent('');
       setSelectedPersonId(undefined);
-      Alert.alert(t('common.success'), t('secrets.saved'));
+      fzAlert(t('common.success'), t('secrets.saved'));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : t('secrets.saveFailed');
       if (errorMsg === 'Invalid password') {
-        Alert.alert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
+        fzAlert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
       } else {
-        Alert.alert(t('common.error'), errorMsg);
+        fzAlert(t('common.error'), errorMsg);
       }
     }
   };
@@ -201,16 +201,16 @@ export default function SecretsScreen() {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : t('secrets.decryptFailed');
       if (errorMsg === 'Invalid password') {
-        Alert.alert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
+        fzAlert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
       } else {
-        Alert.alert(t('secrets.accessDenied'), errorMsg);
+        fzAlert(t('secrets.accessDenied'), errorMsg);
       }
     }
   };
 
   const handlePasswordSubmit = async () => {
     if (!accessPassword) {
-      Alert.alert(t('common.error'), t('secrets.enterPasswordMsg'));
+      fzAlert(t('common.error'), t('secrets.enterPasswordMsg'));
       return;
     }
 
@@ -234,9 +234,9 @@ export default function SecretsScreen() {
       onConfirm: async () => {
         try {
           await deleteSecret.mutateAsync(secretId);
-          Alert.alert(t('secrets.deletedTitle'), t('secrets.deleted'));
+          fzAlert(t('secrets.deletedTitle'), t('secrets.deleted'));
         } catch (error) {
-          Alert.alert(t('common.error'), t('secrets.deleteFailed'));
+          fzAlert(t('common.error'), t('secrets.deleteFailed'));
         }
       },
     });

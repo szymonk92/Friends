@@ -1,11 +1,11 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Text } from 'react-native-paper';
 import { usePersonPhotos, useSetProfilePhoto, useDeletePhoto } from '@/hooks/usePhotos';
 import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 import { useState } from 'react';
 import PhotoBrowser from './PhotoBrowser';
 import { PhotoOptionsSheet } from './PhotoOptionsSheet';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { useSettings } from '@/store/useSettings';
 import { ProfileSection } from './ProfileSection';
 import { LineIcon } from '@/components/LineIcon';
@@ -33,7 +33,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
 
   const handleAddPhoto = () => {
     if (personPhotos.length >= maxPhotosPerPerson) {
-      Alert.alert(
+      fzAlert(
         t('photos.limitTitle'),
         t('photos.limitMessage', { max: maxPhotosPerPerson }),
         [{ text: t('common.ok') }]

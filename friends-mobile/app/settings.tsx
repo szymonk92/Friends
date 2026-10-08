@@ -1,9 +1,9 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
-import { StyleSheet, ScrollView, Alert, View } from 'react-native';
+import { StyleSheet, ScrollView, View } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { Stack } from 'expo-router';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/store/useSettings';
@@ -92,14 +92,14 @@ export default function SettingsScreen() {
   };
 
   const handleResetColors = async () => {
-    Alert.alert(t('settingsScreen.resetTitle'), t('settingsScreen.resetMessage'), [
+    fzAlert(t('settingsScreen.resetTitle'), t('settingsScreen.resetMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('settingsScreen.reset'),
         onPress: async () => {
           await resetRelationshipColors();
           setRelationshipColors(DEFAULT_COLORS);
-          Alert.alert(t('common.success'), t('settingsScreen.colorsReset'));
+          fzAlert(t('common.success'), t('settingsScreen.colorsReset'));
         },
       },
     ]);
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
-      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
+      fzAlert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -115,15 +115,15 @@ export default function SettingsScreen() {
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert(t('common.success'), t('settingsScreen.anthropicSaved'));
+      fzAlert(t('common.success'), t('settingsScreen.anthropicSaved'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
+      fzAlert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleSaveGeminiApiKey = async () => {
     if (tempGeminiApiKey.trim().length === 0) {
-      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
+      fzAlert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -131,9 +131,9 @@ export default function SettingsScreen() {
       await setGeminiApiKey(tempGeminiApiKey.trim());
       setGeminiApiKeyDialogVisible(false);
       setTempGeminiApiKey('');
-      Alert.alert(t('common.success'), t('settingsScreen.geminiSaved'));
+      fzAlert(t('common.success'), t('settingsScreen.geminiSaved'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
+      fzAlert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
@@ -144,7 +144,7 @@ export default function SettingsScreen() {
       confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearApiKey();
-        Alert.alert(t('common.success'), t('settingsScreen.anthropicCleared'));
+        fzAlert(t('common.success'), t('settingsScreen.anthropicCleared'));
       },
     });
   };
@@ -156,14 +156,14 @@ export default function SettingsScreen() {
       confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearGeminiApiKey();
-        Alert.alert(t('common.success'), t('settingsScreen.geminiCleared'));
+        fzAlert(t('common.success'), t('settingsScreen.geminiCleared'));
       },
     });
   };
 
   const handleSaveOllamaApiKey = async () => {
     if (tempOllamaApiKey.trim().length === 0) {
-      Alert.alert(t('addStory.invalidKeyTitle'), t('settingsScreen.ollamaValue'));
+      fzAlert(t('addStory.invalidKeyTitle'), t('settingsScreen.ollamaValue'));
       return;
     }
 
@@ -171,9 +171,9 @@ export default function SettingsScreen() {
       await setOllamaApiKey(tempOllamaApiKey.trim());
       setOllamaApiKeyDialogVisible(false);
       setTempOllamaApiKey('');
-      Alert.alert(t('common.success'), t('settingsScreen.ollamaSaved'));
+      fzAlert(t('common.success'), t('settingsScreen.ollamaSaved'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
+      fzAlert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
       confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearOllamaApiKey();
-        Alert.alert(t('common.success'), t('settingsScreen.ollamaCleared'));
+        fzAlert(t('common.success'), t('settingsScreen.ollamaCleared'));
       },
     });
   };

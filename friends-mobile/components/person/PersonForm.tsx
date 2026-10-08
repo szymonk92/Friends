@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, ScrollView, View, Alert, KeyboardAvoidingView } from 'react-native';
+import { Platform, StyleSheet, ScrollView, View, KeyboardAvoidingView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
@@ -16,6 +16,7 @@ import { pickContact, isContactPickerAvailable } from '@/lib/utils/contactsPicke
 import { fz, fzText } from '@/lib/design/tokens';
 import { PillGroup } from '@/components/PillGroup';
 import { FormSection, FormInput, Foldable } from '@/components/FormKit';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export type PersonFormValues = {
   name: string;
@@ -233,16 +234,16 @@ export default function PersonForm({
 
   const handleSubmitPress = () => {
     if (name.trim().length < 2) {
-      Alert.alert(t('person.invalidName'), t('person.invalidNameMessage'));
+      fzAlert(t('person.invalidName'), t('person.invalidNameMessage'));
       return;
     }
     const trimmedPhone = normalizePhone(phone);
     if (trimmedPhone && !isValidPhone(trimmedPhone)) {
-      Alert.alert(t('person.invalidPhone'), t('person.invalidPhoneMessage'));
+      fzAlert(t('person.invalidPhone'), t('person.invalidPhoneMessage'));
       return;
     }
     if (email.trim() && !isValidEmail(email.trim())) {
-      Alert.alert(t('person.invalidEmail'), t('person.invalidEmailMessage'));
+      fzAlert(t('person.invalidEmail'), t('person.invalidEmailMessage'));
       return;
     }
     onSubmit({

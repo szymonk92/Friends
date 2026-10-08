@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Alert, View } from 'react-native';
+import { StyleSheet, ScrollView, View } from 'react-native';
 import { Button, List } from 'react-native-paper';
 import { Stack, router } from 'expo-router';
 import {
@@ -24,6 +24,7 @@ import {
   getUpcomingBirthdays,
   type BirthdayReminderSettings,
 } from '@/lib/notifications/birthday-reminders';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export default function MenuScreen() {
   const { t } = useTranslation();
@@ -56,10 +57,10 @@ export default function MenuScreen() {
       await saveBirthdayReminderSettings(newSettings);
       if (key === 'enabled' && value === true) {
         const count = await scheduleBirthdayReminders();
-        Alert.alert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
+        fzAlert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('settingsScreen.saveFailed'));
+      fzAlert(t('common.error'), t('settingsScreen.saveFailed'));
     } finally {
       setSavingBirthdaySettings(false);
     }
@@ -68,27 +69,27 @@ export default function MenuScreen() {
   const handleExportJSON = async () => {
     try {
       await exportData.mutateAsync();
-      Alert.alert(t('common.success'), t('menu.exported'));
+      fzAlert(t('common.success'), t('menu.exported'));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('menu.exportFailed'));
+      fzAlert(t('common.error'), error.message || t('menu.exportFailed'));
     }
   };
 
   const handleExportCSV = async () => {
     try {
       await exportCSV.mutateAsync();
-      Alert.alert(t('common.success'), t('menu.csvExported'));
+      fzAlert(t('common.success'), t('menu.csvExported'));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('menu.csvFailed'));
+      fzAlert(t('common.error'), error.message || t('menu.csvFailed'));
     }
   };
 
   const handleExportObsidian = async () => {
     try {
       await exportObsidian.mutateAsync();
-      Alert.alert(t('common.success'), t('menu.obsidianExported'));
+      fzAlert(t('common.success'), t('menu.obsidianExported'));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('menu.obsidianFailed'));
+      fzAlert(t('common.error'), error.message || t('menu.obsidianFailed'));
     }
   };
 
@@ -113,16 +114,16 @@ export default function MenuScreen() {
       const importResult = await importData.mutateAsync(content);
 
       if (importResult.errors.length > 0) {
-        Alert.alert(
+        fzAlert(
           t('menu.importComplete'),
           `${t('menu.importedItems', { count: importResult.imported })}\n\n${t('menu.warnings')}\n${importResult.errors.slice(0, 5).join('\n')}${importResult.errors.length > 5 ? `\n${t('menu.andMore', { count: importResult.errors.length - 5 })}` : ''}`,
           [{ text: t('common.ok') }]
         );
       } else {
-        Alert.alert(t('common.success'), t('menu.importedSuccess', { count: importResult.imported }));
+        fzAlert(t('common.success'), t('menu.importedSuccess', { count: importResult.imported }));
       }
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('menu.importFailed'));
+      fzAlert(t('common.error'), error.message || t('menu.importFailed'));
     } finally {
       setImportLoading(false);
     }

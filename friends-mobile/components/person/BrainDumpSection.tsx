@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Banner,
@@ -24,6 +24,7 @@ import {
 } from '@/lib/ai/brain-dump-diff';
 import type { SocialLink } from '@/lib/social/socialLinks';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 const CONSENT_KEY = 'brainDump.consentSeen.v1';
 
@@ -102,7 +103,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
     const activeModel = __DEV__ ? devModel : selectedModel;
     const activeApiKey = (activeModel === 'anthropic' ? anthropicKey : geminiApiKey) ?? '';
     if (!activeApiKey.trim()) {
-      Alert.alert(
+      fzAlert(
         t('brainDump.keyNeededTitle'),
         t('brainDump.keyNeededMessage', {
           provider: activeModel === 'anthropic' ? 'Anthropic' : 'Gemini',
