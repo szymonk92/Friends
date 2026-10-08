@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
   withSpring,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 interface Photo {
   id: string;
@@ -45,6 +46,7 @@ export default function PhotoBrowser({
   onSetAsProfile,
   onDelete,
 }: PhotoBrowserProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
@@ -58,14 +60,14 @@ export default function PhotoBrowser({
     const photo = photos[currentIndex];
     if (!photo) return;
 
-    Alert.alert('Photo Options', 'What would you like to do?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('photos.optionsTitle'), t('photos.optionsMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Set as Profile',
+        text: t('photos.setAsProfile'),
         onPress: () => onSetAsProfile(photo.id),
       },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           onDelete(photo.id);
@@ -116,7 +118,7 @@ export default function PhotoBrowser({
           <View style={[styles.footer, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
             <IconButton icon="account-check" iconColor="#4caf50" size={20} />
             <Text variant="bodySmall" style={styles.profileText}>
-              Profile Photo
+              {t('photos.profilePhoto')}
             </Text>
           </View>
         )}

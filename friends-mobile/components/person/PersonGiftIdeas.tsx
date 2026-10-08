@@ -19,6 +19,7 @@ import { formatShortDate } from '@/lib/utils/format';
 import { ProfileSection } from './ProfileSection';
 import { IconCircle } from '@/components/IconCircle';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PersonGiftIdeasProps {
   personId: string;
@@ -26,6 +27,7 @@ interface PersonGiftIdeasProps {
 }
 
 export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdeasProps) {
+  const { t } = useTranslation();
   const { data: giftIdeas = [] } = usePersonGiftIdeas(personId);
   const createGiftIdea = useCreateGiftIdea();
   const updateGiftIdea = useUpdateGiftIdea();
@@ -40,7 +42,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
   const handleAddGiftIdea = async () => {
     if (!giftItem.trim()) {
-      Alert.alert('Error', 'Please enter a gift idea');
+      Alert.alert(t('common.error'), t('gifts.enterItem'));
       return;
     }
 
@@ -58,19 +60,19 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
       setGiftNotes('');
       setGiftPriority('medium');
       setGiftOccasion('');
-      Alert.alert('Success', 'Gift idea added!');
+      Alert.alert(t('common.success'), t('gifts.added'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to add gift idea');
+      Alert.alert(t('common.error'), t('gifts.addFailed'));
     } finally {
       setIsAddingGift(false);
     }
   };
 
   const handleMarkGiftGiven = (giftId: string, item: string) => {
-    Alert.alert('Mark as Given', `Mark "${item}" as given?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('gifts.markGivenTitle'), t('gifts.markGivenMessage', { item }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Given',
+        text: t('gifts.given'),
         onPress: () => updateGiftIdea.mutateAsync({ id: giftId, given: true }),
       },
     ]);
@@ -79,13 +81,13 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
   return (
     <>
       <ProfileSection
-        label="Gift Ideas"
+        label={t('gifts.title')}
         count={giftIdeas.length || null}
         onAdd={() => setAddGiftDialogVisible(true)}
         onMore={() => router.push(`/person/manage-gifts?personId=${personId}`)}
       >
         {giftIdeas.length === 0 ? (
-          <Text style={styles.empty}>No gift ideas yet. Add ideas for {personName}!</Text>
+          <Text style={styles.empty}>{t('gifts.empty', { name: personName })}</Text>
         ) : (
           giftIdeas.map((gift) => (
             <View key={gift.id} style={styles.giftItem}>
@@ -101,11 +103,11 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
                   {gift.item}
                 </Text>
                 {gift.occasion && (
-                  <Text style={styles.giftOccasion}>For: {gift.occasion}</Text>
+                  <Text style={styles.giftOccasion}>{t('gifts.forOccasion', { occasion: gift.occasion })}</Text>
                 )}
                 {gift.notes && <Text style={styles.giftNotes}>{gift.notes}</Text>}
                 {gift.status === 'given' && gift.givenDate && (
-                  <Text style={styles.giftGivenDate}>Given on {formatShortDate(gift.givenDate)}</Text>
+                  <Text style={styles.giftGivenDate}>{t('gifts.givenOn', { date: formatShortDate(gift.givenDate) })}</Text>
                 )}
               </View>
               <View style={styles.giftActions}>
@@ -136,35 +138,35 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
           onDismiss={() => setAddGiftDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Add Gift Idea</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('gifts.addTitle')}</Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
-              label="Gift Item *"
-              placeholder="e.g., Hiking boots, Coffee machine"
+              label={t('gifts.itemLabel')}
+              placeholder={t('gifts.itemPlaceholder')}
               value={giftItem}
               onChangeText={setGiftItem}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
             />
 
             <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
-              Priority
+              {t('gifts.priority')}
             </Text>
             <SegmentedButtons
               value={giftPriority}
               onValueChange={(v) => setGiftPriority(v as 'low' | 'medium' | 'high')}
               buttons={[
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' },
+                { value: 'low', label: t('gifts.low') },
+                { value: 'medium', label: t('gifts.medium') },
+                { value: 'high', label: t('gifts.high') },
               ]}
               style={{ marginBottom: 12 }}
             />
 
             <PaperInput
               mode="outlined"
-              label="Occasion (optional)"
-              placeholder="e.g., Birthday, Christmas"
+              label={t('gifts.occasionLabel')}
+              placeholder={t('gifts.occasionPlaceholder')}
               value={giftOccasion}
               onChangeText={setGiftOccasion}
               style={[{ marginBottom: 12 }, styles.dialogFont]}
@@ -172,8 +174,8 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
             <PaperInput
               mode="outlined"
-              label="Notes (optional)"
-              placeholder="Size, color, where to buy, etc."
+              label={t('gifts.notesLabel')}
+              placeholder={t('gifts.notesPlaceholder')}
               value={giftNotes}
               onChangeText={setGiftNotes}
               multiline
@@ -183,7 +185,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setAddGiftDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -191,7 +193,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               loading={isAddingGift}
               disabled={isAddingGift}
             >
-              Add
+              {t('gifts.add')}
             </Button>
           </Dialog.Actions>
         </Dialog>

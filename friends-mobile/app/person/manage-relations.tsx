@@ -10,12 +10,14 @@ import { RelationIcon } from '@/components/RelationIcon';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { IconCircle } from '@/components/IconCircle';
+import { intensityLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 // Helper function to get intensity label
 const getIntensityLabel = (intensity: string) => {
   const option = INTENSITY_OPTIONS.find((opt) => opt.value === intensity);
-  return option ? option.label : intensity;
+  return option ? intensityLabel(option.value, option.label) : intensity;
 };
 
 // Priority order for relation types (higher priority = shown first)
@@ -36,6 +38,7 @@ const RELATION_TYPE_PRIORITY: Record<string, number> = {
 };
 
 export default function ManageRelationsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person } = usePerson(personId!);
@@ -44,8 +47,8 @@ export default function ManageRelationsScreen() {
 
   const handleDelete = (relationId: string, objectLabel: string) => {
     confirmDestructive({
-      title: 'Delete Relation',
-      message: `Are you sure you want to delete "${objectLabel}"?`,
+      title: t('manageRelations.deleteTitle'),
+      message: t('manageRelations.deleteMessage', { item: objectLabel }),
       onConfirm: () => deleteRelation.mutateAsync(relationId),
     });
   };
@@ -71,7 +74,9 @@ export default function ManageRelationsScreen() {
       <View style={styles.appBarRow}>
         <HeaderBack onPress={() => router.back()} />
         <RNText style={fzText.screenTitle} numberOfLines={1}>
-          {person?.name ? `${person.name} · Relations` : 'Relations'}
+          {person?.name
+            ? t('manageRelations.titleWithName', { name: person.name })
+            : t('manageRelations.title')}
         </RNText>
         <IconCircle
           icon="plus"
@@ -103,13 +108,13 @@ export default function ManageRelationsScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {relations.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <RNText style={[fzText.sub, { marginBottom: fz.s.lg }]}>No relations yet</RNText>
+            <RNText style={[fzText.sub, { marginBottom: fz.s.lg }]}>{t('manageRelations.empty')}</RNText>
             <TouchableOpacity
               style={styles.primaryBtn}
               onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
               activeOpacity={0.8}
             >
-              <RNText style={fzText.btn}>Add Relation</RNText>
+              <RNText style={fzText.btn}>{t('profile.addRelation')}</RNText>
             </TouchableOpacity>
           </View>
         ) : (

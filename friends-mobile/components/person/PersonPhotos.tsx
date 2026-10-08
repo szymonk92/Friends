@@ -8,6 +8,7 @@ import { useSettings } from '@/store/useSettings';
 import { ProfileSection } from './ProfileSection';
 import { LineIcon } from '@/components/LineIcon';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface PersonPhotosProps {
   personId: string;
@@ -15,6 +16,7 @@ interface PersonPhotosProps {
 }
 
 export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosProps) {
+  const { t } = useTranslation();
   const { data: personPhotos = [] } = usePersonPhotos(personId);
   const pickPhoto = usePhotoPicker(personId);
   const setProfilePhoto = useSetProfilePhoto();
@@ -29,9 +31,9 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
   const handleAddPhoto = () => {
     if (personPhotos.length >= maxPhotosPerPerson) {
       Alert.alert(
-        'Photo Limit Reached',
-        `You can only add up to ${maxPhotosPerPerson} photos per person. Delete a photo first or adjust the limit in Dev settings.`,
-        [{ text: 'OK' }]
+        t('photos.limitTitle'),
+        t('photos.limitMessage', { max: maxPhotosPerPerson }),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -46,7 +48,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
 
   return (
     <ProfileSection
-      label="Photos"
+      label={t('photos.title')}
       count={`${personPhotos.length}/${maxPhotosPerPerson}`}
       onAdd={handleAddPhoto}
       divider={false}
@@ -57,14 +59,14 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
             key={photo.id}
             onPress={() => handlePhotoPress(index)}
             onLongPress={() => {
-              Alert.alert('Photo Options', 'What would you like to do?', [
-                { text: 'Cancel', style: 'cancel' },
+              Alert.alert(t('photos.optionsTitle'), t('photos.optionsMessage'), [
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                  text: 'Set as Profile',
+                  text: t('photos.setAsProfile'),
                   onPress: () => setProfilePhoto.mutateAsync({ personId, photoId: photo.id }),
                 },
                 {
-                  text: 'Delete',
+                  text: t('common.delete'),
                   style: 'destructive',
                   onPress: () => deletePhoto.mutateAsync(photo.id),
                 },

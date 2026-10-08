@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { Avatar } from '@/components/Avatar';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   personId: string;
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { data: personConnections = [] } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
@@ -44,7 +46,7 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
         style={styles.addButton}
         textColor={theme.colors.onSurfaceVariant}
       >
-        Add partner
+        {t('partnerBadge.add')}
       </Button>
     );
   }

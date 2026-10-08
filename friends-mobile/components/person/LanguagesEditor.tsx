@@ -5,6 +5,7 @@ import { COMMON_LANGUAGES } from '@/lib/data/languages';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { FormInput } from '@/components/FormKit';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   value: string[];
@@ -14,6 +15,7 @@ type Props = {
 const MAX_LANGUAGES = 20;
 
 export default function LanguagesEditor({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState('');
   // Shown while the input is focused; only explicit selection/submit hides it —
   // NOT the input's onBlur, which fires (and would unmount this list) before a
@@ -57,8 +59,8 @@ export default function LanguagesEditor({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={fzText.label}>Languages spoken</Text>
-      <Text style={[fzText.sub, styles.hint]}>Tap a language to make it primary.</Text>
+      <Text style={fzText.label}>{t('languagesEditor.title')}</Text>
+      <Text style={[fzText.sub, styles.hint]}>{t('languagesEditor.hint')}</Text>
 
       {value.length > 0 && (
         <View style={styles.chipsRow}>
@@ -76,11 +78,11 @@ export default function LanguagesEditor({ value, onChange }: Props) {
 
       <FormInput
         dense
-        label="Add language"
-        placeholder="Start typing…"
+        label={t('languagesEditor.add')}
+        placeholder={t('languagesEditor.placeholder')}
         value={draft}
-        onChangeText={(t) => {
-          setDraft(t);
+        onChangeText={(text) => {
+          setDraft(text);
           setShowSuggestions(true);
         }}
         onFocus={() => setShowSuggestions(true)}

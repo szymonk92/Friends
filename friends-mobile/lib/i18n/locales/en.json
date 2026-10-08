@@ -26,7 +26,8 @@
     "back": "Back",
     "moreOptions": "More Options",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "unknownError": "Unknown error"
   },
   "splash": {
     "connecting": "Connecting your circle…"
@@ -445,6 +446,332 @@
     "remindMonth": "You will be reminded in 1 month",
     "intoTitle": "What they're into",
     "intoEmpty": "Nothing yet. Add likes, fears, or facts about {{name}}.",
-    "intoAdd": "Add Something"
+    "intoAdd": "Add Something",
+    "deletePersonTitle": "Delete Person",
+    "deletePersonMessage": "Are you sure you want to delete {{name}}? This cannot be undone.",
+    "photoUpdated": "Profile photo updated!",
+    "loading": "Loading profile...",
+    "notFound": "Person not found",
+    "changePhoto": "Change Photo",
+    "viewRelationship": "View Relationship",
+    "compareWith": "Compare With…",
+    "addRelation": "Add Relation"
+  },
+  "gifts": {
+    "enterItem": "Please enter a gift idea",
+    "added": "Gift idea added!",
+    "addFailed": "Failed to add gift idea",
+    "markGivenTitle": "Mark as Given",
+    "markGivenMessage": "Mark \"{{item}}\" as given?",
+    "given": "Given",
+    "title": "Gift Ideas",
+    "empty": "No gift ideas yet. Add ideas for {{name}}!",
+    "forOccasion": "For: {{occasion}}",
+    "givenOn": "Given on {{date}}",
+    "addTitle": "Add Gift Idea",
+    "itemLabel": "Gift Item *",
+    "itemPlaceholder": "e.g., Hiking boots, Coffee machine",
+    "priority": "Priority",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "occasionLabel": "Occasion (optional)",
+    "occasionPlaceholder": "e.g., Birthday, Christmas",
+    "notesLabel": "Notes (optional)",
+    "notesPlaceholder": "Size, color, where to buy, etc.",
+    "add": "Add"
+  },
+  "dates": {
+    "enterName": "Please enter a name for this date",
+    "invalidDate": "Invalid Date",
+    "invalidDateMessage": "Enter date as YYYY, YYYY-MM, or YYYY-MM-DD",
+    "birthdaySet": "Birthday set to {{date}}!",
+    "anniversaryLabel": "Anniversary: {{name}}",
+    "added": "{{name}} added to important dates!",
+    "addFailed": "Failed to add important date",
+    "title": "Important Dates",
+    "birthday": "Birthday",
+    "noDate": "No date",
+    "empty": "No important dates added yet",
+    "addTitle": "Add Important Date",
+    "nameLabel": "Date Name",
+    "namePlaceholder": "e.g., Wedding Anniversary, First Met",
+    "dateLabel": "Date",
+    "datePlaceholder": "YYYY, YYYY-MM, or YYYY-MM-DD",
+    "hint": "Enter year only (2020), year-month (2020-06), or full date (2020-06-15)",
+    "add": "Add"
+  },
+  "brainDump": {
+    "keyNeededTitle": "AI key needed",
+    "keyNeededMessage": "Add a {{provider}} API key in Settings to use brain-dump extraction.",
+    "title": "Quick brain-dump (optional)",
+    "hint": "Type everything you remember. Tap Extract — review, accept the bits you want, ignore the rest.",
+    "consent": "Your text is sent to {{provider}} using your API key. Friends doesn't keep a copy on any server.",
+    "gotIt": "Got it",
+    "placeholder": "e.g. \"Met Agata + Tom in Chile during W-trek. Couple from UK, met in Vietnam. Agata studied in London, parents are doctors, dad has a campervan. IG @agata.x\"",
+    "extract": "Extract",
+    "clear": "Clear",
+    "found": "Found",
+    "ofFacts": "of {{total}} facts",
+    "nNew": "{{count}} new",
+    "nUpdate": "{{count}} update",
+    "nConflict": "{{count}} conflict",
+    "nMatch": "{{count}} already on file",
+    "mentionedOthers": "Other people mentioned: {{names}}. Their facts were NOT attributed to {{name}}.",
+    "metIn": "Met in",
+    "met": "Met",
+    "livesIn": "Lives in",
+    "partner": "Partner",
+    "partnerNote": "Will create a placeholder person + connection",
+    "phone": "Phone",
+    "email": "Email",
+    "piiNote": "PII — off by default. Tap to keep.",
+    "social": "Social",
+    "languages": "Languages",
+    "attributes": "Attributes",
+    "assertion": {
+      "asserted": "asserted",
+      "speculation": "speculation",
+      "reported": "reported",
+      "aspiration": "aspiration"
+    },
+    "confidence": "{{percent}}% confidence",
+    "apply": "Apply selected",
+    "nothing": "Nothing extracted from that note.",
+    "diff": {
+      "NEW": "NEW",
+      "UPDATE": "UPDATE",
+      "CONFLICT": "CONFLICT",
+      "MATCH": "MATCH"
+    },
+    "was": "was: {{value}}"
+  },
+  "labels": {
+    "relationshipType": {
+      "friend": "Friend",
+      "family": "Family",
+      "colleague": "Colleague",
+      "partner": "Partner",
+      "ex-partner": "Ex-Partner",
+      "acquaintance": "Acquaintance",
+      "parent": "Parent",
+      "child": "Child",
+      "sibling": "Sibling",
+      "pet": "Pet"
+    },
+    "relationType": {
+      "LIKES": "Likes",
+      "DISLIKES": "Dislikes",
+      "AVOIDS": "Avoids",
+      "IS": "Is",
+      "HAS": "Has",
+      "LIVES_IN": "Lives In",
+      "CAN": "Can",
+      "DOES": "Does",
+      "DID": "Did",
+      "WANTS": "Wants",
+      "STRUGGLES_WITH": "Struggles With",
+      "KNOWS": "Knows",
+      "HAS_IMPORTANT_DATE": "Important Date"
+    },
+    "intensity": {
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong"
+    },
+    "relationStatus": {
+      "current": "Current",
+      "past": "Past",
+      "future": "Future",
+      "aspiration": "Aspiration"
+    },
+    "connectionStatus": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "ended": "Ended",
+      "complicated": "Complicated"
+    },
+    "importance": {
+      "unknown": "Unknown",
+      "peripheral": "Peripheral",
+      "important": "Important",
+      "very_important": "Very Important"
+    },
+    "personType": {
+      "primary": "Primary",
+      "mentioned": "Mentioned"
+    },
+    "owner": "Owner",
+    "petSpecies": "Pet · {{species}}"
+  },
+  "time": {
+    "justNow": "just now",
+    "yearsAgo_one": "{{count}} year ago",
+    "yearsAgo_other": "{{count}} years ago",
+    "monthsAgo_one": "{{count}} month ago",
+    "monthsAgo_other": "{{count}} months ago",
+    "weeksAgo_one": "{{count}} week ago",
+    "weeksAgo_other": "{{count}} weeks ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "minutesAgo_one": "{{count}} minute ago",
+    "minutesAgo_other": "{{count}} minutes ago",
+    "shortYear": "{{count}}y",
+    "shortMonth": "{{count}}mo",
+    "shortWeek": "{{count}}w",
+    "shortDay": "{{count}}d",
+    "shortHour": "{{count}}h",
+    "now": "now",
+    "lessThanMonth": "<1mo"
+  },
+  "photos": {
+    "limitTitle": "Photo Limit Reached",
+    "limitMessage": "You can only add up to {{max}} photos per person. Delete a photo first or adjust the limit in Dev settings.",
+    "title": "Photos",
+    "optionsTitle": "Photo Options",
+    "optionsMessage": "What would you like to do?",
+    "setAsProfile": "Set as Profile",
+    "profilePhoto": "Profile Photo"
+  },
+  "connections": {
+    "title": "Connections",
+    "empty": "No connections yet. Add connections to show how {{name}} relates to other people.",
+    "add": "Add Connection"
+  },
+  "header": {
+    "metInOn": "Met in {{place}} · {{date}}",
+    "metIn": "Met in {{place}}",
+    "metOn": "Met {{date}}",
+    "phone": "Phone",
+    "email": "Email",
+    "pet": "Pet"
+  },
+  "partnerBadge": {
+    "add": "Add partner"
+  },
+  "languagesEditor": {
+    "title": "Languages spoken",
+    "hint": "Tap a language to make it primary.",
+    "add": "Add language",
+    "placeholder": "Start typing…"
+  },
+  "socialEditor": {
+    "title": "Social handles",
+    "hint": "Paste a profile URL or just type a handle.",
+    "placeholder": "@handle or full URL",
+    "add": "Add social"
+  },
+  "socialStrip": {
+    "openFailed": "Could not open link",
+    "copied": "Copied",
+    "copiedMessage": "{{handle}} copied to clipboard"
+  },
+  "location": {
+    "whereLive": "Where they live",
+    "whereMet": "Where you met",
+    "homePlaceholder": "e.g. London, Krakow, Bay Area",
+    "metPlaceholder": "e.g. Chile, Krakow wedding, Vietnam hostel",
+    "usedTimes": "Used {{count}}× before",
+    "usedBefore": "Used before",
+    "trip": "Trip: {{name}}",
+    "fromTrip": "From a trip",
+    "country": "Country"
+  },
+  "relationshipPicker": {
+    "specify": "Specify (optional)"
+  },
+  "screens": {
+    "person": "Person",
+    "editPerson": "Edit Person",
+    "addRelation": "Add Relation",
+    "addConnection": "Add Connection",
+    "editRelation": "Edit Relation",
+    "editConnection": "Edit Connection",
+    "manageRelations": "Manage Relations",
+    "manageConnections": "Manage Connections"
+  },
+  "relationship": {
+    "title": "Relationship",
+    "me": "Me",
+    "you": "You",
+    "metIn": "Met in {{place}}",
+    "notConnected": "Not connected yet",
+    "addDate": "Add date",
+    "known": "known",
+    "notes": "notes",
+    "mutuals": "mutuals",
+    "howTheyMet": "How they met",
+    "howYouMet": "How you met",
+    "howTheyKnow": "How they know each other",
+    "interests": "Interests",
+    "inCommon": "In common",
+    "youLike": "You like",
+    "nameLikes": "{{name}} likes",
+    "mutualConnections": "Mutual connections",
+    "noMutuals": "No mutual connections yet.",
+    "viewTimeline": "View shared timeline"
+  },
+  "relationForm": {
+    "missingTitle": "Missing Information",
+    "missingMessage": "Please enter what they like/dislike/etc.",
+    "addFailed": "Failed to add relation. Please try again.",
+    "updateFailed": "Failed to update relation. Please try again.",
+    "cannotAdd": "Cannot add relation",
+    "addSomething": "Add Something",
+    "notFound": "Relation not found",
+    "addFor": "Add something they’re into for {{name}}",
+    "editFor": "Edit for {{name}}",
+    "addSubtitle": "A like, dislike, fear, skill, or anything worth remembering.",
+    "editSubtitle": "Update this entry.",
+    "type": "Type",
+    "whatThey": "What they {{verb}}",
+    "category": "Category (optional)",
+    "categoryPlaceholder": "e.g., food, activity, music, sport",
+    "when": "When",
+    "intensity": "Intensity",
+    "add": "Add",
+    "save": "Save Changes",
+    "placeholder": {
+      "LIKES": "e.g., coffee, hiking, classical music",
+      "DISLIKES": "e.g., mushrooms, loud noises, crowds",
+      "AVOIDS": "e.g., peanuts, alcohol, meat",
+      "IS": "e.g., vegan, software engineer, introvert",
+      "HAS": "e.g., glasses, a car, a house",
+      "LIVES_IN": "e.g., Kraków, Brooklyn",
+      "CAN": "e.g., programming, guitar, cooking",
+      "DOES": "e.g., yoga, meditation, running",
+      "DID": "e.g., ran a marathon, moved abroad",
+      "WANTS": "e.g., learn piano, run a marathon",
+      "STRUGGLES_WITH": "e.g., anxiety, procrastination, sleep",
+      "KNOWS": "e.g., a lot of people in Berlin",
+      "default": "Enter details..."
+    }
+  },
+  "manageRelations": {
+    "deleteTitle": "Delete Relation",
+    "deleteMessage": "Are you sure you want to delete \"{{item}}\"?",
+    "titleWithName": "{{name}} · Relations",
+    "title": "Relations",
+    "empty": "No relations yet"
+  },
+  "manageConnections": {
+    "empty": "No connections found"
+  },
+  "manageGifts": {
+    "deleteTitle": "Delete Gift Idea",
+    "deleteMessage": "Are you sure you want to delete \"{{item}}\"?",
+    "titleWithName": "{{name}} · Gifts",
+    "title": "Gifts",
+    "empty": "No gift ideas yet",
+    "given": "Given: {{date}}"
+  },
+  "comparePicker": {
+    "titleWithName": "Compare {{name}} with…",
+    "title": "Compare with…",
+    "noOthers": "Add another person first to compare.",
+    "search": "Search people...",
+    "noMatch": "No one matches “{{query}}”."
   }
 }

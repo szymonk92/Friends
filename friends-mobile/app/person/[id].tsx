@@ -26,8 +26,10 @@ import PersonRelations from '@/components/person/PersonRelations';
 import PersonConnections from '@/components/person/PersonConnections';
 import { fz, fzText } from '@/lib/design/tokens';
 import { formatRelativeTime } from '@/lib/utils/format';
+import { useTranslation } from 'react-i18next';
 
 export default function PersonProfileScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { data: person, isLoading: personLoading } = usePerson(id!);
@@ -41,8 +43,8 @@ export default function PersonProfileScreen() {
 
   const handleDelete = () => {
     confirmDestructive({
-      title: 'Delete Person',
-      message: `Are you sure you want to delete ${person?.name}? This cannot be undone.`,
+      title: t('profile.deletePersonTitle'),
+      message: t('profile.deletePersonMessage', { name: person?.name }),
       onConfirm: async () => {
         await deletePerson.mutateAsync(id!);
         router.back();
@@ -52,10 +54,10 @@ export default function PersonProfileScreen() {
 
   const handleAvatarPress = () =>
     pickPhoto({
-      title: 'Profile Photo',
+      title: t('photos.profilePhoto'),
       onSaved: async (photo) => {
         await setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id });
-        Alert.alert('Success', 'Profile photo updated!');
+        Alert.alert(t('common.success'), t('profile.photoUpdated'));
       },
     });
 
@@ -65,7 +67,7 @@ export default function PersonProfileScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={fz.ink} />
-        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading profile...</Text>
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>{t('profile.loading')}</Text>
       </View>
     );
   }
@@ -73,9 +75,9 @@ export default function PersonProfileScreen() {
   if (!person) {
     return (
       <View style={styles.centered}>
-        <Text style={fzText.title}>Person not found</Text>
+        <Text style={fzText.title}>{t('profile.notFound')}</Text>
         <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-          Go Back
+          {t('person.goBack')}
         </Button>
       </View>
     );
@@ -109,7 +111,7 @@ export default function PersonProfileScreen() {
                       setMenuVisible(false);
                       handleAvatarPress();
                     }}
-                    title="Change Photo"
+                    title={t('profile.changePhoto')}
                     leadingIcon="camera"
                   />
                 )}
@@ -119,7 +121,7 @@ export default function PersonProfileScreen() {
                       setMenuVisible(false);
                       router.push(`/person/relationship?personId=${id}`);
                     }}
-                    title="View Relationship"
+                    title={t('profile.viewRelationship')}
                     leadingIcon="link-variant"
                   />
                 )}
@@ -129,7 +131,7 @@ export default function PersonProfileScreen() {
                       setMenuVisible(false);
                       router.push(`/person/compare-picker?personId=${id}`);
                     }}
-                    title="Compare With…"
+                    title={t('profile.compareWith')}
                     leadingIcon="account-multiple"
                   />
                 )}
@@ -139,7 +141,7 @@ export default function PersonProfileScreen() {
                       setMenuVisible(false);
                       router.push(`/person/add-relation?personId=${id}`);
                     }}
-                    title="Add Relation"
+                    title={t('profile.addRelation')}
                     leadingIcon="plus"
                   />
                 )}
@@ -148,7 +150,7 @@ export default function PersonProfileScreen() {
                     setMenuVisible(false);
                     router.push(`/person/edit?personId=${id}`);
                   }}
-                  title="Edit"
+                  title={t('common.edit')}
                   leadingIcon="pencil"
                 />
                 <Menu.Item
@@ -156,7 +158,7 @@ export default function PersonProfileScreen() {
                     setMenuVisible(false);
                     handleDelete();
                   }}
-                  title="Delete"
+                  title={t('common.delete')}
                   leadingIcon="delete"
                   titleStyle={{ color: '#d32f2f' }}
                 />

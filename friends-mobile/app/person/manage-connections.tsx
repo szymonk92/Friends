@@ -7,8 +7,10 @@ import { formatRelativeTime } from '@/lib/utils/format';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import { PersonRow } from '@/components/PersonRow';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 export default function ManageConnectionsScreen() {
+  const { t } = useTranslation();
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: allPeople = [] } = usePeople({ entityType: 'all' });
   const { data: connections = [], isLoading } = usePersonConnections(personId!);
@@ -31,7 +33,7 @@ export default function ManageConnectionsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: `Manage Connections`,
+          title: t('screens.manageConnections'),
           headerRight: () => (
             <IconButton
               icon="plus"
@@ -44,14 +46,14 @@ export default function ManageConnectionsScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.list}>
         {connections.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No connections found</Text>
+            <Text style={styles.emptyText}>{t('manageConnections.empty')}</Text>
             <Button
               mode="contained"
               icon="plus"
               onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
               style={styles.addButton}
             >
-              Add Connection
+              {t('connections.add')}
             </Button>
           </View>
         ) : (

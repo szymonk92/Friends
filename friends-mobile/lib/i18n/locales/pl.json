@@ -26,7 +26,8 @@
     "back": "Wstecz",
     "moreOptions": "Więcej opcji",
     "show": "Pokaż",
-    "hide": "Ukryj"
+    "hide": "Ukryj",
+    "unknownError": "Nieznany błąd"
   },
   "splash": {
     "connecting": "Łączenie z Twoim kręgiem…"
@@ -445,6 +446,344 @@
     "remindMonth": "Przypomnimy Ci za miesiąc",
     "intoTitle": "Czym się interesuje",
     "intoEmpty": "Na razie nic. Dodaj upodobania, lęki lub fakty o {{name}}.",
-    "intoAdd": "Dodaj coś"
+    "intoAdd": "Dodaj coś",
+    "deletePersonTitle": "Usuń osobę",
+    "deletePersonMessage": "Czy na pewno chcesz usunąć {{name}}? Tej operacji nie można cofnąć.",
+    "photoUpdated": "Zdjęcie profilowe zaktualizowane!",
+    "loading": "Ładowanie profilu...",
+    "notFound": "Nie znaleziono osoby",
+    "changePhoto": "Zmień zdjęcie",
+    "viewRelationship": "Zobacz relację",
+    "compareWith": "Porównaj z…",
+    "addRelation": "Dodaj relację"
+  },
+  "gifts": {
+    "enterItem": "Wpisz pomysł na prezent",
+    "added": "Dodano pomysł na prezent!",
+    "addFailed": "Nie udało się dodać pomysłu na prezent",
+    "markGivenTitle": "Oznacz jako wręczony",
+    "markGivenMessage": "Oznaczyć „{{item}}” jako wręczony?",
+    "given": "Wręczony",
+    "title": "Pomysły na prezent",
+    "empty": "Brak pomysłów na prezent. Dodaj pomysły dla {{name}}!",
+    "forOccasion": "Okazja: {{occasion}}",
+    "givenOn": "Wręczono {{date}}",
+    "addTitle": "Dodaj pomysł na prezent",
+    "itemLabel": "Prezent *",
+    "itemPlaceholder": "np. buty trekkingowe, ekspres do kawy",
+    "priority": "Priorytet",
+    "low": "Niski",
+    "medium": "Średni",
+    "high": "Wysoki",
+    "occasionLabel": "Okazja (opcjonalnie)",
+    "occasionPlaceholder": "np. urodziny, Boże Narodzenie",
+    "notesLabel": "Notatki (opcjonalnie)",
+    "notesPlaceholder": "Rozmiar, kolor, gdzie kupić itp.",
+    "add": "Dodaj"
+  },
+  "dates": {
+    "enterName": "Wpisz nazwę tej daty",
+    "invalidDate": "Nieprawidłowa data",
+    "invalidDateMessage": "Wpisz datę jako RRRR, RRRR-MM lub RRRR-MM-DD",
+    "birthdaySet": "Ustawiono urodziny: {{date}}!",
+    "anniversaryLabel": "Rocznica: {{name}}",
+    "added": "Dodano „{{name}}” do ważnych dat!",
+    "addFailed": "Nie udało się dodać ważnej daty",
+    "title": "Ważne daty",
+    "birthday": "Urodziny",
+    "noDate": "Brak daty",
+    "empty": "Nie dodano jeszcze ważnych dat",
+    "addTitle": "Dodaj ważną datę",
+    "nameLabel": "Nazwa daty",
+    "namePlaceholder": "np. rocznica ślubu, pierwsze spotkanie",
+    "dateLabel": "Data",
+    "datePlaceholder": "RRRR, RRRR-MM lub RRRR-MM-DD",
+    "hint": "Wpisz sam rok (2020), rok i miesiąc (2020-06) lub pełną datę (2020-06-15)",
+    "add": "Dodaj"
+  },
+  "brainDump": {
+    "keyNeededTitle": "Potrzebny klucz AI",
+    "keyNeededMessage": "Dodaj klucz API {{provider}} w Ustawieniach, aby użyć wyciągania z notatki.",
+    "title": "Szybki zrzut myśli (opcjonalnie)",
+    "hint": "Wpisz wszystko, co pamiętasz. Stuknij Wyciągnij — sprawdź, zaakceptuj, co chcesz, resztę zignoruj.",
+    "consent": "Twój tekst jest wysyłany do {{provider}} z użyciem Twojego klucza API. Friends nie przechowuje jego kopii na żadnym serwerze.",
+    "gotIt": "Rozumiem",
+    "placeholder": "np. „Poznałem Agatę i Tomka w Chile podczas trekkingu W. Para z Wielkiej Brytanii, poznali się w Wietnamie. Agata studiowała w Londynie, rodzice są lekarzami, tata ma kampera. IG @agata.x”",
+    "extract": "Wyciągnij",
+    "clear": "Wyczyść",
+    "found": "Znaleziono",
+    "ofFacts": "z {{total}} faktów",
+    "nNew": "nowe: {{count}}",
+    "nUpdate": "zmiany: {{count}}",
+    "nConflict": "konflikty: {{count}}",
+    "nMatch": "już zapisane: {{count}}",
+    "mentionedOthers": "Wspomniane osoby: {{names}}. Ich fakty NIE zostały przypisane do {{name}}.",
+    "metIn": "Poznali się w",
+    "met": "Poznali się",
+    "livesIn": "Mieszka w",
+    "partner": "Partner",
+    "partnerNote": "Utworzy tymczasową osobę i połączenie",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "piiNote": "Dane osobowe — domyślnie wyłączone. Stuknij, aby zachować.",
+    "social": "Social media",
+    "languages": "Języki",
+    "attributes": "Cechy",
+    "assertion": {
+      "asserted": "stwierdzone",
+      "speculation": "przypuszczenie",
+      "reported": "relacjonowane",
+      "aspiration": "aspiracja"
+    },
+    "confidence": "pewność {{percent}}%",
+    "apply": "Zastosuj wybrane",
+    "nothing": "Nic nie wyciągnięto z tej notatki.",
+    "diff": {
+      "NEW": "NOWE",
+      "UPDATE": "ZMIANA",
+      "CONFLICT": "KONFLIKT",
+      "MATCH": "ZGODNE"
+    },
+    "was": "było: {{value}}"
+  },
+  "labels": {
+    "relationshipType": {
+      "friend": "Przyjaciel",
+      "family": "Rodzina",
+      "colleague": "Współpracownik",
+      "partner": "Partner",
+      "ex-partner": "Były partner",
+      "acquaintance": "Znajomy",
+      "parent": "Rodzic",
+      "child": "Dziecko",
+      "sibling": "Rodzeństwo",
+      "pet": "Zwierzę"
+    },
+    "relationType": {
+      "LIKES": "Lubi",
+      "DISLIKES": "Nie lubi",
+      "AVOIDS": "Unika",
+      "IS": "Jest",
+      "HAS": "Ma",
+      "LIVES_IN": "Mieszka w",
+      "CAN": "Potrafi",
+      "DOES": "Robi",
+      "DID": "Robił",
+      "WANTS": "Chce",
+      "STRUGGLES_WITH": "Zmaga się z",
+      "KNOWS": "Zna",
+      "HAS_IMPORTANT_DATE": "Ważna data"
+    },
+    "intensity": {
+      "weak": "Słabe",
+      "medium": "Średnie",
+      "strong": "Silne"
+    },
+    "relationStatus": {
+      "current": "Obecne",
+      "past": "Przeszłe",
+      "future": "Przyszłe",
+      "aspiration": "Aspiracja"
+    },
+    "connectionStatus": {
+      "active": "Aktywne",
+      "inactive": "Nieaktywne",
+      "ended": "Zakończone",
+      "complicated": "Skomplikowane"
+    },
+    "importance": {
+      "unknown": "Nieznana",
+      "peripheral": "Peryferyjna",
+      "important": "Ważna",
+      "very_important": "Bardzo ważna"
+    },
+    "personType": {
+      "primary": "Główna",
+      "mentioned": "Wspomniana"
+    },
+    "owner": "Właściciel",
+    "petSpecies": "Zwierzę · {{species}}"
+  },
+  "time": {
+    "justNow": "przed chwilą",
+    "yearsAgo_one": "{{count}} rok temu",
+    "yearsAgo_few": "{{count}} lata temu",
+    "yearsAgo_many": "{{count}} lat temu",
+    "yearsAgo_other": "{{count}} lat temu",
+    "monthsAgo_one": "{{count}} miesiąc temu",
+    "monthsAgo_few": "{{count}} miesiące temu",
+    "monthsAgo_many": "{{count}} miesięcy temu",
+    "monthsAgo_other": "{{count}} miesięcy temu",
+    "weeksAgo_one": "{{count}} tydzień temu",
+    "weeksAgo_few": "{{count}} tygodnie temu",
+    "weeksAgo_many": "{{count}} tygodni temu",
+    "weeksAgo_other": "{{count}} tygodni temu",
+    "daysAgo_one": "{{count}} dzień temu",
+    "daysAgo_few": "{{count}} dni temu",
+    "daysAgo_many": "{{count}} dni temu",
+    "daysAgo_other": "{{count}} dni temu",
+    "hoursAgo_one": "{{count}} godzinę temu",
+    "hoursAgo_few": "{{count}} godziny temu",
+    "hoursAgo_many": "{{count}} godzin temu",
+    "hoursAgo_other": "{{count}} godzin temu",
+    "minutesAgo_one": "{{count}} minutę temu",
+    "minutesAgo_few": "{{count}} minuty temu",
+    "minutesAgo_many": "{{count}} minut temu",
+    "minutesAgo_other": "{{count}} minut temu",
+    "shortYear": "{{count}} r.",
+    "shortMonth": "{{count}} mies.",
+    "shortWeek": "{{count}} t.",
+    "shortDay": "{{count}} d.",
+    "shortHour": "{{count}} godz.",
+    "now": "teraz",
+    "lessThanMonth": "<1 mies."
+  },
+  "photos": {
+    "limitTitle": "Osiągnięto limit zdjęć",
+    "limitMessage": "Możesz dodać maksymalnie {{max}} zdjęć na osobę. Najpierw usuń zdjęcie lub zmień limit w ustawieniach deweloperskich.",
+    "title": "Zdjęcia",
+    "optionsTitle": "Opcje zdjęcia",
+    "optionsMessage": "Co chcesz zrobić?",
+    "setAsProfile": "Ustaw jako profilowe",
+    "profilePhoto": "Zdjęcie profilowe"
+  },
+  "connections": {
+    "title": "Połączenia",
+    "empty": "Brak połączeń. Dodaj połączenia, aby pokazać, jak {{name}} jest powiązany(-a) z innymi osobami.",
+    "add": "Dodaj połączenie"
+  },
+  "header": {
+    "metInOn": "Poznani w: {{place}} · {{date}}",
+    "metIn": "Poznani w: {{place}}",
+    "metOn": "Poznani {{date}}",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "pet": "Zwierzę"
+  },
+  "partnerBadge": {
+    "add": "Dodaj partnera"
+  },
+  "languagesEditor": {
+    "title": "Znane języki",
+    "hint": "Stuknij język, aby ustawić go jako główny.",
+    "add": "Dodaj język",
+    "placeholder": "Zacznij pisać…"
+  },
+  "socialEditor": {
+    "title": "Profile w mediach społecznościowych",
+    "hint": "Wklej adres profilu albo wpisz sam login.",
+    "placeholder": "@login lub pełny adres URL",
+    "add": "Dodaj profil"
+  },
+  "socialStrip": {
+    "openFailed": "Nie można otworzyć linku",
+    "copied": "Skopiowano",
+    "copiedMessage": "Skopiowano {{handle}} do schowka"
+  },
+  "location": {
+    "whereLive": "Gdzie mieszka",
+    "whereMet": "Gdzie się poznaliście",
+    "homePlaceholder": "np. Londyn, Kraków, Bay Area",
+    "metPlaceholder": "np. Chile, wesele w Krakowie, hostel w Wietnamie",
+    "usedTimes": "Użyto już {{count}}×",
+    "usedBefore": "Użyto wcześniej",
+    "trip": "Podróż: {{name}}",
+    "fromTrip": "Z podróży",
+    "country": "Kraj"
+  },
+  "relationshipPicker": {
+    "specify": "Doprecyzuj (opcjonalnie)"
+  },
+  "screens": {
+    "person": "Osoba",
+    "editPerson": "Edytuj osobę",
+    "addRelation": "Dodaj relację",
+    "addConnection": "Dodaj połączenie",
+    "editRelation": "Edytuj relację",
+    "editConnection": "Edytuj połączenie",
+    "manageRelations": "Zarządzaj relacjami",
+    "manageConnections": "Zarządzaj połączeniami"
+  },
+  "relationship": {
+    "title": "Relacja",
+    "me": "Ja",
+    "you": "Ty",
+    "metIn": "Poznali się w: {{place}}",
+    "notConnected": "Jeszcze nie połączeni",
+    "addDate": "Dodaj datę",
+    "known": "znajomość",
+    "notes": "notatki",
+    "mutuals": "wspólni",
+    "howTheyMet": "Jak się poznali",
+    "howYouMet": "Jak się poznaliście",
+    "howTheyKnow": "Jak się znają",
+    "interests": "Zainteresowania",
+    "inCommon": "Wspólne",
+    "youLike": "Lubisz",
+    "nameLikes": "{{name}} lubi",
+    "mutualConnections": "Wspólne połączenia",
+    "noMutuals": "Brak wspólnych połączeń.",
+    "viewTimeline": "Zobacz wspólną oś czasu"
+  },
+  "relationForm": {
+    "missingTitle": "Brakujące informacje",
+    "missingMessage": "Wpisz, co lubi / czego nie lubi itd.",
+    "addFailed": "Nie udało się dodać relacji. Spróbuj ponownie.",
+    "updateFailed": "Nie udało się zaktualizować relacji. Spróbuj ponownie.",
+    "cannotAdd": "Nie można dodać relacji",
+    "addSomething": "Dodaj coś",
+    "notFound": "Nie znaleziono relacji",
+    "addFor": "Dodaj coś, czym interesuje się {{name}}",
+    "editFor": "Edytuj: {{name}}",
+    "addSubtitle": "Upodobanie, niechęć, lęk, umiejętność lub cokolwiek wartego zapamiętania.",
+    "editSubtitle": "Zaktualizuj ten wpis.",
+    "type": "Rodzaj",
+    "whatThey": "Co dokładnie ({{verb}})",
+    "category": "Kategoria (opcjonalnie)",
+    "categoryPlaceholder": "np. jedzenie, aktywność, muzyka, sport",
+    "when": "Kiedy",
+    "intensity": "Natężenie",
+    "add": "Dodaj",
+    "save": "Zapisz zmiany",
+    "placeholder": {
+      "LIKES": "np. kawa, wędrówki, muzyka klasyczna",
+      "DISLIKES": "np. grzyby, głośne dźwięki, tłumy",
+      "AVOIDS": "np. orzeszki ziemne, alkohol, mięso",
+      "IS": "np. weganin, programista, introwertyk",
+      "HAS": "np. okulary, samochód, dom",
+      "LIVES_IN": "np. Kraków, Brooklyn",
+      "CAN": "np. programowanie, gitara, gotowanie",
+      "DOES": "np. joga, medytacja, bieganie",
+      "DID": "np. przebiegł maraton, wyprowadził się za granicę",
+      "WANTS": "np. nauczyć się grać na pianinie, przebiec maraton",
+      "STRUGGLES_WITH": "np. lęk, prokrastynacja, sen",
+      "KNOWS": "np. wielu ludzi w Berlinie",
+      "default": "Wpisz szczegóły..."
+    }
+  },
+  "manageRelations": {
+    "deleteTitle": "Usuń relację",
+    "deleteMessage": "Czy na pewno chcesz usunąć „{{item}}”?",
+    "titleWithName": "{{name}} · Relacje",
+    "title": "Relacje",
+    "empty": "Brak relacji"
+  },
+  "manageConnections": {
+    "empty": "Nie znaleziono połączeń"
+  },
+  "manageGifts": {
+    "deleteTitle": "Usuń pomysł na prezent",
+    "deleteMessage": "Czy na pewno chcesz usunąć „{{item}}”?",
+    "titleWithName": "{{name}} · Prezenty",
+    "title": "Prezenty",
+    "empty": "Brak pomysłów na prezent",
+    "given": "Wręczono: {{date}}"
+  },
+  "comparePicker": {
+    "titleWithName": "Porównaj {{name}} z…",
+    "title": "Porównaj z…",
+    "noOthers": "Najpierw dodaj kolejną osobę, aby porównać.",
+    "search": "Szukaj osób...",
+    "noMatch": "Nikt nie pasuje do „{{query}}”."
   }
 }

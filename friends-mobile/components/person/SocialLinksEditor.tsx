@@ -11,6 +11,7 @@ import {
 } from '@/lib/social/socialLinks';
 import { fz, fzText } from '@/lib/design/tokens';
 import { FormInput } from '@/components/FormKit';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   value: SocialLink[];
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export default function SocialLinksEditor({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const addLink = (platform: SocialPlatform) => {
@@ -50,8 +52,8 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={fzText.label}>Social handles</Text>
-      <Text style={[fzText.sub, styles.hint]}>Paste a profile URL or just type a handle.</Text>
+      <Text style={fzText.label}>{t('socialEditor.title')}</Text>
+      <Text style={[fzText.sub, styles.hint]}>{t('socialEditor.hint')}</Text>
 
       {value.map((link, index) => (
         <View key={index} style={styles.row}>
@@ -62,9 +64,9 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
             <FormInput
               dense
               label={platformLabel(link.platform)}
-              placeholder="@handle or full URL"
+              placeholder={t('socialEditor.placeholder')}
               value={link.handle}
-              onChangeText={(t) => handleHandleChange(index, t)}
+              onChangeText={(text) => handleHandleChange(index, text)}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={500}
@@ -87,7 +89,7 @@ export default function SocialLinksEditor({ value, onChange }: Props) {
             textColor={fz.ink}
             compact
           >
-            Add social
+            {t('socialEditor.add')}
           </Button>
         }
       >

@@ -7,12 +7,14 @@ import {
   platformLabel,
   type SocialLink,
 } from '@/lib/social/socialLinks';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   links: SocialLink[];
 };
 
 export default function SocialLinksStrip({ links }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   if (!links.length) return null;
 
@@ -26,13 +28,13 @@ export default function SocialLinksStrip({ links }: Props) {
         Alert.alert(platformLabel(link.platform), url);
       }
     } catch {
-      Alert.alert('Could not open link', url);
+      Alert.alert(t('socialStrip.openFailed'), url);
     }
   };
 
   const copyHandle = async (link: SocialLink) => {
     await Clipboard.setStringAsync(link.handle);
-    Alert.alert('Copied', `${link.handle} copied to clipboard`);
+    Alert.alert(t('socialStrip.copied'), t('socialStrip.copiedMessage', { handle: link.handle }));
   };
 
   return (

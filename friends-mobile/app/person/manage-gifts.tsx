@@ -9,8 +9,10 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
+import { useTranslation } from 'react-i18next';
 
 export default function ManageGiftsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { personId } = useLocalSearchParams<{ personId: string }>();
   const { data: person } = usePerson(personId!);
@@ -19,8 +21,8 @@ export default function ManageGiftsScreen() {
 
   const handleDelete = (giftId: string, item: string) => {
     confirmDestructive({
-      title: 'Delete Gift Idea',
-      message: `Are you sure you want to delete "${item}"?`,
+      title: t('manageGifts.deleteTitle'),
+      message: t('manageGifts.deleteMessage', { item }),
       onConfirm: () => deleteGift.mutateAsync(giftId),
     });
   };
@@ -30,7 +32,7 @@ export default function ManageGiftsScreen() {
       <View style={styles.appBarRow}>
         <HeaderBack onPress={() => router.back()} />
         <RNText style={fzText.screenTitle} numberOfLines={1}>
-          {person?.name ? `${person.name} · Gifts` : 'Gifts'}
+          {person?.name ? t('manageGifts.titleWithName', { name: person.name }) : t('manageGifts.title')}
         </RNText>
         <View style={{ width: 38 }} />
       </View>
@@ -59,7 +61,7 @@ export default function ManageGiftsScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {gifts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <RNText style={fzText.sub}>No gift ideas yet</RNText>
+            <RNText style={fzText.sub}>{t('manageGifts.empty')}</RNText>
           </View>
         ) : (
           <View>
@@ -77,7 +79,7 @@ export default function ManageGiftsScreen() {
                   </RNText>
 
                   <View style={styles.chipsRow}>
-                    <Pill label={gift.priority} variant={gift.priority === 'high' ? 'solid' : 'surface'} />
+                    <Pill label={t(`gifts.${gift.priority as 'low' | 'medium' | 'high'}`)} variant={gift.priority === 'high' ? 'solid' : 'surface'} />
                     {gift.occasion && <Pill label={gift.occasion} variant="soft" />}
                   </View>
 
@@ -88,7 +90,7 @@ export default function ManageGiftsScreen() {
                   )}
                   {gift.status === 'given' && gift.givenDate && (
                     <RNText style={styles.givenDateText}>
-                      Given: {formatShortDate(gift.givenDate)}
+                      {t('manageGifts.given', { date: formatShortDate(gift.givenDate) })}
                     </RNText>
                   )}
                 </View>

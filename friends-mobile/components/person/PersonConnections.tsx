@@ -5,10 +5,12 @@ import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { PersonRow } from '@/components/PersonRow';
 import { ProfileSection } from './ProfileSection';
+import { connectionStatusLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
 import { fz, fzText } from '@/lib/design/tokens';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import type { Connection } from '@/lib/db/schema';
+import { useTranslation } from 'react-i18next';
 
 interface PersonConnectionsProps {
   personId: string;
@@ -16,6 +18,7 @@ interface PersonConnectionsProps {
 }
 
 export default function PersonConnections({ personId, personName }: PersonConnectionsProps) {
+  const { t } = useTranslation();
   const { data: personConnections = [], isLoading: connectionsLoading } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople({ entityType: 'all' });
 
@@ -27,7 +30,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
 
   return (
     <ProfileSection
-      label="Connections"
+      label={t('connections.title')}
       count={personConnections.length || null}
       onAdd={() => router.push(`/person/add-connection?personId=${personId}`)}
       onMore={() => router.push(`/person/manage-connections?personId=${personId}`)}
@@ -41,7 +44,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
       {!connectionsLoading && personConnections.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            No connections yet. Add connections to show how {personName} relates to other people.
+            {t('connections.empty', { name: personName })}
           </Text>
           <Button
             mode="outlined"
@@ -49,7 +52,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
             style={styles.emptyButton}
             onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
           >
-            Add Connection
+            {t('connections.add')}
           </Button>
         </View>
       )}
@@ -73,7 +76,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
             }
             right={
               !isPet && connection.status !== 'active' ? (
-                <Pill label={connection.status} variant="soft" />
+                <Pill label={connectionStatusLabel(connection.status)} variant="soft" />
               ) : null
             }
           >
@@ -91,7 +94,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
           style={styles.addButton}
           onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
         >
-          Add Connection
+          {t('connections.add')}
         </Button>
       )}
     </ProfileSection>
