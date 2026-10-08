@@ -1,5 +1,5 @@
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,14 +66,6 @@ export default function PersonRelations({ personId, personName }: PersonRelation
           <Text style={styles.emptyText}>
             {t('profile.intoEmpty', { name: personName })}
           </Text>
-          <Button
-            mode="outlined"
-            textColor={fz.ink}
-            style={styles.emptyButton}
-            onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
-          >
-            {t('profile.intoAdd')}
-          </Button>
         </View>
       )}
 
@@ -127,9 +119,8 @@ const styles = StyleSheet.create({
   emptyText: {
     ...fzText.sub,
     fontStyle: 'italic',
-    marginBottom: 12,
+    textAlign: 'center',
   },
-  emptyButton: { borderColor: fz.outline },
   relationTypeSection: { marginBottom: 14 },
   relationTypeHeader: {
     flexDirection: 'row',

@@ -173,7 +173,6 @@ export default function PersonProfileScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
         >
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
-          <PersonNotes person={person} />
           <PersonTags personId={id!} personName={person.name} />
           {person.entityType !== 'pet' && (
             <PersonQuickActions personId={id!} personName={person.name} />
@@ -184,6 +183,7 @@ export default function PersonProfileScreen() {
           {person.entityType !== 'pet' && (
             <PersonRelations personId={id!} personName={person.name} />
           )}
+          <PersonNotes person={person} />
           <PersonConnections personId={id!} personName={person.name} />
           <Text style={styles.footer}>
             Last updated {formatRelativeTime(new Date(person.updatedAt))}
