@@ -105,14 +105,17 @@ export function FormSection({
   hint,
   children,
   style,
+  plain = false,
 }: {
   title?: string;
   hint?: string;
   children: ReactNode;
   style?: any;
+  // No card chrome — label + content sit straight on the screen background.
+  plain?: boolean;
 }) {
   return (
-    <View style={[styles.section, style]}>
+    <View style={[plain ? styles.sectionPlain : styles.section, style]}>
       {title && <Text style={fzText.label}>{title}</Text>}
       {hint && <Text style={[fzText.sub, styles.hint]}>{hint}</Text>}
       <View style={title || hint ? styles.body : undefined}>{children}</View>
@@ -199,6 +202,9 @@ const styles = StyleSheet.create({
     borderRadius: fz.rCard,
     padding: fz.s.xl,
     marginBottom: fz.s.lg,
+  },
+  sectionPlain: {
+    marginBottom: fz.s.xl,
   },
   hint: {
     marginTop: 2,

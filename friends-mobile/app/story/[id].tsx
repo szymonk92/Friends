@@ -331,7 +331,13 @@ export default function StoryDetailScreen() {
         <RNText style={fzText.screenTitle} numberOfLines={1}>
           {title}
         </RNText>
-        <IconCircle icon="trash" onPress={handleDelete} />
+        <View style={styles.appBarActions}>
+          <IconCircle
+            icon="pencil"
+            onPress={() => router.push(`/story/addStory?storyId=${id}`)}
+          />
+          <IconCircle icon="trash" onPress={handleDelete} />
+        </View>
       </View>
     </View>
   );
@@ -761,6 +767,10 @@ export default function StoryDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
   appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarActions: {
+    flexDirection: 'row',
+    gap: fz.s.sm,
+  },
   appBarRow: {
     flexDirection: 'row',
     alignItems: 'center',

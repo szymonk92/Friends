@@ -66,6 +66,23 @@ export function useCreateStory() {
 }
 
 /**
+ * Hook to edit a saved story's text
+ */
+export function useUpdateStory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      await db.update(stories).set({ content, updatedAt: new Date() }).where(eq(stories.id, id));
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['story', id] });
+    },
+  });
+}
+
+/**
  * Hook to mark story as AI processed
  */
 export function useMarkStoryProcessed() {

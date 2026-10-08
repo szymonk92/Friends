@@ -13,7 +13,7 @@ import {
 import { Text, TextInput, Button, Portal } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState, useEffect, useCallback } from 'react';
-import { useCreateStory } from '@/hooks/useStories';
+import { useCreateStory, useStory, useUpdateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
 import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
@@ -39,7 +39,10 @@ export default function StoryInputScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { personId: prefillPersonId } = useLocalSearchParams<{ personId?: string }>();
+  const { personId: prefillPersonId, storyId: editStoryId } = useLocalSearchParams<{
+    personId?: string;
+    storyId?: string;
+  }>();
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
@@ -64,6 +67,14 @@ export default function StoryInputScreen() {
   const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
 
   const createStory = useCreateStory();
+  const updateStory = useUpdateStory();
+  const { data: editStory } = useStory(editStoryId ?? '');
+  const isEdit = !!editStoryId;
+
+  // Edit mode: prefill once the saved story loads.
+  useEffect(() => {
+    if (editStory) setStoryText(editStory.content);
+  }, [editStory]);
   const extractStory = useExtractStory();
   const { data: allPeople } = usePeople();
   const { data: prefillPerson } = usePerson(prefillPersonId ?? '');
@@ -87,7 +98,9 @@ export default function StoryInputScreen() {
   // Set navigation options
   useEffect(() => {
     navigation.setOptions(
-      prefillPerson
+      isEdit
+        ? { title: t('addStory.editTitle') }
+        : prefillPerson
         ? {
             headerTitle: () => (
               <RNText style={styles.headerTitle} numberOfLines={1}>
@@ -98,13 +111,16 @@ export default function StoryInputScreen() {
           }
         : { title: t('addStory.title') }
     );
-  }, [navigation, prefillPerson, t]);
+  }, [navigation, prefillPerson, isEdit, t]);
 
   // Handle back button and unsaved changes
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (storyText.trim().length > 0 && !isProcessing) {
+        const dirty = isEdit
+          ? storyText !== (editStory?.content ?? '')
+          : storyText.trim().length > 0;
+        if (dirty && !isProcessing) {
           setUnsavedDialogVisible(true);
           return true; // Prevent default back action
         }
@@ -114,7 +130,7 @@ export default function StoryInputScreen() {
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
       return () => subscription.remove();
-    }, [storyText, isProcessing])
+    }, [storyText, isProcessing, isEdit, editStory])
   );
 
   const handleDiscard = () => {
@@ -139,6 +155,11 @@ export default function StoryInputScreen() {
       return;
     }
 
+    if (isEdit) {
+      await saveEdit();
+      return;
+    }
+
     // No AI key → the story is still saved, just not extracted.
     if (!hasActiveApiKey()) {
       await saveStoryOnly();
@@ -147,6 +168,19 @@ export default function StoryInputScreen() {
 
     // Retry after a failed extraction reuses the already-saved story.
     await processStoryWithAI(currentStoryId ?? undefined);
+  };
+
+  const saveEdit = async () => {
+    setIsProcessing(true);
+    try {
+      await updateStory.mutateAsync({ id: editStoryId!, content: storyText });
+      router.back();
+    } catch (error) {
+      fzAlert(t('common.error'), t('addStory.saveFailed'));
+      devLogger.error('Failed to update story', { error, storyId: editStoryId });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const saveStoryOnly = async () => {
@@ -386,7 +420,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
           contentContainerStyle={[styles.content, { paddingBottom: 120 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
         >
-          <FormSection title={t('addStory.people')}>
+          <FormSection plain title={t('addStory.people')}>
             <View style={styles.pillRow}>
               {selectedPeopleObjects.map((person) => (
                 <Pill
@@ -405,7 +439,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             </View>
           </FormSection>
 
-          <FormSection title={t('addStory.story')}>
+          <FormSection plain title={t('addStory.story')}>
             <MentionTextInput
               placeholder={
                 prefillPerson
@@ -415,6 +449,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               value={storyText}
               onChangeText={setStoryText}
               numberOfLines={12}
+              filled
               style={styles.input}
             />
             <View style={styles.statsBar}>
@@ -444,7 +479,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         </ScrollView>
 
         <View style={[styles.bottomAction, { paddingBottom: fz.s.md + insets.bottom }]}>
-          {hasKey && (
+          {hasKey && !isEdit && (
             <Pressable
               accessibilityRole="button"
               onPress={saveStoryOnly}
@@ -464,7 +499,11 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={fzText.btn}>
-                {hasKey ? t('addStory.saveExtract') : t('addStory.saveStory')}
+                {isEdit
+                  ? t('common.save')
+                  : hasKey
+                    ? t('addStory.saveExtract')
+                    : t('addStory.saveStory')}
               </Text>
             )}
           </Pressable>
@@ -676,9 +715,9 @@ const styles = StyleSheet.create({
     marginTop: fz.s.md,
   },
   examplesSection: {
-    padding: fz.s.xl,
-    backgroundColor: fz.surfaceSoft,
-    borderRadius: fz.rCard,
+    paddingTop: fz.s.lg,
+    borderTopWidth: 1,
+    borderTopColor: fz.hairline,
   },
   example: {
     ...fzText.sub,

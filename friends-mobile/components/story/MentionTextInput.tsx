@@ -20,6 +20,8 @@ interface MentionTextInputProps {
   placeholder?: string;
   numberOfLines?: number;
   style?: any;
+  // Soft filled block instead of an outlined box — one quiet layer on the page.
+  filled?: boolean;
 }
 
 interface Mention {
@@ -35,6 +37,7 @@ export default function MentionTextInput({
   placeholder,
   numberOfLines = 12,
   style,
+  filled = false,
 }: MentionTextInputProps) {
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState<Person[]>([]);
@@ -188,7 +191,11 @@ export default function MentionTextInput({
         onSelectionChange={handleSelectionChange}
         multiline
         numberOfLines={numberOfLines}
-        style={[styles.input, style]}
+        style={[styles.input, filled && styles.inputFilled, style]}
+        {...(filled && {
+          outlineColor: 'transparent',
+          activeOutlineColor: fz.outline,
+        })}
       />
 
       <View style={styles.bottomActions}>
@@ -231,6 +238,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 200,
     marginBottom: 0,
+  },
+  inputFilled: {
+    backgroundColor: fz.surfaceSoft,
   },
   bottomActions: {
     flexDirection: 'row',
