@@ -3,6 +3,7 @@ import { fz } from '@/lib/design/tokens';
 import { FormSection } from '@/components/FormKit';
 import { Pill } from '@/components/Pill';
 import { PersonRow } from '@/components/PersonRow';
+import { useTranslation } from 'react-i18next';
 
 interface Person {
   id: string;
@@ -26,14 +27,15 @@ export default function GuestSelector({
   searchQuery,
   setSearchQuery,
 }: GuestSelectorProps) {
+  const { t } = useTranslation();
   // Get selected guest objects for display
   const selectedGuestObjects = people.filter((p) => selectedGuests.includes(p.id));
 
   return (
-    <FormSection title={`Select Guests (${selectedGuests.length})`}>
+    <FormSection title={t('party.selectGuests', { count: selectedGuests.length })}>
       <View style={styles.searchInput}>
         <TextInput
-          placeholder="Search people..."
+          placeholder={t('comparePicker.search')}
           placeholderTextColor={fz.textMute}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -66,7 +68,7 @@ export default function GuestSelector({
               onPress={() => onToggleGuest(person.id)}
               right={
                 <Pill
-                  label={selected ? 'Selected' : 'Add'}
+                  label={selected ? t('party.selected') : t('party.add')}
                   selected={selected}
                   onPress={() => onToggleGuest(person.id)}
                 />

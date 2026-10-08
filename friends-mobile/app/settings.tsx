@@ -1,3 +1,4 @@
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { StyleSheet, ScrollView, Alert, View } from 'react-native';
 import { Text, Card, Button, List, Divider, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
@@ -116,14 +117,14 @@ export default function SettingsScreen() {
   };
 
   const handleResetColors = async () => {
-    Alert.alert('Reset Colors', 'Reset all relationship colors to default?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('settingsScreen.resetTitle'), t('settingsScreen.resetMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Reset',
+        text: t('settingsScreen.reset'),
         onPress: async () => {
           await resetRelationshipColors();
           setRelationshipColors(DEFAULT_COLORS);
-          Alert.alert('Success', 'Colors reset to defaults');
+          Alert.alert(t('common.success'), t('settingsScreen.colorsReset'));
         },
       },
     ]);
@@ -140,10 +141,10 @@ export default function SettingsScreen() {
       await saveBirthdayReminderSettings(newSettings);
       if (key === 'enabled' && value === true) {
         const count = await scheduleBirthdayReminders();
-        Alert.alert('Birthday Reminders', `Scheduled ${count} birthday reminders!`);
+        Alert.alert(t('birthdayReminders.title'), t('settingsScreen.scheduled', { count }));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
+      Alert.alert(t('common.error'), t('settingsScreen.saveFailed'));
     } finally {
       setSavingBirthdaySettings(false);
     }
@@ -151,7 +152,7 @@ export default function SettingsScreen() {
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
-      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -159,15 +160,15 @@ export default function SettingsScreen() {
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert('Success', 'Anthropic API key saved successfully!');
+      Alert.alert(t('common.success'), t('settingsScreen.anthropicSaved'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save API key. Please try again.');
+      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleSaveGeminiApiKey = async () => {
     if (tempGeminiApiKey.trim().length === 0) {
-      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -175,39 +176,39 @@ export default function SettingsScreen() {
       await setGeminiApiKey(tempGeminiApiKey.trim());
       setGeminiApiKeyDialogVisible(false);
       setTempGeminiApiKey('');
-      Alert.alert('Success', 'Gemini API key saved successfully!');
+      Alert.alert(t('common.success'), t('settingsScreen.geminiSaved'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save API key. Please try again.');
+      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleClearApiKey = () => {
     confirmDestructive({
-      title: 'Clear Anthropic API Key',
-      message: 'Are you sure you want to remove your Anthropic API key?',
-      confirmLabel: 'Clear',
+      title: t('settingsScreen.clearAnthropic'),
+      message: t('settingsScreen.removeAnthropic'),
+      confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearApiKey();
-        Alert.alert('Success', 'Anthropic API key cleared.');
+        Alert.alert(t('common.success'), t('settingsScreen.anthropicCleared'));
       },
     });
   };
 
   const handleClearGeminiApiKey = () => {
     confirmDestructive({
-      title: 'Clear Gemini API Key',
-      message: 'Are you sure you want to remove your Gemini API key?',
-      confirmLabel: 'Clear',
+      title: t('settingsScreen.clearGemini'),
+      message: t('settingsScreen.removeGemini'),
+      confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearGeminiApiKey();
-        Alert.alert('Success', 'Gemini API key cleared.');
+        Alert.alert(t('common.success'), t('settingsScreen.geminiCleared'));
       },
     });
   };
 
   const handleSaveOllamaApiKey = async () => {
     if (tempOllamaApiKey.trim().length === 0) {
-      Alert.alert('Invalid API Key', 'Please enter a value (any placeholder works for Ollama)');
+      Alert.alert(t('addStory.invalidKeyTitle'), t('settingsScreen.ollamaValue'));
       return;
     }
 
@@ -215,20 +216,20 @@ export default function SettingsScreen() {
       await setOllamaApiKey(tempOllamaApiKey.trim());
       setOllamaApiKeyDialogVisible(false);
       setTempOllamaApiKey('');
-      Alert.alert('Success', 'Ollama API key saved!');
+      Alert.alert(t('common.success'), t('settingsScreen.ollamaSaved'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save API key. Please try again.');
+      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleClearOllamaApiKey = () => {
     confirmDestructive({
-      title: 'Clear Ollama API Key',
-      message: 'Are you sure you want to remove your Ollama API key?',
-      confirmLabel: 'Clear',
+      title: t('settingsScreen.clearOllama'),
+      message: t('settingsScreen.removeOllama'),
+      confirmLabel: t('settingsScreen.clear'),
       onConfirm: async () => {
         await clearOllamaApiKey();
-        Alert.alert('Success', 'Ollama API key cleared.');
+        Alert.alert(t('common.success'), t('settingsScreen.ollamaCleared'));
       },
     });
   };
@@ -270,7 +271,7 @@ export default function SettingsScreen() {
             <Divider style={styles.divider} />
 
             <Text variant="bodySmall" style={styles.description}>
-              Store sensitive information securely with biometric protection (Fingerprint/Face ID).
+              {t('settingsScreen.secretsIntro')}
             </Text>
 
             <Button
@@ -279,7 +280,7 @@ export default function SettingsScreen() {
               icon="shield-lock"
               style={styles.button}
             >
-              Manage Secrets
+              {t('settingsScreen.manageSecrets')}
             </Button>
           </Card.Content>
         </Card>
@@ -309,18 +310,18 @@ export default function SettingsScreen() {
             <Divider style={styles.divider} />
 
             <List.Item
-              title="Friends App"
-              description="Personal CRM for managing relationships"
+              title={t('settingsScreen.appName')}
+              description={t('settingsScreen.appDesc')}
               left={(props) => <List.Icon {...props} icon="account-group" />}
             />
             <List.Item
-              title="Version"
+              title={t('settingsScreen.version')}
               description="1.0.0"
               left={(props) => <List.Icon {...props} icon="information" />}
             />
             <List.Item
-              title="Data Storage"
-              description="All data is stored locally on your device"
+              title={t('settingsScreen.dataStorage')}
+              description={t('settingsScreen.dataStorageDesc')}
               left={(props) => <List.Icon {...props} icon="database" />}
             />
           </Card.Content>
@@ -337,15 +338,15 @@ export default function SettingsScreen() {
           style={styles.dialog}
         >
           <Dialog.Title style={styles.dialogTitle}>
-            {hasApiKey() ? 'Change Claude API Key' : 'Set Claude API Key'}
+            {hasApiKey() ? t('settingsScreen.changeClaude') : t('aiConfig.setClaude')}
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
-              Enter your Anthropic API key to enable Claude AI extraction.
+              {t('settingsScreen.enterClaude')}
             </Text>
             <TextInput
               mode="outlined"
-              label="API Key"
+              label={t('addStory.apiKey')}
               placeholder="sk-ant-..."
               value={tempApiKey}
               onChangeText={setTempApiKey}
@@ -355,10 +356,10 @@ export default function SettingsScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setApiKeyDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={handleSaveApiKey}>
-              Save
+              {t('common.save')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -370,15 +371,15 @@ export default function SettingsScreen() {
           style={styles.dialog}
         >
           <Dialog.Title style={styles.dialogTitle}>
-            {hasGeminiApiKey() ? 'Change Gemini API Key' : 'Set Gemini API Key'}
+            {hasGeminiApiKey() ? t('settingsScreen.changeGemini') : t('aiConfig.setGemini')}
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
-              Enter your Google Gemini API key to enable Gemini AI extraction.
+              {t('settingsScreen.enterGemini')}
             </Text>
             <TextInput
               mode="outlined"
-              label="API Key"
+              label={t('addStory.apiKey')}
               placeholder="AIza..."
               value={tempGeminiApiKey}
               onChangeText={setTempGeminiApiKey}
@@ -391,10 +392,10 @@ export default function SettingsScreen() {
               labelStyle={styles.dialogFont}
               onPress={() => setGeminiApiKeyDialogVisible(false)}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={handleSaveGeminiApiKey}>
-              Save
+              {t('common.save')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -406,15 +407,15 @@ export default function SettingsScreen() {
           style={styles.dialog}
         >
           <Dialog.Title style={styles.dialogTitle}>
-            {hasOllamaApiKey() ? 'Change Ollama API Key' : 'Set Ollama API Key'}
+            {hasOllamaApiKey() ? t('settingsScreen.changeOllama') : t('aiConfig.setOllama')}
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
-              Enter any value — Ollama ignores the key, it's just a placeholder so the app treats local extraction as configured.
+              {t('settingsScreen.enterOllama')}
             </Text>
             <TextInput
               mode="outlined"
-              label="API Key (placeholder)"
+              label={t('settingsScreen.keyPlaceholderLabel')}
               placeholder="ollama"
               value={tempOllamaApiKey}
               onChangeText={setTempOllamaApiKey}
@@ -427,10 +428,10 @@ export default function SettingsScreen() {
               labelStyle={styles.dialogFont}
               onPress={() => setOllamaApiKeyDialogVisible(false)}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={handleSaveOllamaApiKey}>
-              Save
+              {t('common.save')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -442,8 +443,9 @@ export default function SettingsScreen() {
           style={styles.dialog}
         >
           <Dialog.Title style={styles.dialogTitle}>
-            Choose Color for{' '}
-            {selectedRelationType.charAt(0).toUpperCase() + selectedRelationType.slice(1)}
+            {t('settingsScreen.chooseColor', {
+              type: relationshipTypeLabel(selectedRelationType),
+            })}
           </Dialog.Title>
           <Dialog.Content>
             <View style={styles.colorGrid}>
@@ -463,7 +465,7 @@ export default function SettingsScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setColorPickerVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           </Dialog.Actions>
         </Dialog>

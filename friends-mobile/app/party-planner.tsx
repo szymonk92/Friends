@@ -12,6 +12,7 @@ import { fz } from '@/lib/design/tokens';
 import PartyDetailsForm from '@/components/party/PartyDetailsForm';
 import GuestSelector from '@/components/party/GuestSelector';
 import PartySuggestions from '@/components/party/PartySuggestions';
+import { useTranslation } from 'react-i18next';
 
 interface Guest {
   id: string;
@@ -21,6 +22,7 @@ interface Guest {
 }
 
 export default function PartyPlannerScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const eventId = params.eventId as string | undefined;
   const initialMode = (params.mode as string) === 'party';
@@ -154,7 +156,7 @@ export default function PartyPlannerScreen() {
 
       return {
         id: guestId,
-        name: person?.name || 'Unknown',
+        name: person?.name || t('timeline.unknown'),
         likes,
         dislikes,
       };
@@ -214,9 +216,9 @@ export default function PartyPlannerScreen() {
         if (score > 0) {
           const reasons = [];
           if (commonLikes.length > 0)
-            reasons.push(`both like ${commonLikes.slice(0, 2).join(', ')}`);
+            reasons.push(t('party.bothLike', { items: commonLikes.slice(0, 2).join(', ') }));
           if (commonDislikes.length > 0)
-            reasons.push(`both avoid ${commonDislikes.slice(0, 2).join(', ')}`);
+            reasons.push(t('party.bothAvoid', { items: commonDislikes.slice(0, 2).join(', ') }));
 
           pairs.push({
             person1: guest1.name,
@@ -239,11 +241,11 @@ export default function PartyPlannerScreen() {
 
   const handleCreateParty = async () => {
     if (!partyName.trim()) {
-      Alert.alert('Missing Information', 'Please enter a party name.');
+      Alert.alert(t('party.missingTitle'), t('party.missingName'));
       return;
     }
     if (selectedGuests.length === 0) {
-      Alert.alert('Missing Information', 'Please select at least one guest.');
+      Alert.alert(t('party.missingTitle'), t('party.missingGuests'));
       return;
     }
 
@@ -278,8 +280,8 @@ export default function PartyPlannerScreen() {
         });
 
         devLogger.party('Party updated successfully', { eventId, name: partyName });
-        Alert.alert('Party Updated!', `${partyName} has been updated.`, [
-          { text: 'OK', onPress: () => router.back() },
+        Alert.alert(t('party.updatedTitle'), t('party.updatedMessage', { name: partyName }), [
+          { text: t('common.ok'), onPress: () => router.back() },
         ]);
       } else {
         // Create new event
@@ -291,9 +293,9 @@ export default function PartyPlannerScreen() {
         });
 
         Alert.alert(
-          'Party Created!',
-          `${partyName} has been saved with ${selectedGuests.length} guests.`,
-          [{ text: 'OK', onPress: () => router.back() }]
+          t('party.createdTitle'),
+          t('party.createdMessage', { name: partyName, count: selectedGuests.length }),
+          [{ text: t('common.ok'), onPress: () => router.back() }]
         );
       }
     } catch (error) {
@@ -301,7 +303,7 @@ export default function PartyPlannerScreen() {
         error: String(error),
         eventData,
       });
-      Alert.alert('Error', `Failed to ${eventId ? 'update' : 'create'} party. Please try again.`);
+      Alert.alert(t('common.error'), eventId ? t('party.updateFailed') : t('party.createFailed'));
     }
   };
 
@@ -309,7 +311,7 @@ export default function PartyPlannerScreen() {
     <>
       <Stack.Screen
         options={{
-          title: eventId ? 'Update Party' : 'Plan a Party',
+          title: eventId ? t('party.updateTitle') : t('party.planTitle'),
           headerStyle: { backgroundColor: fz.paper },
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
@@ -362,7 +364,7 @@ export default function PartyPlannerScreen() {
           }
           icon="party-popper"
         >
-          {eventId ? 'Update Party' : 'Create Party'}
+          {eventId ? t('party.updateTitle') : t('party.createButton')}
         </Button>
 
         <View style={styles.spacer} />

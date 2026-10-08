@@ -25,8 +25,10 @@ import SecretList from '@/components/secrets/SecretList';
 import CreateSecretDialog from '@/components/secrets/CreateSecretDialog';
 import ViewSecretDialog from '@/components/secrets/ViewSecretDialog';
 import PasswordPromptDialog from '@/components/secrets/PasswordPromptDialog';
+import { useTranslation } from 'react-i18next';
 
 export default function SecretsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { data: biometricStatus, isLoading: loadingBiometric } = useBiometricStatus();
   const { data: isSetup, isLoading: loadingSetup } = useSecretsSetupStatus();
@@ -90,7 +92,7 @@ export default function SecretsScreen() {
       secretViewTimerRef.current = setTimeout(() => {
         setShowViewDialog(false);
         setViewedSecret(null);
-        Alert.alert('Security', 'Secret view closed automatically for security.');
+        Alert.alert(t('secrets.securityTitle'), t('secrets.autoClosed'));
       }, 60000);
     }
 
@@ -107,33 +109,30 @@ export default function SecretsScreen() {
   const handleSetup = async () => {
     try {
       await initializeSecrets.mutateAsync();
-      Alert.alert('Success', 'Secrets protection has been set up successfully!');
+      Alert.alert(t('common.success'), t('secrets.setupDone'));
     } catch (error) {
-      Alert.alert('Setup Failed', error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
     }
   };
 
   const handlePasswordSetup = async () => {
     if (setupPassword.length < 8) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters long.');
+      Alert.alert(t('secrets.weakTitle'), t('secrets.weakMessage'));
       return;
     }
 
     if (setupPassword !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match. Please try again.');
+      Alert.alert(t('secrets.mismatchTitle'), t('secrets.mismatchMessage'));
       return;
     }
 
     Alert.alert(
-      'IMPORTANT WARNING',
-      'You are about to set a password for your secrets.\n\n' +
-        '⚠️ IF YOU FORGET THIS PASSWORD, YOUR SECRETS CANNOT BE RECOVERED. ⚠️\n\n' +
-        'There is NO password reset option. All encrypted secrets will be permanently lost.\n\n' +
-        'Make sure you remember this password or write it down in a safe place.',
+      t('secrets.importantTitle'),
+      t('secrets.importantMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'I Understand, Continue',
+          text: t('secrets.understand'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -141,9 +140,9 @@ export default function SecretsScreen() {
               setShowPasswordSetupDialog(false);
               setSetupPassword('');
               setConfirmPassword('');
-              Alert.alert('Success', 'Password-based secrets protection has been set up!');
+              Alert.alert(t('common.success'), t('secrets.passwordSetupDone'));
             } catch (error) {
-              Alert.alert('Setup Failed', error instanceof Error ? error.message : 'Unknown error');
+              Alert.alert(t('secrets.setupFailed'), error instanceof Error ? error.message : t('common.unknownError'));
             }
           },
         },
@@ -153,7 +152,7 @@ export default function SecretsScreen() {
 
   const handleCreateSecret = async (password?: string) => {
     if (!newSecretTitle.trim() || !newSecretContent.trim()) {
-      Alert.alert('Error', 'Please enter both title and content');
+      Alert.alert(t('common.error'), t('secrets.needBoth'));
       return;
     }
 
@@ -175,13 +174,13 @@ export default function SecretsScreen() {
       setNewSecretTitle('');
       setNewSecretContent('');
       setSelectedPersonId(undefined);
-      Alert.alert('Success', 'Secret saved and encrypted!');
+      Alert.alert(t('common.success'), t('secrets.saved'));
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to save secret';
+      const errorMsg = error instanceof Error ? error.message : t('secrets.saveFailed');
       if (errorMsg === 'Invalid password') {
-        Alert.alert('Wrong Password', 'The password you entered is incorrect.');
+        Alert.alert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
       } else {
-        Alert.alert('Error', errorMsg);
+        Alert.alert(t('common.error'), errorMsg);
       }
     }
   };
@@ -200,18 +199,18 @@ export default function SecretsScreen() {
       setViewedSecret(decrypted);
       setShowViewDialog(true);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to decrypt secret';
+      const errorMsg = error instanceof Error ? error.message : t('secrets.decryptFailed');
       if (errorMsg === 'Invalid password') {
-        Alert.alert('Wrong Password', 'The password you entered is incorrect.');
+        Alert.alert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
       } else {
-        Alert.alert('Access Denied', errorMsg);
+        Alert.alert(t('secrets.accessDenied'), errorMsg);
       }
     }
   };
 
   const handlePasswordSubmit = async () => {
     if (!accessPassword) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert(t('common.error'), t('secrets.enterPasswordMsg'));
       return;
     }
 
@@ -230,14 +229,14 @@ export default function SecretsScreen() {
 
   const handleDeleteSecret = (secretId: string, title: string) => {
     confirmDestructive({
-      title: 'Delete Secret',
-      message: `Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`,
+      title: t('secrets.deleteTitle'),
+      message: t('secrets.deleteMessage', { title }),
       onConfirm: async () => {
         try {
           await deleteSecret.mutateAsync(secretId);
-          Alert.alert('Deleted', 'Secret has been deleted');
+          Alert.alert(t('secrets.deletedTitle'), t('secrets.deleted'));
         } catch (error) {
-          Alert.alert('Error', 'Failed to delete secret');
+          Alert.alert(t('common.error'), t('secrets.deleteFailed'));
         }
       },
     });
@@ -262,10 +261,10 @@ export default function SecretsScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title="Secrets" />
+        <AppBar title={t('secrets.screenTitle')} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
-          <RNText style={[fzText.sub, { marginTop: 12 }]}>Checking device security...</RNText>
+          <RNText style={[fzText.sub, { marginTop: 12 }]}>{t('secrets.checking')}</RNText>
         </View>
       </View>
     );
@@ -277,7 +276,7 @@ export default function SecretsScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title="Setup Secrets" />
+        <AppBar title={t('secrets.setupScreenTitle')} />
         <SecretsSetup
           biometricStatus={biometricStatus}
           initializeSecrets={initializeSecrets}
@@ -300,7 +299,7 @@ export default function SecretsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-      <AppBar title="Secrets" onAdd={() => setShowCreateDialog(true)} />
+      <AppBar title={t('secrets.screenTitle')} onAdd={() => setShowCreateDialog(true)} />
       <SecretList
         secrets={secrets}
         loadingSecrets={loadingSecrets}

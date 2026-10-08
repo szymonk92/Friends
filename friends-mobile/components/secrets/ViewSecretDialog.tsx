@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { Dialog, Text, Button } from 'react-native-paper';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface ViewSecretDialogProps {
   visible: boolean;
@@ -15,12 +16,13 @@ export default function ViewSecretDialog({
   viewedSecret,
   remainingTime,
 }: ViewSecretDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
-      <Dialog.Title style={styles.dialogTitle}>{viewedSecret?.title || 'Secret'}</Dialog.Title>
+      <Dialog.Title style={styles.dialogTitle}>{viewedSecret?.title || t('secrets.secret')}</Dialog.Title>
       <Dialog.Content>
         <Text variant="bodySmall" style={[styles.securityTimer, styles.dialogFont]}>
-          Auto-closing in {remainingTime}s for security
+          {t('secrets.autoClosing', { seconds: remainingTime })}
         </Text>
         <Text variant="bodyMedium" style={styles.secretContent}>
           {viewedSecret?.content}
@@ -28,7 +30,7 @@ export default function ViewSecretDialog({
       </Dialog.Content>
       <Dialog.Actions>
         <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-          Close
+          {t('common.close')}
         </Button>
       </Dialog.Actions>
     </Dialog>

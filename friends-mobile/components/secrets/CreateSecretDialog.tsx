@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { Portal, TextInput, Menu, Button, Text } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface CreateSecretDialogProps {
   visible: boolean;
@@ -36,20 +37,21 @@ export default function CreateSecretDialog({
   handleCreateSecret,
   createSecretPending,
 }: CreateSecretDialogProps) {
+  const { t } = useTranslation();
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
-        <Dialog.Title style={styles.dialogTitle}>New Secret</Dialog.Title>
+        <Dialog.Title style={styles.dialogTitle}>{t('secrets.newSecret')}</Dialog.Title>
         <Dialog.Content>
           <TextInput
-            label="Title"
+            label={t('secrets.title')}
             value={newSecretTitle}
             onChangeText={setNewSecretTitle}
             mode="outlined"
             style={[styles.input, styles.dialogFont]}
           />
           <TextInput
-            label="Secret Content"
+            label={t('secrets.content')}
             value={newSecretContent}
             onChangeText={setNewSecretContent}
             mode="outlined"
@@ -70,8 +72,8 @@ export default function CreateSecretDialog({
                 icon="account"
               >
                 {selectedPersonId
-                  ? people.find((p) => p.id === selectedPersonId)?.name || 'Select Person'
-                  : 'Associate with Person (Optional)'}
+                  ? people.find((p) => p.id === selectedPersonId)?.name || t('secrets.selectPerson')
+                  : t('secrets.associate')}
               </Button>
             }
           >
@@ -80,7 +82,7 @@ export default function CreateSecretDialog({
                 setSelectedPersonId(undefined);
                 setShowPersonMenu(false);
               }}
-              title="No Association"
+              title={t('secrets.noAssociation')}
             />
             {people.map((person) => (
               <Menu.Item
@@ -94,12 +96,12 @@ export default function CreateSecretDialog({
             ))}
           </Menu>
           <Text variant="bodySmall" style={[styles.dialogHint, styles.dialogFont]}>
-            Content will be encrypted with your {isPasswordBased ? 'password' : 'biometric key'}
+            {isPasswordBased ? t('secrets.encryptedPassword') : t('secrets.encryptedBiometric')}
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
           <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             labelStyle={styles.dialogFont}
@@ -107,7 +109,7 @@ export default function CreateSecretDialog({
             loading={createSecretPending}
             disabled={createSecretPending}
           >
-            Save
+            {t('common.save')}
           </Button>
         </Dialog.Actions>
       </Dialog>

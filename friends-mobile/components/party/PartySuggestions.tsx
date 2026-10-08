@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { fz, fzText } from '@/lib/design/tokens';
 import { FormSection } from '@/components/FormKit';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 interface GuestData {
   id: string;
@@ -39,6 +40,7 @@ export default function PartySuggestions({
   seatingArrangement,
   initialShow = false,
 }: PartySuggestionsProps) {
+  const { t } = useTranslation();
   const [showSuggestions, setShowSuggestions] = useState(initialShow);
 
   if (guestData.length < 2) return null;
@@ -46,13 +48,13 @@ export default function PartySuggestions({
   return (
     <FormSection>
       <TouchableOpacity onPress={() => setShowSuggestions(!showSuggestions)} activeOpacity={0.7}>
-        <Text style={fzText.label}>{showSuggestions ? 'Hide Suggestions' : 'Show Suggestions'}</Text>
+        <Text style={fzText.label}>{showSuggestions ? t('party.hide') : t('party.show')}</Text>
       </TouchableOpacity>
 
       {showSuggestions && (
         <View style={styles.body}>
           {/* Food Recommendations */}
-          <Text style={styles.suggestionTitle}>Food Recommendations</Text>
+          <Text style={styles.suggestionTitle}>{t('party.food')}</Text>
           {foodSuggestions.recommended.length > 0 ? (
             <View style={styles.foodChips}>
               {foodSuggestions.recommended.slice(0, 8).map((item) => (
@@ -60,23 +62,23 @@ export default function PartySuggestions({
               ))}
             </View>
           ) : (
-            <Text style={styles.noDataText}>No common preferences found</Text>
+            <Text style={styles.noDataText}>{t('party.noCommon')}</Text>
           )}
 
           {/* Foods to Avoid */}
           {foodSuggestions.avoid.length > 0 && (
             <>
-              <Text style={styles.suggestionTitle}>Foods to Avoid</Text>
+              <Text style={styles.suggestionTitle}>{t('party.avoid')}</Text>
               <View style={styles.foodChips}>
                 {foodSuggestions.avoid.slice(0, 8).map((item) => (
-                  <Pill key={item.food} label={`${item.food} (${item.count} dislike)`} variant="outline" />
+                  <Pill key={item.food} label={t('party.dislikeCount', { food: item.food, count: item.count })} variant="outline" />
                 ))}
               </View>
             </>
           )}
 
           {/* Seating Suggestions */}
-          <Text style={styles.suggestionTitle}>Seating Suggestions</Text>
+          <Text style={styles.suggestionTitle}>{t('party.seating')}</Text>
           {seatingArrangement.length > 0 ? (
             seatingArrangement.map((pair, index) => (
               <View key={index} style={styles.seatingPair}>
@@ -87,28 +89,28 @@ export default function PartySuggestions({
               </View>
             ))
           ) : (
-            <Text style={styles.noDataText}>Not enough preference data for seating suggestions</Text>
+            <Text style={styles.noDataText}>{t('party.noSeating')}</Text>
           )}
 
           {/* Guest Preferences */}
-          <Text style={styles.suggestionTitle}>Guest Preferences</Text>
+          <Text style={styles.suggestionTitle}>{t('party.guestPrefs')}</Text>
           {guestData.map((guest) => (
             <View key={guest.id} style={styles.guestPreferences}>
               <Text style={fzText.name}>{guest.name}</Text>
               {guest.likes.length > 0 && (
                 <View style={styles.prefRow}>
-                  <Text style={styles.prefLabel}>Likes:</Text>
+                  <Text style={styles.prefLabel}>{t('party.likes')}</Text>
                   <Text style={styles.prefItems}>{guest.likes.slice(0, 5).join(', ')}</Text>
                 </View>
               )}
               {guest.dislikes.length > 0 && (
                 <View style={styles.prefRow}>
-                  <Text style={styles.prefLabel}>Dislikes:</Text>
+                  <Text style={styles.prefLabel}>{t('party.dislikes')}</Text>
                   <Text style={styles.prefItems}>{guest.dislikes.slice(0, 5).join(', ')}</Text>
                 </View>
               )}
               {guest.likes.length === 0 && guest.dislikes.length === 0 && (
-                <Text style={styles.noDataText}>No preferences recorded</Text>
+                <Text style={styles.noDataText}>{t('party.noPrefs')}</Text>
               )}
             </View>
           ))}

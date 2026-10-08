@@ -3,6 +3,7 @@ import { Text, Card, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface SecretsSetupProps {
   biometricStatus: any;
@@ -31,28 +32,28 @@ export default function SecretsSetup({
   handleSetup,
   handlePasswordSetup,
 }: SecretsSetupProps) {
+  const { t } = useTranslation();
   const hasBiometrics = biometricStatus?.isEnrolled;
 
   return (
     <>
       <ScrollView contentContainerStyle={styles.centered}>
         <Text variant="headlineSmall" style={styles.title}>
-          Secure Your Secrets
+          {t('secrets.secureTitle')}
         </Text>
 
         {hasBiometrics ? (
           <Card style={styles.infoCard}>
             <Card.Content>
               <Text variant="bodyMedium" style={styles.infoText}>
-                Your secrets will be encrypted and protected by{' '}
+                {t('secrets.bioEncrypted')}{' '}
                 <Text style={styles.bold}>
                   {getBiometricTypeName(biometricStatus.biometricType)}
                 </Text>
                 .
               </Text>
               <Text variant="bodySmall" style={styles.infoSubtext}>
-                • Only you can access them with your biometrics{'\n'}• Data is encrypted on your
-                device{'\n'}• No one else can read your secrets
+                {t('secrets.bioBullets')}
               </Text>
             </Card.Content>
           </Card>
@@ -60,12 +61,11 @@ export default function SecretsSetup({
           <Card style={styles.infoCard}>
             <Card.Content>
               <Text variant="bodyMedium" style={styles.infoText}>
-                Your device doesn't have biometrics enrolled. You can protect your secrets with a{' '}
-                <Text style={styles.bold}>password</Text>.
+                {t('secrets.noBio')}{' '}
+                <Text style={styles.bold}>{t('secrets.passwordWord')}</Text>.
               </Text>
               <Text variant="bodySmall" style={[styles.infoSubtext, styles.warningText]}>
-                ⚠️ IMPORTANT: If you forget your password, your secrets CANNOT be recovered. There
-                is NO password reset option.
+                {t('secrets.important')}
               </Text>
             </Card.Content>
           </Card>
@@ -80,7 +80,7 @@ export default function SecretsSetup({
             disabled={initializeSecrets.isPending}
             style={styles.setupButton}
           >
-            {initializeSecrets.isPending ? 'Setting up...' : 'Use Biometrics'}
+            {initializeSecrets.isPending ? t('secrets.settingUp') : t('secrets.useBiometrics')}
           </Button>
         ) : (
           <Button
@@ -89,7 +89,7 @@ export default function SecretsSetup({
             onPress={() => setShowPasswordSetupDialog(true)}
             style={styles.setupButton}
           >
-            Set Up Password
+            {t('secrets.setUpPassword')}
           </Button>
         )}
 
@@ -100,7 +100,7 @@ export default function SecretsSetup({
             onPress={() => setShowPasswordSetupDialog(true)}
             style={styles.alternativeButton}
           >
-            Use Password Instead
+            {t('secrets.usePasswordInstead')}
           </Button>
         )}
       </ScrollView>
@@ -116,14 +116,13 @@ export default function SecretsSetup({
           }}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Set Password</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('secrets.setPasswordTitle')}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodySmall" style={[styles.warningBanner, styles.dialogFont]}>
-              ⚠️ WARNING: If you forget this password, your secrets CANNOT be recovered. Write it
-              down in a safe place!
+              {t('secrets.warning')}
             </Text>
             <TextInput
-              label="Password (min 8 characters)"
+              label={t('secrets.passwordMin')}
               value={setupPassword}
               onChangeText={setSetupPassword}
               mode="outlined"
@@ -131,7 +130,7 @@ export default function SecretsSetup({
               style={[styles.input, styles.dialogFont]}
             />
             <TextInput
-              label="Confirm Password"
+              label={t('secrets.confirmPassword')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               mode="outlined"
@@ -140,12 +139,12 @@ export default function SecretsSetup({
             />
             {setupPassword.length > 0 && setupPassword.length < 8 && (
               <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
-                Password must be at least 8 characters
+                {t('secrets.tooShort')}
               </Text>
             )}
             {confirmPassword.length > 0 && setupPassword !== confirmPassword && (
               <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
-                Passwords do not match
+                {t('secrets.mismatch')}
               </Text>
             )}
           </Dialog.Content>
@@ -158,7 +157,7 @@ export default function SecretsSetup({
                 setConfirmPassword('');
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -170,7 +169,7 @@ export default function SecretsSetup({
                 setupPassword !== confirmPassword
               }
             >
-              Set Password
+              {t('secrets.setPassword')}
             </Button>
           </Dialog.Actions>
         </Dialog>

@@ -1,6 +1,8 @@
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, List, Button } from 'react-native-paper';
 import { DEFAULT_COLORS } from '@/lib/settings/relationship-colors';
+import { useTranslation } from 'react-i18next';
 
 interface RelationshipColorsSettingsProps {
   relationshipColors: Record<string, string>;
@@ -15,22 +17,23 @@ export default function RelationshipColorsSettings({
   setColorPickerVisible,
   handleResetColors,
 }: RelationshipColorsSettingsProps) {
+  const { t } = useTranslation();
   return (
     <Card style={styles.card}>
       <Card.Content>
         <Text variant="titleLarge" style={styles.sectionTitle}>
-          Relationship Colors
+          {t('relColors.title')}
         </Text>
         <Divider style={styles.divider} />
 
         <Text variant="bodySmall" style={styles.description}>
-          Customize colors for different relationship types to easily identify them in the app.
+          {t('relColors.description')}
         </Text>
 
         {Object.keys(DEFAULT_COLORS).map((type) => (
           <List.Item
             key={type}
-            title={type.charAt(0).toUpperCase() + type.slice(1)}
+            title={relationshipTypeLabel(type)}
             left={() => (
               <View style={[styles.colorSwatch, { backgroundColor: relationshipColors[type] }]} />
             )}
@@ -43,14 +46,14 @@ export default function RelationshipColorsSettings({
                   setColorPickerVisible(true);
                 }}
               >
-                Change
+                {t('relColors.change')}
               </Button>
             )}
           />
         ))}
 
         <Button mode="outlined" onPress={handleResetColors} icon="refresh" style={styles.button}>
-          Reset to Defaults
+          {t('relColors.reset')}
         </Button>
       </Card.Content>
     </Card>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Card, Text, Divider, SegmentedButtons, List, Button, TextInput, useTheme } from 'react-native-paper';
 import { AI_MODELS, useSettings, type AIModel } from '@/store/useSettings';
+import { useTranslation } from 'react-i18next';
 
 interface AIConfigurationProps {
   selectedModel: AIModel;
@@ -32,6 +33,7 @@ export default function AIConfiguration({
   handleClearGeminiApiKey,
   handleClearOllamaApiKey,
 }: AIConfigurationProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const {
     ollamaBaseUrl,
@@ -48,16 +50,16 @@ export default function AIConfiguration({
     <Card style={styles.card}>
       <Card.Content>
         <Text variant="titleLarge" style={styles.sectionTitle}>
-          AI Configuration
+          {t('aiConfig.title')}
         </Text>
         <Divider style={styles.divider} />
 
         <Text variant="bodySmall" style={styles.description}>
-          Choose your AI model and configure API keys for AI-powered story extraction.
+          {t('aiConfig.intro')}
         </Text>
 
         <Text variant="labelMedium" style={styles.modelLabel}>
-          Selected AI Model
+          {t('aiConfig.selectedModel')}
         </Text>
         <SegmentedButtons
           value={selectedModel}
@@ -90,8 +92,8 @@ export default function AIConfiguration({
 
         {/* Anthropic API Key */}
         <List.Item
-          title="Anthropic (Claude) API Key"
-          description={hasApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
+          title={t('aiConfig.anthropicKey')}
+          description={hasApiKey() ? t('aiConfig.keySet') : t('aiConfig.notConfigured')}
           left={(props) => (
             <List.Icon
               {...props}
@@ -109,7 +111,7 @@ export default function AIConfiguration({
               icon="key-change"
               style={styles.button}
             >
-              Change Key
+              {t('aiConfig.changeKey')}
             </Button>
             <Button
               mode="outlined"
@@ -118,7 +120,7 @@ export default function AIConfiguration({
               textColor={theme.colors.error}
               style={styles.button}
             >
-              Clear Claude Key
+              {t('aiConfig.clearClaude')}
             </Button>
           </View>
         ) : (
@@ -128,7 +130,7 @@ export default function AIConfiguration({
             icon="key-plus"
             style={styles.button}
           >
-            Set Claude API Key
+            {t('aiConfig.setClaude')}
           </Button>
         )}
 
@@ -140,8 +142,8 @@ export default function AIConfiguration({
 
         {/* Gemini API Key */}
         <List.Item
-          title="Google Gemini API Key"
-          description={hasGeminiApiKey() ? 'Key is set (stored securely)' : 'Not configured'}
+          title={t('aiConfig.geminiKey')}
+          description={hasGeminiApiKey() ? t('aiConfig.keySet') : t('aiConfig.notConfigured')}
           left={(props) => (
             <List.Icon
               {...props}
@@ -159,7 +161,7 @@ export default function AIConfiguration({
               icon="key-change"
               style={styles.button}
             >
-              Change Key
+              {t('aiConfig.changeKey')}
             </Button>
             <Button
               mode="outlined"
@@ -168,7 +170,7 @@ export default function AIConfiguration({
               textColor={theme.colors.error}
               style={styles.button}
             >
-              Clear Gemini Key
+              {t('aiConfig.clearGemini')}
             </Button>
           </View>
         ) : (
@@ -178,7 +180,7 @@ export default function AIConfiguration({
             icon="key-plus"
             style={styles.button}
           >
-            Set Gemini API Key
+            {t('aiConfig.setGemini')}
           </Button>
         )}
 
@@ -190,8 +192,8 @@ export default function AIConfiguration({
 
         {/* Ollama (Local) */}
         <List.Item
-          title="Ollama API Key (placeholder)"
-          description={hasOllamaApiKey() ? 'Key is set (any value works)' : 'Not configured'}
+          title={t('aiConfig.ollamaKey')}
+          description={hasOllamaApiKey() ? t('aiConfig.ollamaKeySet') : t('aiConfig.notConfigured')}
           left={(props) => (
             <List.Icon
               {...props}
@@ -209,7 +211,7 @@ export default function AIConfiguration({
               icon="key-change"
               style={styles.button}
             >
-              Change Key
+              {t('aiConfig.changeKey')}
             </Button>
             <Button
               mode="outlined"
@@ -218,7 +220,7 @@ export default function AIConfiguration({
               textColor={theme.colors.error}
               style={styles.button}
             >
-              Clear Ollama Key
+              {t('aiConfig.clearOllama')}
             </Button>
           </View>
         ) : (
@@ -228,16 +230,16 @@ export default function AIConfiguration({
             icon="key-plus"
             style={styles.button}
           >
-            Set Ollama API Key
+            {t('aiConfig.setOllama')}
           </Button>
         )}
 
         <Text variant="labelSmall" style={styles.apiKeyHelp}>
-          Local & free. Key is a placeholder — enter any value (e.g. "ollama"). Set the base URL below to reach your Ollama server.
+          {t('aiConfig.ollamaHelp')}
         </Text>
 
         <Text variant="labelMedium" style={styles.modelLabel}>
-          Ollama Base URL
+          {t('aiConfig.baseUrl')}
         </Text>
         <TextInput
           mode="outlined"
@@ -251,11 +253,11 @@ export default function AIConfiguration({
           style={styles.ollamaInput}
         />
         <Text variant="labelSmall" style={styles.apiKeyHelp}>
-          Android emulator: http://10.0.2.2:11434 · Physical device: your computer's LAN IP (e.g. http://192.168.1.10:11434)
+          {t('aiConfig.baseUrlHelp')}
         </Text>
 
         <Text variant="labelMedium" style={styles.modelLabel}>
-          Ollama Model
+          {t('aiConfig.model')}
         </Text>
         <TextInput
           mode="outlined"
@@ -268,12 +270,12 @@ export default function AIConfiguration({
           style={styles.ollamaInput}
         />
         <Text variant="labelSmall" style={styles.apiKeyHelp}>
-          Any model you've pulled (`ollama pull llama3.2:3b`). Larger models extract better.
+          {t('aiConfig.modelHelp')}
         </Text>
 
         {!hasActiveApiKey() && (
           <Text variant="bodySmall" style={[styles.warningText, { color: theme.colors.error }]}>
-            ⚠️ You need to configure an API key for the selected model to use AI extraction.
+            {t('aiConfig.needKey')}
           </Text>
         )}
       </Card.Content>

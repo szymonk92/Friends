@@ -5,6 +5,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { and, eq, or, like } from 'drizzle-orm';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface Person {
   id: string;
@@ -34,6 +35,7 @@ export default function MentionTextInput({
   numberOfLines = 12,
   style,
 }: MentionTextInputProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [suggestions, setSuggestions] = useState<Person[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -182,7 +184,7 @@ export default function MentionTextInput({
       <TextInput
         mode="outlined"
         placeholder={
-          placeholder || "Example: Had dinner with Sarah. She mentioned she's now vegan..."
+          placeholder || t('mention.placeholder')
         }
         value={value}
         onChangeText={handleTextChange}
@@ -198,20 +200,20 @@ export default function MentionTextInput({
           style={[styles.atButton, { backgroundColor: theme.colors.primary }]}
           onPress={insertAtSymbol}
         >
-          <Text style={styles.atButtonText}>@ Mention</Text>
+          <Text style={styles.atButtonText}>{t('mention.mention')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.atButtonOutlined, { borderColor: theme.colors.primary }]}
           onPress={insertAddPerson}
         >
-          <Text style={[styles.atButtonTextOutlined, { color: theme.colors.primary }]}>@+ Add</Text>
+          <Text style={[styles.atButtonTextOutlined, { color: theme.colors.primary }]}>{t('mention.add')}</Text>
         </TouchableOpacity>
 
         {/* Mention count indicator */}
         {mentions.length > 0 && (
           <Chip icon="account" compact style={styles.chip}>
-            {getMentionedPeopleCount()} {getMentionedPeopleCount() === 1 ? 'person' : 'people'}
+            {t('mention.people', { count: getMentionedPeopleCount() })}
           </Chip>
         )}
       </View>
@@ -222,7 +224,7 @@ export default function MentionTextInput({
           <Card.Content style={styles.suggestionsContent}>
             <View style={styles.suggestionsHeader}>
               <Text variant="labelSmall" style={styles.suggestionsTitle}>
-                Mention someone:
+                {t('mention.someone')}
               </Text>
             </View>
             <ScrollView
