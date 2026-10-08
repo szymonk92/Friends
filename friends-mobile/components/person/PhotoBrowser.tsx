@@ -5,7 +5,6 @@ import {
   Modal,
   Dimensions,
   TouchableOpacity,
-  Alert,
   FlatList,
   ViewToken,
 } from 'react-native';
@@ -19,6 +18,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
+import { PhotoOptionsSheet } from './PhotoOptionsSheet';
 
 interface Photo {
   id: string;
@@ -56,28 +56,7 @@ export default function PhotoBrowser({
     }
   };
 
-  const handleOptions = () => {
-    const photo = photos[currentIndex];
-    if (!photo) return;
-
-    Alert.alert(t('photos.optionsTitle'), t('photos.optionsMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('photos.setAsProfile'),
-        onPress: () => onSetAsProfile(photo.id),
-      },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => {
-          onDelete(photo.id);
-          if (photos.length === 1) {
-            onClose();
-          }
-        },
-      },
-    ]);
-  };
+  const [optionsPhotoId, setOptionsPhotoId] = useState<string | null>(null);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -88,7 +67,8 @@ export default function PhotoBrowser({
           <Text variant="titleMedium" style={styles.counter}>
             {currentIndex + 1} / {photos.length}
           </Text>
-          <IconButton icon="dots-vertical" iconColor="#fff" size={24} onPress={handleOptions} />
+          <IconButton icon="dots-vertical" iconColor="#fff" size={24} onPress={() => setOptionsPhotoId(photos[currentIndex]?.id ?? null)}
+          />
         </View>
 
         {/* Photo viewer with horizontal scroll */}
@@ -123,6 +103,16 @@ export default function PhotoBrowser({
           </View>
         )}
       </View>
+      <PhotoOptionsSheet
+        photoId={optionsPhotoId}
+        onDismiss={() => setOptionsPhotoId(null)}
+        onSetAsProfile={onSetAsProfile}
+        onDelete={(photoId) => {
+          // The delete confirmation lives in the app root, behind this modal — close first.
+          onClose();
+          onDelete(photoId);
+        }}
+      />
     </Modal>
   );
 }

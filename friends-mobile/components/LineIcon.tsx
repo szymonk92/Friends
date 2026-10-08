@@ -35,6 +35,7 @@ const ICONS: Record<string, { sw: number; body: ReactNode }> = {
   email: { sw: 2.2, body: P('M3 6h18v12H3z M3 6l9 6 9-6') },
   message: { sw: 2.2, body: P('M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z') },
   camera: { sw: 2.2, body: P('M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 11.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z') },
+  image: { sw: 2.2, body: (<><Rect x={3} y={4} width={18} height={16} rx={2} stroke="currentColor" fill="none" /><Circle cx={9} cy={9.5} r={1.8} stroke="currentColor" fill="none" /><Polyline points="21 16 15.5 11 6 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></>) },
   pencil: { sw: 2.2, body: P('M4 20h4L19 9l-4-4L4 16zM14 6l4 4') },
   trash: { sw: 2.2, body: P('M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13') },
   bell: { sw: 2.2, body: P('M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0') },

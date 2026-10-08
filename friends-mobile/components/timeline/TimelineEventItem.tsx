@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, IconButton, Menu } from 'react-native-paper';
+import { Text, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { Avatar } from '@/components/Avatar';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
@@ -37,10 +37,8 @@ interface TimelineEventItemProps {
   index: number;
   filteredEvents: TimelineEvent[];
   people: PersonWithPhoto[];
-  eventMenuVisible: string | null;
-  setEventMenuVisible: (id: string | null) => void;
-  handleEditEvent: (event: TimelineEvent) => void;
-  handleDeleteEvent: (id: string) => void;
+  /** Opens the edit/delete sheet for this event. */
+  onMenu: (event: TimelineEvent) => void;
   getPersonName: (id: string) => string;
   getEventLabel: (type: string) => string;
 }
@@ -56,10 +54,7 @@ export default function TimelineEventItem({
   index,
   filteredEvents,
   people,
-  eventMenuVisible,
-  setEventMenuVisible,
-  handleEditEvent,
-  handleDeleteEvent,
+  onMenu,
   getPersonName,
   getEventLabel,
 }: TimelineEventItemProps) {
@@ -125,30 +120,13 @@ export default function TimelineEventItem({
             </TouchableOpacity>
 
             {!isBirthday && !isImportantDate && (
-              <Menu
-                visible={eventMenuVisible === item.id}
-                onDismiss={() => setEventMenuVisible(null)}
-                anchor={
-                  <IconButton
-                    icon="dots-vertical"
-                    size={18}
-                    onPress={() => setEventMenuVisible(item.id)}
-                    style={styles.menuButton}
-                    iconColor={fz.textMute}
-                  />
-                }
-              >
-                <Menu.Item
-                  onPress={() => { setEventMenuVisible(null); handleEditEvent(item); }}
-                  title={t('common.edit')}
-                  leadingIcon="pencil-outline"
-                />
-                <Menu.Item
-                  onPress={() => { setEventMenuVisible(null); handleDeleteEvent(item.id); }}
-                  title={t('common.delete')}
-                  leadingIcon="delete-outline"
-                />
-              </Menu>
+              <IconButton
+                icon="dots-vertical"
+                size={18}
+                onPress={() => onMenu(item)}
+                style={styles.menuButton}
+                iconColor={fz.textMute}
+              />
             )}
           </View>
 

@@ -16,7 +16,8 @@ import { useRelations } from '@/hooks/useRelations';
 import { useEvents, useDeleteEvent } from '@/hooks/useEvents';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
 
-import TimelineEventItem from '@/components/timeline/TimelineEventItem';
+import TimelineEventItem, { type TimelineEvent } from '@/components/timeline/TimelineEventItem';
+import { ActionSheet } from '@/components/ActionSheet';
 import TimelineFilters from '@/components/timeline/TimelineFilters';
 import AddEventDialog from '@/components/timeline/AddEventDialog';
 import { parseFlexibleDate } from '@/lib/utils/dates';
@@ -67,7 +68,7 @@ export default function TimelineScreen() {
   const [filterPersonId, setFilterPersonId] = useState<string | null>(initialFilterPersonId ?? null);
   const [filterEventType, setFilterEventType] = useState<string | null>(null);
   const [personMenuVisible, setPersonMenuVisible] = useState(false);
-  const [eventMenuVisible, setEventMenuVisible] = useState<string | null>(null);
+  const [menuEvent, setMenuEvent] = useState<TimelineEvent | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
 
   // Generate birthday events from people with birthday
@@ -366,10 +367,7 @@ export default function TimelineScreen() {
               index={index}
               filteredEvents={filteredEvents}
               people={people}
-              eventMenuVisible={eventMenuVisible}
-              setEventMenuVisible={setEventMenuVisible}
-              handleEditEvent={handleEditEvent}
-              handleDeleteEvent={handleDeleteEvent}
+              onMenu={setMenuEvent}
               getPersonName={getPersonName}
               getEventLabel={getEventLabel}
             />
@@ -378,6 +376,19 @@ export default function TimelineScreen() {
           contentContainerStyle={styles.list}
         />
       )}
+
+      <ActionSheet
+        visible={menuEvent !== null}
+        onDismiss={() => setMenuEvent(null)}
+        actions={
+          menuEvent
+            ? [
+                { label: t('common.edit'), icon: 'pencil', onPress: () => handleEditEvent(menuEvent) },
+                { label: t('common.delete'), icon: 'trash', onPress: () => handleDeleteEvent(menuEvent.id) },
+              ]
+            : []
+        }
+      />
 
       <AddEventDialog
         visible={addDialogVisible}

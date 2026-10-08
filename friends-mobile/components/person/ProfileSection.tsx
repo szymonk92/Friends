@@ -99,7 +99,7 @@ export function ProfileSection({
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: fz.s.edge,
-    paddingVertical: 18,
+    paddingVertical: 14,
   },
   divider: {
     borderBottomWidth: 1,
@@ -109,12 +109,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 8,
     minHeight: 30,
   },
   headerCollapsed: { marginBottom: 0 },
   headerTight: { marginBottom: 2 },
-  subtitle: { ...fzText.sub, marginBottom: 14 },
+  subtitle: { ...fzText.sub, marginBottom: 8 },
   flip: { transform: [{ rotate: '180deg' }] },
   toggle: {
     flexDirection: 'row',

@@ -15,9 +15,10 @@ import {
   useUpdateGiftIdea,
   useDeleteGiftIdea,
 } from '@/hooks/useGifts';
-import { formatShortDate } from '@/lib/utils/format';
 import { ProfileSection } from './ProfileSection';
-import { IconCircle } from '@/components/IconCircle';
+import { Pill } from '@/components/Pill';
+import { ActionSheet } from '@/components/ActionSheet';
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
@@ -33,12 +34,14 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
   const updateGiftIdea = useUpdateGiftIdea();
   const deleteGiftIdea = useDeleteGiftIdea();
 
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [addGiftDialogVisible, setAddGiftDialogVisible] = useState(false);
   const [giftItem, setGiftItem] = useState('');
   const [giftNotes, setGiftNotes] = useState('');
   const [giftPriority, setGiftPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [giftOccasion, setGiftOccasion] = useState('');
   const [isAddingGift, setIsAddingGift] = useState(false);
+  const selectedGift = giftIdeas.find((g) => g.id === selectedGiftId) ?? null;
 
   const handleAddGiftIdea = async () => {
     if (!giftItem.trim()) {
@@ -60,7 +63,6 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
       setGiftNotes('');
       setGiftPriority('medium');
       setGiftOccasion('');
-      Alert.alert(t('common.success'), t('gifts.added'));
     } catch (error) {
       Alert.alert(t('common.error'), t('gifts.addFailed'));
     } finally {
@@ -68,15 +70,12 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
     }
   };
 
-  const handleMarkGiftGiven = (giftId: string, item: string) => {
-    Alert.alert(t('gifts.markGivenTitle'), t('gifts.markGivenMessage', { item }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('gifts.given'),
-        onPress: () => updateGiftIdea.mutateAsync({ id: giftId, given: true }),
-      },
-    ]);
-  };
+  const handleDeleteGift = (giftId: string, item: string) =>
+    confirmDestructive({
+      title: t('manageGifts.deleteTitle'),
+      message: t('manageGifts.deleteMessage', { item }),
+      onConfirm: () => deleteGiftIdea.mutateAsync(giftId),
+    });
 
   return (
     <>
@@ -89,48 +88,49 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
         {giftIdeas.length === 0 ? (
           <Text style={styles.empty}>{t('gifts.empty', { name: personName })}</Text>
         ) : (
-          giftIdeas.map((gift) => (
-            <View key={gift.id} style={styles.giftItem}>
-              <View style={styles.giftInfo}>
-                <Text
-                  style={[
-                    styles.giftItemText,
-                    gift.status === 'given' && styles.giftGiven,
-                  ]}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {gift.item}
-                </Text>
-                {gift.occasion && (
-                  <Text style={styles.giftOccasion}>{t('gifts.forOccasion', { occasion: gift.occasion })}</Text>
-                )}
-                {gift.notes && <Text style={styles.giftNotes}>{gift.notes}</Text>}
-                {gift.status === 'given' && gift.givenDate && (
-                  <Text style={styles.giftGivenDate}>{t('gifts.givenOn', { date: formatShortDate(gift.givenDate) })}</Text>
-                )}
-              </View>
-              <View style={styles.giftActions}>
-                {gift.status !== 'given' && (
-                  <IconCircle
-                    icon="check"
-                    size={30}
-                    iconSize={16}
-                    color="#4caf50"
-                    onPress={() => handleMarkGiftGiven(gift.id, gift.item)}
-                  />
-                )}
-                <IconCircle
-                  icon="trash"
-                  size={30}
-                  iconSize={14}
-                  onPress={() => deleteGiftIdea.mutateAsync(gift.id)}
-                />
-              </View>
-            </View>
-          ))
+          <View style={styles.chips}>
+            {giftIdeas.map((gift) => (
+              <Pill
+                key={gift.id}
+                label={gift.item}
+                icon={gift.status === 'given' ? 'check' : 'gift'}
+                variant={gift.status === 'given' ? 'outline' : 'surface'}
+                onPress={() => setSelectedGiftId(gift.id)}
+              />
+            ))}
+          </View>
         )}
       </ProfileSection>
+
+      <ActionSheet
+        visible={selectedGift !== null}
+        title={
+          selectedGift
+            ? [selectedGift.item, selectedGift.occasion].filter(Boolean).join(' · ')
+            : undefined
+        }
+        onDismiss={() => setSelectedGiftId(null)}
+        actions={
+          selectedGift
+            ? [
+                ...(selectedGift.status !== 'given'
+                  ? [
+                      {
+                        label: t('gifts.markGivenTitle'),
+                        icon: 'check' as const,
+                        onPress: () => updateGiftIdea.mutateAsync({ id: selectedGift.id, given: true }),
+                      },
+                    ]
+                  : []),
+                {
+                  label: t('common.delete'),
+                  icon: 'trash' as const,
+                  onPress: () => handleDeleteGift(selectedGift.id, selectedGift.item),
+                },
+              ]
+            : []
+        }
+      />
 
       <Portal>
         <Dialog
@@ -203,49 +203,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 }
 
 const styles = StyleSheet.create({
-  giftItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
-    padding: 14,
-    borderRadius: fz.rCard,
-    backgroundColor: fz.card,
-    borderWidth: 1,
-    borderColor: fz.cardBorder,
-  },
-  giftInfo: {
-    flex: 1,
-  },
-  giftItemText: {
-    ...fzText.name,
-    fontSize: 14.5,
-  },
-  giftGiven: {
-    textDecorationLine: 'line-through',
-    opacity: 0.5,
-  },
-  giftOccasion: {
-    ...fzText.sub,
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  giftNotes: {
-    ...fzText.sub,
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  giftGivenDate: {
-    ...fzText.time,
-    color: '#4caf50',
-    marginTop: 4,
-  },
-  giftActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   empty: {
     ...fzText.sub,
     fontStyle: 'italic',

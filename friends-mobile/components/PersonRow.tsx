@@ -8,6 +8,8 @@ interface PersonRowProps {
   name: string;
   photoPath?: string | null;
   subtitle?: string | null;
+  /** Max subtitle lines; 0 = no limit. */
+  subtitleLines?: number;
   onPress?: () => void;
   /** Trailing control: checkbox, pill, edit button… */
   right?: ReactNode;
@@ -25,6 +27,7 @@ export function PersonRow({
   name,
   photoPath,
   subtitle,
+  subtitleLines = 1,
   onPress,
   right,
   children,
@@ -42,7 +45,7 @@ export function PersonRow({
           {name}
         </Text>
         {subtitle ? (
-          <Text style={fzText.sub} numberOfLines={1}>
+          <Text style={fzText.sub} numberOfLines={subtitleLines}>
             {subtitle}
           </Text>
         ) : null}

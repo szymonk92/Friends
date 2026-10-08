@@ -1,18 +1,19 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import {
   Text,
   ActivityIndicator,
   Button,
   IconButton,
-  Menu,
 } from 'react-native-paper';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { usePerson, useDeletePerson } from '@/hooks/usePeople';
+import { usePerson, useDeletePerson, useUpdatePerson } from '@/hooks/usePeople';
+import { usePersonConnections } from '@/hooks/useConnections';
 import { usePersonPhotos, useSetProfilePhoto } from '@/hooks/usePhotos';
 import { usePhotoPicker } from '@/hooks/usePhotoPicker';
+import { ActionSheet, type ActionSheetAction } from '@/components/ActionSheet';
 
 // Components
 import PersonHeader from '@/components/person/PersonHeader';
@@ -34,10 +35,24 @@ export default function PersonProfileScreen() {
   const insets = useSafeAreaInsets();
   const { data: person, isLoading: personLoading } = usePerson(id!);
   const deletePerson = useDeletePerson();
+  const updatePerson = useUpdatePerson();
+  const { data: connections = [] } = usePersonConnections(id!);
+
+  // Kids are created as 'mentioned' people on the child side of a parent link
+  // (person1 = parent for 'child', person2 = parent for 'parent'). Once they're
+  // primary they're a regular contact and the parent link just stays as family.
+  const isChild =
+    person?.personType !== 'primary' &&
+    person?.personType !== 'self' &&
+    connections.some(
+      (c) =>
+        (c.relationshipType === 'child' && c.person2Id === id) ||
+        (c.relationshipType === 'parent' && c.person1Id === id)
+    );
 
   const { data: personPhotos = [] } = usePersonPhotos(id!);
   const setProfilePhoto = useSetProfilePhoto();
-  const pickPhoto = usePhotoPicker(id!);
+  const { pickPhoto, photoSheet } = usePhotoPicker(id!);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -57,11 +72,43 @@ export default function PersonProfileScreen() {
       title: t('photos.profilePhoto'),
       onSaved: async (photo) => {
         await setProfilePhoto.mutateAsync({ personId: id!, photoId: photo.id });
-        Alert.alert(t('common.success'), t('profile.photoUpdated'));
       },
     });
 
   const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
+  const isHuman = person?.entityType !== 'pet';
+  const isOther = person?.personType !== 'self' && isHuman;
+  const menuActions: ActionSheetAction[] = [
+    ...(profilePhoto ? [{ label: t('profile.changePhoto'), icon: 'camera' as const, onPress: handleAvatarPress }] : []),
+    ...(isOther
+      ? [
+          {
+            label: t('profile.viewRelationship'),
+            icon: 'network' as const,
+            onPress: () => router.push(`/person/relationship?personId=${id}`),
+          },
+          {
+            label: t('profile.compareWith'),
+            icon: 'users' as const,
+            onPress: () => router.push(`/person/compare-picker?personId=${id}`),
+          },
+        ]
+      : []),
+    ...(isHuman
+      ? [{ label: t('profile.addRelation'), icon: 'plus' as const, onPress: () => router.push(`/person/add-relation?personId=${id}`) }]
+      : []),
+    ...(isChild
+      ? [
+          {
+            label: t('profile.convertToAdult'),
+            icon: 'accountPlus' as const,
+            onPress: () => updatePerson.mutate({ id: id!, personType: 'primary' }),
+          },
+        ]
+      : []),
+    { label: t('common.edit'), icon: 'pencil', onPress: () => router.push(`/person/edit?personId=${id}`) },
+    { label: t('common.delete'), icon: 'trash', onPress: handleDelete },
+  ];
 
   if (personLoading) {
     return (
@@ -94,75 +141,11 @@ export default function PersonProfileScreen() {
           headerShadowVisible: false,
           headerRight: () => (
             <View style={{ marginRight: 4 }}>
-              <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                anchor={
-                  <IconButton
-                    icon="dots-vertical"
-                    onPress={() => setMenuVisible(true)}
-                    iconColor={fz.ink}
-                  />
-                }
-              >
-                {profilePhoto && (
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      handleAvatarPress();
-                    }}
-                    title={t('profile.changePhoto')}
-                    leadingIcon="camera"
-                  />
-                )}
-                {person.personType !== 'self' && person.entityType !== 'pet' && (
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      router.push(`/person/relationship?personId=${id}`);
-                    }}
-                    title={t('profile.viewRelationship')}
-                    leadingIcon="link-variant"
-                  />
-                )}
-                {person.personType !== 'self' && person.entityType !== 'pet' && (
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      router.push(`/person/compare-picker?personId=${id}`);
-                    }}
-                    title={t('profile.compareWith')}
-                    leadingIcon="account-multiple"
-                  />
-                )}
-                {person.entityType !== 'pet' && (
-                  <Menu.Item
-                    onPress={() => {
-                      setMenuVisible(false);
-                      router.push(`/person/add-relation?personId=${id}`);
-                    }}
-                    title={t('profile.addRelation')}
-                    leadingIcon="plus"
-                  />
-                )}
-                <Menu.Item
-                  onPress={() => {
-                    setMenuVisible(false);
-                    router.push(`/person/edit?personId=${id}`);
-                  }}
-                  title={t('common.edit')}
-                  leadingIcon="pencil"
-                />
-                <Menu.Item
-                  onPress={() => {
-                    setMenuVisible(false);
-                    handleDelete();
-                  }}
-                  title={t('common.delete')}
-                  leadingIcon="delete"
-                  titleStyle={{ color: '#d32f2f' }}
-                />
-              </Menu>
+              <IconButton
+                icon="dots-vertical"
+                onPress={() => setMenuVisible(true)}
+                iconColor={fz.ink}
+              />
             </View>
           ),
         }}
@@ -173,6 +156,13 @@ export default function PersonProfileScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
         >
           <PersonHeader person={person} onAvatarPress={handleAvatarPress} />
+          {photoSheet}
+          <ActionSheet
+            visible={menuVisible}
+            title={person.name}
+            onDismiss={() => setMenuVisible(false)}
+            actions={menuActions}
+          />
           <PersonTags personId={id!} personName={person.name} />
           {person.entityType !== 'pet' && (
             <PersonQuickActions personId={id!} personName={person.name} />

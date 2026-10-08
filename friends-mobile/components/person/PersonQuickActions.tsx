@@ -9,6 +9,7 @@ import { useCreateContactReminder } from '@/hooks/useReminders';
 import type { NewContactEvent } from '@/lib/db/schema';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
+import { ActionSheet } from '@/components/ActionSheet';
 import { fz } from '@/lib/design/tokens';
 import type { LineIconName } from '@/components/LineIcon';
 
@@ -43,6 +44,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
   const [dialogVisible, setDialogVisible] = useState(false);
   const [pendingEvent, setPendingEvent] = useState<{ type: NewContactEvent['eventType']; label: string } | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [reminderSheetVisible, setReminderSheetVisible] = useState(false);
 
   const openNoteDialog = (eventType: NewContactEvent['eventType'], label: string) => {
     setPendingEvent({ type: eventType, label });
@@ -65,36 +67,14 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
     }
   };
 
-  const handleSetReminder = () => {
-    Alert.alert(t('profile.reminderTitle'), t('profile.reminderPrompt', { name: personName }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.day1'),
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 1 })
-            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindTomorrow'))),
-      },
-      {
-        text: t('profile.week1'),
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 7 })
-            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindWeek'))),
-      },
-      {
-        text: t('profile.month1'),
-        onPress: () =>
-          createContactReminder
-            .mutateAsync({ personId, personName, daysFromNow: 30 })
-            .then(() => Alert.alert(t('profile.reminderSet'), t('profile.remindMonth'))),
-      },
-    ]);
-  };
+  const remindIn = (daysFromNow: number) => () =>
+    createContactReminder
+      .mutateAsync({ personId, personName, daysFromNow })
+      .catch(() => Alert.alert(t('common.error'), t('profile.reminderFailed')));
 
   const onPress = (a: QuickAction) =>
     a.labelKey === 'remind'
-      ? handleSetReminder()
+      ? setReminderSheetVisible(true)
       : openNoteDialog(a.eventType, t(`profile.${a.labelKey}`));
 
   return (
@@ -117,6 +97,17 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
           ))}
         </View>
       </ProfileSection>
+
+      <ActionSheet
+        visible={reminderSheetVisible}
+        title={t('profile.reminderPrompt', { name: personName })}
+        onDismiss={() => setReminderSheetVisible(false)}
+        actions={[
+          { label: t('profile.day1'), icon: 'bell', onPress: remindIn(1) },
+          { label: t('profile.week1'), icon: 'bell', onPress: remindIn(7) },
+          { label: t('profile.month1'), icon: 'bell', onPress: remindIn(30) },
+        ]}
+      />
 
       <Portal>
         <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={styles.dialog}>

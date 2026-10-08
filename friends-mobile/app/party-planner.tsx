@@ -280,9 +280,7 @@ export default function PartyPlannerScreen() {
         });
 
         devLogger.party('Party updated successfully', { eventId, name: partyName });
-        Alert.alert(t('party.updatedTitle'), t('party.updatedMessage', { name: partyName }), [
-          { text: t('common.ok'), onPress: () => router.back() },
-        ]);
+        router.back();
       } else {
         // Create new event
         const result = await createEvent.mutateAsync(eventData);
@@ -292,11 +290,7 @@ export default function PartyPlannerScreen() {
           guestCount: selectedGuests.length,
         });
 
-        Alert.alert(
-          t('party.createdTitle'),
-          t('party.createdMessage', { name: partyName, count: selectedGuests.length }),
-          [{ text: t('common.ok'), onPress: () => router.back() }]
-        );
+        router.back();
       }
     } catch (error) {
       devLogger.error(`Failed to ${eventId ? 'update' : 'create'} party`, {

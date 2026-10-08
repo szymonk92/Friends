@@ -37,6 +37,8 @@ import { Pill } from '@/components/Pill';
 import { useFzAlert } from '@/components/FzDialog';
 import { LineIcon } from '@/components/LineIcon';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
+import { PersonRow } from '@/components/PersonRow';
+import { ActionSheet } from '@/components/ActionSheet';
 import { Avatar } from '@/components/Avatar';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
@@ -647,6 +649,9 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     </>
   );
 
+  // Edit is a short form — plain stacked fields, no card frames around each group.
+  const sectionStyle = mode === 'edit' ? styles.flatSection : undefined;
+
   return (
     <FormScreen
       title={mode === 'add' ? t('connectionForm.addTitle') : t('connectionForm.editTitle')}
@@ -658,46 +663,23 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         <Stack.Screen
           options={{
             headerRight: () => (
-              <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                anchor={
-                  <IconButton
-                    icon="dots-vertical"
-                    onPress={() => setMenuVisible(true)}
-                    iconColor={fz.ink}
-                  />
-                }
-              >
-                <Menu.Item
-                  onPress={() => {
-                    setMenuVisible(false);
-                    handleDelete();
-                  }}
-                  title={t('connectionForm.deleteMenu')}
-                  leadingIcon="delete"
-                  titleStyle={styles.deleteMenuLabel}
-                />
-              </Menu>
+              <IconButton icon="dots-vertical" onPress={() => setMenuVisible(true)} iconColor={fz.ink} />
             ),
           }}
         />
       )}
 
-      <Text style={fzText.titleLg}>
-        {(person?.name ?? editConnectedPerson?.name)
-          ? t(mode === 'add' ? 'connectionForm.addFor' : 'connectionForm.editFor', {
-              name: person?.name ?? editConnectedPerson?.name,
-            })
-          : mode === 'add'
-            ? t('connectionForm.addTitle')
-            : t('connectionForm.editTitle')}
-      </Text>
-      <Text style={[fzText.sub, styles.headerSub]}>
-        {mode === 'add'
-          ? t('connectionForm.addSubtitle')
-          : t('connectionForm.editSubtitle')}
-      </Text>
+      {/* Edit: the nav bar already says "Edit Connection" — no second title. */}
+      {mode === 'add' && (
+        <>
+          <Text style={fzText.titleLg}>
+            {person?.name
+              ? t('connectionForm.addFor', { name: person.name })
+              : t('connectionForm.addTitle')}
+          </Text>
+          <Text style={[fzText.sub, styles.headerSub]}>{t('connectionForm.addSubtitle')}</Text>
+        </>
+      )}
 
       {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
         // Single person detailed mode (add only)
@@ -925,33 +907,20 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         // Form mode (edit) or multi-select mode (add)
         <>
           {mode === 'edit' && editConnectedPerson && (
-            <TouchableOpacity
-              style={styles.selectedCard}
-              activeOpacity={0.7}
+            <PersonRow
+              name={editConnectedPerson.name}
+              photoPath={editConnectedPerson.photoPath}
+              subtitle={
+                connection
+                  ? describeConnection(connection, editConnectedPerson, fromPersonId ?? connection.person1Id)
+                  : null
+              }
+              avatarSize={48}
+              avatarVariant="ink"
+              divider
+              style={styles.editPersonRow}
               onPress={() => router.push(`/person/${editConnectedPerson.id}`)}
-            >
-              <View style={styles.selectedPerson}>
-                <Avatar
-                  name={editConnectedPerson.name}
-                  photoPath={editConnectedPerson.photoPath}
-                  size={48}
-                  variant="ink"
-                  style={styles.cardAvatar}
-                />
-                <View style={styles.personInfo}>
-                  <Text style={fzText.name}>{editConnectedPerson.name}</Text>
-                  <Text style={[fzText.sub, styles.nicknameText]}>
-                    {connection
-                      ? describeConnection(
-                          connection,
-                          editConnectedPerson,
-                          fromPersonId ?? connection.person1Id
-                        )
-                      : `${relationshipType}${qualifier ? ` • ${qualifier}` : ''}`}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+            />
           )}
 
           {/* Add mode: pick the people first, then define the relationship below. */}
@@ -1045,7 +1014,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             <>
               {/* Pet connections aren't human relationship types — no pill picker */}
               {RELATIONSHIP_TYPE_VALUES.has(relationshipType) && !hideRelationshipType && (
-                <FormSection title={t('connectionForm.relationshipType')}>
+                <FormSection title={t('connectionForm.relationshipType')} style={sectionStyle}>
                   <RelationshipTypePicker
                     value={relationshipType}
                     onChange={handleRelationshipTypeChange}
@@ -1053,7 +1022,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </FormSection>
               )}
 
-              <FormSection title={t('connectionForm.connectionStatus')}>
+              <FormSection title={t('connectionForm.connectionStatus')} style={sectionStyle}>
                 <View style={styles.pillRow}>
                   {CONNECTION_STATUSES.map((s) => (
                     <Pill
@@ -1108,14 +1077,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           : t('connectionForm.update')}
       </Button>
 
-      <Button
-        mode="text"
-        onPress={() => router.back()}
-        disabled={isSubmitting}
-        textColor={fz.textMute}
-      >
-        {t('common.cancel')}
-      </Button>
+      <ActionSheet
+        visible={menuVisible}
+        onDismiss={() => setMenuVisible(false)}
+        actions={[{ label: t('connectionForm.deleteMenu'), icon: 'trash', onPress: handleDelete }]}
+      />
       {dialog}
     </FormScreen>
   );
@@ -1133,6 +1099,14 @@ const styles = StyleSheet.create({
   },
   centered: {
     padding: 20,
+  },
+  editPersonRow: {
+    marginBottom: fz.s.lg,
+  },
+  flatSection: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
   },
   selectedCard: {
     backgroundColor: fz.card,

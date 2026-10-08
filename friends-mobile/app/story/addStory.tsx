@@ -164,14 +164,7 @@ export default function StoryInputScreen() {
         storyDate: new Date(),
       });
 
-      Alert.alert(t('addStory.savedTitle'), t('addStory.savedMessage'), [
-        {
-          text: prefillPerson ? t('addStory.backToProfile') : t('addStory.viewPeople'),
-          onPress: () =>
-            prefillPerson ? router.push(`/person/${prefillPerson.id}`) : router.push('/'),
-        },
-        { text: t('addStory.addAnother'), onPress: () => setStoryText('') },
-      ]);
+      router.back();
     } catch (error) {
       Alert.alert(t('common.error'), t('addStory.saveFailed'));
       devLogger.error('Failed to save story', { error, storyText: storyText.substring(0, 50) });

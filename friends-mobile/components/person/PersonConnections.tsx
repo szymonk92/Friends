@@ -68,6 +68,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
             name={connectedPerson.name}
             photoPath={connectedPerson.photoPath}
             subtitle={description}
+            subtitleLines={0}
             avatarVariant="ink"
             onPress={() =>
               router.push(
@@ -81,7 +82,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
             }
           >
             {connection.notes ? (
-              <Text style={styles.notes} numberOfLines={2}>{connection.notes}</Text>
+              <Text style={styles.notes}>{connection.notes}</Text>
             ) : null}
           </PersonRow>
         );
