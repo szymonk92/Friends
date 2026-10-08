@@ -16,6 +16,7 @@ const ICONS: Record<string, { sw: number; body: ReactNode }> = {
   mic: { sw: 2.2, body: (<><Rect x={9} y={3} width={6} height={12} rx={3} stroke="currentColor" fill="none" /><Path d="M5 11a7 7 0 0 0 14 0" fill="none" stroke="currentColor" strokeLinecap="round" /><Line x1={12} y1={18} x2={12} y2={21} stroke="currentColor" strokeLinecap="round" /></>) },
   check: { sw: 3, body: <Polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /> },
   arrowLeft: { sw: 2.4, body: (<><Line x1={19} y1={12} x2={5} y2={12} stroke="currentColor" strokeLinecap="round" /><Polyline points="11 6 5 12 11 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></>) },
+  chevronDown: { sw: 2.4, body: (<Polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />) },
   arrowRight: { sw: 2.4, body: (<><Line x1={5} y1={12} x2={19} y2={12} stroke="currentColor" strokeLinecap="round" /><Polyline points="13 6 19 12 13 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></>) },
   network: { sw: 2.2, body: (<><Circle cx={12} cy={12} r={3} stroke="currentColor" fill="none" /><Circle cx={5} cy={6} r={2} stroke="currentColor" fill="none" /><Circle cx={19} cy={6} r={2} stroke="currentColor" fill="none" /><Path d="M7 17a5 5 0 0 1 10 0" fill="none" stroke="currentColor" strokeLinecap="round" /></>) },
   book: { sw: 2.2, body: P('M4 4h11a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z') },

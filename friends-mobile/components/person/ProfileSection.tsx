@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { fz, fzText } from '@/lib/design/tokens';
+import { LineIcon } from '@/components/LineIcon';
 import { IconCircle } from '@/components/IconCircle';
 import type { LineIconName } from '@/components/LineIcon';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -11,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // block on the profile reads consistently without each file re-deriving it.
 export function ProfileSection({
   label,
+  subtitle,
   count,
   onAdd,
   onMore,
@@ -24,6 +26,8 @@ export function ProfileSection({
   storageKey,
 }: {
   label: string;
+  /** Small muted line right under the header (hidden while folded). */
+  subtitle?: string;
   count?: number | string | null;
   onAdd?: () => void;
   onMore?: () => void;
@@ -63,7 +67,7 @@ export function ProfileSection({
   );
   return (
     <View style={[styles.section, divider && styles.divider]}>
-      <View style={[styles.header, collapsed && styles.headerCollapsed]}>
+      <View style={[styles.header, collapsed && styles.headerCollapsed, subtitle && !collapsed && styles.headerTight]}>
         {collapsible ? (
           <Pressable
             style={styles.toggle}
@@ -73,7 +77,9 @@ export function ProfileSection({
             accessibilityState={{ expanded: !collapsed }}
           >
             {labelText}
-            <Text style={fzText.sub}>{collapsed ? '﹀' : '︿'}</Text>
+            <View style={collapsed ? undefined : styles.flip}>
+              <LineIcon name="chevronDown" size={14} color={fz.textMute} />
+            </View>
           </Pressable>
         ) : (
           labelText
@@ -84,6 +90,7 @@ export function ProfileSection({
           {onMore && <IconCircle icon={moreIcon} size={30} iconSize={15} onPress={onMore} />}
         </View>
       </View>
+      {!collapsed && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {!collapsed && children}
     </View>
   );
@@ -106,6 +113,9 @@ const styles = StyleSheet.create({
     minHeight: 30,
   },
   headerCollapsed: { marginBottom: 0 },
+  headerTight: { marginBottom: 2 },
+  subtitle: { ...fzText.sub, marginBottom: 14 },
+  flip: { transform: [{ rotate: '180deg' }] },
   toggle: {
     flexDirection: 'row',
     alignItems: 'center',

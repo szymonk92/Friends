@@ -9,7 +9,7 @@ import { useCreateContactReminder } from '@/hooks/useReminders';
 import type { NewContactEvent } from '@/lib/db/schema';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
-import { fz, fzText } from '@/lib/design/tokens';
+import { fz } from '@/lib/design/tokens';
 import type { LineIconName } from '@/components/LineIcon';
 
 interface PersonQuickActionsProps {
@@ -101,11 +101,11 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
     <>
       <ProfileSection
         label={t('profile.quickTitle')}
+        subtitle={t('profile.quickSubtitle')}
         collapsible
         storageKey="quickActions"
         onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
       >
-        <Text style={styles.subtitle}>{t('profile.quickSubtitle')}</Text>
         <View style={styles.row}>
           {ACTIONS_ROW_1.map((a) => (
             <Pill key={a.labelKey} label={t(`profile.${a.labelKey}`)} icon={a.icon} onPress={() => onPress(a)} />
@@ -151,10 +151,6 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
 }
 
 const styles = StyleSheet.create({
-  subtitle: {
-    ...fzText.sub,
-    marginBottom: 12,
-  },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
