@@ -1,3 +1,4 @@
+import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator, StatusBar, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
@@ -182,7 +183,7 @@ export default function NetworkScreen() {
                   {relationshipTypes.map((type) => (
                     <Pill
                       key={type}
-                      label={type}
+                      label={relationshipTypeLabel(type)}
                       selected={selectedRelationTypes.includes(type)}
                       onPress={() => toggleRelationType(type)}
                     />

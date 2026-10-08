@@ -23,7 +23,7 @@ export function FormScreen({
   title,
   loading = false,
   notFound = false,
-  notFoundLabel = 'Not found',
+  notFoundLabel,
   children,
 }: {
   title: string;
@@ -33,6 +33,7 @@ export function FormScreen({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const header = (
     <Stack.Screen
@@ -62,7 +63,7 @@ export function FormScreen({
       <>
         {header}
         <View style={styles.screenCentered}>
-          <Text style={fzText.title}>{notFoundLabel}</Text>
+          <Text style={fzText.title}>{notFoundLabel ?? t('common.notFound')}</Text>
           <Button
             mode="contained"
             onPress={() => router.back()}

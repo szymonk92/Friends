@@ -55,9 +55,9 @@ export default function StoriesListScreen() {
   if (error) {
     return (
       <View style={s.centered}>
-        <Text style={{ ...fzText.sub, marginBottom: 16 }}>Failed to load stories</Text>
+        <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('storiesList.loadFailed')}</Text>
         <TouchableOpacity style={s.primaryBtn} onPress={() => refetch()} activeOpacity={0.8}>
-          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>Retry</Text>
+          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('timeline.retry')}</Text>
         </TouchableOpacity>
       </View>
     );

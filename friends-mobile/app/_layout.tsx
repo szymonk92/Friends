@@ -55,6 +55,7 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 // Shared Stack header styling — paper bg, ink title, Space Grotesk.
 // Forces the light FriendZ header on modal/story/quiz screens regardless of
@@ -153,6 +154,7 @@ export default Sentry.wrap(function RootLayout() {
 });
 
 function RootLayoutNav() {
+  const { t } = useTranslation();
   const {
     themeColor, loadThemeColor,
     fontFamily, loadFontFamily,
@@ -186,7 +188,7 @@ function RootLayoutNav() {
                 name="modal"
                 options={{
                   presentation: 'modal',
-                  title: 'Add a Person',
+                  title: t('person.addTitle'),
                   ...fzHeader,
                 }}
               />

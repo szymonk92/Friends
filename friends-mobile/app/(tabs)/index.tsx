@@ -194,7 +194,7 @@ export default function PeopleListScreen() {
                 />
                 <Menu.Item
                   onPress={() => { setMenuVisible(false); router.push('/import-contacts'); }}
-                  title="Import from contacts"
+                  title={t('importContacts.menu')}
                   leadingIcon="contacts"
                 />
                 <Divider />
@@ -260,12 +260,12 @@ export default function PeopleListScreen() {
           contentContainerStyle={s.chipsContent}
         >
           <Pill
-            label="My Network"
+            label={t('people.myNetwork')}
             selected={viewMode === 'network'}
             onPress={() => setViewMode('network')}
           />
           <Pill
-            label="All People"
+            label={t('timeline.allPeople')}
             selected={viewMode === 'all'}
             onPress={() => setViewMode('all')}
           />
@@ -287,7 +287,7 @@ export default function PeopleListScreen() {
             />
           ))}
           {hasActiveFilters && (
-            <Pill label="Clear" icon="filterRemove" variant="surface" onPress={clearAllFilters} />
+            <Pill label={t('importContacts.clear')} icon="filterRemove" variant="surface" onPress={clearAllFilters} />
           )}
         </ScrollView>
       </View>
@@ -313,7 +313,7 @@ export default function PeopleListScreen() {
             onPress={() => router.push('/import-contacts')}
             activeOpacity={0.8}
           >
-            <Text style={fzText.btnOutline}>Import from contacts</Text>
+            <Text style={fzText.btnOutline}>{t('importContacts.menu')}</Text>
           </TouchableOpacity>
         </View>
       )}

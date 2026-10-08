@@ -23,10 +23,12 @@ import {
 } from '@/hooks/useContactsImport';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
+import { useTranslation } from 'react-i18next';
 
 type Phase = 'loading' | 'ready' | 'denied' | 'empty';
 
 export default function ImportContactsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { data: people = [] } = usePeople({ type: 'all' });
   const importMutation = useImportContacts();
@@ -67,7 +69,7 @@ export default function ImportContactsScreen() {
       setRows(contacts);
       setPhase('ready');
     } catch (e) {
-      Alert.alert('Could not load contacts', (e as Error).message);
+      Alert.alert(t('importContacts.loadFailed'), (e as Error).message);
       setPhase('denied');
     }
   }
@@ -148,15 +150,15 @@ export default function ImportContactsScreen() {
     importMutation.mutate(decisions, {
       onSuccess: (result) => {
         const parts = [
-          `${result.imported} added`,
-          `${result.updated} updated`,
-          `${result.skipped} skipped`,
+          t('importContacts.added', { count: result.imported }),
+          t('importContacts.updated', { count: result.updated }),
+          t('importContacts.skipped', { count: result.skipped }),
         ];
-        if (result.errors.length) parts.push(`${result.errors.length} errors`);
-        Alert.alert('Import complete', parts.join(' · '));
+        if (result.errors.length) parts.push(t('importContacts.errors', { count: result.errors.length }));
+        Alert.alert(t('importContacts.complete'), parts.join(' · '));
         router.back();
       },
-      onError: (e) => Alert.alert('Import failed', e.message),
+      onError: (e) => Alert.alert(t('importContacts.failed'), e.message),
     });
   }
 
@@ -166,7 +168,7 @@ export default function ImportContactsScreen() {
     return (
       <View style={s.centered}>
         <ActivityIndicator size="large" color={fz.ink} />
-        <Text style={{ ...fzText.sub, marginTop: 12 }}>Loading contacts…</Text>
+        <Text style={{ ...fzText.sub, marginTop: 12 }}>{t('importContacts.loading')}</Text>
       </View>
     );
   }
@@ -174,12 +176,12 @@ export default function ImportContactsScreen() {
   if (phase === 'denied') {
     return (
       <View style={s.centered}>
-        <Text style={fzText.title}>Contacts access needed</Text>
+        <Text style={fzText.title}>{t('importContacts.accessTitle')}</Text>
         <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
-          Grant contacts permission in system settings to import people from your address book.
+          {t('importContacts.accessMessage')}
         </Text>
         <Button mode="contained" onPress={() => void init()}>
-          Try again
+          {t('importContacts.tryAgain')}
         </Button>
       </View>
     );
@@ -188,12 +190,12 @@ export default function ImportContactsScreen() {
   if (phase === 'empty') {
     return (
       <View style={s.centered}>
-        <Text style={fzText.title}>No contacts found</Text>
+        <Text style={fzText.title}>{t('importContacts.noneTitle')}</Text>
         <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
-          Your address book is empty.
+          {t('importContacts.noneMessage')}
         </Text>
         <Button mode="outlined" onPress={() => router.back()}>
-          Back
+          {t('importContacts.back')}
         </Button>
       </View>
     );
@@ -211,13 +213,13 @@ export default function ImportContactsScreen() {
         <View style={s.appBarRow}>
           <HeaderBack onPress={() => router.back()} />
           <View style={s.titleWrap}>
-            <Text style={fzText.screenTitle}>Import contacts</Text>
+            <Text style={fzText.screenTitle}>{t('importContacts.title')}</Text>
             <Text style={fzText.meta}>
-              {selected.size} selected · {rows.length} total
+              {t('importContacts.counts', { selected: selected.size, total: rows.length })}
             </Text>
           </View>
           <TouchableOpacity onPress={toggleAll} disabled={selectableCount === 0}>
-            <Text style={fzText.chipSolid}>{allSelected ? 'Clear' : 'Select all'}</Text>
+            <Text style={fzText.chipSolid}>{allSelected ? t('importContacts.clear') : t('importContacts.selectAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -225,7 +227,7 @@ export default function ImportContactsScreen() {
         <View style={[s.searchRow, { paddingBottom: fz.s.md }]}>
           <View style={s.searchInput}>
             <TextInput
-              placeholder="Search contacts"
+              placeholder={t('importContacts.search')}
               placeholderTextColor={fz.textMute}
               value={search}
               onChangeText={setSearch}
@@ -261,21 +263,21 @@ export default function ImportContactsScreen() {
                   {item.name}
                 </Text>
                 <Text style={fzText.sub} numberOfLines={1}>
-                  {item.phone || item.email || 'No phone or email'}
+                  {item.phone || item.email || t('importContacts.noPhoneEmail')}
                 </Text>
                 {isFuzzy && m?.candidate && (
                   <Text style={s.dupText} numberOfLines={1}>
-                    Possible match: {m.candidate.name}
+                    {t('importContacts.possibleMatch', { name: m.candidate.name })}
                   </Text>
                 )}
                 {isExact && m?.candidate && (
                   <Text style={s.existsText} numberOfLines={1}>
-                    Already added: {m.candidate.name}
+                    {t('importContacts.alreadyAdded', { name: m.candidate.name })}
                   </Text>
                 )}
               </View>
-              {isFuzzy && <Chip label="Review" />}
-              {isExact && <Chip label="Added" muted />}
+              {isFuzzy && <Chip label={t('importContacts.review')} />}
+              {isExact && <Chip label={t('importContacts.addedChip')} muted />}
             </TouchableOpacity>
           );
         }}
@@ -289,7 +291,9 @@ export default function ImportContactsScreen() {
         activeOpacity={0.85}
       >
         <Text style={s.fabText}>
-          {importing ? 'Importing…' : `Import ${selected.size || ''}`.trim()}
+          {importing
+            ? t('importContacts.importing')
+            : t('importContacts.import', { count: selected.size || '' }).trim()}
         </Text>
       </TouchableOpacity>
 
@@ -305,25 +309,25 @@ export default function ImportContactsScreen() {
           }}
           style={s.dialog}
         >
-          <Dialog.Title style={s.dialogTitle}>Possible duplicate</Dialog.Title>
+          <Dialog.Title style={s.dialogTitle}>{t('importContacts.duplicateTitle')}</Dialog.Title>
           <Dialog.Content>
             <Text style={fzText.body}>
-              Contact “{reviewContact?.name}”
+              {t('importContacts.contact', { name: reviewContact?.name })}
               {reviewContact?.phone ? ` (${reviewContact.phone})` : ''}
             </Text>
             <Text style={[fzText.body, { marginTop: 8 }]}>
-              looks like your existing person “{reviewMatch?.candidate?.name}”. Same person?
+              {t('importContacts.looksLike', { name: reviewMatch?.candidate?.name })}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('skip')}>
-              Skip
+              {t('importContacts.skip')}
             </Button>
             <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('create')}>
-              Add as new
+              {t('importContacts.addNew')}
             </Button>
             <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('update')}>
-              Update existing
+              {t('importContacts.updateExisting')}
             </Button>
           </Dialog.Actions>
         </Dialog>

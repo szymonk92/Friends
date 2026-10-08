@@ -44,7 +44,7 @@ export default function DevScreen() {
         { text: t('common.ok'), onPress: () => router.push('/') },
       ]);
     } catch (error) {
-      Alert.alert('Error', t('dev.sampleData.errorMessage'));
+      Alert.alert(t('common.error'), t('dev.sampleData.errorMessage'));
       devLogger.error('Failed to seed sample data', error);
     } finally {
       setIsLoading(false);
@@ -53,16 +53,16 @@ export default function DevScreen() {
 
   const handleClearData = () => {
     confirmDestructive({
-      title: 'Clear All Data?',
-      message: 'This will delete ALL people, relations, and stories. This cannot be undone!',
-      confirmLabel: 'Clear All',
+      title: t('dev.clearData.confirmTitle'),
+      message: t('dev.clearData.confirmMessage'),
+      confirmLabel: t('dev.clearData.clearAll'),
       onConfirm: async () => {
         setIsLoading(true);
         try {
           await clearAllData();
-          Alert.alert('Success', 'All data has been cleared.');
+          Alert.alert(t('common.success'), t('dev.clearData.success'));
         } catch (error) {
-          Alert.alert('Error', 'Failed to clear data. Check console for details.');
+          Alert.alert(t('common.error'), t('dev.clearData.error'));
           devLogger.error('Failed to clear all data', error);
         } finally {
           setIsLoading(false);
@@ -74,32 +74,45 @@ export default function DevScreen() {
   const handleHighLoadTest = async () => {
     const count = parseInt(loadTestCount, 10);
     if (isNaN(count) || count < 1 || count > 1000) {
-      Alert.alert('Invalid Count', 'Please enter a number between 1 and 1000');
+      Alert.alert(t('dev.highLoadTest.errorInvalidCount'), t('dev.highLoadTest.errorInvalidMessage'));
       return;
     }
 
     Alert.alert(
-      'Generate High Load Test Data',
-      `This will create:\n\n• ${count} people\n• ${count * 6} relations (likes, dislikes, diets, etc.)\n• ~${count * 5} connections between people\n\nThis may take a while for large numbers.`,
+      t('dev.highLoadTest.confirmTitle'),
+      t('dev.highLoadTest.confirmMessage', {
+        count,
+        relations: count * 6,
+        connections: count * 5,
+      }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Generate',
+          text: t('dev.highLoadTest.generate'),
           onPress: async () => {
             setIsLoading(true);
             setLoadTestResult(null);
             try {
               const result = await seedTestData(count);
               setLoadTestResult(
-                `✓ Created ${result.peopleCount} people\n✓ Created ${result.connectionsCount} connections\n✓ Time: ${result.duration}s`
+                t('dev.highLoadTest.resultSummary', {
+                  peopleCount: result.peopleCount,
+                  connectionsCount: result.connectionsCount,
+                  duration: result.duration,
+                })
               );
               Alert.alert(
-                'High Load Test Data Created!',
-                `Successfully generated:\n\n• ${result.peopleCount} people\n• ~${result.peopleCount * 6} relations\n• ${result.connectionsCount} connections\n\nTime taken: ${result.duration} seconds`,
-                [{ text: 'View People', onPress: () => router.push('/') }]
+                t('dev.highLoadTest.successTitle'),
+                t('dev.highLoadTest.successMessage', {
+                  peopleCount: result.peopleCount,
+                  relationsCount: result.peopleCount * 6,
+                  connectionsCount: result.connectionsCount,
+                  duration: result.duration,
+                }),
+                [{ text: t('dev.sampleData.viewPeople'), onPress: () => router.push('/') }]
               );
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to generate test data');
+              Alert.alert(t('common.error'), error.message || t('dev.highLoadTest.generateFailed'));
               devLogger.error('Failed to generate high load test data', error);
             } finally {
               setIsLoading(false);
@@ -112,19 +125,19 @@ export default function DevScreen() {
 
   const handleClearTestData = async () => {
     confirmDestructive({
-      title: 'Clear Test Data Only?',
+      title: t('dev.highLoadTest.clearConfirmTitle'),
       message:
-        'This will delete only the high load test data (people with addedBy="test_seed"). Your manually added data will be preserved.',
+        t('dev.highLoadTest.clearConfirmMessage'),
       confirmLabel: 'Clear Test Data',
       onConfirm: async () => {
         setIsLoading(true);
         try {
           await clearTestData();
           setLoadTestResult(null);
-          Alert.alert('Success', 'Test data has been cleared. Your real data is preserved.');
+          Alert.alert(t('common.success'), t('dev.highLoadTest.clearSuccess'));
         } catch (error) {
-          Alert.alert('Error', 'Failed to clear test data');
-          devLogger.error('Failed to clear test data', error);
+          Alert.alert(t('common.error'), t('dev.highLoadTest.clearError'));
+          devLogger.error(t('dev.highLoadTest.clearError'), error);
         } finally {
           setIsLoading(false);
         }
@@ -143,7 +156,7 @@ export default function DevScreen() {
         t('dev.aiPromptTesting.testCompleteMessage')
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to run prompt generation test');
+      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.testFailed'));
       devLogger.error('Failed to run prompt generation test', error);
     } finally {
       setIsLoading(false);
@@ -161,7 +174,7 @@ export default function DevScreen() {
         t('dev.aiPromptTesting.mockCompleteMessage')
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to run mock evaluation');
+      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.mockFailed'));
       devLogger.error('Failed to run mock evaluation', error);
     } finally {
       setIsLoading(false);
@@ -182,7 +195,7 @@ export default function DevScreen() {
       // Log the full report to console
       console.log('\n' + report);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to generate comparison report');
+      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.reportFailed'));
       devLogger.error('Failed to generate comparison report', error);
     } finally {
       setIsLoading(false);
@@ -192,15 +205,15 @@ export default function DevScreen() {
   const handleSavePhotoLimit = async () => {
     const limit = parseInt(photoLimitInput, 10);
     if (isNaN(limit) || limit < 1 || limit > 100) {
-      Alert.alert('Invalid Limit', 'Please enter a number between 1 and 100');
+      Alert.alert(t('dev.invalidLimit'), t('dev.invalidLimitMessage'));
       return;
     }
 
     try {
       await setMaxPhotosPerPerson(limit);
-      Alert.alert('Success', `Photo limit set to ${limit} per person`);
+      Alert.alert(t('common.success'), t('dev.photoSet', { count: limit }));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save photo limit');
+      Alert.alert(t('common.error'), error.message || t('dev.photoSaveFailed'));
     }
   };
 
@@ -224,12 +237,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Appearance
+                {t('dev.appearance')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="titleMedium" style={{ marginBottom: 8 }}>
-                Font Family
+                {t('settings.fontFamily')}
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {(Object.keys(AVAILABLE_FONTS) as FontFamily[]).map((font) => (
@@ -250,13 +263,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                📋 Development Logs
+                {t('dev.logsTitle')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                View, share, and manage persistent development logs for debugging. All debug logs
-                are saved to a file and persist across app restarts.
+                {t('dev.logsDescription')}
               </Text>
 
               <Button
@@ -265,11 +277,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="file-document-outline"
               >
-                View Logs
+                {t('dev.viewLogs')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Logs include party operations, AI extraction, database queries, and errors.
+                {t('dev.logsNote')}
               </Text>
             </Card.Content>
           </Card>
@@ -387,18 +399,17 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Photo Settings
+                {t('dev.photoTitle')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Configure the maximum number of photos that can be added per person. This helps
-                manage storage and keeps profiles organized.
+                {t('dev.photoDescription')}
               </Text>
 
               <TextInput
                 mode="outlined"
-                label="Max Photos Per Person"
+                label={t('dev.photoLabel')}
                 value={photoLimitInput}
                 onChangeText={setPhotoLimitInput}
                 keyboardType="numeric"
@@ -413,11 +424,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="content-save"
               >
-                Save Photo Limit
+                {t('dev.photoSave')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Current limit: {maxPhotosPerPerson} photos per person. Valid range: 1-100.
+                {t('dev.photoCurrent', { count: maxPhotosPerPerson })}
               </Text>
             </Card.Content>
           </Card>
@@ -512,11 +523,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="book-open-variant"
               >
-                View Documentation
+                {t('dev.viewDocs')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Learn about relation types, statuses, and app terminology
+                {t('dev.docsNote')}
               </Text>
             </Card.Content>
           </Card>
@@ -524,13 +535,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Food Preferences Quiz
+                {t('dev.foodQuiz.title')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Tinder-style swipe quiz to quickly add food preferences for your primary contacts.
-                Swipe right for likes, left for dislikes, down for unknown.
+                {t('dev.foodQuiz.description')}
               </Text>
 
               <Button
@@ -541,12 +551,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="food-apple"
               >
-                Start Food Quiz
+                {t('dev.foodQuiz.button')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Asks about popular foods like tomatoes, mushrooms, spicy food, etc. for primary
-                people only.
+                {t('dev.foodQuiz.note')}
               </Text>
             </Card.Content>
           </Card>
@@ -554,13 +563,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Party Planning
+                {t('dev.partyPlanner.title')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Organize a party or gathering. Select guests, get seating suggestions based on their
-                connections, and see food recommendations based on everyone's preferences.
+                {t('dev.partyPlanner.description')}
               </Text>
 
               <Button
@@ -571,12 +579,11 @@ export default function DevScreen() {
                 style={styles.button}
                 icon="party-popper"
               >
-                Plan a Party
+                {t('dev.partyPlanner.button')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Creates an event with date, location, guest list, and AI-powered suggestions for
-                seating and menu.
+                {t('dev.partyPlanner.note')}
               </Text>
             </Card.Content>
           </Card>
@@ -584,13 +591,12 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                My Preferences
+                {t('dev.myPreferences.title')}
               </Text>
               <Divider style={styles.divider} />
 
               <Text variant="bodyMedium" style={styles.description}>
-                Track your own preferences, skills, and traits. This is your personal profile for
-                managing what you like, dislike, know, and care about.
+                {t('dev.myPreferences.description')}
               </Text>
 
               <Button
@@ -599,17 +605,17 @@ export default function DevScreen() {
                   if (mePerson) {
                     router.push(`/person/${mePerson.id}`);
                   } else {
-                    Alert.alert('Not Found', 'Your profile could not be found.');
+                    Alert.alert(t('dev.myPreferences.notFoundTitle'), t('dev.myPreferences.notFoundMessage'));
                   }
                 }}
                 style={styles.button}
                 icon="account-circle"
               >
-                Open My Profile
+                {t('dev.myPreferences.button')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Add your food preferences, skills, hobbies, and other personal traits.
+                {t('dev.myPreferences.note')}
               </Text>
             </Card.Content>
           </Card>
@@ -617,7 +623,7 @@ export default function DevScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.cardTitle}>
-                Reset App State
+                {t('dev.resetApp.title')}
               </Text>
               <Divider style={styles.divider} />
 
@@ -625,16 +631,16 @@ export default function DevScreen() {
                 mode="outlined"
                 onPress={async () => {
                   await resetOnboarding();
-                  Alert.alert('Success', 'Onboarding reset. Restart the app to see it again.');
+                  Alert.alert(t('common.success'), t('dev.resetApp.success'));
                 }}
                 style={styles.button}
                 icon="restart"
               >
-                Reset Onboarding
+                {t('dev.resetApp.button')}
               </Button>
 
               <Text variant="bodySmall" style={styles.note}>
-                Shows the intro tutorial again on next app start.
+                {t('dev.resetApp.note')}
               </Text>
             </Card.Content>
           </Card>

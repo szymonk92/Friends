@@ -532,14 +532,14 @@ export default function StoryDetailScreen() {
         {/* Debug Information */}
         <View style={styles.card}>
           <View style={styles.debugHeader}>
-            <RNText style={fzText.title}>Debug Information</RNText>
+            <RNText style={fzText.title}>{t('storyDetail.dbgTitle')}</RNText>
             <TouchableOpacity
               onPress={() => setShowDebugInfo(!showDebugInfo)}
               activeOpacity={0.6}
               hitSlop={8}
             >
               <RNText style={styles.debugToggle}>
-                {showDebugInfo ? 'Hide' : 'Show'} Data
+                {showDebugInfo ? t('storyDetail.dbgHide') : t('storyDetail.dbgShow')}
               </RNText>
             </TouchableOpacity>
           </View>
@@ -549,13 +549,12 @@ export default function StoryDetailScreen() {
             <View>
               {!debugData ? (
                 <View style={styles.debugSection}>
-                  <RNText style={styles.debugTitle}>No Debug Data Available</RNText>
+                  <RNText style={styles.debugTitle}>{t('storyDetail.dbgNone')}</RNText>
                   <RNText style={styles.debugText}>
-                    Debug information is captured during AI extraction. Process this story with AI
-                    to see the debug details.
+                    {t('storyDetail.dbgNoneMessage')}
                   </RNText>
                   <RNText style={styles.debugText}>
-                    This story's AI processed status: {story.aiProcessed ? 'Yes' : 'No'}
+                    {t('storyDetail.dbgStatus', { value: story.aiProcessed ? t('storyDetail.yes') : t('storyDetail.no') })}
                   </RNText>
                 </View>
               ) : (
@@ -573,7 +572,7 @@ export default function StoryDetailScreen() {
                         activeOpacity={0.6}
                       >
                         <RNText style={styles.debugTitle}>
-                          System Prompt {expandedDebugSections.systemPrompt ? '▼' : '▶'}
+                          {t('storyDetail.dbgSystem')} {expandedDebugSections.systemPrompt ? '▼' : '▶'}
                         </RNText>
                       </TouchableOpacity>
                       {expandedDebugSections.systemPrompt && (
@@ -601,7 +600,7 @@ export default function StoryDetailScreen() {
                         activeOpacity={0.6}
                       >
                         <RNText style={styles.debugTitle}>
-                          Context Sent to AI {expandedDebugSections.contextUpdate ? '▼' : '▶'}
+                          {t('storyDetail.dbgContext')} {expandedDebugSections.contextUpdate ? '▼' : '▶'}
                         </RNText>
                       </TouchableOpacity>
                       {expandedDebugSections.contextUpdate && (
@@ -627,7 +626,7 @@ export default function StoryDetailScreen() {
                         activeOpacity={0.6}
                       >
                         <RNText style={styles.debugTitle}>
-                          Text Sent to AI {expandedDebugSections.sentText ? '▼' : '▶'}
+                          {t('storyDetail.dbgSent')} {expandedDebugSections.sentText ? '▼' : '▶'}
                         </RNText>
                       </TouchableOpacity>
                       {expandedDebugSections.sentText && (
@@ -653,7 +652,7 @@ export default function StoryDetailScreen() {
                         activeOpacity={0.6}
                       >
                         <RNText style={styles.debugTitle}>
-                          AI Reply {expandedDebugSections.aiReply ? '▼' : '▶'}
+                          {t('storyDetail.dbgReply')} {expandedDebugSections.aiReply ? '▼' : '▶'}
                         </RNText>
                       </TouchableOpacity>
                       {expandedDebugSections.aiReply && (
@@ -673,14 +672,14 @@ export default function StoryDetailScreen() {
                         expandedDebugSections.tokenUsage ? styles.debugSectionExpanded : null,
                       ]}
                     >
-                      <RNText style={styles.debugTitle}>Token Usage:</RNText>
+                      <RNText style={styles.debugTitle}>{t('storyDetail.dbgTokens')}</RNText>
                       <RNText style={styles.debugText} selectable>
-                        Total: {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
+                        {t('storyDetail.dbgTotal')} {debugData.tokenUsage.totalTokens?.toLocaleString() || 'N/A'}
                         {debugData.tokenUsage.inputTokens &&
                           debugData.tokenUsage.outputTokens && (
                             <>
                               {' '}
-                              (Input: {debugData.tokenUsage.inputTokens.toLocaleString()}, Output:{' '}
+                              ({t('storyDetail.dbgInput')} {debugData.tokenUsage.inputTokens.toLocaleString()}, {t('storyDetail.dbgOutput')}{' '}
                               {debugData.tokenUsage.outputTokens.toLocaleString()})
                             </>
                           )}
@@ -688,7 +687,7 @@ export default function StoryDetailScreen() {
 
                       {(debugData.costUsd ?? debugData.cost) !== undefined && (
                         <RNText style={styles.debugText} selectable>
-                          Estimated cost: $
+                          {t('storyDetail.dbgCost')} $
                           {Number(debugData.costUsd ?? debugData.cost).toFixed(6)}
                         </RNText>
                       )}

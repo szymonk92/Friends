@@ -10,6 +10,7 @@ import { LIKES } from '@/lib/constants/relations';
 import { getInitials } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
+import { useTranslation } from 'react-i18next';
 
 type Interest = {
   label: string;
@@ -17,6 +18,7 @@ type Interest = {
 };
 
 export default function SharedInterestsScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: me } = useMePerson();
@@ -58,10 +60,10 @@ export default function SharedInterestsScreen() {
       <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.appBarRow}>
           <HeaderBack onPress={() => router.back()} />
-          <Text style={fzText.screenTitle}>Shared interests</Text>
+          <Text style={fzText.screenTitle}>{t('sharedInterests.title')}</Text>
           <View style={{ width: 38 }} />
         </View>
-        <Text style={[fzText.meta, styles.subtitle]}>What your circle has in common</Text>
+        <Text style={[fzText.meta, styles.subtitle]}>{t('sharedInterests.subtitle')}</Text>
       </View>
 
       {isLoading ? (
@@ -70,9 +72,9 @@ export default function SharedInterestsScreen() {
         </View>
       ) : interests.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={fzText.title}>Nothing shared yet</Text>
+          <Text style={fzText.title}>{t('sharedInterests.empty')}</Text>
           <Text style={[fzText.sub, styles.emptySub]}>
-            Once two or more people share a like, it'll show up here.
+            {t('sharedInterests.emptyMessage')}
           </Text>
         </View>
       ) : (
@@ -83,7 +85,7 @@ export default function SharedInterestsScreen() {
                 <Text style={fzText.name}>{interest.label}</Text>
                 <View style={[styles.countPill, interest.people.length >= 3 && styles.countPillSolid]}>
                   <Text style={interest.people.length >= 3 ? fzText.chipOn : fzText.chip}>
-                    {interest.people.length} people
+                    {t('mention.people', { count: interest.people.length })}
                   </Text>
                 </View>
               </View>

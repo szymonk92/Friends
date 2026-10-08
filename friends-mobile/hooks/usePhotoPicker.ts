@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { Alert } from 'react-native';
 import { useAddPhotoToPerson, useTakePhoto } from '@/hooks/usePhotos';
 import type { SavedPhoto } from '@/lib/utils/photos';
@@ -22,16 +23,24 @@ export function usePhotoPicker(personId: string) {
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
         if (!/cancel/i.test(message)) {
-          Alert.alert('Error', message || 'Failed to save photo');
+          const known: Record<string, string> = {
+            'Permission to access photos was denied': tr('photos.permissionPhotos', message),
+            'Permission to access camera was denied': tr('photos.permissionCamera', message),
+            'Photo not found': tr('photos.notFound', message),
+          };
+          Alert.alert(
+            tr('common.error', 'Error'),
+            known[message] || message || tr('photos.saveFailed', 'Failed to save photo')
+          );
         }
       }
     };
 
-    Alert.alert(options.title ?? 'Add Photo', 'Choose how to add a photo', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Take Photo', onPress: saveWith(() => takePhoto.mutateAsync({ personId })) },
+    Alert.alert(options.title ?? tr('photos.addPhoto', 'Add Photo'), tr('photos.chooseHow', 'Choose how to add a photo'), [
+      { text: tr('common.cancel', 'Cancel'), style: 'cancel' },
+      { text: tr('photos.takePhoto', 'Take Photo'), onPress: saveWith(() => takePhoto.mutateAsync({ personId })) },
       {
-        text: 'Choose from Library',
+        text: tr('photos.chooseLibrary', 'Choose from Library'),
         onPress: saveWith(() => addPhotoToPerson.mutateAsync({ personId })),
       },
     ]);

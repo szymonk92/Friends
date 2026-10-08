@@ -27,27 +27,27 @@ export default function MenuScreen() {
   const handleExportJSON = async () => {
     try {
       await exportData.mutateAsync();
-      Alert.alert('Success', 'Data exported successfully!');
+      Alert.alert(t('common.success'), t('menu.exported'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to export data');
+      Alert.alert(t('common.error'), error.message || t('menu.exportFailed'));
     }
   };
 
   const handleExportCSV = async () => {
     try {
       await exportCSV.mutateAsync();
-      Alert.alert('Success', 'People exported to CSV!');
+      Alert.alert(t('common.success'), t('menu.csvExported'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to export CSV');
+      Alert.alert(t('common.error'), error.message || t('menu.csvFailed'));
     }
   };
 
   const handleExportObsidian = async () => {
     try {
       await exportObsidian.mutateAsync();
-      Alert.alert('Success', 'Obsidian vault exported successfully!');
+      Alert.alert(t('common.success'), t('menu.obsidianExported'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to export Obsidian vault');
+      Alert.alert(t('common.error'), error.message || t('menu.obsidianFailed'));
     }
   };
 
@@ -73,15 +73,15 @@ export default function MenuScreen() {
 
       if (importResult.errors.length > 0) {
         Alert.alert(
-          'Import Complete',
-          `Imported ${importResult.imported} items.\n\nWarnings:\n${importResult.errors.slice(0, 5).join('\n')}${importResult.errors.length > 5 ? `\n...and ${importResult.errors.length - 5} more` : ''}`,
-          [{ text: 'OK' }]
+          t('menu.importComplete'),
+          `${t('menu.importedItems', { count: importResult.imported })}\n\n${t('menu.warnings')}\n${importResult.errors.slice(0, 5).join('\n')}${importResult.errors.length > 5 ? `\n${t('menu.andMore', { count: importResult.errors.length - 5 })}` : ''}`,
+          [{ text: t('common.ok') }]
         );
       } else {
-        Alert.alert('Success', `Imported ${importResult.imported} items successfully!`);
+        Alert.alert(t('common.success'), t('menu.importedSuccess', { count: importResult.imported }));
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to import data');
+      Alert.alert(t('common.error'), error.message || t('menu.importFailed'));
     } finally {
       setImportLoading(false);
     }
@@ -91,7 +91,7 @@ export default function MenuScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Menu',
+          title: t('menu.title'),
           headerStyle: { backgroundColor: fz.paper },
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
@@ -101,7 +101,7 @@ export default function MenuScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <FormSection
           title={t('settings.experimental')}
-          hint="Features that are currently in development."
+          hint={t('menu.experimentalHint')}
         >
           <Button
             mode="outlined"
@@ -111,7 +111,7 @@ export default function MenuScreen() {
             style={styles.button}
             labelStyle={styles.buttonLabel}
           >
-            Network Graph
+            {t('menu.networkGraph')}
           </Button>
           <Button
             mode="outlined"
@@ -121,7 +121,7 @@ export default function MenuScreen() {
             style={styles.button}
             labelStyle={styles.buttonLabel}
           >
-            Party Planner
+            {t('menu.partyPlanner')}
           </Button>
           <Button
             mode="outlined"
@@ -131,13 +131,13 @@ export default function MenuScreen() {
             style={[styles.button, styles.lastButton]}
             labelStyle={styles.buttonLabel}
           >
-            Food Quiz
+            {t('foodQuiz.title')}
           </Button>
         </FormSection>
 
         <FormSection
           title={t('settings.developerTools')}
-          hint="Testing utilities for development. Generate test data, seed sample people, and debug the application."
+          hint={t('menu.devHint')}
         >
           <Button
             mode="outlined"
@@ -147,7 +147,7 @@ export default function MenuScreen() {
             style={styles.button}
             labelStyle={styles.buttonLabel}
           >
-            Open Dev Tools
+            {t('menu.openDev')}
           </Button>
           <Button
             mode="outlined"
@@ -157,7 +157,7 @@ export default function MenuScreen() {
             style={[styles.button, styles.lastButton]}
             labelStyle={styles.buttonLabel}
           >
-            AI Playground
+            {t('menu.playground')}
           </Button>
         </FormSection>
 

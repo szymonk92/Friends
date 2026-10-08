@@ -259,7 +259,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
       if (result.debugInfo) {
         setDebugInfo(result.debugInfo);
         buttons.push({
-          text: 'Debug',
+          text: t('addStory.debug'),
           onPress: () => setDebugDialogVisible(true),
         });
       }
@@ -420,9 +420,9 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
 
           {/* Examples Hint */}
           <View style={styles.examplesSection}>
-            <Text style={fzText.label}>Quick examples</Text>
-            <Text style={styles.example}>"Met @Emma for coffee. She's training for a marathon"</Text>
-            <Text style={styles.example}>"Had lunch with @Ola and met her friend @+Fabian"</Text>
+            <Text style={fzText.label}>{t('addStory.examples')}</Text>
+            <Text style={styles.example}>{t('addStory.example1')}</Text>
+            <Text style={styles.example}>{t('addStory.example2')}</Text>
           </View>
 
           <View style={styles.spacer} />
@@ -552,13 +552,13 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
           onDismiss={() => setDebugDialogVisible(false)}
           style={[styles.dialog, styles.promptDialog]}
         >
-          <Dialog.Title style={styles.dialogTitle}>AI Debug Info</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('addStory.debugTitle')}</Dialog.Title>
           <Dialog.ScrollArea style={styles.promptScrollArea}>
             <ScrollView>
               {debugInfo && (
                 <View>
                   <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
-                    Model & Cost
+                    {t('addStory.debugModel')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
                     Model: {debugInfo.model}
@@ -569,21 +569,21 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
                   </Text>
 
                   <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
-                    System Prompt
+                    {t('addStory.debugSystem')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.systemPrompt || 'N/A'}
                   </Text>
 
                   <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
-                    User Prompt (Story)
+                    {t('addStory.debugUser')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.userPrompt}
                   </Text>
 
                   <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
-                    Response Status
+                    {t('addStory.debugStatus')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
                     Status: {debugInfo.responseStatus || 'N/A'}
@@ -592,7 +592,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
                   </Text>
 
                   <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
-                    Raw Response
+                    {t('addStory.debugRaw')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.rawResponse}
@@ -606,13 +606,13 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               labelStyle={styles.dialogFont}
               onPress={() => {
                 Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
-                Alert.alert('Copied', 'Debug info copied to clipboard');
+                Alert.alert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
               }}
             >
-              Copy All
+              {t('addStory.copyAll')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={() => setDebugDialogVisible(false)}>
-              Close
+              {t('common.close')}
             </Button>
           </Dialog.Actions>
         </Dialog>

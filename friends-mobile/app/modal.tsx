@@ -98,7 +98,7 @@ export default function AddPersonModal() {
         { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : t('common.unknownError');
       if (errorMessage.includes('already exists')) {
         Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
       } else {

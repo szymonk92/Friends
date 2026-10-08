@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { useState, useCallback, useEffect, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Portal } from 'react-native-paper';
@@ -20,7 +21,7 @@ export function useFzAlert(): {
 } {
   const [notice, setNotice] = useState<Notice | null>(null);
   const alert = useCallback(
-    (title: string, message?: string, buttons: Button[] = [{ text: 'OK' }]) =>
+    (title: string, message?: string, buttons: Button[] = [{ text: tr('common.ok', 'OK') }]) =>
       setNotice({ title, message, buttons }),
     []
   );
@@ -65,8 +66,8 @@ export function FzConfirmHost() {
   useEffect(() => {
     registerConfirmHost((o) =>
       alert(o.title, o.message, [
-        { text: o.confirmLabel ?? 'Delete', onPress: () => void o.onConfirm() },
-        { text: 'Cancel' },
+        { text: o.confirmLabel ?? tr('common.delete', 'Delete'), onPress: () => void o.onConfirm() },
+        { text: tr('common.cancel', 'Cancel') },
       ])
     );
     return () => registerConfirmHost(null);

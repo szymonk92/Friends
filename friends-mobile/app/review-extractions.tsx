@@ -10,6 +10,7 @@ import {
   useAcceptBothConflict,
 } from '@/hooks/useAIExtraction';
 import { formatRelationType } from '@/lib/utils/format';
+import { intensityLabel } from '@/lib/i18n/labels';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
 import { RelationIcon } from '@/components/RelationIcon';
@@ -29,8 +30,10 @@ import {
 } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 export default function ReviewExtractionsScreen() {
+  const { t } = useTranslation();
   const { data: pending, isLoading } = usePendingExtractions();
   const approveMutation = useApprovePendingExtraction();
   const rejectMutation = useRejectPendingExtraction();
@@ -47,21 +50,25 @@ export default function ReviewExtractionsScreen() {
     try {
       await approveMutation.mutateAsync(extraction.id);
     } catch (error) {
-      Alert.alert('Error', 'Failed to approve extraction');
+      Alert.alert(t('common.error'), t('reviewExtractions.approveFailed'));
       devLogger.error('Failed to approve extraction', { error, extractionId: extraction.id });
     }
   };
 
   const handleReject = (extraction: any) => {
     confirmDestructive({
-      title: 'Reject Extraction',
-      message: `Are you sure you want to reject this relation?\n\n${extraction.subjectName} ${formatRelationType(extraction.relationType).toLowerCase()} "${extraction.objectLabel}"`,
-      confirmLabel: 'Reject',
+      title: t('reviewExtractions.rejectTitle'),
+      message: t('reviewExtractions.rejectMessage', {
+        subject: extraction.subjectName,
+        type: formatRelationType(extraction.relationType).toLowerCase(),
+        object: extraction.objectLabel,
+      }),
+      confirmLabel: t('storyDetail.reject'),
       onConfirm: async () => {
         try {
           await rejectMutation.mutateAsync({ extractionId: extraction.id });
         } catch (error) {
-          Alert.alert('Error', 'Failed to reject extraction');
+          Alert.alert(t('common.error'), t('reviewExtractions.rejectFailed'));
           devLogger.error('Failed to reject extraction', {
             error,
             extractionId: extraction.id,
@@ -92,7 +99,7 @@ export default function ReviewExtractionsScreen() {
       setEditDialogVisible(false);
       setCurrentEdit(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save edit');
+      Alert.alert(t('common.error'), t('reviewExtractions.editFailed'));
       devLogger.error('Failed to edit extraction', { error, extractionId: currentEdit.id });
     }
   };
@@ -104,16 +111,16 @@ export default function ReviewExtractionsScreen() {
   };
 
   const getConfidenceLabel = (confidence: number) => {
-    if (confidence >= 0.8) return 'High';
-    if (confidence >= 0.65) return 'Medium';
-    return 'Low';
+    if (confidence >= 0.8) return t('reviewExtractions.high');
+    if (confidence >= 0.65) return t('reviewExtractions.medium');
+    return t('reviewExtractions.low');
   };
 
   if (isLoading) {
     return (
       <CenteredContainer style={styles.centered}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading extractions...</Text>
+        <Text style={styles.loadingText}>{t('reviewExtractions.loading')}</Text>
       </CenteredContainer>
     );
   }
@@ -123,19 +130,19 @@ export default function ReviewExtractionsScreen() {
       <>
         <Stack.Screen
           options={{
-            title: 'Review Extractions',
+            title: t('reviewExtractions.title'),
           }}
         />
         <CenteredContainer style={styles.centered}>
           <CheckCircleIcon size={40} color="#1B1815" weight="bold" style={styles.emptyIcon} />
           <Text variant="headlineSmall" style={styles.emptyTitle}>
-            All Caught Up!
+            {t('reviewExtractions.caughtUp')}
           </Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
-            No extractions need your review right now.
+            {t('reviewExtractions.noneMessage')}
           </Text>
           <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-            Go Back
+            {t('person.goBack')}
           </Button>
         </CenteredContainer>
       </>
@@ -146,17 +153,17 @@ export default function ReviewExtractionsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: `Review ${pending.length} Extraction${pending.length !== 1 ? 's' : ''}`,
+          title: t('reviewExtractions.titleCount', { count: pending.length }),
         }}
       />
       <ScrollView style={styles.container}>
         <Card style={styles.headerCard}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.headerTitle}>
-              ⏳ Pending AI Extractions
+              {t('reviewExtractions.pending')}
             </Text>
             <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              These relations had medium confidence (60-79%) and need your approval before saving.
+              {t('reviewExtractions.pendingMessage')}
             </Text>
           </Card.Content>
         </Card>
@@ -172,7 +179,7 @@ export default function ReviewExtractionsScreen() {
                   <View style={styles.conflictTitleRow}>
                     <WarningIcon size={16} color="#e65100" weight="bold" />
                     <Text variant="titleSmall" style={styles.conflictTitle}>
-                      Conflict Detected
+                      {t('reviewExtractions.conflict')}
                     </Text>
                   </View>
                   {extraction.conflictDescription && (
@@ -183,7 +190,7 @@ export default function ReviewExtractionsScreen() {
                   <View style={styles.conflictCompare}>
                     <View style={styles.conflictSide}>
                       <Text variant="labelSmall" style={styles.conflictSideLabel}>
-                        NEW INFO
+                        {t('reviewExtractions.newInfo')}
                       </Text>
                       <View style={styles.relationRow}>
                         <RelationIcon type={extraction.relationType} size={14} />
@@ -197,7 +204,7 @@ export default function ReviewExtractionsScreen() {
                     </View>
                   </View>
                   <Text variant="bodySmall" style={styles.personName}>
-                    Person: {extraction.subjectName}
+                    {t('reviewExtractions.person', { name: extraction.subjectName })}
                   </Text>
                 </>
               ) : (
@@ -227,7 +234,7 @@ export default function ReviewExtractionsScreen() {
                     )}
                     {extraction.intensity && (
                       <Chip compact style={styles.metadataChip}>
-                        {extraction.intensity}
+                        {intensityLabel(extraction.intensity, extraction.intensity)}
                       </Chip>
                     )}
                     <Chip
@@ -262,7 +269,7 @@ export default function ReviewExtractionsScreen() {
                     }
                     disabled={rejectMutation.isPending}
                   >
-                    Keep old
+                    {t('reviewExtractions.keepOld')}
                   </Button>
                   <Button
                     mode="outlined"
@@ -270,7 +277,7 @@ export default function ReviewExtractionsScreen() {
                     loading={acceptBothConflictMutation.isPending}
                     disabled={acceptBothConflictMutation.isPending}
                   >
-                    Both true
+                    {t('reviewExtractions.bothTrue')}
                   </Button>
                   <Button
                     mode="contained"
@@ -278,7 +285,7 @@ export default function ReviewExtractionsScreen() {
                     loading={acceptNewConflictMutation.isPending}
                     disabled={acceptNewConflictMutation.isPending}
                   >
-                    Replace
+                    {t('reviewExtractions.replace')}
                   </Button>
                 </>
               ) : (
@@ -288,14 +295,14 @@ export default function ReviewExtractionsScreen() {
                     onPress={() => handleReject(extraction)}
                     disabled={rejectMutation.isPending}
                   >
-                    Reject
+                    {t('storyDetail.reject')}
                   </Button>
                   <Button
                     mode="outlined"
                     onPress={() => handleEdit(extraction)}
                     disabled={editMutation.isPending}
                   >
-                    Edit
+                    {t('common.edit')}
                   </Button>
                   <Button
                     mode="contained"
@@ -303,7 +310,7 @@ export default function ReviewExtractionsScreen() {
                     loading={approveMutation.isPending}
                     disabled={approveMutation.isPending}
                   >
-                    Approve
+                    {t('storyDetail.approve')}
                   </Button>
                 </>
               )}
@@ -325,28 +332,28 @@ export default function ReviewExtractionsScreen() {
           <Dialog.Content>
             <TextInput
               mode="outlined"
-              label="What they like/dislike/etc."
+              label={t('reviewExtractions.whatLabel')}
               value={editedLabel}
               onChangeText={setEditedLabel}
               style={[styles.dialogInput, styles.dialogFont]}
             />
 
             <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-              Intensity
+              {t('relationForm.intensity')}
             </Text>
             <SegmentedButtons
               value={editedIntensity}
               onValueChange={setEditedIntensity}
               buttons={INTENSITY_OPTIONS.map((option) => ({
                 value: option.value,
-                label: option.label,
+                label: intensityLabel(option.value, option.label),
               }))}
               style={styles.dialogSegmented}
             />
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setEditDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               labelStyle={styles.dialogFont}
@@ -354,7 +361,7 @@ export default function ReviewExtractionsScreen() {
               loading={editMutation.isPending}
               disabled={!editedLabel.trim() || editMutation.isPending}
             >
-              Save & Approve
+              {t('reviewExtractions.saveApprove')}
             </Button>
           </Dialog.Actions>
         </Dialog>
