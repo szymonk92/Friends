@@ -20,13 +20,15 @@ export function appendNote(
 
 export type NoteEntry = { index: number; date: string | null; body: string };
 
+const splitEntries = (notes: string) => notes.split(/\n{2,}/);
+
 const DATED = /^([A-Z][a-z]{2} \d{1,2}, \d{4}) — ([\s\S]*)$/;
 
 /** Splits the notes string into entries (blank-line separated); `index` is the storage position. */
 export function parseNotes(notes: string | null | undefined): NoteEntry[] {
   const raw = notes?.trim();
   if (!raw) return [];
-  return raw.split(/\n{2,}/).map((text, index) => {
+  return splitEntries(raw).map((text, index) => {
     const m = DATED.exec(text);
     return m ? { index, date: m[1], body: m[2] } : { index, date: null, body: text };
   });
@@ -44,7 +46,7 @@ export function replaceNote(
   index: number,
   text: string | null
 ): string | null {
-  const parts = notes?.trim() ? notes.trim().split(/\n{2,}/) : [];
+  const parts = notes?.trim() ? splitEntries(notes.trim()) : [];
   if (text?.trim()) parts[index] = text.trim();
   else parts.splice(index, 1);
   return parts.length ? parts.join('\n\n') : null;

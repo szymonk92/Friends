@@ -41,26 +41,23 @@ export function useNoteActions(person: Person): {
       <Modal visible={!!target} onDismiss={close} contentContainerStyle={styles.sheetWrap}>
         <View style={styles.sheet}>
           <View style={styles.grabber} />
-          {(
-            [
-              ['edit', t('common.edit'), false],
-              ['delete', t('common.delete'), true],
-            ] as const
-          ).map(([key, label, destructive]) => (
-            <Pressable
-              key={key}
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }]}
-              onPress={() => {
-                const e = target!;
-                close();
-                if (destructive) remove(e);
-                else router.push(noteRoute(person.id, e.index, true));
-              }}
-            >
-              <Text style={[fzText.name, destructive && { color: '#D32F2F' }]}>{label}</Text>
-            </Pressable>
-          ))}
+          <SheetAction
+            label={t('common.edit')}
+            onPress={() => {
+              const e = target!;
+              close();
+              router.push(noteRoute(person.id, e.index, true));
+            }}
+          />
+          <SheetAction
+            label={t('common.delete')}
+            destructive
+            onPress={() => {
+              const e = target!;
+              close();
+              remove(e);
+            }}
+          />
         </View>
       </Modal>
     </Portal>
@@ -71,6 +68,26 @@ export function useNoteActions(person: Person): {
     press: setTarget,
     sheet,
   };
+}
+
+function SheetAction({
+  label,
+  destructive,
+  onPress,
+}: {
+  label: string;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }]}
+      onPress={onPress}
+    >
+      <Text style={[fzText.name, destructive && { color: '#D32F2F' }]}>{label}</Text>
+    </Pressable>
+  );
 }
 
 export function NoteCard({

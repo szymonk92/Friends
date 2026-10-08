@@ -38,6 +38,7 @@ export default function NoteScreen() {
   };
 
   const loaded = !!person && (isNew || !!entry);
+  const emptyDraft = editing && !text.trim();
   return (
     <NoteScreenShell
       title={isNew ? t('person.addNote') : (entry?.date ?? t('person.notes'))}
@@ -45,9 +46,9 @@ export default function NoteScreen() {
         loaded && (
           <Pressable
             accessibilityRole="button"
-            disabled={updatePerson.isPending || (editing && !text.trim())}
+            disabled={updatePerson.isPending || emptyDraft}
             onPress={editing ? save : () => setEditing(true)}
-            style={[styles.btn, editing && !text.trim() && { opacity: 0.4 }]}
+            style={[styles.btn, emptyDraft && { opacity: 0.4 }]}
           >
             <Text style={fzText.btn}>{editing ? t('common.save') : t('common.edit')}</Text>
           </Pressable>
