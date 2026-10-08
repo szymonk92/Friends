@@ -519,7 +519,8 @@
     "deleteMessage": "Usunąć „{{item}}”?",
     "precisionDay": "Dokładny dzień",
     "precisionMonth": "Miesiąc",
-    "precisionYear": "Rok"
+    "precisionYear": "Rok",
+    "editTitle": "Edytuj ważną datę"
   },
   "brainDump": {
     "keyNeededTitle": "Potrzebny klucz AI",
@@ -921,10 +922,7 @@
     "title": "Opowiedz historię",
     "tooShortTitle": "Historia za krótka",
     "tooShortMessage": "Napisz co najmniej 10 znaków",
-    "keyRequiredTitle": "Wymagany klucz API",
-    "keyRequiredMessage": "Aby użyć wyciągania przez AI, ustaw klucz API dla wybranego modelu w Ustawieniach.",
     "goToSettings": "Przejdź do Ustawień",
-    "saveWithoutAi": "Zapisz bez AI",
     "backToProfile": "Wróć do profilu",
     "viewPeople": "Zobacz osoby",
     "addAnother": "Dodaj kolejną",
@@ -949,7 +947,6 @@
     "promptCopied": "Prompt skopiowany do schowka",
     "placeholderPerson": "Jak było z {{name}}? Po prostu powiedz — ja dodam to do profilu.",
     "placeholder": "Wczoraj byłem na kolacji z @Sarą. Jest teraz weganką i bardzo lubi jogę...",
-    "tagged": "Oznaczone:",
     "processing": "Przetwarzanie...",
     "saveExtract": "Zapisz i wyciągnij",
     "saveStory": "Zapisz historię",
@@ -974,7 +971,17 @@
     "debugStatus": "Status odpowiedzi",
     "debugRaw": "Surowa odpowiedź",
     "debugCopied": "Skopiowano informacje debugowania do schowka",
-    "copyAll": "Kopiuj wszystko"
+    "copyAll": "Kopiuj wszystko",
+    "people": "Osoby",
+    "tagPeople": "Oznacz osoby",
+    "story": "Historia",
+    "words_one": "{{count}} słowo",
+    "words_few": "{{count}} słowa",
+    "words_many": "{{count}} słów",
+    "words_other": "{{count}} słowa",
+    "saveOnly": "Tylko zapisz",
+    "keyRequiredTitle": "Wymagany klucz API",
+    "keyRequiredMessage": "Aby użyć wyciągania przez AI, ustaw klucz API dla wybranego modelu w Ustawieniach."
   },
   "storyDetail": {
     "configureKey": "Skonfiguruj klucz API {{model}} w Ustawieniach, zanim użyjesz wyciągania przez AI.",
@@ -1057,12 +1064,6 @@
     "people_many": "{{count}} osób",
     "people_other": "{{count}} osoby",
     "someone": "Wspomnij kogoś:"
-  },
-  "personSelector": {
-    "title": "Oznacz osoby",
-    "loading": "Ładowanie osób...",
-    "none": "Nie znaleziono osób",
-    "done": "Gotowe ({{count}})"
   },
   "aiConfig": {
     "title": "Konfiguracja AI",

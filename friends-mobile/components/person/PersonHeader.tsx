@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity, Linking } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Linking, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { formatShortDate } from '@/lib/utils/format';
 import { tr, relationshipTypeLabel, personTypeLabel, importanceLabel } from '@/lib/i18n/labels';
@@ -19,6 +19,18 @@ import { fzAlert } from '@/lib/utils/confirm';
 interface PersonHeaderProps {
   person: Person;
   onAvatarPress: () => void;
+}
+
+// geo: lets Android show its maps-app chooser / user default; iOS goes to Apple Maps.
+// Web Google Maps is the fallback when no handler is installed.
+async function openInMaps(address: string) {
+  const q = encodeURIComponent(address);
+  const native = Platform.OS === 'ios' ? `maps://?q=${q}` : `geo:0,0?q=${q}`;
+  try {
+    await Linking.openURL(native);
+  } catch {
+    await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`);
+  }
 }
 
 function formatMetLine(metDate: Date | null | undefined, metLocation: string | null | undefined): string {
@@ -87,8 +99,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
   const hasChips =
     person.relationshipType ||
     person.personType ||
-    (person.importanceToUser && person.importanceToUser !== 'unknown') ||
-    person.homeLocation;
+    (person.importanceToUser && person.importanceToUser !== 'unknown');
 
   return (
     <View style={styles.headerSection}>
@@ -122,7 +133,6 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
                   label={importanceLabel(person.importanceToUser)}
                 />
               )}
-              {person.homeLocation && <Pill label={person.homeLocation} />}
             </View>
           )}
 
@@ -130,6 +140,20 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
             <View style={styles.chips}>
               <Pill label={`🐾 ${person.species?.trim() || t('header.pet')}`} variant="solid" />
             </View>
+          )}
+
+          {!isPet && person.homeLocation && (
+            <TouchableOpacity
+              style={styles.homeRow}
+              onPress={() => openInMaps(person.homeLocation!)}
+              accessibilityRole="link"
+              activeOpacity={0.6}
+            >
+              <LineIcon name="home" size={15} color={fz.textMute} />
+              <Text style={styles.homeText} numberOfLines={2}>
+                {person.homeLocation}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {!isPet && (person.metDate || person.metLocation) && (
@@ -213,6 +237,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
+  },
+  homeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: fz.s.sm,
+  },
+  homeText: {
+    ...fzText.sub,
+    flexShrink: 1,
   },
   metaLine: {
     ...fzText.sub,

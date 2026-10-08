@@ -519,7 +519,8 @@
     "deleteMessage": "Delete \"{{item}}\"?",
     "precisionDay": "Exact day",
     "precisionMonth": "Month",
-    "precisionYear": "Year"
+    "precisionYear": "Year",
+    "editTitle": "Edit Important Date"
   },
   "brainDump": {
     "keyNeededTitle": "AI key needed",
@@ -901,10 +902,7 @@
     "title": "Tell a Story",
     "tooShortTitle": "Story too short",
     "tooShortMessage": "Please write at least 10 characters",
-    "keyRequiredTitle": "API Key Required",
-    "keyRequiredMessage": "To use AI extraction, you need to set an API key for the selected model in Settings.",
     "goToSettings": "Go to Settings",
-    "saveWithoutAi": "Save Without AI",
     "backToProfile": "Back to Profile",
     "viewPeople": "View People",
     "addAnother": "Add Another",
@@ -929,7 +927,6 @@
     "promptCopied": "Prompt copied to clipboard",
     "placeholderPerson": "How was it with {{name}}? Just say it — I'll sort it into their profile.",
     "placeholder": "Had dinner with @Sarah last night. She's now vegan and really into yoga...",
-    "tagged": "Tagged:",
     "processing": "Processing...",
     "saveExtract": "Save & Extract",
     "saveStory": "Save Story",
@@ -954,7 +951,15 @@
     "debugStatus": "Response Status",
     "debugRaw": "Raw Response",
     "debugCopied": "Debug info copied to clipboard",
-    "copyAll": "Copy All"
+    "copyAll": "Copy All",
+    "people": "People",
+    "tagPeople": "Tag people",
+    "story": "Story",
+    "words_one": "{{count}} word",
+    "words_other": "{{count}} words",
+    "saveOnly": "Save only",
+    "keyRequiredTitle": "API Key Required",
+    "keyRequiredMessage": "To use AI extraction, you need to set an API key for the selected model in Settings."
   },
   "storyDetail": {
     "configureKey": "Please configure your {{model}} API key in Settings before using AI extraction.",
@@ -1031,12 +1036,6 @@
     "people_one": "{{count}} person",
     "people_other": "{{count}} people",
     "someone": "Mention someone:"
-  },
-  "personSelector": {
-    "title": "Tag People",
-    "loading": "Loading people...",
-    "none": "No people found",
-    "done": "Done ({{count}})"
   },
   "aiConfig": {
     "title": "AI Configuration",

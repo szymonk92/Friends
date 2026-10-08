@@ -1,17 +1,22 @@
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
-import { parseFlexibleDate } from '@/lib/utils/dates';
-import { usePersonRelations, useDeleteRelation, useCreateRelation } from '@/hooks/useRelations';
+import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
+import {
+  usePersonRelations,
+  useDeleteRelation,
+  useCreateRelation,
+  useUpdateRelation,
+} from '@/hooks/useRelations';
 import { useUpdatePerson } from '@/hooks/usePeople';
 import { formatShortDate } from '@/lib/utils/format';
 import { HAS_IMPORTANT_DATE } from '@/lib/constants/relations';
-import type { Person } from '@/lib/db/schema';
+import type { Person, Relation } from '@/lib/db/schema';
+import { ActionSheet } from '@/components/ActionSheet';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
-import { IconCircle } from '@/components/IconCircle';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
@@ -25,6 +30,12 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   const deleteRelation = useDeleteRelation();
   const createRelation = useCreateRelation();
   const updatePerson = useUpdatePerson();
+  const updateRelation = useUpdateRelation();
+
+  // Row tapped → action sheet; 'birthday' is person.dateOfBirth, otherwise a relation.
+  type DateTarget = 'birthday' | Relation;
+  const [selected, setSelected] = useState<DateTarget | null>(null);
+  const [editing, setEditing] = useState<DateTarget | null>(null);
 
   const [addDateDialogVisible, setAddDateDialogVisible] = useState(false);
   const [dateName, setDateName] = useState('');
@@ -34,6 +45,57 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   const importantDates =
     personRelations?.filter((r) => r.relationType === HAS_IMPORTANT_DATE) || [];
 
+  const closeDialog = () => {
+    setAddDateDialogVisible(false);
+    setEditing(null);
+    setDateName('');
+    setDateValue('');
+  };
+
+  const openEdit = (target: DateTarget) => {
+    setEditing(target);
+    if (target === 'birthday') {
+      setDateName(t('dates.birthday'));
+      setDateValue(person.dateOfBirth ? toDateText(new Date(person.dateOfBirth)) : '');
+    } else {
+      setDateName(target.objectLabel);
+      setDateValue(target.validFrom ? toDateText(new Date(target.validFrom)) : '');
+    }
+    setAddDateDialogVisible(true);
+  };
+
+  const confirmDelete = (target: DateTarget) =>
+    confirmDestructive({
+      title: t('dates.deleteTitle'),
+      message: t('dates.deleteMessage', {
+        item: target === 'birthday' ? t('dates.birthday') : target.objectLabel,
+      }),
+      onConfirm: () =>
+        target === 'birthday'
+          ? updatePerson.mutateAsync({ id: person.id, dateOfBirth: null })
+          : deleteRelation.mutateAsync(target.id),
+    });
+
+  const handleSaveEdit = async (target: DateTarget, parsedDate: Date) => {
+    setIsAddingDate(true);
+    try {
+      if (target === 'birthday') {
+        await updatePerson.mutateAsync({ id: person.id, dateOfBirth: parsedDate });
+      } else {
+        await updateRelation.mutateAsync({
+          id: target.id,
+          objectLabel: dateName.trim(),
+          validFrom: parsedDate,
+        });
+      }
+      closeDialog();
+    } catch (error) {
+      fzAlert(t('common.error'), t('dates.addFailed'));
+    } finally {
+      setIsAddingDate(false);
+    }
+  };
+
   const handleAddImportantDate = async () => {
     if (!dateName.trim()) {
       fzAlert(t('common.error'), t('dates.enterName'));
@@ -42,6 +104,10 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     const parsedDate = parseFlexibleDate(dateValue);
     if (!parsedDate) {
       fzAlert(t('dates.invalidDate'), t('dates.invalidDateMessage'));
+      return;
+    }
+    if (editing) {
+      await handleSaveEdit(editing, parsedDate);
       return;
     }
 
@@ -113,45 +179,59 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
       >
         <View style={styles.dates}>
           {person.dateOfBirth && (
-            <View style={styles.dateItem}>
+            <Pressable
+              style={styles.dateItem}
+              onPress={() => setSelected('birthday')}
+              accessibilityRole="button"
+            >
               <Pill label={t('dates.birthday')} icon="cake" variant="soft" />
               <Text style={styles.dateText}>{formatShortDate(new Date(person.dateOfBirth))}</Text>
-            </View>
+            </Pressable>
           )}
 
           {importantDates.map((date) => (
-            <View key={date.id} style={styles.dateItem}>
+            <Pressable
+              key={date.id}
+              style={styles.dateItem}
+              onPress={() => setSelected(date)}
+              accessibilityRole="button"
+            >
               <Pill label={date.objectLabel} variant="soft" />
               <Text style={styles.dateText}>
                 {date.validFrom ? formatShortDate(new Date(date.validFrom)) : t('dates.noDate')}
               </Text>
-              <IconCircle
-                icon="trash"
-                size={28}
-                iconSize={14}
-                onPress={() =>
-                  confirmDestructive({
-                    title: t('dates.deleteTitle'),
-                    message: t('dates.deleteMessage', { item: date.objectLabel }),
-                    onConfirm: () => deleteRelation.mutateAsync(date.id),
-                  })
-                }
-              />
-            </View>
+            </Pressable>
           ))}
         </View>
       </ProfileSection>
 
+      <ActionSheet
+        visible={selected !== null}
+        title={selected === 'birthday' ? t('dates.birthday') : selected?.objectLabel}
+        actions={
+          selected
+            ? [
+                { label: t('common.edit'), icon: 'pencil', onPress: () => openEdit(selected) },
+                { label: t('common.delete'), icon: 'trash', onPress: () => confirmDelete(selected) },
+              ]
+            : []
+        }
+        onDismiss={() => setSelected(null)}
+      />
+
       <Portal>
         <Dialog
           visible={addDateDialogVisible}
-          onDismiss={() => setAddDateDialogVisible(false)}
+          onDismiss={closeDialog}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>{t('dates.addTitle')}</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>
+            {editing ? t('dates.editTitle') : t('dates.addTitle')}
+          </Dialog.Title>
           <Dialog.Content>
             <PaperInput
               mode="outlined"
+              disabled={editing === 'birthday'}
               label={t('dates.nameLabel')}
               placeholder={t('dates.namePlaceholder')}
               value={dateName}
@@ -171,7 +251,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setAddDateDialogVisible(false)}>
+            <Button labelStyle={styles.dialogFont} onPress={closeDialog}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -180,7 +260,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               loading={isAddingDate}
               disabled={isAddingDate}
             >
-              {t('dates.add')}
+              {editing ? t('common.save') : t('dates.add')}
             </Button>
           </Dialog.Actions>
         </Dialog>
