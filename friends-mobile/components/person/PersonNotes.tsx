@@ -25,8 +25,8 @@ export default function PersonNotes({ person }: { person: Person }) {
       label={t('person.notes')}
       count={entries.length || null}
       onAdd={() => openNewNote(person.id)}
+      empty={entries.length === 0 && t('person.notesEmpty')}
     >
-      {entries.length === 0 && <Text style={styles.empty}>{t('person.notesEmpty')}</Text>}
       {entries.slice(0, LATEST).map((e) => (
         <NoteCard key={e.index} entry={e} onPress={() => open(e)} onLongPress={() => press(e)} />
       ))}
@@ -41,6 +41,5 @@ export default function PersonNotes({ person }: { person: Person }) {
 }
 
 const styles = StyleSheet.create({
-  empty: { ...fzText.sub, fontStyle: 'italic' },
   all: { ...fzText.btnOutline, paddingVertical: 8 },
 });

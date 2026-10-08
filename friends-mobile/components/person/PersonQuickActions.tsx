@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { useCreateContactEvent } from '@/hooks/useContactEvents';
 import { useCreateContactReminder } from '@/hooks/useReminders';
 import type { NewContactEvent } from '@/lib/db/schema';
-import { ProfileSection } from './ProfileSection';
+import { ProfileSection, chipRow } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { ActionSheet } from '@/components/ActionSheet';
 import { fz } from '@/lib/design/tokens';
@@ -42,7 +42,10 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
   const createContactReminder = useCreateContactReminder();
 
   const [dialogVisible, setDialogVisible] = useState(false);
-  const [pendingEvent, setPendingEvent] = useState<{ type: NewContactEvent['eventType']; label: string } | null>(null);
+  const [pendingEvent, setPendingEvent] = useState<{
+    type: NewContactEvent['eventType'];
+    label: string;
+  } | null>(null);
   const [noteText, setNoteText] = useState('');
   const [reminderSheetVisible, setReminderSheetVisible] = useState(false);
 
@@ -86,15 +89,27 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
         storageKey="quickActions"
         onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
       >
-        <View style={styles.row}>
-          {ACTIONS_ROW_1.map((a) => (
-            <Pill key={a.labelKey} label={t(`profile.${a.labelKey}`)} icon={a.icon} onPress={() => onPress(a)} />
-          ))}
-        </View>
-        <View style={styles.row}>
-          {ACTIONS_ROW_2.map((a) => (
-            <Pill key={a.labelKey} label={t(`profile.${a.labelKey}`)} icon={a.icon} onPress={() => onPress(a)} />
-          ))}
+        <View style={styles.rows}>
+          <View style={chipRow}>
+            {ACTIONS_ROW_1.map((a) => (
+              <Pill
+                key={a.labelKey}
+                label={t(`profile.${a.labelKey}`)}
+                icon={a.icon}
+                onPress={() => onPress(a)}
+              />
+            ))}
+          </View>
+          <View style={chipRow}>
+            {ACTIONS_ROW_2.map((a) => (
+              <Pill
+                key={a.labelKey}
+                label={t(`profile.${a.labelKey}`)}
+                icon={a.icon}
+                onPress={() => onPress(a)}
+              />
+            ))}
+          </View>
         </View>
       </ProfileSection>
 
@@ -110,7 +125,11 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
       />
 
       <Portal>
-        <Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)} style={styles.dialog}>
+        <Dialog
+          visible={dialogVisible}
+          onDismiss={() => setDialogVisible(false)}
+          style={styles.dialog}
+        >
           <Dialog.Title style={styles.dialogTitle}>
             {t('profile.withPerson', { action: pendingEvent?.label, name: personName })}
           </Dialog.Title>
@@ -142,12 +161,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
+  rows: { gap: fz.s.xs },
   dialog: {
     borderRadius: fz.rCard,
     backgroundColor: fz.card,

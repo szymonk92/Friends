@@ -514,7 +514,9 @@
     "dateLabel": "Data",
     "datePlaceholder": "RRRR, RRRR-MM lub RRRR-MM-DD",
     "hint": "Wpisz sam rok (2020), rok i miesiąc (2020-06) lub pełną datę (2020-06-15)",
-    "add": "Dodaj"
+    "add": "Dodaj",
+    "deleteTitle": "Usuń datę",
+    "deleteMessage": "Usunąć „{{item}}”?"
   },
   "brainDump": {
     "keyNeededTitle": "Potrzebny klucz AI",
@@ -673,7 +675,7 @@
   "connections": {
     "title": "Połączenia",
     "empty": "Brak połączeń. Dodaj połączenia, aby pokazać, jak {{name}} jest powiązany(-a) z innymi osobami.",
-    "add": "Dodaj połączenie"
+    "openProfile": "Otwórz profil"
   },
   "header": {
     "metInOn": "Poznani w: {{place}} · {{date}}",
@@ -724,9 +726,7 @@
     "addRelation": "Dodaj relację",
     "addConnection": "Dodaj połączenie",
     "editRelation": "Edytuj relację",
-    "editConnection": "Edytuj połączenie",
-    "manageRelations": "Zarządzaj relacjami",
-    "manageConnections": "Zarządzaj połączeniami"
+    "editConnection": "Edytuj połączenie"
   },
   "relationship": {
     "title": "Relacja",
@@ -787,20 +787,11 @@
   },
   "manageRelations": {
     "deleteTitle": "Usuń relację",
-    "deleteMessage": "Czy na pewno chcesz usunąć „{{item}}”?",
-    "titleWithName": "{{name}} · Relacje",
-    "title": "Relacje",
-    "empty": "Brak relacji"
-  },
-  "manageConnections": {
-    "empty": "Nie znaleziono połączeń"
+    "deleteMessage": "Czy na pewno chcesz usunąć „{{item}}”?"
   },
   "manageGifts": {
     "deleteTitle": "Usuń pomysł na prezent",
     "deleteMessage": "Czy na pewno chcesz usunąć „{{item}}”?",
-    "titleWithName": "{{name}} · Prezenty",
-    "title": "Prezenty",
-    "empty": "Brak pomysłów na prezent",
     "given": "Wręczono: {{date}}"
   },
   "comparePicker": {

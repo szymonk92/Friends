@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // block on the profile reads consistently without each file re-deriving it.
 export function ProfileSection({
   label,
+  empty,
   subtitle,
   count,
   onAdd,
@@ -26,6 +27,8 @@ export function ProfileSection({
   storageKey,
 }: {
   label: string;
+  /** Shown instead of content when the section has nothing — one style for every section. */
+  empty?: string | false | null;
   /** Small muted line right under the header (hidden while folded). */
   subtitle?: string;
   count?: number | string | null;
@@ -91,12 +94,17 @@ export function ProfileSection({
         </View>
       </View>
       {!collapsed && subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {!collapsed && empty ? <Text style={styles.empty}>{empty}</Text> : null}
       {!collapsed && children}
     </View>
   );
 }
 
+/** Wrapping row of Pills — same gap in every profile section. */
+export const chipRow = { flexDirection: 'row', flexWrap: 'wrap', gap: fz.s.xs } as const;
+
 const styles = StyleSheet.create({
+  empty: { ...fzText.sub, fontStyle: 'italic' },
   section: {
     paddingHorizontal: fz.s.edge,
     paddingVertical: 14,

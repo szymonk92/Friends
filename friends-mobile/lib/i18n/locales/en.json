@@ -514,7 +514,9 @@
     "dateLabel": "Date",
     "datePlaceholder": "YYYY, YYYY-MM, or YYYY-MM-DD",
     "hint": "Enter year only (2020), year-month (2020-06), or full date (2020-06-15)",
-    "add": "Add"
+    "add": "Add",
+    "deleteTitle": "Delete Date",
+    "deleteMessage": "Delete \"{{item}}\"?"
   },
   "brainDump": {
     "keyNeededTitle": "AI key needed",
@@ -661,7 +663,7 @@
   "connections": {
     "title": "Connections",
     "empty": "No connections yet. Add connections to show how {{name}} relates to other people.",
-    "add": "Add Connection"
+    "openProfile": "Open profile"
   },
   "header": {
     "metInOn": "Met in {{place}} · {{date}}",
@@ -712,9 +714,7 @@
     "addRelation": "Add Relation",
     "addConnection": "Add Connection",
     "editRelation": "Edit Relation",
-    "editConnection": "Edit Connection",
-    "manageRelations": "Manage Relations",
-    "manageConnections": "Manage Connections"
+    "editConnection": "Edit Connection"
   },
   "relationship": {
     "title": "Relationship",
@@ -775,20 +775,11 @@
   },
   "manageRelations": {
     "deleteTitle": "Delete Relation",
-    "deleteMessage": "Are you sure you want to delete \"{{item}}\"?",
-    "titleWithName": "{{name}} · Relations",
-    "title": "Relations",
-    "empty": "No relations yet"
-  },
-  "manageConnections": {
-    "empty": "No connections found"
+    "deleteMessage": "Are you sure you want to delete \"{{item}}\"?"
   },
   "manageGifts": {
     "deleteTitle": "Delete Gift Idea",
     "deleteMessage": "Are you sure you want to delete \"{{item}}\"?",
-    "titleWithName": "{{name}} · Gifts",
-    "title": "Gifts",
-    "empty": "No gift ideas yet",
     "given": "Given: {{date}}"
   },
   "comparePicker": {

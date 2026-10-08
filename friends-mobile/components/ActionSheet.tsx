@@ -17,12 +17,15 @@ export type ActionSheetAction = {
 export function ActionSheet({
   visible,
   title,
+  message,
   actions,
   onDismiss,
   cancelLabel,
 }: {
   visible: boolean;
   title?: string;
+  /** Muted detail under the title (e.g. a gift's occasion and notes). */
+  message?: string | null;
   actions: ActionSheetAction[];
   onDismiss: () => void;
   cancelLabel?: string;
@@ -35,6 +38,7 @@ export function ActionSheet({
       <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityLabel={cancel}>
         <Pressable style={[styles.sheet, { paddingBottom: fz.s.xl + bottom }]} onPress={() => {}}>
           {title ? <Text style={styles.title}>{title}</Text> : null}
+          {message ? <Text style={styles.message}>{message}</Text> : null}
           {actions.map((a) => (
             <Pressable
               key={a.label}
@@ -66,5 +70,6 @@ const styles = StyleSheet.create({
     gap: fz.s.xs,
   },
   title: { ...fzText.label, marginBottom: fz.s.sm },
+  message: { ...fzText.sub, marginBottom: fz.s.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
 });

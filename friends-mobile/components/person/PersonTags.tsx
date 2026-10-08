@@ -1,11 +1,6 @@
 import { StyleSheet, View, Alert } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import {
-  Text,
-  Button,
-  Portal,
-  TextInput as PaperInput,
-} from 'react-native-paper';
+import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
 import { router } from 'expo-router';
@@ -16,10 +11,10 @@ import {
   useRemoveTagFromPerson,
   useAllTags,
 } from '@/hooks/useTags';
-import { ProfileSection } from './ProfileSection';
+import { ProfileSection, chipRow } from './ProfileSection';
 import { Pill } from '@/components/Pill';
 import { ActionSheet } from '@/components/ActionSheet';
-import { fz, fzText } from '@/lib/design/tokens';
+import { fz } from '@/lib/design/tokens';
 
 interface PersonTagsProps {
   personId: string;
@@ -69,18 +64,16 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
   return (
     <>
-      <ProfileSection label={t('profile.tagsTitle')} count={personTags.length || null} onAdd={() => setAddTagDialogVisible(true)}>
-        {personTags.length === 0 ? (
-          <Text style={styles.empty}>{t('profile.tagsEmpty')}</Text>
-        ) : (
-          <View style={styles.tagsContainer}>
+      <ProfileSection
+        label={t('profile.tagsTitle')}
+        count={personTags.length || null}
+        onAdd={() => setAddTagDialogVisible(true)}
+        empty={personTags.length === 0 && t('profile.tagsEmpty')}
+      >
+        {personTags.length > 0 && (
+          <View style={chipRow}>
             {personTags.map((tag) => (
-              <Pill
-                key={tag}
-                label={tag}
-                icon="tag"
-                onPress={() => setSelectedTag(tag)}
-              />
+              <Pill key={tag} label={tag} icon="tag" onPress={() => setSelectedTag(tag)} />
             ))}
           </View>
         )}
@@ -95,7 +88,11 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
             label: t('person.showPeopleWithTag'),
             icon: 'users',
             onPress: () =>
-              selectedTag && router.navigate({ pathname: '/', params: { tag: selectedTag, at: String(Date.now()) } }),
+              selectedTag &&
+              router.navigate({
+                pathname: '/',
+                params: { tag: selectedTag, at: String(Date.now()) },
+              }),
           },
           {
             label: t('person.removeTag'),
@@ -156,19 +153,10 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 }
 
 const styles = StyleSheet.create({
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   existingTagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  empty: {
-    ...fzText.sub,
-    fontStyle: 'italic',
   },
   dialog: {
     borderRadius: fz.rCard,

@@ -11,8 +11,6 @@ export default function PersonLayout() {
       <Stack.Screen name="add-connection" options={{ title: t('screens.addConnection') }} />
       <Stack.Screen name="edit-relation" options={{ title: t('screens.editRelation') }} />
       <Stack.Screen name="edit-connection" options={{ title: t('screens.editConnection') }} />
-      <Stack.Screen name="manage-relations" options={{ title: t('screens.manageRelations') }} />
-      <Stack.Screen name="manage-connections" options={{ title: t('screens.manageConnections') }} />
     </Stack>
   );
 }

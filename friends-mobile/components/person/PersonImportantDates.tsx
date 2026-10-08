@@ -1,10 +1,6 @@
+import { confirmDestructive } from '@/lib/utils/confirm';
 import { StyleSheet, View, Alert } from 'react-native';
-import {
-  Text,
-  Button,
-  Portal,
-  TextInput as PaperInput,
-} from 'react-native-paper';
+import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
 import { parseFlexibleDate } from '@/lib/utils/dates';
@@ -50,7 +46,15 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
     }
 
     const birthdayKeywords = [
-      'birthday', 'b-day', 'bday', 'birth day', 'birth-day', 'dob', 'date of birth', 'urodziny', 'data urodzenia',
+      'birthday',
+      'b-day',
+      'bday',
+      'birth day',
+      'birth-day',
+      'dob',
+      'date of birth',
+      'urodziny',
+      'data urodzenia',
     ];
     const isBirthday = birthdayKeywords.some((keyword) =>
       dateName.trim().toLowerCase().includes(keyword)
@@ -68,14 +72,17 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
         setAddDateDialogVisible(false);
         setDateName('');
         setDateValue('');
-        Alert.alert(t('common.success'), t('dates.birthdaySet', { date: formatShortDate(parsedDate) }));
+        Alert.alert(
+          t('common.success'),
+          t('dates.birthdaySet', { date: formatShortDate(parsedDate) })
+        );
       } else {
         await createRelation.mutateAsync({
           subjectId: person.id,
           relationType: HAS_IMPORTANT_DATE,
           objectLabel: isAnniversary
-              ? t('dates.anniversaryLabel', { name: dateName.trim() })
-              : dateName.trim(),
+            ? t('dates.anniversaryLabel', { name: dateName.trim() })
+            : dateName.trim(),
           validFrom: parsedDate,
           category: 'important_date',
           source: 'manual',
@@ -98,32 +105,41 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
 
   return (
     <>
-      <ProfileSection label={t('dates.title')} count={count || null} onAdd={() => setAddDateDialogVisible(true)}>
-        {person.dateOfBirth && (
-          <View style={styles.dateItem}>
-            <Pill label={t('dates.birthday')} icon="cake" variant="soft" />
-            <Text style={styles.dateText}>{formatShortDate(new Date(person.dateOfBirth))}</Text>
-          </View>
-        )}
+      <ProfileSection
+        label={t('dates.title')}
+        count={count || null}
+        onAdd={() => setAddDateDialogVisible(true)}
+        empty={count === 0 && t('dates.empty')}
+      >
+        <View style={styles.dates}>
+          {person.dateOfBirth && (
+            <View style={styles.dateItem}>
+              <Pill label={t('dates.birthday')} icon="cake" variant="soft" />
+              <Text style={styles.dateText}>{formatShortDate(new Date(person.dateOfBirth))}</Text>
+            </View>
+          )}
 
-        {importantDates.map((date) => (
-          <View key={date.id} style={styles.dateItem}>
-            <Pill label={date.objectLabel} variant="soft" />
-            <Text style={styles.dateText}>
-              {date.validFrom ? formatShortDate(new Date(date.validFrom)) : t('dates.noDate')}
-            </Text>
-            <IconCircle
-              icon="trash"
-              size={28}
-              iconSize={14}
-              onPress={() => deleteRelation.mutateAsync(date.id)}
-            />
-          </View>
-        ))}
-
-        {!person.dateOfBirth && importantDates.length === 0 && (
-          <Text style={styles.empty}>{t('dates.empty')}</Text>
-        )}
+          {importantDates.map((date) => (
+            <View key={date.id} style={styles.dateItem}>
+              <Pill label={date.objectLabel} variant="soft" />
+              <Text style={styles.dateText}>
+                {date.validFrom ? formatShortDate(new Date(date.validFrom)) : t('dates.noDate')}
+              </Text>
+              <IconCircle
+                icon="trash"
+                size={28}
+                iconSize={14}
+                onPress={() =>
+                  confirmDestructive({
+                    title: t('dates.deleteTitle'),
+                    message: t('dates.deleteMessage', { item: date.objectLabel }),
+                    onConfirm: () => deleteRelation.mutateAsync(date.id),
+                  })
+                }
+              />
+            </View>
+          ))}
+        </View>
       </ProfileSection>
 
       <Portal>
@@ -178,15 +194,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 10,
   },
+  dates: { gap: fz.s.sm },
   dateText: {
     ...fzText.body,
     flex: 1,
-  },
-  empty: {
-    ...fzText.sub,
-    fontStyle: 'italic',
   },
   dialog: {
     borderRadius: fz.rCard,
