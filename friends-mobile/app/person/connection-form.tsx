@@ -890,7 +890,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             />
             {sinceFields}
             <FormInput
-              label="How you met / notes"
+              label="How they met / notes"
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -1054,7 +1054,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
                 {sinceFields}
                 <FormInput
-                  label="How you met / notes"
+                  label="How they met / notes"
                   placeholder="Where they met, how they get on, past history..."
                   value={notes}
                   onChangeText={setNotes}

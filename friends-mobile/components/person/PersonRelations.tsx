@@ -121,11 +121,10 @@ export default function PersonRelations({ personId, personName }: PersonRelation
 
 const styles = StyleSheet.create({
   centered: { padding: 12, alignItems: 'center' },
-  emptyState: { paddingVertical: 10, alignItems: 'center' },
+  emptyState: { paddingVertical: 10, alignItems: 'flex-start' },
   emptyText: {
     ...fzText.sub,
     fontStyle: 'italic',
-    textAlign: 'center',
     marginBottom: 12,
   },
   emptyButton: { borderColor: fz.outline },

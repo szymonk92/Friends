@@ -16,6 +16,7 @@ import {
 } from '@/hooks/useTags';
 import { ProfileSection } from './ProfileSection';
 import { Pill } from '@/components/Pill';
+import { ActionSheet } from '@/components/ActionSheet';
 import { fz, fzText } from '@/lib/design/tokens';
 
 interface PersonTagsProps {
@@ -32,6 +33,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
   const [addTagDialogVisible, setAddTagDialogVisible] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const availableTags = allTags.filter((tag) => !personTags.includes(tag));
 
@@ -74,12 +76,25 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
                 key={tag}
                 label={tag}
                 icon="tag"
-                onClose={() => handleRemoveTag(tag)}
+                onPress={() => setSelectedTag(tag)}
               />
             ))}
           </View>
         )}
       </ProfileSection>
+
+      <ActionSheet
+        visible={selectedTag !== null}
+        title={selectedTag ?? undefined}
+        onDismiss={() => setSelectedTag(null)}
+        actions={[
+          {
+            label: 'Remove tag',
+            icon: 'trash',
+            onPress: () => selectedTag && handleRemoveTag(selectedTag),
+          },
+        ]}
+      />
 
       <Portal>
         <Dialog
