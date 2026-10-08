@@ -6,6 +6,7 @@ import { Avatar } from '@/components/Avatar';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 /** Shape of all timeline items after merging contact events, birthdays, party events etc. */
 export interface TimelineEvent {
@@ -62,8 +63,9 @@ export default function TimelineEventItem({
   getPersonName,
   getEventLabel,
 }: TimelineEventItemProps) {
+  const { t } = useTranslation();
   const personName = item.isPartyEvent
-    ? item.partyDetails?.name || 'Party'
+    ? item.partyDetails?.name || t('timeline.types.party')
     : getPersonName(item.personId ?? '');
   const person = people.find((p) => p.id === item.personId);
   const isBirthday = item.isBirthday || item.eventType === 'birthday';
@@ -138,12 +140,12 @@ export default function TimelineEventItem({
               >
                 <Menu.Item
                   onPress={() => { setEventMenuVisible(null); handleEditEvent(item); }}
-                  title="Edit"
+                  title={t('common.edit')}
                   leadingIcon="pencil-outline"
                 />
                 <Menu.Item
                   onPress={() => { setEventMenuVisible(null); handleDeleteEvent(item.id); }}
-                  title="Delete"
+                  title={t('common.delete')}
                   leadingIcon="delete-outline"
                 />
               </Menu>
@@ -152,8 +154,8 @@ export default function TimelineEventItem({
 
           <View style={styles.tagRow}>
             <Pill label={getEventLabel(item.eventType)} variant="surface" />
-            {isBirthday && <Pill label="Birthday" variant="soft" />}
-            {isImportantDate && <Pill label="Anniversary" variant="soft" />}
+            {isBirthday && <Pill label={t('timeline.types.birthday')} variant="soft" />}
+            {isImportantDate && <Pill label={t('timeline.types.anniversary')} variant="soft" />}
           </View>
 
           {item.notes && <Text style={fzText.body}>{item.notes}</Text>}

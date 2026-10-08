@@ -30,8 +30,10 @@ import { Chip } from 'react-native-paper';
 import { Avatar } from '@/components/Avatar';
 import { usePeople, usePerson } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 export default function StoryInputScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { personId: prefillPersonId } = useLocalSearchParams<{ personId?: string }>();
   const [storyText, setStoryText] = useState('');
@@ -85,14 +87,14 @@ export default function StoryInputScreen() {
         ? {
             headerTitle: () => (
               <RNText style={styles.headerTitle} numberOfLines={1}>
-                Quick note ·{' '}
+                {t('addStory.quickNote')} ·{' '}
                 <RNText style={styles.headerTitleName}>{prefillPerson.name}</RNText>
               </RNText>
             ),
           }
-        : { title: 'Tell a Story' }
+        : { title: t('addStory.title') }
     );
-  }, [navigation, prefillPerson]);
+  }, [navigation, prefillPerson, t]);
 
   // Handle back button and unsaved changes
   useFocusEffect(
@@ -129,22 +131,22 @@ export default function StoryInputScreen() {
 
   const handleSubmit = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert('Story too short', 'Please write at least 10 characters');
+      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
     // Check if API key is set for selected model
     if (!hasActiveApiKey()) {
       Alert.alert(
-        'API Key Required',
-        'To use AI extraction, you need to set an API key for the selected model in Settings.',
+        t('addStory.keyRequiredTitle'),
+        t('addStory.keyRequiredMessage'),
         [
-          { text: 'Go to Settings', onPress: () => router.push('/settings') },
+          { text: t('addStory.goToSettings'), onPress: () => router.push('/settings') },
           {
-            text: 'Save Without AI',
+            text: t('addStory.saveWithoutAi'),
             onPress: () => saveStoryOnly(),
           },
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
         ]
       );
       return;
@@ -162,16 +164,16 @@ export default function StoryInputScreen() {
         storyDate: new Date(),
       });
 
-      Alert.alert('Story Saved!', 'Your story has been saved (without AI extraction).', [
+      Alert.alert(t('addStory.savedTitle'), t('addStory.savedMessage'), [
         {
-          text: prefillPerson ? 'Back to Profile' : 'View People',
+          text: prefillPerson ? t('addStory.backToProfile') : t('addStory.viewPeople'),
           onPress: () =>
             prefillPerson ? router.push(`/person/${prefillPerson.id}`) : router.push('/'),
         },
-        { text: 'Add Another', onPress: () => setStoryText('') },
+        { text: t('addStory.addAnother'), onPress: () => setStoryText('') },
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save story. Please try again.');
+      Alert.alert(t('common.error'), t('addStory.saveFailed'));
       devLogger.error('Failed to save story', { error, storyText: storyText.substring(0, 50) });
     } finally {
       setIsProcessing(false);
@@ -203,7 +205,7 @@ export default function StoryInputScreen() {
       // Step 2: Extract with AI
       const apiKey = getActiveApiKey();
       if (!apiKey) {
-        throw new Error('No API key available for selected model');
+        throw new Error(t('addStory.noKey'));
       }
 
       const config: AIServiceConfig = {
@@ -228,18 +230,18 @@ export default function StoryInputScreen() {
       }
 
       // Step 3: Show results
-      const message = `AI extraction complete!
+      const message = `${t('addStory.extractionComplete')}
 
-✅ ${result.newPeople.length} new people created
-✅ ${result.newRelations.length} relations auto-saved
-${result.pendingReview > 0 ? `⏳ ${result.pendingReview} relations need your review` : ''}
-${result.conflicts.length > 0 ? `⚠️ ${result.conflicts.length} conflicts detected` : ''}
+✅ ${t('addStory.newPeopleCreated', { count: result.newPeople.length })}
+✅ ${t('addStory.relationsSaved', { count: result.newRelations.length })}
+${result.pendingReview > 0 ? `⏳ ${t('addStory.needReview', { count: result.pendingReview })}` : ''}
+${result.conflicts.length > 0 ? `⚠️ ${t('addStory.conflicts', { count: result.conflicts.length })}` : ''}
 
-Tokens used: ${result.tokensUsed || 'N/A'}`;
+${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
 
       const buttons = [
         {
-          text: prefillPerson ? 'Back to Profile' : 'View People',
+          text: prefillPerson ? t('addStory.backToProfile') : t('addStory.viewPeople'),
           onPress: () =>
             prefillPerson ? router.push(`/person/${prefillPerson.id}`) : router.push('/stories'),
         },
@@ -247,12 +249,12 @@ Tokens used: ${result.tokensUsed || 'N/A'}`;
 
       if (result.pendingReview > 0) {
         buttons.unshift({
-          text: 'Review Now',
+          text: t('addStory.reviewNow'),
           onPress: () => router.push('/review-extractions'),
         });
       }
 
-      buttons.push({ text: 'Add Another', onPress: () => setStoryText('') });
+      buttons.push({ text: t('addStory.addAnother'), onPress: () => setStoryText('') });
 
       if (result.debugInfo) {
         setDebugInfo(result.debugInfo);
@@ -262,15 +264,15 @@ Tokens used: ${result.tokensUsed || 'N/A'}`;
         });
       }
 
-      Alert.alert('Success!', message, buttons);
+      Alert.alert(t('addStory.successTitle'), message, buttons);
     } catch (error: any) {
       devLogger.ai('AI extraction failed', { error, storyId: currentStoryId });
       Alert.alert(
-        'Extraction Failed',
-        `Failed to extract relations: ${error.message || 'Unknown error'}
-
-The story was saved, but AI extraction didn't work. Check your API key and try again.`,
-        [{ text: 'OK' }]
+        t('addStory.extractionFailedTitle'),
+        t('addStory.extractionFailedMessage', {
+          error: error.message || t('common.unknownError'),
+        }),
+        [{ text: t('common.ok') }]
       );
     } finally {
       setIsProcessing(false);
@@ -279,7 +281,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
-      Alert.alert('Invalid API Key', 'Please enter a valid API key');
+      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -287,15 +289,15 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert('Success', 'API key saved! You can now use AI extraction.');
+      Alert.alert(t('common.success'), t('addStory.keySaved'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save API key. Please try again.');
+      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleShowPrompt = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert('Story too short', 'Please write at least 10 characters');
+      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
@@ -316,13 +318,13 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
       setPromptPreviewText(prompt);
       setPromptPreviewDialogVisible(true);
     } catch (error) {
-      Alert.alert('Error', 'Failed to generate prompt preview');
+      Alert.alert(t('common.error'), t('addStory.promptFailed'));
     }
   };
 
   const handleCopyPrompt = async () => {
     await Clipboard.setStringAsync(promptPreviewText);
-    Alert.alert('Copied!', 'Prompt copied to clipboard');
+    Alert.alert(t('addStory.copiedTitle'), t('addStory.promptCopied'));
   };
 
   const handleAmbiguityResolved = (resolutions: { [name: string]: string | 'NEW' | 'IGNORE' }) => {
@@ -378,8 +380,8 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           <MentionTextInput
             placeholder={
               prefillPerson
-                ? `How was it with ${prefillPerson.name}? Just say it — I'll sort it into their profile.`
-                : "Had dinner with @Sarah last night. She's now vegan and really into yoga..."
+                ? t('addStory.placeholderPerson', { name: prefillPerson.name })
+                : t('addStory.placeholder')
             }
             value={storyText}
             onChangeText={setStoryText}
@@ -391,7 +393,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           {selectedPersonIds.length > 0 && (
             <View style={styles.chipsContainer}>
               <Text style={[fzText.label, { marginRight: 8 }]}>
-                Tagged:
+                {t('addStory.tagged')}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {selectedPeopleObjects.map((person) => (
@@ -439,7 +441,11 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
               style={styles.submitButton}
               contentStyle={styles.submitButtonContent}
             >
-              {isProcessing ? 'Processing...' : hasActiveApiKey() ? 'Save & Extract' : 'Save Story'}
+              {isProcessing
+                ? t('addStory.processing')
+                : hasActiveApiKey()
+                  ? t('addStory.saveExtract')
+                  : t('addStory.saveStory')}
             </Button>
           </View>
 
@@ -452,7 +458,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
             icon="code-tags"
             compact
           >
-            Show Prompt
+            {t('addStory.showPrompt')}
           </Button>
         </View>
       </KeyboardAvoidingView>
@@ -464,17 +470,17 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           onDismiss={() => setApiKeyDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Set Anthropic API Key</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('addStory.setKeyTitle')}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
-              Enter your Anthropic API key to enable AI extraction.
+              {t('addStory.setKeyMessage')}
             </Text>
             <Text variant="bodySmall" style={[styles.dialogHelper, styles.dialogFont]}>
-              Get your key from: https://console.anthropic.com
+              {t('addStory.getKey')} https://console.anthropic.com
             </Text>
             <TextInput
               mode="outlined"
-              label="API Key"
+              label={t('addStory.apiKey')}
               placeholder="sk-ant-..."
               value={tempApiKey}
               onChangeText={setTempApiKey}
@@ -484,10 +490,10 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={() => setApiKeyDialogVisible(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={handleSaveApiKey}>
-              Save
+              {t('common.save')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -500,7 +506,7 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           onDismiss={() => setPromptPreviewDialogVisible(false)}
           style={[styles.dialog, styles.promptDialog]}
         >
-          <Dialog.Title style={styles.dialogTitle}>AI Extraction Prompt</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('addStory.promptTitle')}</Dialog.Title>
           <Dialog.ScrollArea style={styles.promptScrollArea}>
             <ScrollView>
               <Text variant="bodySmall" style={styles.promptText}>
@@ -510,10 +516,10 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
           </Dialog.ScrollArea>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={handleCopyPrompt} icon="content-copy">
-              Copy
+              {t('addStory.copy')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={() => setPromptPreviewDialogVisible(false)}>
-              Close
+              {t('common.close')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -522,18 +528,18 @@ The story was saved, but AI extraction didn't work. Check your API key and try a
       {/* Unsaved Changes Dialog */}
       <Portal>
         <Dialog visible={unsavedDialogVisible} onDismiss={handleCancelDiscard} style={styles.dialog}>
-          <Dialog.Title style={styles.dialogTitle}>Unsaved Story</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('addStory.unsavedTitle')}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogFont}>
-              You have unsaved text. If you leave now, your story will be lost.
+              {t('addStory.unsavedMessage')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button labelStyle={styles.dialogFont} onPress={handleCancelDiscard}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button labelStyle={styles.dialogFont} onPress={handleDiscard} textColor="#d32f2f">
-              Discard
+              {t('addStory.discard')}
             </Button>
           </Dialog.Actions>
         </Dialog>

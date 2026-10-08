@@ -30,9 +30,12 @@ import { useSettings, AI_MODELS } from '@/store/useSettings';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { IconCircle } from '@/components/IconCircle';
+import { relationTypeLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
+import { useTranslation } from 'react-i18next';
 
 export default function StoryDetailScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const deleteStory = useDeleteStory();
@@ -165,23 +168,23 @@ export default function StoryDetailScreen() {
     if (!hasActiveApiKey()) {
       const modelName = AI_MODELS[selectedModel]?.name || selectedModel;
       Alert.alert(
-        'API Key Required',
-        `Please configure your ${modelName} API key in Settings before using AI extraction.`,
+        t('addStory.keyRequiredTitle'),
+        t('storyDetail.configureKey', { model: modelName }),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Go to Settings', onPress: () => router.push('/settings') },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('addStory.goToSettings'), onPress: () => router.push('/settings') },
         ]
       );
       return;
     }
 
     Alert.alert(
-      'Extract Relations',
-      'This will use AI to extract people, preferences, and relationships from your story. Debug information will be saved for review.',
+      t('storyDetail.extractTitle'),
+      t('storyDetail.extractMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Extract',
+          text: t('storyDetail.extract'),
           onPress: async () => {
             try {
               // Prepare all debug data upfront
@@ -251,13 +254,20 @@ export default function StoryDetailScreen() {
 
               refetch();
               Alert.alert(
-                'Extraction Complete',
-                `Successfully extracted:\n• ${result.newPeople} new people\n• ${result.autoAcceptedRelations} auto-accepted relations\n• ${result.pendingRelations} relations pending review\n• ${result.conflicts} conflicts detected\n\nTokens used: ${result.tokensUsed}\nProcessing time: ${result.processingTime}ms`
+                t('storyDetail.completeTitle'),
+                t('storyDetail.completeMessage', {
+                  newPeople: result.newPeople,
+                  accepted: result.autoAcceptedRelations,
+                  pending: result.pendingRelations,
+                  conflicts: result.conflicts,
+                  tokens: result.tokensUsed,
+                  ms: result.processingTime,
+                })
               );
             } catch (error) {
               Alert.alert(
-                'Extraction Failed',
-                error instanceof Error ? error.message : 'Unknown error occurred'
+                t('addStory.extractionFailedTitle'),
+                error instanceof Error ? error.message : t('common.unknownError')
               );
             }
           },
@@ -270,17 +280,17 @@ export default function StoryDetailScreen() {
     const hasExtractions = extractions.length > 0 || story?.aiProcessed;
 
     confirmDestructive({
-      title: 'Delete Story',
+      title: t('storiesList.deleteTitle'),
       message: hasExtractions
-        ? 'Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.'
-        : 'Are you sure you want to delete this story?',
+        ? t('storiesList.deleteMessageAi')
+        : t('storiesList.deleteMessage'),
       onConfirm: async () => {
         try {
           await deleteStory.mutateAsync(id!);
-          Alert.alert('Success', 'Story deleted successfully');
+          Alert.alert(t('common.success'), t('storiesList.deleted'));
           router.back();
         } catch (err) {
-          Alert.alert('Error', 'Failed to delete story. Please try again.');
+          Alert.alert(t('common.error'), t('storiesList.deleteFailed'));
         }
       },
     });
@@ -294,11 +304,11 @@ export default function StoryDetailScreen() {
       await approveExtraction.mutateAsync(extractionId);
       setSelectedExtraction(null);
       refetch();
-      Alert.alert('Success', 'Relation approved and added to your network!');
+      Alert.alert(t('common.success'), t('storyDetail.approved'));
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to approve relation. Please try again.';
-      Alert.alert('Error', errorMessage);
+        error instanceof Error ? error.message : t('storyDetail.approveFailed');
+      Alert.alert(t('common.error'), errorMessage);
     }
   };
 
@@ -307,11 +317,11 @@ export default function StoryDetailScreen() {
       await rejectExtraction.mutateAsync({ extractionId });
       setSelectedExtraction(null);
       refetch();
-      Alert.alert('Success', 'Relation rejected.');
+      Alert.alert(t('common.success'), t('storyDetail.rejected'));
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to reject relation. Please try again.';
-      Alert.alert('Error', errorMessage);
+        error instanceof Error ? error.message : t('storyDetail.rejectFailed');
+      Alert.alert(t('common.error'), errorMessage);
     }
   };
 
@@ -332,7 +342,7 @@ export default function StoryDetailScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title="Story" />
+        <AppBar title={t('storyDetail.story')} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
         </View>
@@ -345,15 +355,15 @@ export default function StoryDetailScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title="Story Not Found" />
+        <AppBar title={t('storyDetail.notFoundTitle')} />
         <View style={styles.centered}>
-          <RNText style={fzText.sub}>Story not found</RNText>
+          <RNText style={fzText.sub}>{t('storyDetail.notFound')}</RNText>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => router.back()}
             activeOpacity={0.8}
           >
-            <RNText style={fzText.btn}>Go Back</RNText>
+            <RNText style={fzText.btn}>{t('person.goBack')}</RNText>
           </TouchableOpacity>
         </View>
       </View>
@@ -367,19 +377,19 @@ export default function StoryDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      <AppBar title={story.title || 'Story Details'} />
+      <AppBar title={story.title || t('storyDetail.details')} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {/* Story Metadata */}
         <View style={styles.card}>
           <View style={styles.metaRow}>
-            <RNText style={[fzText.label, styles.metaLabel]}>Created</RNText>
+            <RNText style={[fzText.label, styles.metaLabel]}>{t('storyDetail.created')}</RNText>
             <RNText style={fzText.sub}>{formatRelativeTime(new Date(story.createdAt))}</RNText>
           </View>
 
           {story.storyDate && (
             <View style={styles.metaRow}>
-              <RNText style={[fzText.label, styles.metaLabel]}>Event Date</RNText>
+              <RNText style={[fzText.label, styles.metaLabel]}>{t('storyDetail.eventDate')}</RNText>
               <RNText style={fzText.sub}>
                 {new Date(story.storyDate).toLocaleDateString(undefined, {
                   weekday: 'long',
@@ -392,36 +402,33 @@ export default function StoryDetailScreen() {
           )}
 
           <View style={styles.chipRow}>
-            <Pill label={`${wordCount} words`} icon="book" />
-            {story.aiProcessed && <Pill label="AI Processed" icon="checkCircle" />}
+            <Pill label={t('storiesList.words', { count: wordCount })} icon="book" />
+            {story.aiProcessed && <Pill label={t('storiesList.aiProcessed')} icon="checkCircle" />}
           </View>
         </View>
 
         {/* AI Extraction Action */}
         {!story.aiProcessed && (
           <View style={styles.card}>
-            <RNText style={fzText.title}>AI Analysis</RNText>
+            <RNText style={fzText.title}>{t('storyDetail.aiAnalysis')}</RNText>
             <View style={styles.divider} />
             {pendingCount > 0 ? (
               <>
                 <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
-                  You have {pendingCount} pending extraction{pendingCount !== 1 ? 's' : ''} waiting
-                  for review from previous stories.
+                  {t('storyDetail.pendingWaiting', { count: pendingCount })}
                 </RNText>
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => router.push('/review-extractions')}
                   activeOpacity={0.8}
                 >
-                  <RNText style={fzText.btn}>Review Now ({pendingCount})</RNText>
+                  <RNText style={fzText.btn}>{t('storyDetail.reviewNow', { count: pendingCount })}</RNText>
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
-                  Use AI to automatically extract people, preferences, and relationships from this
-                  story. The AI will identify @mentions, detect likes/dislikes, and create
-                  connections.
+                  {t('storyDetail.useAi')}
                 </RNText>
                 <TouchableOpacity
                   style={[
@@ -433,13 +440,12 @@ export default function StoryDetailScreen() {
                   activeOpacity={0.8}
                 >
                   <RNText style={fzText.btn}>
-                    {extractRelations.isPending ? 'Extracting...' : 'Extract Relations'}
+                    {extractRelations.isPending ? t('storyDetail.extracting') : t('storyDetail.extractTitle')}
                   </RNText>
                 </TouchableOpacity>
                 {!hasActiveApiKey() && (
                   <RNText style={styles.apiKeyWarning}>
-                    Note: API key required for {AI_MODELS[selectedModel]?.name}. Configure in
-                    Settings.
+                    {t('storyDetail.keyNote', { model: AI_MODELS[selectedModel]?.name })}
                   </RNText>
                 )}
               </>
@@ -449,7 +455,7 @@ export default function StoryDetailScreen() {
 
         {/* Story Content */}
         <View style={styles.card}>
-          <RNText style={fzText.title}>Story Content</RNText>
+          <RNText style={fzText.title}>{t('storyDetail.content')}</RNText>
           <View style={styles.divider} />
           <RNText style={styles.storyText}>{story.content}</RNText>
         </View>
@@ -457,14 +463,13 @@ export default function StoryDetailScreen() {
         {/* AI Extraction Info */}
         {story.aiProcessed && (
           <View style={styles.card}>
-            <RNText style={fzText.title}>AI Extracted Relations</RNText>
+            <RNText style={fzText.title}>{t('storyDetail.extractedTitle')}</RNText>
             <View style={styles.divider} />
 
             {extractions.length > 0 ? (
               <View>
                 <RNText style={[fzText.body, { marginBottom: fz.s.md }]}>
-                  {extractions.length} relation{extractions.length !== 1 ? 's' : ''} extracted from
-                  this story:
+                  {t('storyDetail.extractedCount', { count: extractions.length })}
                 </RNText>
                 {extractions.map((ext) =>
                   ext.reviewStatus === 'pending' ? (
@@ -476,13 +481,13 @@ export default function StoryDetailScreen() {
                     >
                       <View style={styles.relationRow}>
                         <RNText style={styles.subjectName}>{ext.subjectName}</RNText>
-                        <RNText style={styles.relationType}>{ext.relationType}</RNText>
+                        <RNText style={styles.relationType}>{relationTypeLabel(ext.relationType)}</RNText>
                         <RNText style={styles.objectLabel}>{ext.objectLabel}</RNText>
                       </View>
                       <View style={styles.metadataRow}>
-                        <Pill label="pending" variant="outline" />
+                        <Pill label={t('storyDetail.status.pending')} variant="outline" />
                         <RNText style={styles.confidence}>
-                          {((ext.confidence || 0) * 100).toFixed(0)}% confidence
+                          {t('brainDump.confidence', { percent: ((ext.confidence || 0) * 100).toFixed(0) })}
                         </RNText>
                       </View>
                       {ext.extractionReason && (
@@ -493,13 +498,16 @@ export default function StoryDetailScreen() {
                     <View key={ext.id} style={styles.extractionItem}>
                       <View style={styles.relationRow}>
                         <RNText style={styles.subjectName}>{ext.subjectName}</RNText>
-                        <RNText style={styles.relationType}>{ext.relationType}</RNText>
+                        <RNText style={styles.relationType}>{relationTypeLabel(ext.relationType)}</RNText>
                         <RNText style={styles.objectLabel}>{ext.objectLabel}</RNText>
                       </View>
                       <View style={styles.metadataRow}>
-                        <Pill label={ext.reviewStatus} variant="outline" />
+                        <Pill
+                          label={t(`storyDetail.status.${ext.reviewStatus as 'pending' | 'approved' | 'rejected'}`, { defaultValue: ext.reviewStatus })}
+                          variant="outline"
+                        />
                         <RNText style={styles.confidence}>
-                          {((ext.confidence || 0) * 100).toFixed(0)}% confidence
+                          {t('brainDump.confidence', { percent: ((ext.confidence || 0) * 100).toFixed(0) })}
                         </RNText>
                       </View>
                       {ext.extractionReason && (
@@ -511,13 +519,12 @@ export default function StoryDetailScreen() {
               </View>
             ) : (
               <RNText style={fzText.body}>
-                This story was processed by AI but no extraction details are available.
+                {t('storyDetail.noDetails')}
               </RNText>
             )}
 
             <RNText style={styles.warning}>
-              Note: Deleting this story will NOT remove any extracted people, relations, or
-              information.
+              {t('storyDetail.deleteNote')}
             </RNText>
           </View>
         )}
@@ -700,17 +707,17 @@ export default function StoryDetailScreen() {
       {selectedExtraction && (
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
-            <RNText style={fzText.title}>Review AI Extraction</RNText>
+            <RNText style={fzText.title}>{t('storyDetail.reviewTitle')}</RNText>
             <View style={styles.dialogDivider} />
 
             <View style={styles.relationRow}>
               <RNText style={styles.subjectName}>{selectedExtraction.subjectName}</RNText>
-              <RNText style={styles.relationType}>{selectedExtraction.relationType}</RNText>
+              <RNText style={styles.relationType}>{relationTypeLabel(selectedExtraction.relationType)}</RNText>
               <RNText style={styles.objectLabel}>{selectedExtraction.objectLabel}</RNText>
             </View>
 
             <RNText style={styles.confidence}>
-              AI Confidence: {((selectedExtraction.confidence || 0) * 100).toFixed(0)}%
+              {t('storyDetail.aiConfidence', { percent: ((selectedExtraction.confidence || 0) * 100).toFixed(0) })}
             </RNText>
 
             {selectedExtraction.extractionReason && (
@@ -723,7 +730,7 @@ export default function StoryDetailScreen() {
                 onPress={() => setSelectedExtraction(null)}
                 activeOpacity={0.7}
               >
-                <RNText style={fzText.btnOutline}>Cancel</RNText>
+                <RNText style={fzText.btnOutline}>{t('common.cancel')}</RNText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.dialogBtnOutline, { borderColor: fz.ink }]}
@@ -732,7 +739,7 @@ export default function StoryDetailScreen() {
                 activeOpacity={0.7}
               >
                 <RNText style={[fzText.btnOutline, { color: fz.ink }]}>
-                  {rejectExtraction.isPending ? '...' : 'Reject'}
+                  {rejectExtraction.isPending ? '...' : t('storyDetail.reject')}
                 </RNText>
               </TouchableOpacity>
               <TouchableOpacity
@@ -742,7 +749,7 @@ export default function StoryDetailScreen() {
                 activeOpacity={0.7}
               >
                 <RNText style={fzText.btn}>
-                  {approveExtraction.isPending ? '...' : 'Approve'}
+                  {approveExtraction.isPending ? '...' : t('storyDetail.approve')}
                 </RNText>
               </TouchableOpacity>
             </View>

@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Portal, Text, Chip, SegmentedButtons, TextInput, Button } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { fz } from '@/lib/design/tokens';
+import { useTranslation } from 'react-i18next';
 
 interface AddEventDialogProps {
   visible: boolean;
@@ -39,15 +40,16 @@ export default function AddEventDialog({
   isSubmitting,
   handleAddEvent,
 }: AddEventDialogProps) {
+  const { t } = useTranslation();
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
         <Dialog.Title style={styles.dialogTitle}>
-          {editingEvent ? 'Edit Timeline Event' : 'Add Timeline Event'}
+          {editingEvent ? t('timeline.editTitle') : t('timeline.addTitle')}
         </Dialog.Title>
         <Dialog.Content>
           <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            People
+            {t('timeline.people')}
           </Text>
           <View style={styles.personList}>
             {people.map((person) => (
@@ -65,7 +67,7 @@ export default function AddEventDialog({
           </View>
 
           <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            Event Type
+            {t('timeline.eventType')}
           </Text>
           <SegmentedButtons
             value={eventType}
@@ -87,12 +89,12 @@ export default function AddEventDialog({
           />
 
           <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)
+            {t('timeline.eventDate')}
           </Text>
           <TextInput
             mode="outlined"
-            label="Date"
-            placeholder="2024 or 2024-03 or 2024-03-15"
+            label={t('timeline.date')}
+            placeholder={t('timeline.datePlaceholder')}
             value={dateInput}
             onChangeText={setDateInput}
             style={[styles.dateInput, styles.dialogFont]}
@@ -100,8 +102,8 @@ export default function AddEventDialog({
 
           <TextInput
             mode="outlined"
-            label="Notes (optional)"
-            placeholder="What happened?"
+            label={t('timeline.notesLabel')}
+            placeholder={t('timeline.notesPlaceholder')}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -111,7 +113,7 @@ export default function AddEventDialog({
         </Dialog.Content>
         <Dialog.Actions>
           <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             labelStyle={styles.dialogFont}
@@ -119,7 +121,7 @@ export default function AddEventDialog({
             loading={isSubmitting}
             disabled={isSubmitting}
           >
-            {editingEvent ? 'Save' : 'Add'}
+            {editingEvent ? t('timeline.save') : t('timeline.add')}
           </Button>
         </Dialog.Actions>
       </Dialog>
