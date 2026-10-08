@@ -105,6 +105,7 @@ export default function PhotoBrowser({
       </View>
       <PhotoOptionsSheet
         photoId={optionsPhotoId}
+        currentPhotoId={currentPhotoId}
         onDismiss={() => setOptionsPhotoId(null)}
         onSetAsProfile={onSetAsProfile}
         onDelete={(photoId) => {

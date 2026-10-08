@@ -100,6 +100,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
       />
       <PhotoOptionsSheet
         photoId={optionsPhotoId}
+        currentPhotoId={currentPhotoId}
         onDismiss={() => setOptionsPhotoId(null)}
         onSetAsProfile={handleSetAsProfile}
         onDelete={handleDelete}

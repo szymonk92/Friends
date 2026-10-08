@@ -10,6 +10,8 @@ export type ActionSheetAction = {
   onPress: () => void;
   /** Hairline above this row, to separate groups of actions. */
   divider?: boolean;
+  /** Greyed out and not tappable (e.g. "Set as profile" on the current profile photo). */
+  disabled?: boolean;
 };
 
 /**
@@ -45,10 +47,13 @@ export function ActionSheet({
             <Pressable
               key={a.label}
               accessibilityRole="button"
+              accessibilityState={{ disabled: !!a.disabled }}
+              disabled={a.disabled}
               style={({ pressed }) => [
                 styles.row,
                 a.divider && styles.divider,
                 pressed && { opacity: 0.7 },
+                a.disabled && { opacity: 0.4 },
               ]}
               onPress={() => {
                 onDismiss();
