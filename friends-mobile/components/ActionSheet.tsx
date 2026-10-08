@@ -1,4 +1,5 @@
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { fz, fzText } from '@/lib/design/tokens';
 import { LineIcon, type LineIconName } from './LineIcon';
 
@@ -17,7 +18,7 @@ export function ActionSheet({
   title,
   actions,
   onDismiss,
-  cancelLabel = 'Cancel',
+  cancelLabel,
 }: {
   visible: boolean;
   title?: string;
@@ -25,9 +26,11 @@ export function ActionSheet({
   onDismiss: () => void;
   cancelLabel?: string;
 }) {
+  const { t } = useTranslation();
+  const cancel = cancelLabel ?? t('common.cancel');
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityLabel={cancelLabel}>
+      <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityLabel={cancel}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           {title ? <Text style={styles.title}>{title}</Text> : null}
           {actions.map((a) => (
@@ -49,7 +52,7 @@ export function ActionSheet({
             style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.7 }]}
             onPress={onDismiss}
           >
-            <Text style={fzText.btnOutline}>{cancelLabel}</Text>
+            <Text style={fzText.btnOutline}>{cancel}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

@@ -98,6 +98,7 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
       <ProfileSection
         label="Quick Actions"
         collapsible
+        storageKey="quickActions"
         onAdd={() => router.push(`/story/addStory?personId=${personId}`)}
       >
         <Text style={styles.subtitle}>One-tap logging for today</Text>

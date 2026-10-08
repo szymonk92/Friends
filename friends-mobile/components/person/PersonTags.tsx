@@ -8,6 +8,8 @@ import {
 } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   usePersonTags,
   useAddTagToPerson,
@@ -25,6 +27,7 @@ interface PersonTagsProps {
 }
 
 export default function PersonTags({ personId, personName }: PersonTagsProps) {
+  const { t } = useTranslation();
   const { data: personTags = [] } = usePersonTags(personId);
   const { data: allTags = [] } = useAllTags();
   const addTagToPerson = useAddTagToPerson();
@@ -89,7 +92,13 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
         onDismiss={() => setSelectedTag(null)}
         actions={[
           {
-            label: 'Remove tag',
+            label: t('person.showPeopleWithTag'),
+            icon: 'users',
+            onPress: () =>
+              selectedTag && router.navigate({ pathname: '/', params: { tag: selectedTag } }),
+          },
+          {
+            label: t('person.removeTag'),
             icon: 'trash',
             onPress: () => selectedTag && handleRemoveTag(selectedTag),
           },

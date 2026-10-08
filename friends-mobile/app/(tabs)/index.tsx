@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { Text, ActivityIndicator, Button, Menu, Divider } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useCallback, useMemo } from 'react';
-import { router } from 'expo-router';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { formatRelationType, formatRelativeShort } from '@/lib/utils/format';
 import { Avatar } from '@/components/Avatar';
 import { usePeople } from '@/hooks/usePeople';
@@ -45,6 +45,14 @@ export default function PeopleListScreen() {
   const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
+  // Deep link from a person's tag menu: /?tag=<tag> filters everyone with that tag.
+  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  useEffect(() => {
+    if (typeof tagParam === 'string' && tagParam) {
+      setSelectedTags([tagParam]);
+      setViewMode('all');
+    }
+  }, [tagParam]);
   const {
     data: people = [],
     isLoading,

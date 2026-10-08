@@ -3,6 +3,7 @@ import { confirmDestructive } from '@/lib/utils/confirm';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   Text,
@@ -54,6 +55,7 @@ interface ConnectionFormProps {
 }
 
 export default function ConnectionForm({ mode }: ConnectionFormProps) {
+  const { t } = useTranslation();
   const { alert, dialog } = useFzAlert();
   const params = useLocalSearchParams();
   const personId = mode === 'add' ? (params.personId as string) : undefined;
@@ -890,7 +892,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             />
             {sinceFields}
             <FormInput
-              label="How they met / notes"
+              label={t('person.connectionNotes')}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -1054,7 +1056,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
                 {sinceFields}
                 <FormInput
-                  label="How they met / notes"
+                  label={t('person.connectionNotes')}
                   placeholder="Where they met, how they get on, past history..."
                   value={notes}
                   onChangeText={setNotes}
