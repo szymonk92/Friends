@@ -1,22 +1,18 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { HeartIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { Avatar } from '@/components/Avatar';
-import { useTranslation } from 'react-i18next';
 
 type Props = {
   personId: string;
-  // True when this person is the app owner's own partner (relationshipType === 'partner').
-  // In that case there's nothing to "add" — hide the prompt.
-  isOwnerPartner?: boolean;
 };
 
-export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
-  const { t } = useTranslation();
+// Shows existing partners only — "Add partner" lives in the profile's ⋮ menu.
+export default function PartnerBadge({ personId }: Props) {
   const theme = useTheme();
   const { data: personConnections = [] } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
@@ -32,26 +28,8 @@ export default function PartnerBadge({ personId, isOwnerPartner }: Props) {
       .filter((p): p is PersonWithPhoto => p !== null);
   }, [personConnections, allPeople, personId]);
 
-  const addPartner = () =>
-    router.push(`/person/add-connection?personId=${personId}&relationshipType=partner`);
+  if (partners.length === 0) return null;
 
-  if (partners.length === 0) {
-    if (isOwnerPartner) return null;
-    return (
-      <Button
-        mode="text"
-        compact
-        icon="heart-outline"
-        onPress={addPartner}
-        style={styles.addButton}
-        textColor={theme.colors.onSurfaceVariant}
-      >
-        {t('partnerBadge.add')}
-      </Button>
-    );
-  }
-
-  // Partners exist — just show them. Don't prompt to add more.
   return (
     <View style={styles.stack}>
       {partners.map((partner) => (
@@ -84,9 +62,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
-    alignSelf: 'center',
-  },
-  addButton: {
     alignSelf: 'center',
   },
 });

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { usePerson, useDeletePerson, useUpdatePerson } from '@/hooks/usePeople';
 import { usePersonConnections } from '@/hooks/useConnections';
-import { usePersonPhotos, useSetProfilePhoto } from '@/hooks/usePhotos';
+import { useSetProfilePhoto } from '@/hooks/usePhotos';
 import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 import { ActionSheet, type ActionSheetAction } from '@/components/ActionSheet';
 
@@ -45,7 +45,6 @@ export default function PersonProfileScreen() {
         (c.relationshipType === 'parent' && c.person1Id === id)
     );
 
-  const { data: personPhotos = [] } = usePersonPhotos(id!);
   const setProfilePhoto = useSetProfilePhoto();
   const { pickPhoto, photoSheet } = usePhotoPicker(id!);
 
@@ -70,12 +69,23 @@ export default function PersonProfileScreen() {
       },
     });
 
-  const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
   const isHuman = person?.entityType !== 'pet';
   const isOther = person?.personType !== 'self' && isHuman;
+  // Existing partners are shown under the name (PartnerBadge); adding one lives here.
+  const canAddPartner =
+    isHuman &&
+    person?.relationshipType !== 'partner' &&
+    !connections.some((c) => c.relationshipType === 'partner' && c.status !== 'ended');
   const topActions: ActionSheetAction[] = [
-    ...(profilePhoto
-      ? [{ label: t('profile.changePhoto'), icon: 'camera' as const, onPress: handleAvatarPress }]
+    ...(canAddPartner
+      ? [
+          {
+            label: t('partnerBadge.add'),
+            icon: 'heart' as const,
+            onPress: () =>
+              router.push(`/person/add-connection?personId=${id}&relationshipType=partner`),
+          },
+        ]
       : []),
     ...(isOther
       ? [

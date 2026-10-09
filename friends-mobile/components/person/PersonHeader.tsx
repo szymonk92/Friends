@@ -163,10 +163,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
       </View>
 
       {!isPet && (
-        <PartnerBadge
-          personId={person.id}
-          isOwnerPartner={person.relationshipType === 'partner'}
-        />
+        <PartnerBadge personId={person.id} />
       )}
 
       {!isPet && (person.phone || person.email || socialLinks.length > 0) && (

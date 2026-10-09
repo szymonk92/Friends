@@ -236,7 +236,9 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
                 {formatFlexibleDate(new Date(person.dateOfBirth), person.dateOfBirthPrecision)}
               </Text>
               {exactBirthday && person.birthdayReminder && (
-                <LineIcon name="bell" size={16} color={fz.textMute} />
+                <View style={styles.bellSlot}>
+                  <LineIcon name="bell" size={16} color={fz.textMute} />
+                </View>
               )}
             </Pressable>
           )}
@@ -352,6 +354,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   dates: { gap: fz.s.sm },
+  // Same 30px box as the section's + circle, so the bell centres under it.
+  bellSlot: { width: 30, alignItems: 'center' },
   dateText: {
     ...fzText.body,
     flex: 1,
