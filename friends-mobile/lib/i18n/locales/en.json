@@ -29,7 +29,8 @@
     "hide": "Hide",
     "unknownError": "Unknown error",
     "notFound": "Not found",
-    "done": "Done"
+    "done": "Done",
+    "other": "Other"
   },
   "splash": {
     "connecting": "Connecting your circle…"
@@ -391,7 +392,6 @@
     "notFound": "Connection not found",
     "deleteMenu": "Delete connection",
     "addFor": "Add Connection for {{name}}",
-    "backToMulti": "Back to Multi-Select",
     "whatAdding": "What are you adding?",
     "kind": {
       "person": "Person",
@@ -408,7 +408,6 @@
     "selected": "Selected",
     "linkOwner": "Link a second owner",
     "linkParent": "Link the other parent",
-    "none": "None",
     "personType": "Person Type",
     "primary": "Primary",
     "mentioned": "Mentioned",
@@ -416,7 +415,6 @@
     "mentionedHint": "Hidden from main lists, used for context only.",
     "relationshipType": "Relationship Type",
     "createdMentioned": "This person will be created as \"Mentioned\" (hidden).",
-    "status": "Status",
     "connectionStatus": "Connection Status",
     "statuses": {
       "active": "Active",
@@ -424,10 +422,6 @@
       "ended": "Ended",
       "complicated": "Complicated"
     },
-    "additional": "Additional Details",
-    "qualifierShort": "Qualifier (e.g., best, close, ex)",
-    "qualifierShortPlaceholder": "How to qualify this relationship",
-    "notesExample": "e.g. Met at Anna's wedding",
     "selectPeople": "Select People",
     "searchPlaceholder": "Search, or type a new name to add…",
     "addNamed": "Add \"{{name}}\"",
@@ -439,7 +433,8 @@
     "submitMany": "Add {{count}} Connection(s)",
     "update": "Update Connection",
     "choosePeople": "Choose people",
-    "choosePeopleMore": "Add or remove people"
+    "choosePeopleMore": "Add or remove people",
+    "changePerson": "Change person"
   },
   "profile": {
     "tagsTitle": "Tags",
@@ -481,7 +476,8 @@
     "viewRelationship": "View Relationship",
     "compareWith": "Compare With…",
     "convertToAdult": "Convert to adult",
-    "reminderFailed": "Failed to set reminder"
+    "reminderFailed": "Failed to set reminder",
+    "lastUpdated": "Last updated {{time}}"
   },
   "gifts": {
     "enterItem": "Please enter a gift idea",
@@ -1501,5 +1497,11 @@
   "errors": {
     "noAiKey": "AI API key not configured. Please set it in Settings.",
     "contradiction": "Already {{type}} \"{{item}}\" for this person. Edit or archive that entry instead of adding a contradictory one."
+  },
+  "dietChecklist": {
+    "title": "Diet & drinks",
+    "hint": "Pick one, then tick everyone it applies to. Changes save right away.",
+    "count_one": "{{count}} person",
+    "count_other": "{{count}} people"
   }
 }

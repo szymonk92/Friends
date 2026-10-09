@@ -7,8 +7,6 @@ import { View, StyleSheet } from 'react-native';
 import {
   Text,
   Button,
-  IconButton,
-  Menu,
 } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import {
@@ -25,7 +23,11 @@ import {
   PersonWithPhoto,
 } from '@/hooks/usePeople';
 import { flexiblePrecision, parseFlexibleDate, toDateText } from '@/lib/utils/dates';
-import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
+import {
+  RELATIONSHIP_TYPES,
+  CONNECTION_STATUSES,
+  ALWAYS_PRIMARY_RELATIONSHIPS,
+} from '@/lib/constants/relations';
 import { connections, type Connection } from '@/lib/db/schema';
 import { useEntityById } from '@/hooks/useEntityById';
 import { fz, fzText } from '@/lib/design/tokens';
@@ -39,6 +41,8 @@ import { Avatar } from '@/components/Avatar';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
 import { PersonPickerModal } from '@/components/PersonPickerModal';
+import { relationshipTypeLabel, personTypeLabel } from '@/lib/i18n/labels';
+import { IconCircle } from '@/components/IconCircle';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -107,14 +111,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   // Optional co-parent / co-owner to link a freshly-created child or pet to.
   const [secondParentId, setSecondParentId] = useState<string | null>(null);
-  const [parentMenuVisible, setParentMenuVisible] = useState(false);
+  const [parentPickerOpen, setParentPickerOpen] = useState(false);
 
-  const ALWAYS_PRIMARY_RELATIONSHIPS: ConnectionRelationshipType[] = [
-    'partner',
-    'ex-partner',
-    'friend',
-    'family',
-  ];
   const RELATIONSHIP_TYPE_VALUES = useMemo(
     () => new Set(RELATIONSHIP_TYPES.map((type) => type.value as ConnectionRelationshipType)),
     []
@@ -212,11 +210,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     );
   };
 
-  const backToMultiMode = () => {
+  // Back to an empty add form with the picker open — used by Back and the
+  // "add more" choices after a save.
+  const resetForm = () => {
+    setSelectedPersonIds([]);
+    setPickerOpen(true);
     setSinglePersonMode(false);
     setSinglePersonId(null);
     setPendingPersonName(null);
-    setRelationshipType('friend');
+    setRelationshipType(pickOne ? 'partner' : 'friend');
     setPersonType('primary');
     setStatus('active');
     setQualifier('');
@@ -409,14 +411,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           t('connectionForm.addedOne', {
             a: person?.name,
             b: selectedSinglePerson?.name,
-            type: effectiveRelType,
+            type: relationshipTypeLabel(effectiveRelType),
           }),
           [
             {
               text: t('connectionForm.addAnother'),
-              onPress: () => {
-                backToMultiMode();
-              },
+              onPress: resetForm,
             },
             {
               text: t('connectionForm.addDifferentType'),
@@ -479,7 +479,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       alert(
         t('connectionForm.duplicatesTitle'),
         t('connectionForm.duplicatesMessage', {
-          type: relationshipType,
+          type: relationshipTypeLabel(relationshipType),
           names: duplicates.join(', '),
         }),
         [{ text: t('common.ok') }]
@@ -526,24 +526,12 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           count: promises.length,
           a: person?.name,
           names: selectedNames,
-          type: relationshipType,
+          type: relationshipTypeLabel(relationshipType),
         }),
         [
           {
             text: t('connectionForm.addMore'),
-            onPress: () => {
-              // Reset form to add more connections
-              setSelectedPersonIds([]);
-              setRelationshipType('friend');
-              setStatus('active');
-              setQualifier('');
-              setNotes('');
-              setSinceText('');
-              setNewEntityKind('person');
-              setSpecies('');
-              setBirthdayText('');
-              setSecondParentId(null);
-            },
+            onPress: resetForm,
           },
           {
             text: t('connectionForm.done'),
@@ -614,6 +602,42 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   // Edit is a short form — plain stacked fields, no card frames around each group.
   const sectionStyle = mode === 'edit' ? styles.flatSection : undefined;
 
+  // Status, qualifier, since and notes — the same fields for a new person,
+  // picked people, and edit.
+  const detailFields = (
+    <FormSection title={t('connectionForm.connectionStatus')} style={sectionStyle}>
+      <View style={styles.pillRow}>
+        {CONNECTION_STATUSES.map((s) => (
+          <Pill
+            key={s.value}
+            label={t(`connectionForm.statuses.${s.value}`, { defaultValue: s.label })}
+            selected={status === s.value}
+            onPress={() => handleStatusChange(s.value)}
+          />
+        ))}
+      </View>
+
+      <FormInput
+        label={t('connectionForm.qualifierLong')}
+        placeholder={t('connectionForm.qualifierLongPlaceholder')}
+        value={qualifier}
+        onChangeText={setQualifier}
+        style={styles.qualifierInput}
+      />
+
+      {sinceFields}
+      <FormInput
+        label={t('person.connectionNotes')}
+        placeholder={t('connectionForm.notesPlaceholder')}
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+        numberOfLines={3}
+        style={styles.lastInput}
+      />
+    </FormSection>
+  );
+
   return (
     <FormScreen
       title={
@@ -631,7 +655,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         <Stack.Screen
           options={{
             headerRight: () => (
-              <IconButton icon="dots-vertical" onPress={() => setMenuVisible(true)} iconColor={fz.ink} />
+              <IconCircle icon="more" onPress={() => setMenuVisible(true)} />
             ),
           }}
         />
@@ -640,8 +664,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
         // Single person detailed mode (add only)
         <>
-          <Button mode="text" icon="arrow-left" onPress={backToMultiMode} style={styles.backLink}>
-            {t('connectionForm.backToMulti')}
+          <Button mode="text" icon="arrow-left" onPress={resetForm} style={styles.backLink}>
+            {t('common.back')}
           </Button>
 
           <View style={styles.selectedCard}>
@@ -663,7 +687,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 {(selectedSinglePerson.personType || (pendingPersonName && personType)) &&
                   !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
                     <Pill
-                      label={(selectedSinglePerson.personType || personType).toUpperCase()}
+                      label={personTypeLabel(selectedSinglePerson.personType || personType)}
                       variant={
                         (selectedSinglePerson.personType || personType) === 'primary'
                           ? 'solid'
@@ -731,48 +755,29 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             <FormSection
               title={newEntityKind === 'pet' ? t('connectionForm.otherOwner') : t('connectionForm.otherParent')}
             >
-              {/* ponytail: plain Menu list; swap for a search field if the people list grows large. */}
-              <Menu
-                visible={parentMenuVisible}
-                onDismiss={() => setParentMenuVisible(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    icon="account-plus"
-                    textColor={fz.ink}
-                    onPress={() => setParentMenuVisible(true)}
-                  >
-                    {secondParentId
-                      ? (allPeople.find((p) => p.id === secondParentId)?.name ?? t('connectionForm.selected'))
-                      : newEntityKind === 'pet'
-                        ? t('connectionForm.linkOwner')
-                        : t('connectionForm.linkParent')}
-                  </Button>
-                }
+              <Button
+                mode="outlined"
+                icon="account-plus"
+                textColor={fz.ink}
+                style={styles.pickButton}
+                labelStyle={fzText.btnOutline}
+                onPress={() => setParentPickerOpen(true)}
               >
-                {secondParentId && (
-                  <Menu.Item
-                    leadingIcon="close"
-                    title={t('connectionForm.none')}
-                    onPress={() => {
-                      setSecondParentId(null);
-                      setParentMenuVisible(false);
-                    }}
-                  />
-                )}
-                {availablePeople
-                  .filter((p) => p.entityType !== 'pet')
-                  .map((p) => (
-                    <Menu.Item
-                      key={p.id}
-                      title={p.name}
-                      onPress={() => {
-                        setSecondParentId(p.id);
-                        setParentMenuVisible(false);
-                      }}
-                    />
-                  ))}
-              </Menu>
+                {secondParentId
+                  ? (allPeople.find((p) => p.id === secondParentId)?.name ?? t('connectionForm.selected'))
+                  : newEntityKind === 'pet'
+                    ? t('connectionForm.linkOwner')
+                    : t('connectionForm.linkParent')}
+              </Button>
+              {/* Single pick; tapping the ticked person again clears it. */}
+              <PersonPickerModal
+                visible={parentPickerOpen}
+                onClose={() => setParentPickerOpen(false)}
+                title={newEntityKind === 'pet' ? t('connectionForm.otherOwner') : t('connectionForm.otherParent')}
+                people={availablePeople.filter((p) => p.entityType !== 'pet')}
+                selectedIds={secondParentId ? [secondParentId] : []}
+                onToggle={(pid) => setSecondParentId((cur) => (cur === pid ? null : pid))}
+              />
             </FormSection>
           )}
 
@@ -808,13 +813,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                   const next = v as ConnectionRelationshipType;
                   setRelationshipType(next);
                   if (pendingPersonName) {
-                    if (ALWAYS_PRIMARY_RELATIONSHIPS.includes(next)) {
-                      setPersonType('primary');
-                    } else if (next === 'acquaintance') {
-                      setPersonType('mentioned');
-                    } else {
-                      setPersonType('primary');
-                    }
+                    setPersonType(next === 'acquaintance' ? 'mentioned' : 'primary');
                   }
                 }}
               />
@@ -826,37 +825,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             </FormSection>
           )}
 
-          <FormSection title={t('connectionForm.status')}>
-            <View style={styles.pillRow}>
-              {(['active', 'inactive', 'complicated'] as const).map((s) => (
-                <Pill
-                  key={s}
-                  label={t(`connectionForm.statuses.${s}`)}
-                  selected={status === s}
-                  onPress={() => setStatus(s as ConnectionStatus)}
-                />
-              ))}
-            </View>
-          </FormSection>
-
-          <FormSection title={t('connectionForm.additional')}>
-            <FormInput
-              label={t('connectionForm.qualifierShort')}
-              value={qualifier}
-              onChangeText={setQualifier}
-              placeholder={t('connectionForm.qualifierShortPlaceholder')}
-            />
-            {sinceFields}
-            <FormInput
-              label={t('person.connectionNotes')}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-              placeholder={t('connectionForm.notesExample')}
-              style={styles.lastInput}
-            />
-          </FormSection>
+          {detailFields}
         </>
       ) : (
         // Form mode (edit) or multi-select mode (add)
@@ -904,9 +873,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 style={styles.pickButton}
                 labelStyle={fzText.btnOutline}
               >
-                {selectedPersonIds.length > 0
-                  ? t('connectionForm.choosePeopleMore')
-                  : t('connectionForm.choosePeople')}
+                {selectedPersonIds.length === 0
+                  ? t('connectionForm.choosePeople')
+                  : pickOne
+                    ? t('connectionForm.changePerson')
+                    : t('connectionForm.choosePeopleMore')}
               </Button>
               <PersonPickerModal
                 visible={pickerOpen}
@@ -939,37 +910,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                 </FormSection>
               )}
 
-              <FormSection title={t('connectionForm.connectionStatus')} style={sectionStyle}>
-                <View style={styles.pillRow}>
-                  {CONNECTION_STATUSES.map((s) => (
-                    <Pill
-                      key={s.value}
-                      label={t(`connectionForm.statuses.${s.value}`, { defaultValue: s.label })}
-                      selected={status === s.value}
-                      onPress={() => handleStatusChange(s.value)}
-                    />
-                  ))}
-                </View>
-
-                <FormInput
-                  label={t('connectionForm.qualifierLong')}
-                  placeholder={t('connectionForm.qualifierLongPlaceholder')}
-                  value={qualifier}
-                  onChangeText={setQualifier}
-                  style={styles.qualifierInput}
-                />
-
-                {sinceFields}
-                <FormInput
-                  label={t('person.connectionNotes')}
-                  placeholder={t('connectionForm.notesPlaceholder')}
-                  value={notes}
-                  onChangeText={setNotes}
-                  multiline
-                  numberOfLines={3}
-                  style={styles.lastInput}
-                />
-              </FormSection>
+              {detailFields}
             </>
           )}
         </>

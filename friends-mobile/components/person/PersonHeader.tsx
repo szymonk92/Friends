@@ -3,6 +3,8 @@ import { Text } from 'react-native-paper';
 import { formatShortDate } from '@/lib/utils/format';
 import { tr, relationshipTypeLabel, personTypeLabel, importanceLabel } from '@/lib/i18n/labels';
 import { usePersonPhotos } from '@/hooks/usePhotos';
+import { usePersonRelations } from '@/hooks/useRelations';
+import { activeDietKeys } from '@/lib/constants/relations';
 import type { Person } from '@/lib/db/schema';
 import SocialLinksStrip from './SocialLinksStrip';
 import PartnerBadge from './PartnerBadge';
@@ -94,6 +96,8 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
   const profilePhoto = person.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
 
   const isPet = person.entityType === 'pet';
+  const { data: relations = [] } = usePersonRelations(person.id);
+  const dietKeys = activeDietKeys(relations);
   const socialLinks = parseSocialLinksJson(person.socialLinks);
 
   const hasChips =
@@ -164,6 +168,14 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
 
       {!isPet && (
         <PartnerBadge personId={person.id} />
+      )}
+
+      {!isPet && dietKeys.length > 0 && (
+        <View style={styles.languagesRow}>
+          {dietKeys.map((k) => (
+            <Pill key={k} label={t(`person.diet.${k}`)} variant="outline" />
+          ))}
+        </View>
       )}
 
       {!isPet && (person.phone || person.email || socialLinks.length > 0) && (

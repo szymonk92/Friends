@@ -160,6 +160,14 @@ export const FAMILY_SUBTYPES = RELATIONSHIP_TYPES.filter((t) =>
  * Constants for connection statuses used in connection management
  * These define the current state of relationships between people
  */
+/** Relationships that always make someone a primary contact (personType picker hidden). */
+export const ALWAYS_PRIMARY_RELATIONSHIPS: readonly string[] = [
+  'partner',
+  'ex-partner',
+  'friend',
+  'family',
+];
+
 export const CONNECTION_STATUSES = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
@@ -188,6 +196,17 @@ const matchesPreset = (r: DietRow, p: (typeof DIET_PRESETS)[number]) =>
   r.relationType === p.relationType &&
   r.objectLabel.trim().toLowerCase() === p.objectLabel &&
   (r.status ?? 'current') === 'current';
+
+/**
+ * Relation label for display: diet presets are stored in English (canonical),
+ * so show the translated chip name instead; anything else is user text as-is.
+ */
+export function displayObjectLabel(relationType: string, objectLabel: string): string {
+  const preset = DIET_PRESETS.find(
+    (p) => p.relationType === relationType && p.objectLabel === objectLabel.trim().toLowerCase()
+  );
+  return preset ? tr(`person.diet.${preset.key}`, objectLabel) : objectLabel;
+}
 
 /** Diet chips that are already "on" for this person. */
 export function activeDietKeys(rows: readonly DietRow[]): DietKey[] {

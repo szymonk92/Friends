@@ -16,7 +16,7 @@ import { pickContact, isContactPickerAvailable } from '@/lib/utils/contactsPicke
 import { fz, fzText } from '@/lib/design/tokens';
 import { PillGroup } from '@/components/PillGroup';
 import { Pill } from '@/components/Pill';
-import { DIET_PRESETS, type DietKey } from '@/lib/constants/relations';
+import { DIET_PRESETS, ALWAYS_PRIMARY_RELATIONSHIPS, type DietKey } from '@/lib/constants/relations';
 import { FormSection, FormInput, Foldable } from '@/components/FormKit';
 import { fzAlert } from '@/lib/utils/confirm';
 
@@ -62,8 +62,6 @@ const DEFAULTS: PersonFormValues = {
   diet: [],
 };
 
-// Relationships that force personType = primary (so the picker is hidden on add).
-const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
 
 type RelationRow = {
   id: string;
@@ -514,7 +512,7 @@ export default function PersonForm({
             </FormSection>
           )}
 
-          {mode === 'edit' && !isPet && (
+          {!isPet && (
             <FormSection title={t('person.diet.title')}>
               <View style={styles.dietRow}>
                 {DIET_PRESETS.map((p) => (

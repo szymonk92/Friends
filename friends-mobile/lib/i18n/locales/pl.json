@@ -29,7 +29,8 @@
     "hide": "Ukryj",
     "unknownError": "Nieznany błąd",
     "notFound": "Nie znaleziono",
-    "done": "Gotowe"
+    "done": "Gotowe",
+    "other": "Inne"
   },
   "splash": {
     "connecting": "Łączenie z Twoim kręgiem…"
@@ -391,7 +392,6 @@
     "notFound": "Nie znaleziono połączenia",
     "deleteMenu": "Usuń połączenie",
     "addFor": "Dodaj połączenie dla {{name}}",
-    "backToMulti": "Wróć do wyboru wielu osób",
     "whatAdding": "Co dodajesz?",
     "kind": {
       "person": "Osobę",
@@ -408,7 +408,6 @@
     "selected": "Wybrano",
     "linkOwner": "Połącz drugiego właściciela",
     "linkParent": "Połącz drugiego rodzica",
-    "none": "Brak",
     "personType": "Typ osoby",
     "primary": "Główna",
     "mentioned": "Wspomniana",
@@ -416,7 +415,6 @@
     "mentionedHint": "Ukryta na głównych listach, służy tylko jako kontekst.",
     "relationshipType": "Typ relacji",
     "createdMentioned": "Ta osoba zostanie utworzona jako „Wspomniana” (ukryta).",
-    "status": "Status",
     "connectionStatus": "Status połączenia",
     "statuses": {
       "active": "Aktywne",
@@ -424,10 +422,6 @@
       "ended": "Zakończone",
       "complicated": "Skomplikowane"
     },
-    "additional": "Dodatkowe szczegóły",
-    "qualifierShort": "Określenie (np. najlepszy, bliski, były)",
-    "qualifierShortPlaceholder": "Jak opisać tę relację",
-    "notesExample": "np. Poznali się na weselu Ani",
     "selectPeople": "Wybierz osoby",
     "searchPlaceholder": "Szukaj lub wpisz nowe imię, aby dodać…",
     "addNamed": "Dodaj „{{name}}”",
@@ -439,7 +433,8 @@
     "submitMany": "Dodaj połączenia ({{count}})",
     "update": "Zaktualizuj połączenie",
     "choosePeople": "Wybierz osoby",
-    "choosePeopleMore": "Dodaj lub usuń osoby"
+    "choosePeopleMore": "Dodaj lub usuń osoby",
+    "changePerson": "Zmień osobę"
   },
   "profile": {
     "tagsTitle": "Tagi",
@@ -481,7 +476,8 @@
     "viewRelationship": "Zobacz relację",
     "compareWith": "Porównaj z…",
     "convertToAdult": "Zmień na dorosłego",
-    "reminderFailed": "Nie udało się ustawić przypomnienia"
+    "reminderFailed": "Nie udało się ustawić przypomnienia",
+    "lastUpdated": "Ostatnia zmiana: {{time}}"
   },
   "gifts": {
     "enterItem": "Wpisz pomysł na prezent",
@@ -1539,5 +1535,13 @@
   "errors": {
     "noAiKey": "Klucz API AI nie jest skonfigurowany. Ustaw go w Ustawieniach.",
     "contradiction": "Ta osoba ma już wpis ({{type}}) „{{item}}”. Edytuj lub zarchiwizuj ten wpis zamiast dodawać sprzeczny."
+  },
+  "dietChecklist": {
+    "title": "Dieta i alkohol",
+    "hint": "Wybierz jedno i zaznacz wszystkie osoby, których dotyczy. Zmiany zapisują się od razu.",
+    "count_one": "{{count}} osoba",
+    "count_few": "{{count}} osoby",
+    "count_many": "{{count}} osób",
+    "count_other": "{{count}} osób"
   }
 }

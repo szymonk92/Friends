@@ -1,6 +1,7 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { Text, ActivityIndicator, Button, IconButton } from 'react-native-paper';
+import { Text, ActivityIndicator, Button } from 'react-native-paper';
+import { IconCircle } from '@/components/IconCircle';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -153,13 +154,8 @@ export default function PersonProfileScreen() {
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
           headerShadowVisible: false,
           headerRight: () => (
-            <View style={{ marginRight: 4 }}>
-              <IconButton
-                icon="dots-vertical"
-                onPress={() => setMenuVisible(true)}
-                iconColor={fz.ink}
-              />
-            </View>
+            // Same ⋮ as the people list header.
+            <IconCircle icon="more" onPress={() => setMenuVisible(true)} />
           ),
         }}
       />
@@ -189,7 +185,7 @@ export default function PersonProfileScreen() {
           <PersonNotes person={person} />
           <PersonConnections personId={id!} personName={person.name} />
           <Text style={styles.footer}>
-            Last updated {formatRelativeTime(new Date(person.updatedAt))}
+            {t('profile.lastUpdated', { time: formatRelativeTime(new Date(person.updatedAt)) })}
           </Text>
         </ScrollView>
       </View>

@@ -196,6 +196,7 @@ function RootLayoutNav() {
               <Stack.Screen name="story/addStory" options={{ ...fzHeader }} />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
+              <Stack.Screen name="diet-checklist" options={{ ...fzHeader }} />
             </Stack>
             <FzConfirmHost />
             <FloatingDevTools environment="local" userRole="admin" />

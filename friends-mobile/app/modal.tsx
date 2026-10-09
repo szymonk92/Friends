@@ -14,6 +14,7 @@ import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import type { BrainDumpAttribute } from '@/lib/ai/brain-dump';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
 import { fzAlert } from '@/lib/utils/confirm';
+import { dietChanges } from '@/lib/constants/relations';
 
 export default function AddPersonModal() {
   const { t } = useTranslation();
@@ -88,6 +89,27 @@ export default function AddPersonModal() {
                 source: 'ai_extraction',
                 status: a.assertion === 'aspiration' ? 'aspiration' : 'current',
                 assertion: a.assertion,
+              }))
+            );
+          }
+          // Diet chips — skip any the brain-dump already added as the same relation.
+          const dietToCreate = dietChanges([], v.diet, []).toCreate.filter(
+            (p) =>
+              !pendingAttributes.some(
+                (a) =>
+                  a.relationType === p.relationType &&
+                  a.objectLabel.trim().toLowerCase() === p.objectLabel
+              )
+          );
+          if (dietToCreate.length) {
+            await createRelations.mutateAsync(
+              dietToCreate.map((p) => ({
+                subjectId: created.id,
+                subjectType: 'person',
+                relationType: p.relationType,
+                objectLabel: p.objectLabel,
+                source: 'manual' as const,
+                status: 'current' as const,
               }))
             );
           }
