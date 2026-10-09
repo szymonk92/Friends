@@ -3,13 +3,12 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  Alert,
   TouchableOpacity,
   Text as RNText,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -167,7 +166,7 @@ export default function StoryDetailScreen() {
   const handleExtractRelations = async () => {
     if (!hasActiveApiKey()) {
       const modelName = AI_MODELS[selectedModel]?.name || selectedModel;
-      Alert.alert(
+      fzAlert(
         t('addStory.keyRequiredTitle'),
         t('storyDetail.configureKey', { model: modelName }),
         [
@@ -178,7 +177,7 @@ export default function StoryDetailScreen() {
       return;
     }
 
-    Alert.alert(
+    fzAlert(
       t('storyDetail.extractTitle'),
       t('storyDetail.extractMessage'),
       [
@@ -253,7 +252,7 @@ export default function StoryDetailScreen() {
               setDebugData(debugInfo);
 
               refetch();
-              Alert.alert(
+              fzAlert(
                 t('storyDetail.completeTitle'),
                 t('storyDetail.completeMessage', {
                   newPeople: result.newPeople,
@@ -265,7 +264,7 @@ export default function StoryDetailScreen() {
                 })
               );
             } catch (error) {
-              Alert.alert(
+              fzAlert(
                 t('addStory.extractionFailedTitle'),
                 error instanceof Error ? error.message : t('common.unknownError')
               );
@@ -287,10 +286,10 @@ export default function StoryDetailScreen() {
       onConfirm: async () => {
         try {
           await deleteStory.mutateAsync(id!);
-          Alert.alert(t('common.success'), t('storiesList.deleted'));
+          fzAlert(t('common.success'), t('storiesList.deleted'));
           router.back();
         } catch (err) {
-          Alert.alert(t('common.error'), t('storiesList.deleteFailed'));
+          fzAlert(t('common.error'), t('storiesList.deleteFailed'));
         }
       },
     });
@@ -304,11 +303,11 @@ export default function StoryDetailScreen() {
       await approveExtraction.mutateAsync(extractionId);
       setSelectedExtraction(null);
       refetch();
-      Alert.alert(t('common.success'), t('storyDetail.approved'));
+      fzAlert(t('common.success'), t('storyDetail.approved'));
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : t('storyDetail.approveFailed');
-      Alert.alert(t('common.error'), errorMessage);
+      fzAlert(t('common.error'), errorMessage);
     }
   };
 
@@ -317,11 +316,11 @@ export default function StoryDetailScreen() {
       await rejectExtraction.mutateAsync({ extractionId });
       setSelectedExtraction(null);
       refetch();
-      Alert.alert(t('common.success'), t('storyDetail.rejected'));
+      fzAlert(t('common.success'), t('storyDetail.rejected'));
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : t('storyDetail.rejectFailed');
-      Alert.alert(t('common.error'), errorMessage);
+      fzAlert(t('common.error'), errorMessage);
     }
   };
 
@@ -332,7 +331,13 @@ export default function StoryDetailScreen() {
         <RNText style={fzText.screenTitle} numberOfLines={1}>
           {title}
         </RNText>
-        <IconCircle icon="trash" onPress={handleDelete} />
+        <View style={styles.appBarActions}>
+          <IconCircle
+            icon="pencil"
+            onPress={() => router.push(`/story/addStory?storyId=${id}`)}
+          />
+          <IconCircle icon="trash" onPress={handleDelete} />
+        </View>
       </View>
     </View>
   );
@@ -762,6 +767,10 @@ export default function StoryDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
   appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
+  appBarActions: {
+    flexDirection: 'row',
+    gap: fz.s.sm,
+  },
   appBarRow: {
     flexDirection: 'row',
     alignItems: 'center',

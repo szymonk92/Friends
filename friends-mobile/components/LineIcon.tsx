@@ -41,6 +41,7 @@ const ICONS: Record<string, { sw: number; body: ReactNode }> = {
   bell: { sw: 2.2, body: P('M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 19a2 2 0 0 0 4 0') },
   star: { sw: 2.2, body: P('M12 4l2.5 5.5L20 10l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z') },
   gift: { sw: 2.2, body: P('M4 11h16v9H4zM4 7h16v4H4zM12 7v13M12 7C12 5 10 3 8 4s1 3 4 3zM12 7c0-2 2-4 4-3s-1 3-4 3z') },
+  home: { sw: 2.2, body: P('M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5') },
   cake: { sw: 2.2, body: P('M5 21V11h14v10M5 11c0-2 2-3 4-3h6c2 0 4 1 4 3M12 8V5M12 5l-.5-1.5a1 1 0 1 1 1 0z') },
 };
 

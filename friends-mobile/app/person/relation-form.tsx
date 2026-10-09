@@ -1,4 +1,4 @@
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,6 +18,7 @@ import { relationTypeLabel, relationStatusLabel, intensityLabel } from '@/lib/i1
 import { PillGroup } from '@/components/PillGroup';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 type RelationFormMode = 'add' | 'edit';
 
@@ -58,7 +59,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
 
   const handleSubmit = async () => {
     if (!objectLabel.trim()) {
-      Alert.alert(t('relationForm.missingTitle'), t('relationForm.missingMessage'));
+      fzAlert(t('relationForm.missingTitle'), t('relationForm.missingMessage'));
       return;
     }
 
@@ -107,7 +108,7 @@ export default function RelationForm({ mode }: RelationFormProps) {
           : mode === 'add'
             ? t('relationForm.addFailed')
             : t('relationForm.updateFailed');
-      Alert.alert(mode === 'add' ? t('relationForm.cannotAdd') : t('common.error'), msg);
+      fzAlert(mode === 'add' ? t('relationForm.cannotAdd') : t('common.error'), msg);
       devLogger.error(`Failed to ${mode} relation`, { error, relationType, personId });
     } finally {
       setIsSubmitting(false);

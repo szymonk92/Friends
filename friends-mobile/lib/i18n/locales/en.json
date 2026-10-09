@@ -28,7 +28,8 @@
     "show": "Show",
     "hide": "Hide",
     "unknownError": "Unknown error",
-    "notFound": "Not found"
+    "notFound": "Not found",
+    "done": "Done"
   },
   "splash": {
     "connecting": "Connecting your circle…"
@@ -515,7 +516,14 @@
     "hint": "Enter year only (2020), year-month (2020-06), or full date (2020-06-15)",
     "add": "Add",
     "deleteTitle": "Delete Date",
-    "deleteMessage": "Delete \"{{item}}\"?"
+    "deleteMessage": "Delete \"{{item}}\"?",
+    "precisionDay": "Exact day",
+    "precisionMonth": "Month",
+    "precisionYear": "Year",
+    "editTitle": "Edit Important Date",
+    "reminderOn": "Remind me",
+    "reminderOff": "Stop reminding",
+    "addToCalendar": "Add to calendar"
   },
   "brainDump": {
     "keyNeededTitle": "AI key needed",
@@ -789,7 +797,6 @@
     "noMatch": "No one matches “{{query}}”."
   },
   "timeline": {
-    "birthdayOf": "{{name}}'s birthday",
     "unknown": "Unknown",
     "withNames": "with {{names}}",
     "andMore": "and {{count}} more",
@@ -832,15 +839,15 @@
     "addTitle": "Add Timeline Event",
     "people": "People",
     "eventType": "Event Type",
-    "eventDate": "Event Date (YYYY, YYYY-MM, or YYYY-MM-DD)",
     "date": "Date",
-    "datePlaceholder": "2024 or 2024-03 or 2024-03-15",
     "notesLabel": "Notes (optional)",
     "notesPlaceholder": "What happened?",
     "save": "Save",
     "add": "Add",
     "allPeople": "All People",
-    "allTypes": "All Types"
+    "allTypes": "All Types",
+    "addPeople": "Add people",
+    "pickPerson": "Filter by person"
   },
   "storiesList": {
     "deleteMessageAi": "Are you sure you want to delete this story?\n\nNote: Any people, relations, or information extracted from this story will NOT be deleted. Only the story text itself will be removed.",
@@ -893,14 +900,12 @@
     "tryDifferent": "Try a different search term or category"
   },
   "addStory": {
+    "editTitle": "Edit story",
     "quickNote": "Quick note",
     "title": "Tell a Story",
     "tooShortTitle": "Story too short",
     "tooShortMessage": "Please write at least 10 characters",
-    "keyRequiredTitle": "API Key Required",
-    "keyRequiredMessage": "To use AI extraction, you need to set an API key for the selected model in Settings.",
     "goToSettings": "Go to Settings",
-    "saveWithoutAi": "Save Without AI",
     "backToProfile": "Back to Profile",
     "viewPeople": "View People",
     "addAnother": "Add Another",
@@ -925,7 +930,6 @@
     "promptCopied": "Prompt copied to clipboard",
     "placeholderPerson": "How was it with {{name}}? Just say it — I'll sort it into their profile.",
     "placeholder": "Had dinner with @Sarah last night. She's now vegan and really into yoga...",
-    "tagged": "Tagged:",
     "processing": "Processing...",
     "saveExtract": "Save & Extract",
     "saveStory": "Save Story",
@@ -950,7 +954,15 @@
     "debugStatus": "Response Status",
     "debugRaw": "Raw Response",
     "debugCopied": "Debug info copied to clipboard",
-    "copyAll": "Copy All"
+    "copyAll": "Copy All",
+    "people": "People",
+    "tagPeople": "Tag people",
+    "story": "Story",
+    "words_one": "{{count}} word",
+    "words_other": "{{count}} words",
+    "saveOnly": "Save only",
+    "keyRequiredTitle": "API Key Required",
+    "keyRequiredMessage": "To use AI extraction, you need to set an API key for the selected model in Settings."
   },
   "storyDetail": {
     "configureKey": "Please configure your {{model}} API key in Settings before using AI extraction.",
@@ -1028,12 +1040,6 @@
     "people_other": "{{count}} people",
     "someone": "Mention someone:"
   },
-  "personSelector": {
-    "title": "Tag People",
-    "loading": "Loading people...",
-    "none": "No people found",
-    "done": "Done ({{count}})"
-  },
   "aiConfig": {
     "title": "AI Configuration",
     "intro": "Choose your AI model and configure API keys for AI-powered story extraction.",
@@ -1060,20 +1066,22 @@
   },
   "birthdayReminders": {
     "title": "Birthday Reminders",
-    "enable": "Enable Reminders",
-    "enableDesc": "Get notified about upcoming birthdays",
     "onDay": "Remind on Birthday",
     "onDayDesc": "Notify me on the actual birthday",
     "daysBefore": "Days before reminder:",
     "none": "None",
-    "onlyImportant": "Only Important People",
-    "onlyImportantDesc": "Only remind for important+ people",
-    "minImportance": "Minimum importance:",
-    "important": "Important",
-    "very": "Very",
-    "critical": "Critical",
-    "upcoming": "Upcoming Birthdays (30 days):",
-    "inDays": "In {{days}} days (turning {{age}})"
+    "inDays": "In {{days}} days (turning {{age}})",
+    "perPersonHint": "Choose who to be reminded about, or add their birthday to your calendar. Only exact dates (day known) are listed.",
+    "people": "Birthdays",
+    "today": "Today (turning {{age}})",
+    "addToCalendar": "Add to calendar",
+    "calendarTitle": "🎂 {{name}}'s birthday",
+    "calendarFailed": "Could not open the calendar",
+    "noMatch": "No birthdays match",
+    "notifyBeforeTitle": "🎂 Upcoming birthday",
+    "notifyBeforeBody": "{{name}}'s birthday is in {{count}} days",
+    "notifyTodayTitle": "🎉 Birthday today",
+    "notifyTodayBody": "Today is {{name}}'s birthday!"
   },
   "dataStats": {
     "title": "Your Data",

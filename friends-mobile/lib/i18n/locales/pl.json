@@ -28,7 +28,8 @@
     "show": "Pokaż",
     "hide": "Ukryj",
     "unknownError": "Nieznany błąd",
-    "notFound": "Nie znaleziono"
+    "notFound": "Nie znaleziono",
+    "done": "Gotowe"
   },
   "splash": {
     "connecting": "Łączenie z Twoim kręgiem…"
@@ -515,7 +516,14 @@
     "hint": "Wpisz sam rok (2020), rok i miesiąc (2020-06) lub pełną datę (2020-06-15)",
     "add": "Dodaj",
     "deleteTitle": "Usuń datę",
-    "deleteMessage": "Usunąć „{{item}}”?"
+    "deleteMessage": "Usunąć „{{item}}”?",
+    "precisionDay": "Dokładny dzień",
+    "precisionMonth": "Miesiąc",
+    "precisionYear": "Rok",
+    "editTitle": "Edytuj ważną datę",
+    "reminderOn": "Przypominaj",
+    "reminderOff": "Nie przypominaj",
+    "addToCalendar": "Dodaj do kalendarza"
   },
   "brainDump": {
     "keyNeededTitle": "Potrzebny klucz AI",
@@ -801,7 +809,6 @@
     "noMatch": "Nikt nie pasuje do „{{query}}”."
   },
   "timeline": {
-    "birthdayOf": "Urodziny: {{name}}",
     "unknown": "Nieznana",
     "withNames": "z: {{names}}",
     "andMore": "i {{count}} więcej",
@@ -846,15 +853,15 @@
     "addTitle": "Dodaj wydarzenie",
     "people": "Osoby",
     "eventType": "Rodzaj wydarzenia",
-    "eventDate": "Data wydarzenia (RRRR, RRRR-MM lub RRRR-MM-DD)",
     "date": "Data",
-    "datePlaceholder": "2024 lub 2024-03 lub 2024-03-15",
     "notesLabel": "Notatki (opcjonalnie)",
     "notesPlaceholder": "Co się wydarzyło?",
     "save": "Zapisz",
     "add": "Dodaj",
     "allPeople": "Wszystkie osoby",
-    "allTypes": "Wszystkie rodzaje"
+    "allTypes": "Wszystkie rodzaje",
+    "addPeople": "Dodaj osoby",
+    "pickPerson": "Filtruj według osoby"
   },
   "storiesList": {
     "deleteMessageAi": "Czy na pewno chcesz usunąć tę historię?\n\nUwaga: Osoby, relacje i informacje wyciągnięte z tej historii NIE zostaną usunięte. Usunięty zostanie tylko tekst historii.",
@@ -913,14 +920,12 @@
     "tryDifferent": "Spróbuj innego hasła lub kategorii"
   },
   "addStory": {
+    "editTitle": "Edytuj historię",
     "quickNote": "Szybka notatka",
     "title": "Opowiedz historię",
     "tooShortTitle": "Historia za krótka",
     "tooShortMessage": "Napisz co najmniej 10 znaków",
-    "keyRequiredTitle": "Wymagany klucz API",
-    "keyRequiredMessage": "Aby użyć wyciągania przez AI, ustaw klucz API dla wybranego modelu w Ustawieniach.",
     "goToSettings": "Przejdź do Ustawień",
-    "saveWithoutAi": "Zapisz bez AI",
     "backToProfile": "Wróć do profilu",
     "viewPeople": "Zobacz osoby",
     "addAnother": "Dodaj kolejną",
@@ -945,7 +950,6 @@
     "promptCopied": "Prompt skopiowany do schowka",
     "placeholderPerson": "Jak było z {{name}}? Po prostu powiedz — ja dodam to do profilu.",
     "placeholder": "Wczoraj byłem na kolacji z @Sarą. Jest teraz weganką i bardzo lubi jogę...",
-    "tagged": "Oznaczone:",
     "processing": "Przetwarzanie...",
     "saveExtract": "Zapisz i wyciągnij",
     "saveStory": "Zapisz historię",
@@ -970,7 +974,17 @@
     "debugStatus": "Status odpowiedzi",
     "debugRaw": "Surowa odpowiedź",
     "debugCopied": "Skopiowano informacje debugowania do schowka",
-    "copyAll": "Kopiuj wszystko"
+    "copyAll": "Kopiuj wszystko",
+    "people": "Osoby",
+    "tagPeople": "Oznacz osoby",
+    "story": "Historia",
+    "words_one": "{{count}} słowo",
+    "words_few": "{{count}} słowa",
+    "words_many": "{{count}} słów",
+    "words_other": "{{count}} słowa",
+    "saveOnly": "Tylko zapisz",
+    "keyRequiredTitle": "Wymagany klucz API",
+    "keyRequiredMessage": "Aby użyć wyciągania przez AI, ustaw klucz API dla wybranego modelu w Ustawieniach."
   },
   "storyDetail": {
     "configureKey": "Skonfiguruj klucz API {{model}} w Ustawieniach, zanim użyjesz wyciągania przez AI.",
@@ -1054,12 +1068,6 @@
     "people_other": "{{count}} osoby",
     "someone": "Wspomnij kogoś:"
   },
-  "personSelector": {
-    "title": "Oznacz osoby",
-    "loading": "Ładowanie osób...",
-    "none": "Nie znaleziono osób",
-    "done": "Gotowe ({{count}})"
-  },
   "aiConfig": {
     "title": "Konfiguracja AI",
     "intro": "Wybierz model AI i skonfiguruj klucze API do wyciągania historii przez AI.",
@@ -1086,20 +1094,22 @@
   },
   "birthdayReminders": {
     "title": "Przypomnienia o urodzinach",
-    "enable": "Włącz przypomnienia",
-    "enableDesc": "Otrzymuj powiadomienia o nadchodzących urodzinach",
     "onDay": "Przypomnij w dniu urodzin",
     "onDayDesc": "Powiadom mnie w dniu urodzin",
     "daysBefore": "Dni przed urodzinami:",
     "none": "Brak",
-    "onlyImportant": "Tylko ważne osoby",
-    "onlyImportantDesc": "Przypominaj tylko o ważnych osobach",
-    "minImportance": "Minimalna ważność:",
-    "important": "Ważna",
-    "very": "Bardzo",
-    "critical": "Krytyczna",
-    "upcoming": "Nadchodzące urodziny (30 dni):",
-    "inDays": "Za {{days}} dni (skończy {{age}} lat)"
+    "inDays": "Za {{days}} dni (skończy {{age}} lat)",
+    "perPersonHint": "Wybierz, o kim przypominać, albo dodaj urodziny do kalendarza. Na liście są tylko dokładne daty (ze znanym dniem).",
+    "people": "Urodziny",
+    "today": "Dziś (kończy {{age}} lat)",
+    "addToCalendar": "Dodaj do kalendarza",
+    "calendarTitle": "🎂 Urodziny: {{name}}",
+    "calendarFailed": "Nie udało się otworzyć kalendarza",
+    "noMatch": "Brak pasujących urodzin",
+    "notifyBeforeTitle": "🎂 Zbliżają się urodziny",
+    "notifyBeforeBody": "{{name}} ma urodziny za {{count}} dni",
+    "notifyTodayTitle": "🎉 Dziś urodziny",
+    "notifyTodayBody": "Dziś urodziny: {{name}}!"
   },
   "dataStats": {
     "title": "Twoje dane",

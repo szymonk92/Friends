@@ -162,6 +162,8 @@ export async function initializeDatabase() {
     const entityMigrations = [
       "ALTER TABLE people ADD COLUMN entity_type TEXT DEFAULT 'person';",
       'ALTER TABLE people ADD COLUMN species TEXT;',
+      'ALTER TABLE people ADD COLUMN date_of_birth_precision TEXT;',
+      'ALTER TABLE people ADD COLUMN birthday_reminder INTEGER DEFAULT 0;',
     ];
     for (const stmt of entityMigrations) {
       try {

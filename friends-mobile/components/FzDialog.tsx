@@ -1,46 +1,51 @@
 import { tr } from '@/lib/i18n/labels';
 import { useState, useCallback, useEffect, type ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Portal } from 'react-native-paper';
-import { Dialog } from '@/components/KeyboardAwareDialog';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fz, fzText } from '@/lib/design/tokens';
-import { registerConfirmHost } from '@/lib/utils/confirm';
+import { registerAlertHost, type AlertButton } from '@/lib/utils/confirm';
 
-type Button = { text: string; onPress?: () => void };
-type Notice = { title: string; message?: string; buttons: Button[] };
+type Notice = { title: string; message?: string; buttons: AlertButton[] };
 
 /**
- * Drop-in for Alert.alert in the FriendZ look: `const { alert, dialog } = useFzAlert()`,
+ * Alert.alert in the FriendZ look: `const { alert, dialog } = useFzAlert()`,
  * call `alert(title, message, buttons)`, render `{dialog}` once.
- * First button is the filled primary action, the rest are outlined. Buttons stack
- * so 3 long labels ("Add Different Type") never get truncated.
+ * First non-cancel button is the filled primary action, the rest are outlined,
+ * cancel-style buttons go last. Buttons stack so long labels never truncate.
+ * Uses an RN Modal (not a Paper Portal) so it stacks above other open Modals.
  */
 export function useFzAlert(): {
-  alert: (title: string, message?: string, buttons?: Button[]) => void;
+  alert: (title: string, message?: string, buttons?: AlertButton[]) => void;
   dialog: ReactElement;
 } {
   const [notice, setNotice] = useState<Notice | null>(null);
   const alert = useCallback(
-    (title: string, message?: string, buttons: Button[] = [{ text: tr('common.ok', 'OK') }]) =>
-      setNotice({ title, message, buttons }),
+    (title: string, message?: string, buttons?: AlertButton[]) =>
+      setNotice({
+        title,
+        message,
+        buttons: buttons?.length
+          ? [...buttons.filter((b) => b.style !== 'cancel'), ...buttons.filter((b) => b.style === 'cancel')]
+          : [{ text: tr('common.ok', 'OK') }],
+      }),
     []
   );
   const close = () => setNotice(null);
 
   const dialog = (
-    <Portal>
-      <Dialog visible={!!notice} onDismiss={close} style={styles.dialog}>
-        <View style={styles.body}>
+    <Modal visible={!!notice} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
+      <Pressable style={styles.backdrop} onPress={close}>
+        {/* Inner Pressable swallows taps so only the backdrop dismisses. */}
+        <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{notice?.title}</Text>
           {notice?.message ? <Text style={styles.message}>{notice.message}</Text> : null}
           <View style={styles.actions}>
             {notice?.buttons.map((b, i) => (
               <Pressable
-                key={b.text}
+                key={`${i}-${b.text}`}
                 accessibilityRole="button"
                 onPress={() => {
                   close();
-                  b.onPress?.();
+                  void b.onPress?.();
                 }}
                 style={({ pressed }) => [
                   styles.btn,
@@ -52,32 +57,37 @@ export function useFzAlert(): {
               </Pressable>
             ))}
           </View>
-        </View>
-      </Dialog>
-    </Portal>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 
   return { alert, dialog };
 }
 
-/** Mount once in the root layout: renders confirmDestructive() in the FriendZ dialog. */
+/** Mount once in the root layout: renders fzAlert() / confirmDestructive() in the FriendZ dialog. */
 export function FzConfirmHost() {
   const { alert, dialog } = useFzAlert();
   useEffect(() => {
-    registerConfirmHost((o) =>
-      alert(o.title, o.message, [
-        { text: o.confirmLabel ?? tr('common.delete', 'Delete'), onPress: () => void o.onConfirm() },
-        { text: tr('common.cancel', 'Cancel') },
-      ])
-    );
-    return () => registerConfirmHost(null);
+    registerAlertHost(alert);
+    return () => registerAlertHost(null);
   }, [alert]);
   return dialog;
 }
 
 const styles = StyleSheet.create({
-  dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
-  body: { padding: fz.s.xxl, gap: fz.s.md },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(27,24,21,0.4)',
+    justifyContent: 'center',
+    padding: fz.s.edge,
+  },
+  card: {
+    borderRadius: fz.rCard,
+    backgroundColor: fz.card,
+    padding: fz.s.xxl,
+    gap: fz.s.md,
+  },
   title: fzText.title,
   message: fzText.body,
   actions: { gap: fz.s.sm, marginTop: fz.s.md },

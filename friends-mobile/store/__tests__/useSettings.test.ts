@@ -50,7 +50,7 @@ describe('useSettings', () => {
   describe('Anthropic API Key', () => {
     it('should set and persist Anthropic API key', async () => {
       await useSettings.getState().setApiKey('sk-ant-test123');
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('@friends_api_key', 'sk-ant-test123');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('friends_api_key', 'sk-ant-test123');
       expect(useSettings.getState().apiKey).toBe('sk-ant-test123');
     });
 
@@ -63,7 +63,7 @@ describe('useSettings', () => {
     it('should clear Anthropic API key', async () => {
       await useSettings.getState().setApiKey('sk-ant-test123');
       await useSettings.getState().clearApiKey();
-      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('@friends_api_key');
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('friends_api_key');
       expect(useSettings.getState().apiKey).toBeNull();
     });
   });
@@ -71,7 +71,7 @@ describe('useSettings', () => {
   describe('Gemini API Key', () => {
     it('should set and persist Gemini API key', async () => {
       await useSettings.getState().setGeminiApiKey('AIzaTest123');
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('@friends_gemini_api_key', 'AIzaTest123');
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('friends_gemini_api_key', 'AIzaTest123');
       expect(useSettings.getState().geminiApiKey).toBe('AIzaTest123');
     });
 
@@ -84,7 +84,7 @@ describe('useSettings', () => {
     it('should clear Gemini API key', async () => {
       await useSettings.getState().setGeminiApiKey('AIzaTest123');
       await useSettings.getState().clearGeminiApiKey();
-      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('@friends_gemini_api_key');
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('friends_gemini_api_key');
       expect(useSettings.getState().geminiApiKey).toBeNull();
     });
   });

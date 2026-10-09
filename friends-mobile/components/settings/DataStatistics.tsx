@@ -1,6 +1,8 @@
-import { View, StyleSheet } from 'react-native';
-import { Card, Text, Divider, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { FormSection } from '@/components/FormKit';
+import { fz, fzText } from '@/lib/design/tokens';
 
 interface DataStats {
   people: number;
@@ -15,76 +17,31 @@ interface DataStatisticsProps {
   loading: boolean;
 }
 
+const KEYS = ['people', 'relations', 'connections', 'stories', 'events'] as const;
+
 export default function DataStatistics({ stats, loading }: DataStatisticsProps) {
   const { t } = useTranslation();
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          {t('dataStats.title')}
-        </Text>
-        <Divider style={styles.divider} />
-
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <View style={styles.statsContainer}>
-            <View style={styles.statRow}>
-              <Text variant="bodyMedium">{t('dataStats.people')}</Text>
-              <Text variant="bodyMedium" style={styles.statValue}>
-                {stats?.people || 0}
-              </Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text variant="bodyMedium">{t('dataStats.relations')}</Text>
-              <Text variant="bodyMedium" style={styles.statValue}>
-                {stats?.relations || 0}
-              </Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text variant="bodyMedium">{t('dataStats.connections')}</Text>
-              <Text variant="bodyMedium" style={styles.statValue}>
-                {stats?.connections || 0}
-              </Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text variant="bodyMedium">{t('dataStats.stories')}</Text>
-              <Text variant="bodyMedium" style={styles.statValue}>
-                {stats?.stories || 0}
-              </Text>
-            </View>
-            <View style={styles.statRow}>
-              <Text variant="bodyMedium">{t('dataStats.events')}</Text>
-              <Text variant="bodyMedium" style={styles.statValue}>
-                {stats?.events || 0}
-              </Text>
-            </View>
+    <FormSection title={t('dataStats.title')}>
+      {loading ? (
+        <ActivityIndicator color={fz.ink} />
+      ) : (
+        KEYS.map((key) => (
+          <View key={key} style={styles.statRow}>
+            <Text style={fzText.body}>{t(`dataStats.${key}`)}</Text>
+            <Text style={fzText.name}>{stats?.[key] || 0}</Text>
           </View>
-        )}
-      </Card.Content>
-    </Card>
+        ))
+      )}
+    </FormSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  statsContainer: {
-    gap: 8,
-  },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  statValue: {
-    fontWeight: 'bold',
+    alignItems: 'center',
+    paddingVertical: fz.s.xs,
   },
 });

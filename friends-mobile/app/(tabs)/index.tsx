@@ -355,7 +355,8 @@ export default function PeopleListScreen() {
                   <View style={s.nameRow}>
                     <Text style={fzText.name} numberOfLines={1}>{item.name}</Text>
                     {(() => {
-                      const days = getDaysUntilBirthday(item.dateOfBirth);
+                      const exact = !item.dateOfBirthPrecision || item.dateOfBirthPrecision === 'day';
+                      const days = exact ? getDaysUntilBirthday(item.dateOfBirth) : null;
                       if (days === null || days > 7) return null;
                       return (
                         <View style={s.bday}>

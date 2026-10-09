@@ -1,5 +1,5 @@
-import { StyleSheet, View, Alert } from 'react-native';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { StyleSheet, View } from 'react-native';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { Text, Button, Portal, TextInput as PaperInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
@@ -37,7 +37,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
 
   const handleAddTag = async () => {
     if (!newTagName.trim()) {
-      Alert.alert(t('common.error'), t('profile.tagEnterName'));
+      fzAlert(t('common.error'), t('profile.tagEnterName'));
       return;
     }
 
@@ -47,7 +47,7 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
       setAddTagDialogVisible(false);
       setNewTagName('');
     } catch (error) {
-      Alert.alert(t('common.error'), t('profile.tagAddFailed'));
+      fzAlert(t('common.error'), t('profile.tagAddFailed'));
     } finally {
       setIsAddingTag(false);
     }

@@ -1,7 +1,7 @@
-import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import { Text, Button, Card, Divider, TextInput } from 'react-native-paper';
 import { router, Stack } from 'expo-router';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
 import { resetOnboarding } from './onboarding';
@@ -40,11 +40,11 @@ export default function DevScreen() {
     setIsLoading(true);
     try {
       await seedSampleData();
-      Alert.alert(t('dev.sampleData.successTitle'), t('dev.sampleData.successMessage'), [
+      fzAlert(t('dev.sampleData.successTitle'), t('dev.sampleData.successMessage'), [
         { text: t('common.ok'), onPress: () => router.push('/') },
       ]);
     } catch (error) {
-      Alert.alert(t('common.error'), t('dev.sampleData.errorMessage'));
+      fzAlert(t('common.error'), t('dev.sampleData.errorMessage'));
       devLogger.error('Failed to seed sample data', error);
     } finally {
       setIsLoading(false);
@@ -60,9 +60,9 @@ export default function DevScreen() {
         setIsLoading(true);
         try {
           await clearAllData();
-          Alert.alert(t('common.success'), t('dev.clearData.success'));
+          fzAlert(t('common.success'), t('dev.clearData.success'));
         } catch (error) {
-          Alert.alert(t('common.error'), t('dev.clearData.error'));
+          fzAlert(t('common.error'), t('dev.clearData.error'));
           devLogger.error('Failed to clear all data', error);
         } finally {
           setIsLoading(false);
@@ -74,11 +74,11 @@ export default function DevScreen() {
   const handleHighLoadTest = async () => {
     const count = parseInt(loadTestCount, 10);
     if (isNaN(count) || count < 1 || count > 1000) {
-      Alert.alert(t('dev.highLoadTest.errorInvalidCount'), t('dev.highLoadTest.errorInvalidMessage'));
+      fzAlert(t('dev.highLoadTest.errorInvalidCount'), t('dev.highLoadTest.errorInvalidMessage'));
       return;
     }
 
-    Alert.alert(
+    fzAlert(
       t('dev.highLoadTest.confirmTitle'),
       t('dev.highLoadTest.confirmMessage', {
         count,
@@ -101,7 +101,7 @@ export default function DevScreen() {
                   duration: result.duration,
                 })
               );
-              Alert.alert(
+              fzAlert(
                 t('dev.highLoadTest.successTitle'),
                 t('dev.highLoadTest.successMessage', {
                   peopleCount: result.peopleCount,
@@ -112,7 +112,7 @@ export default function DevScreen() {
                 [{ text: t('dev.sampleData.viewPeople'), onPress: () => router.push('/') }]
               );
             } catch (error: any) {
-              Alert.alert(t('common.error'), error.message || t('dev.highLoadTest.generateFailed'));
+              fzAlert(t('common.error'), error.message || t('dev.highLoadTest.generateFailed'));
               devLogger.error('Failed to generate high load test data', error);
             } finally {
               setIsLoading(false);
@@ -134,9 +134,9 @@ export default function DevScreen() {
         try {
           await clearTestData();
           setLoadTestResult(null);
-          Alert.alert(t('common.success'), t('dev.highLoadTest.clearSuccess'));
+          fzAlert(t('common.success'), t('dev.highLoadTest.clearSuccess'));
         } catch (error) {
-          Alert.alert(t('common.error'), t('dev.highLoadTest.clearError'));
+          fzAlert(t('common.error'), t('dev.highLoadTest.clearError'));
           devLogger.error(t('dev.highLoadTest.clearError'), error);
         } finally {
           setIsLoading(false);
@@ -151,12 +151,12 @@ export default function DevScreen() {
       // Run the test (outputs are commented out in the function)
       testPromptGeneration();
 
-      Alert.alert(
+      fzAlert(
         t('dev.aiPromptTesting.testCompleteTitle'),
         t('dev.aiPromptTesting.testCompleteMessage')
       );
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.testFailed'));
+      fzAlert(t('common.error'), error.message || t('dev.aiPromptTesting.testFailed'));
       devLogger.error('Failed to run prompt generation test', error);
     } finally {
       setIsLoading(false);
@@ -169,12 +169,12 @@ export default function DevScreen() {
       // Run the mock evaluation
       runMockEvaluation();
 
-      Alert.alert(
+      fzAlert(
         t('dev.aiPromptTesting.mockCompleteTitle'),
         t('dev.aiPromptTesting.mockCompleteMessage')
       );
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.mockFailed'));
+      fzAlert(t('common.error'), error.message || t('dev.aiPromptTesting.mockFailed'));
       devLogger.error('Failed to run mock evaluation', error);
     } finally {
       setIsLoading(false);
@@ -187,7 +187,7 @@ export default function DevScreen() {
       const report = generateComparisonReport();
 
       // Show a summary alert
-      Alert.alert(
+      fzAlert(
         t('dev.aiPromptTesting.reportCompleteTitle'),
         t('dev.aiPromptTesting.reportCompleteMessage')
       );
@@ -195,7 +195,7 @@ export default function DevScreen() {
       // Log the full report to console
       console.log('\n' + report);
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('dev.aiPromptTesting.reportFailed'));
+      fzAlert(t('common.error'), error.message || t('dev.aiPromptTesting.reportFailed'));
       devLogger.error('Failed to generate comparison report', error);
     } finally {
       setIsLoading(false);
@@ -205,15 +205,15 @@ export default function DevScreen() {
   const handleSavePhotoLimit = async () => {
     const limit = parseInt(photoLimitInput, 10);
     if (isNaN(limit) || limit < 1 || limit > 100) {
-      Alert.alert(t('dev.invalidLimit'), t('dev.invalidLimitMessage'));
+      fzAlert(t('dev.invalidLimit'), t('dev.invalidLimitMessage'));
       return;
     }
 
     try {
       await setMaxPhotosPerPerson(limit);
-      Alert.alert(t('common.success'), t('dev.photoSet', { count: limit }));
+      fzAlert(t('common.success'), t('dev.photoSet', { count: limit }));
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message || t('dev.photoSaveFailed'));
+      fzAlert(t('common.error'), error.message || t('dev.photoSaveFailed'));
     }
   };
 
@@ -605,7 +605,7 @@ export default function DevScreen() {
                   if (mePerson) {
                     router.push(`/person/${mePerson.id}`);
                   } else {
-                    Alert.alert(t('dev.myPreferences.notFoundTitle'), t('dev.myPreferences.notFoundMessage'));
+                    fzAlert(t('dev.myPreferences.notFoundTitle'), t('dev.myPreferences.notFoundMessage'));
                   }
                 }}
                 style={styles.button}
@@ -631,7 +631,7 @@ export default function DevScreen() {
                 mode="outlined"
                 onPress={async () => {
                   await resetOnboarding();
-                  Alert.alert(t('common.success'), t('dev.resetApp.success'));
+                  fzAlert(t('common.success'), t('dev.resetApp.success'));
                 }}
                 style={styles.button}
                 icon="restart"

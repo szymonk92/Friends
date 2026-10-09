@@ -1,11 +1,11 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Text } from 'react-native-paper';
 import { useStories, useDeleteStory } from '@/hooks/useStories';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
@@ -35,9 +35,9 @@ export default function StoriesListScreen() {
       onConfirm: async () => {
         try {
           await deleteStory.mutateAsync(storyId);
-          Alert.alert(t('common.success'), t('storiesList.deleted'));
+          fzAlert(t('common.success'), t('storiesList.deleted'));
         } catch (err) {
-          Alert.alert(t('common.error'), t('storiesList.deleteFailed'));
+          fzAlert(t('common.error'), t('storiesList.deleteFailed'));
         }
       },
     });

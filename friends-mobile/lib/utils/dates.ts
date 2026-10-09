@@ -1,3 +1,5 @@
+import { parseJsonObject } from './json';
+
 /**
  * Parses flexible date strings used across forms in the app.
  *
@@ -45,4 +47,45 @@ export function toDateText(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+export type DatePrecision = 'day' | 'month' | 'year';
+
+/**
+ * Builds the flexible date string for a picker selection. Missing month/day
+ * default to today's month / today (if in the current month) else the 1st;
+ * day is clamped to the month's length (Jan 31 → Feb 29).
+ */
+export function flexibleDateText(
+  year: number,
+  month: number | null,
+  day: number | null,
+  precision: DatePrecision,
+  now: Date = new Date()
+): string {
+  if (precision === 'year') return String(year);
+  const mm = month ?? now.getMonth() + 1;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (precision === 'month') return `${year}-${pad(mm)}`;
+  const isNowMonth = year === now.getFullYear() && mm === now.getMonth() + 1;
+  const dd = Math.min(day ?? (isNowMonth ? now.getDate() : 1), new Date(year, mm, 0).getDate());
+  return `${year}-${pad(mm)}-${pad(dd)}`;
+}
+
+/** Precision implied by a flexible date string: "1990" year, "1990-06" month, else day. */
+export function flexiblePrecision(input: string): DatePrecision | null {
+  if (!input.trim()) return null;
+  const n = input.trim().split('-').length;
+  return n === 1 ? 'year' : n === 2 ? 'month' : 'day';
+}
+
+/** Inverse of parseFlexibleDate that keeps unknown parts unknown: "1990-06", not "1990-06-01". */
+export function toFlexibleText(d: Date, precision: DatePrecision | null = 'day'): string {
+  const full = toDateText(d);
+  return precision === 'year' ? full.slice(0, 4) : precision === 'month' ? full.slice(0, 7) : full;
+}
+
+/** Precision of an important-date relation, kept in its metadata JSON (null = exact day). */
+export function metadataPrecision(metadata: string | null | undefined): DatePrecision | null {
+  return parseJsonObject<{ precision?: DatePrecision }>(metadata, {}).precision ?? null;
 }

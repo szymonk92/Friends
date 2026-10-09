@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { StyleSheet, ScrollView, Alert, View } from 'react-native';
+import { StyleSheet, ScrollView, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePeople } from '@/hooks/usePeople';
@@ -13,6 +13,7 @@ import PartyDetailsForm from '@/components/party/PartyDetailsForm';
 import GuestSelector from '@/components/party/GuestSelector';
 import PartySuggestions from '@/components/party/PartySuggestions';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 interface Guest {
   id: string;
@@ -241,11 +242,11 @@ export default function PartyPlannerScreen() {
 
   const handleCreateParty = async () => {
     if (!partyName.trim()) {
-      Alert.alert(t('party.missingTitle'), t('party.missingName'));
+      fzAlert(t('party.missingTitle'), t('party.missingName'));
       return;
     }
     if (selectedGuests.length === 0) {
-      Alert.alert(t('party.missingTitle'), t('party.missingGuests'));
+      fzAlert(t('party.missingTitle'), t('party.missingGuests'));
       return;
     }
 
@@ -297,7 +298,7 @@ export default function PartyPlannerScreen() {
         error: String(error),
         eventData,
       });
-      Alert.alert(t('common.error'), eventId ? t('party.updateFailed') : t('party.createFailed'));
+      fzAlert(t('common.error'), eventId ? t('party.updateFailed') : t('party.createFailed'));
     }
   };
 

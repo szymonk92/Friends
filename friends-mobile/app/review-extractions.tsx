@@ -11,12 +11,12 @@ import {
 } from '@/hooks/useAIExtraction';
 import { formatRelationType } from '@/lib/utils/format';
 import { intensityLabel } from '@/lib/i18n/labels';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
 import { RelationIcon } from '@/components/RelationIcon';
 import { WarningIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { devLogger } from '@/lib/utils/devLogger';
-import { Alert, ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { Stack, router } from 'expo-router';
 import {
@@ -50,7 +50,7 @@ export default function ReviewExtractionsScreen() {
     try {
       await approveMutation.mutateAsync(extraction.id);
     } catch (error) {
-      Alert.alert(t('common.error'), t('reviewExtractions.approveFailed'));
+      fzAlert(t('common.error'), t('reviewExtractions.approveFailed'));
       devLogger.error('Failed to approve extraction', { error, extractionId: extraction.id });
     }
   };
@@ -68,7 +68,7 @@ export default function ReviewExtractionsScreen() {
         try {
           await rejectMutation.mutateAsync({ extractionId: extraction.id });
         } catch (error) {
-          Alert.alert(t('common.error'), t('reviewExtractions.rejectFailed'));
+          fzAlert(t('common.error'), t('reviewExtractions.rejectFailed'));
           devLogger.error('Failed to reject extraction', {
             error,
             extractionId: extraction.id,
@@ -99,7 +99,7 @@ export default function ReviewExtractionsScreen() {
       setEditDialogVisible(false);
       setCurrentEdit(null);
     } catch (error) {
-      Alert.alert(t('common.error'), t('reviewExtractions.editFailed'));
+      fzAlert(t('common.error'), t('reviewExtractions.editFailed'));
       devLogger.error('Failed to edit extraction', { error, extractionId: currentEdit.id });
     }
   };

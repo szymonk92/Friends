@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, Alert, Text as RNText } from 'react-native';
+import { StyleSheet, View, Text as RNText } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -21,9 +21,10 @@ import {
 } from '@/lib/social/socialLinks';
 import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
 import { normalizePhone } from '@/lib/utils/pii';
-import { parseFlexibleDate } from '@/lib/utils/dates';
+import { flexiblePrecision, parseFlexibleDate, toFlexibleText } from '@/lib/utils/dates';
 import { fz, fzText } from '@/lib/design/tokens';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
+import { fzAlert } from '@/lib/utils/confirm';
 
 type PersonRecord = NonNullable<ReturnType<typeof usePerson>['data']>;
 
@@ -40,7 +41,7 @@ function mapPersonToForm(person: PersonRecord): Partial<PersonFormValues> {
     genderOther: !g || known || g === 'other' ? '' : g,
     species: person.species || '',
     dateOfBirth: person.dateOfBirth
-      ? new Date(person.dateOfBirth).toISOString().split('T')[0]
+      ? toFlexibleText(new Date(person.dateOfBirth), person.dateOfBirthPrecision)
       : '',
     metDate: person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '',
     metLocation: person.metLocation || '',
@@ -149,7 +150,7 @@ export default function EditPersonScreen() {
         );
       }
     } catch (e) {
-      Alert.alert(
+      fzAlert(
         t('person.sideEffectsFailed'),
         e instanceof Error ? e.message : t('person.sideEffectsFailedMessage')
       );
@@ -165,6 +166,7 @@ export default function EditPersonScreen() {
         nickname: v.nickname.trim() || null,
         relationshipType: v.relationshipType as any,
         dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
+        dateOfBirthPrecision: flexiblePrecision(v.dateOfBirth) ?? undefined,
         species: v.species.trim() || null,
         metDate: parseFlexibleDate(v.metDate) || null,
         metLocation: v.metLocation.trim() || null,
@@ -182,9 +184,9 @@ export default function EditPersonScreen() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('common.unknownError');
       if (errorMessage.includes('already exists')) {
-        Alert.alert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
+        fzAlert(t('person.duplicateName'), errorMessage, [{ text: t('common.ok') }]);
       } else {
-        Alert.alert(t('common.error'), t('person.errorUpdating'));
+        fzAlert(t('common.error'), t('person.errorUpdating'));
       }
       devLogger.error('Failed to update person', { error, personId });
     } finally {

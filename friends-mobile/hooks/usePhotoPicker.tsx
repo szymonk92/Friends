@@ -1,9 +1,10 @@
 import { tr } from '@/lib/i18n/labels';
-import { Alert } from 'react-native';
+
 import { useState } from 'react';
 import { useAddPhotoToPerson, useTakePhoto } from '@/hooks/usePhotos';
 import { ActionSheet } from '@/components/ActionSheet';
 import type { SavedPhoto } from '@/lib/utils/photos';
+import { fzAlert } from '@/lib/utils/confirm';
 
 type PickOptions = { title?: string; onSaved?: (photo: SavedPhoto) => Promise<void> | void };
 
@@ -30,7 +31,7 @@ export function usePhotoPicker(personId: string) {
           'Permission to access camera was denied': tr('photos.permissionCamera', message),
           'Photo not found': tr('photos.notFound', message),
         };
-        Alert.alert(
+        fzAlert(
           tr('common.error', 'Error'),
           known[message] || message || tr('photos.saveFailed', 'Failed to save photo')
         );

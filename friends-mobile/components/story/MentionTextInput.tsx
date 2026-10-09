@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Keyboard } from 'react-native';
-import { TextInput, Text, Card, Chip, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Pressable, Text } from 'react-native';
+import { FormInput } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
 import { and, eq, or, like } from 'drizzle-orm';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
 interface Person {
@@ -19,6 +20,8 @@ interface MentionTextInputProps {
   placeholder?: string;
   numberOfLines?: number;
   style?: any;
+  // Soft filled block instead of an outlined box — one quiet layer on the page.
+  filled?: boolean;
 }
 
 interface Mention {
@@ -34,9 +37,9 @@ export default function MentionTextInput({
   placeholder,
   numberOfLines = 12,
   style,
+  filled = false,
 }: MentionTextInputProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [suggestions, setSuggestions] = useState<Person[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [currentMentionQuery, setCurrentMentionQuery] = useState('');
@@ -181,74 +184,48 @@ export default function MentionTextInput({
 
   return (
     <View style={styles.container}>
-      <TextInput
-        mode="outlined"
-        placeholder={
-          placeholder || t('mention.placeholder')
-        }
+      <FormInput
+        placeholder={placeholder || t('mention.placeholder')}
         value={value}
         onChangeText={handleTextChange}
         onSelectionChange={handleSelectionChange}
         multiline
         numberOfLines={numberOfLines}
-        style={[styles.input, style]}
+        style={[styles.input, filled && styles.inputFilled, style]}
+        {...(filled && {
+          outlineColor: 'transparent',
+          activeOutlineColor: fz.outline,
+        })}
       />
 
-      {/* @ Button below text field */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity
-          style={[styles.atButton, { backgroundColor: theme.colors.primary }]}
-          onPress={insertAtSymbol}
-        >
-          <Text style={styles.atButtonText}>{t('mention.mention')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.atButtonOutlined, { borderColor: theme.colors.primary }]}
-          onPress={insertAddPerson}
-        >
-          <Text style={[styles.atButtonTextOutlined, { color: theme.colors.primary }]}>{t('mention.add')}</Text>
-        </TouchableOpacity>
-
-        {/* Mention count indicator */}
+        <Pill label={t('mention.mention')} variant="solid" onPress={insertAtSymbol} />
+        <Pill label={t('mention.add')} variant="outline" onPress={insertAddPerson} />
         {mentions.length > 0 && (
-          <Chip icon="account" compact style={styles.chip}>
-            {t('mention.people', { count: getMentionedPeopleCount() })}
-          </Chip>
+          <Pill label={t('mention.people', { count: getMentionedPeopleCount() })} variant="soft" />
         )}
       </View>
 
-      {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <Card style={styles.suggestionsCard}>
-          <Card.Content style={styles.suggestionsContent}>
-            <View style={styles.suggestionsHeader}>
-              <Text variant="labelSmall" style={styles.suggestionsTitle}>
-                {t('mention.someone')}
-              </Text>
-            </View>
-            <ScrollView
-              style={styles.suggestionsList}
-              nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              {suggestions.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.suggestionItem}
-                  onPress={() => handleSelectPerson(item)}
-                >
-                  <Text variant="bodyMedium">{item.name}</Text>
-                  {item.nickname && (
-                    <Text variant="bodySmall" style={styles.nickname}>
-                      ({item.nickname})
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Card.Content>
-        </Card>
+        <View style={styles.suggestionsCard}>
+          <Text style={[fzText.label, styles.suggestionsTitle]}>{t('mention.someone')}</Text>
+          <ScrollView
+            style={styles.suggestionsList}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            {suggestions.map((item) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [styles.suggestionItem, pressed && styles.suggestionPressed]}
+                onPress={() => handleSelectPerson(item)}
+              >
+                <Text style={fzText.name}>{item.name}</Text>
+                {item.nickname && <Text style={fzText.sub}>{item.nickname}</Text>}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -260,77 +237,47 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 200,
-    textAlignVertical: 'top',
-    paddingTop: 12,
+    marginBottom: 0,
+  },
+  inputFilled: {
+    backgroundColor: fz.surfaceSoft,
   },
   bottomActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
-  },
-  atButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  atButtonText: {
-    color: '#fff',
-    fontFamily: fz.font,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  atButtonOutlined: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 2,
-    backgroundColor: 'transparent',
-  },
-  atButtonTextOutlined: {
-    fontFamily: fz.font,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  chip: {
-    height: 32,
+    marginTop: fz.s.md,
+    gap: fz.s.sm,
   },
   suggestionsCard: {
     position: 'absolute',
     top: 60,
     left: 0,
     right: 0,
-    maxHeight: 200,
-    elevation: 4,
+    maxHeight: 220,
     zIndex: 1000,
-  },
-  suggestionsContent: {
-    padding: 8,
-  },
-  suggestionsHeader: {
-    marginBottom: 4,
+    elevation: 4,
+    padding: fz.s.md,
+    backgroundColor: fz.card,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
+    borderRadius: fz.rCard,
   },
   suggestionsTitle: {
-    opacity: 0.6,
-    fontWeight: '600',
+    marginBottom: fz.s.sm,
   },
   suggestionsList: {
-    maxHeight: 150,
+    maxHeight: 160,
   },
   suggestionItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginVertical: 2,
-    backgroundColor: '#f5f5f5',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: fz.s.sm,
+    paddingVertical: 10,
+    paddingHorizontal: fz.s.md,
+    borderRadius: fz.rRow,
   },
-  nickname: {
-    opacity: 0.6,
-    marginTop: 2,
+  suggestionPressed: {
+    backgroundColor: fz.surfaceSoft,
   },
 });

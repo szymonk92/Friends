@@ -6,7 +6,6 @@ import {
   TextInput,
   StyleSheet,
   StatusBar,
-  Alert,
 } from 'react-native';
 import { Text, Checkbox, Dialog, Portal, Button, ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +23,7 @@ import {
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
 import { useTranslation } from 'react-i18next';
+import { fzAlert } from '@/lib/utils/confirm';
 
 type Phase = 'loading' | 'ready' | 'denied' | 'empty';
 
@@ -69,7 +69,7 @@ export default function ImportContactsScreen() {
       setRows(contacts);
       setPhase('ready');
     } catch (e) {
-      Alert.alert(t('importContacts.loadFailed'), (e as Error).message);
+      fzAlert(t('importContacts.loadFailed'), (e as Error).message);
       setPhase('denied');
     }
   }
@@ -155,10 +155,10 @@ export default function ImportContactsScreen() {
           t('importContacts.skipped', { count: result.skipped }),
         ];
         if (result.errors.length) parts.push(t('importContacts.errors', { count: result.errors.length }));
-        Alert.alert(t('importContacts.complete'), parts.join(' · '));
+        fzAlert(t('importContacts.complete'), parts.join(' · '));
         router.back();
       },
-      onError: (e) => Alert.alert(t('importContacts.failed'), e.message),
+      onError: (e) => fzAlert(t('importContacts.failed'), e.message),
     });
   }
 

@@ -28,7 +28,7 @@ import {
   useCreatePerson,
   PersonWithPhoto,
 } from '@/hooks/usePeople';
-import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
+import { flexiblePrecision, parseFlexibleDate, toDateText } from '@/lib/utils/dates';
 import { RELATIONSHIP_TYPES, CONNECTION_STATUSES } from '@/lib/constants/relations';
 import { connections, type Connection } from '@/lib/db/schema';
 import { useEntityById } from '@/hooks/useEntityById';
@@ -301,6 +301,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         entityType: 'pet' as const,
         species: species.trim() || null,
         dateOfBirth: dob ?? undefined,
+        dateOfBirthPrecision: flexiblePrecision(t),
       };
     }
     if (newEntityKind === 'child') {
@@ -309,6 +310,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
         personType: 'mentioned' as const,
         entityType: 'person' as const,
         dateOfBirth: dob ?? undefined,
+        dateOfBirthPrecision: flexiblePrecision(t),
       };
     }
     return {

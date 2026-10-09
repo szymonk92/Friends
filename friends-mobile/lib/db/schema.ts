@@ -136,6 +136,10 @@ export const people = sqliteTable(
     archivedAt: integer('archived_at', { mode: 'timestamp' }),
     dateOfDeath: integer('date_of_death', { mode: 'timestamp' }),
     dateOfBirth: integer('date_of_birth', { mode: 'timestamp' }),
+    // null = exact day (legacy rows); 'month'/'year' = partial birthday, stored as the 1st.
+    dateOfBirthPrecision: text('date_of_birth_precision', { enum: ['day', 'month', 'year'] }),
+    // Per-person opt-in; only honoured for exact-day birthdays.
+    birthdayReminder: integer('birthday_reminder', { mode: 'boolean' }).default(false),
     hideFromActiveViews: integer('hide_from_active_views', { mode: 'boolean' }).default(false),
     lifeMilestones: text('life_milestones'),
     notes: text('notes'),

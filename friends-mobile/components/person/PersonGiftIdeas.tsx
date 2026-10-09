@@ -1,4 +1,4 @@
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   Text,
   Button,
@@ -18,7 +18,7 @@ import { ProfileSection, chipRow } from './ProfileSection';
 import { formatShortDate } from '@/lib/utils/format';
 import { Pill } from '@/components/Pill';
 import { ActionSheet } from '@/components/ActionSheet';
-import { confirmDestructive } from '@/lib/utils/confirm';
+import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { fz } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
@@ -45,7 +45,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
 
   const handleAddGiftIdea = async () => {
     if (!giftItem.trim()) {
-      Alert.alert(t('common.error'), t('gifts.enterItem'));
+      fzAlert(t('common.error'), t('gifts.enterItem'));
       return;
     }
 
@@ -64,7 +64,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
       setGiftPriority('medium');
       setGiftOccasion('');
     } catch (error) {
-      Alert.alert(t('common.error'), t('gifts.addFailed'));
+      fzAlert(t('common.error'), t('gifts.addFailed'));
     } finally {
       setIsAddingGift(false);
     }

@@ -1,20 +1,25 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Portal, Text, Chip, SegmentedButtons, TextInput, Button } from 'react-native-paper';
-import { Dialog } from '@/components/KeyboardAwareDialog';
-import { fz } from '@/lib/design/tokens';
+import React, { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { FullScreenModal } from '@/components/FullScreenModal';
+import { PersonPickerModal } from '@/components/PersonPickerModal';
+import { FormInput, FormSection } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
+import { PillGroup } from '@/components/PillGroup';
+import { FlexibleDatePicker } from '@/components/FlexibleDatePicker';
+import { fz, fzText } from '@/lib/design/tokens';
+import type { PersonWithPhoto } from '@/hooks/usePeople';
 
 interface AddEventDialogProps {
   visible: boolean;
   onDismiss: () => void;
-  editingEvent: any;
+  editingEvent: unknown;
   selectedPersonIds: string[];
   togglePersonId: (id: string) => void;
-  people: any[];
+  people: PersonWithPhoto[];
   eventType: string;
   setEventType: (type: string) => void;
-  eventTypes: any[];
+  eventTypes: { value: string; label: string }[];
   dateInput: string;
   setDateInput: (date: string) => void;
   notes: string;
@@ -23,6 +28,7 @@ interface AddEventDialogProps {
   handleAddEvent: () => void;
 }
 
+/** Full-screen add / edit timeline event form. */
 export default function AddEventDialog({
   visible,
   onDismiss,
@@ -41,126 +47,83 @@ export default function AddEventDialog({
   handleAddEvent,
 }: AddEventDialogProps) {
   const { t } = useTranslation();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const selectedPeople = people.filter((p) => selectedPersonIds.includes(p.id));
+
   return (
-    <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
-        <Dialog.Title style={styles.dialogTitle}>
-          {editingEvent ? t('timeline.editTitle') : t('timeline.addTitle')}
-        </Dialog.Title>
-        <Dialog.Content>
-          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            {t('timeline.people')}
-          </Text>
-          <View style={styles.personList}>
-            {people.map((person) => (
-              <Chip
-                key={person.id}
-                selected={selectedPersonIds.includes(person.id)}
-                showSelectedOverlay
-                onPress={() => togglePersonId(person.id)}
-                style={styles.personChip}
-                textStyle={styles.dialogFont}
-              >
-                {person.name}
-              </Chip>
+    <FullScreenModal
+      visible={visible}
+      onClose={onDismiss}
+      title={editingEvent ? t('timeline.editTitle') : t('timeline.addTitle')}
+      right={
+        <Pressable
+          accessibilityRole="button"
+          disabled={isSubmitting}
+          onPress={handleAddEvent}
+          style={styles.saveBtn}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={fzText.btn}>{editingEvent ? t('timeline.save') : t('timeline.add')}</Text>
+          )}
+        </Pressable>
+      }
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <FormSection title={t('timeline.people')}>
+          <View style={styles.pillRow}>
+            {selectedPeople.map((p) => (
+              <Pill key={p.id} label={p.name} selected onClose={() => togglePersonId(p.id)} />
             ))}
+            <Pill icon="plus" label={t('timeline.addPeople')} variant="outline" onPress={() => setPickerOpen(true)} />
           </View>
+        </FormSection>
 
-          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            {t('timeline.eventType')}
-          </Text>
-          <SegmentedButtons
-            value={eventType}
-            onValueChange={setEventType}
-            buttons={eventTypes.slice(0, 3)}
-            style={styles.segmented}
-          />
-          <SegmentedButtons
-            value={eventType}
-            onValueChange={setEventType}
-            buttons={eventTypes.slice(3, 6)} // Adjusted slice to show more options if needed or split differently
-            style={styles.segmented}
-          />
-          <SegmentedButtons
-            value={eventType}
-            onValueChange={setEventType}
-            buttons={eventTypes.slice(6)}
-            style={styles.segmented}
-          />
+        <FormSection title={t('timeline.eventType')}>
+          <PillGroup options={eventTypes} value={eventType} onChange={setEventType} />
+        </FormSection>
 
-          <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
-            {t('timeline.eventDate')}
-          </Text>
-          <TextInput
-            mode="outlined"
-            label={t('timeline.date')}
-            placeholder={t('timeline.datePlaceholder')}
-            value={dateInput}
-            onChangeText={setDateInput}
-            style={[styles.dateInput, styles.dialogFont]}
-          />
+        <FormSection title={t('timeline.date')}>
+          <FlexibleDatePicker value={dateInput} onChange={setDateInput} />
+        </FormSection>
 
-          <TextInput
-            mode="outlined"
-            label={t('timeline.notesLabel')}
+        <FormSection title={t('timeline.notesLabel')}>
+          <FormInput
             placeholder={t('timeline.notesPlaceholder')}
             value={notes}
             onChangeText={setNotes}
             multiline
-            numberOfLines={3}
-            style={[styles.notesInput, styles.dialogFont]}
+            numberOfLines={4}
+            style={[styles.lastInput, styles.notes]}
           />
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            labelStyle={styles.dialogFont}
-            onPress={handleAddEvent}
-            loading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            {editingEvent ? t('timeline.save') : t('timeline.add')}
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+        </FormSection>
+      </ScrollView>
+
+      <PersonPickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('timeline.people')}
+        people={people}
+        selectedIds={selectedPersonIds}
+        onToggle={togglePersonId}
+        multi
+      />
+    </FullScreenModal>
   );
 }
 
 const styles = StyleSheet.create({
-  dialog: {
-    borderRadius: fz.rCard,
-    backgroundColor: fz.card,
+  content: { padding: fz.s.edge, paddingTop: fz.s.xs },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  saveBtn: {
+    backgroundColor: fz.ink,
+    borderRadius: fz.rButton,
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    minWidth: 64,
+    alignItems: 'center',
   },
-  dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
-    fontFamily: fz.font,
-  },
-  dialogLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  personList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-  personChip: {
-    marginBottom: 4,
-    borderRadius: fz.rPill,
-  },
-  segmented: {
-    marginBottom: 8,
-  },
-  dateInput: {
-    marginBottom: 12,
-  },
-  notesInput: {
-    marginBottom: 4,
-  },
+  lastInput: { marginBottom: 0 },
+  notes: { minHeight: 110 },
 });

@@ -1,8 +1,9 @@
 import {
   StyleSheet,
   View,
+  Pressable,
+  ActivityIndicator,
   ScrollView,
-  Alert,
   StatusBar,
   BackHandler,
   KeyboardAvoidingView,
@@ -12,7 +13,7 @@ import {
 import { Text, TextInput, Button, Portal } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState, useEffect, useCallback } from 'react';
-import { useCreateStory } from '@/hooks/useStories';
+import { useCreateStory, useStory, useUpdateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
 import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
@@ -24,18 +25,24 @@ import { eq } from 'drizzle-orm';
 import * as Clipboard from 'expo-clipboard';
 import MentionTextInput from '@/components/story/MentionTextInput';
 import { devLogger } from '@/lib/utils/devLogger';
-import PersonSelector from '@/components/story/PersonSelector';
 import AmbiguityResolutionDialog from '@/components/story/AmbiguityResolutionDialog';
-import { Chip } from 'react-native-paper';
-import { Avatar } from '@/components/Avatar';
+import { FormSection } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
+import { PersonPickerModal } from '@/components/PersonPickerModal';
 import { usePeople, usePerson } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export default function StoryInputScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { personId: prefillPersonId } = useLocalSearchParams<{ personId?: string }>();
+  const { personId: prefillPersonId, storyId: editStoryId } = useLocalSearchParams<{
+    personId?: string;
+    storyId?: string;
+  }>();
   const [storyText, setStoryText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiKeyDialogVisible, setApiKeyDialogVisible] = useState(false);
@@ -48,7 +55,7 @@ export default function StoryInputScreen() {
   const [debugDialogVisible, setDebugDialogVisible] = useState(false);
 
   // @+ Feature State
-  const [personSelectorVisible, setPersonSelectorVisible] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>(
     prefillPersonId ? [prefillPersonId] : []
   );
@@ -60,6 +67,14 @@ export default function StoryInputScreen() {
   const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
 
   const createStory = useCreateStory();
+  const updateStory = useUpdateStory();
+  const { data: editStory } = useStory(editStoryId ?? '');
+  const isEdit = !!editStoryId;
+
+  // Edit mode: prefill once the saved story loads.
+  useEffect(() => {
+    if (editStory) setStoryText(editStory.content);
+  }, [editStory]);
   const extractStory = useExtractStory();
   const { data: allPeople } = usePeople();
   const { data: prefillPerson } = usePerson(prefillPersonId ?? '');
@@ -83,7 +98,9 @@ export default function StoryInputScreen() {
   // Set navigation options
   useEffect(() => {
     navigation.setOptions(
-      prefillPerson
+      isEdit
+        ? { title: t('addStory.editTitle') }
+        : prefillPerson
         ? {
             headerTitle: () => (
               <RNText style={styles.headerTitle} numberOfLines={1}>
@@ -94,13 +111,16 @@ export default function StoryInputScreen() {
           }
         : { title: t('addStory.title') }
     );
-  }, [navigation, prefillPerson, t]);
+  }, [navigation, prefillPerson, isEdit, t]);
 
   // Handle back button and unsaved changes
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (storyText.trim().length > 0 && !isProcessing) {
+        const dirty = isEdit
+          ? storyText !== (editStory?.content ?? '')
+          : storyText.trim().length > 0;
+        if (dirty && !isProcessing) {
           setUnsavedDialogVisible(true);
           return true; // Prevent default back action
         }
@@ -110,7 +130,7 @@ export default function StoryInputScreen() {
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
       return () => subscription.remove();
-    }, [storyText, isProcessing])
+    }, [storyText, isProcessing, isEdit, editStory])
   );
 
   const handleDiscard = () => {
@@ -131,31 +151,48 @@ export default function StoryInputScreen() {
 
   const handleSubmit = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
+      fzAlert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
-    // Check if API key is set for selected model
+    if (isEdit) {
+      await saveEdit();
+      return;
+    }
+
+    // No AI key → the story is still saved, just not extracted.
     if (!hasActiveApiKey()) {
-      Alert.alert(
-        t('addStory.keyRequiredTitle'),
-        t('addStory.keyRequiredMessage'),
-        [
-          { text: t('addStory.goToSettings'), onPress: () => router.push('/settings') },
-          {
-            text: t('addStory.saveWithoutAi'),
-            onPress: () => saveStoryOnly(),
-          },
-          { text: t('common.cancel'), style: 'cancel' },
-        ]
-      );
+      await saveStoryOnly();
       return;
     }
 
-    await processStoryWithAI();
+    // Retry after a failed extraction reuses the already-saved story.
+    await processStoryWithAI(currentStoryId ?? undefined);
+  };
+
+  const saveEdit = async () => {
+    setIsProcessing(true);
+    try {
+      await updateStory.mutateAsync({ id: editStoryId!, content: storyText });
+      router.back();
+    } catch (error) {
+      fzAlert(t('common.error'), t('addStory.saveFailed'));
+      devLogger.error('Failed to update story', { error, storyId: editStoryId });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const saveStoryOnly = async () => {
+    if (storyText.trim().length < 10) {
+      fzAlert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
+      return;
+    }
+    // Already saved by a failed extraction attempt — don't duplicate it.
+    if (currentStoryId) {
+      router.back();
+      return;
+    }
     setIsProcessing(true);
     try {
       await createStory.mutateAsync({
@@ -166,7 +203,7 @@ export default function StoryInputScreen() {
 
       router.back();
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.saveFailed'));
+      fzAlert(t('common.error'), t('addStory.saveFailed'));
       devLogger.error('Failed to save story', { error, storyText: storyText.substring(0, 50) });
     } finally {
       setIsProcessing(false);
@@ -247,7 +284,13 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         });
       }
 
-      buttons.push({ text: t('addStory.addAnother'), onPress: () => setStoryText('') });
+      buttons.push({
+        text: t('addStory.addAnother'),
+        onPress: () => {
+          setStoryText('');
+          setCurrentStoryId(null);
+        },
+      });
 
       if (result.debugInfo) {
         setDebugInfo(result.debugInfo);
@@ -257,10 +300,10 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         });
       }
 
-      Alert.alert(t('addStory.successTitle'), message, buttons);
+      fzAlert(t('addStory.successTitle'), message, buttons);
     } catch (error: any) {
       devLogger.ai('AI extraction failed', { error, storyId: currentStoryId });
-      Alert.alert(
+      fzAlert(
         t('addStory.extractionFailedTitle'),
         t('addStory.extractionFailedMessage', {
           error: error.message || t('common.unknownError'),
@@ -274,7 +317,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
-      Alert.alert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
+      fzAlert(t('addStory.invalidKeyTitle'), t('addStory.invalidKeyMessage'));
       return;
     }
 
@@ -282,15 +325,15 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
       await setApiKey(tempApiKey.trim());
       setApiKeyDialogVisible(false);
       setTempApiKey('');
-      Alert.alert(t('common.success'), t('addStory.keySaved'));
+      fzAlert(t('common.success'), t('addStory.keySaved'));
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.keySaveFailed'));
+      fzAlert(t('common.error'), t('addStory.keySaveFailed'));
     }
   };
 
   const handleShowPrompt = async () => {
     if (storyText.trim().length < 10) {
-      Alert.alert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
+      fzAlert(t('addStory.tooShortTitle'), t('addStory.tooShortMessage'));
       return;
     }
 
@@ -311,13 +354,13 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
       setPromptPreviewText(prompt);
       setPromptPreviewDialogVisible(true);
     } catch (error) {
-      Alert.alert(t('common.error'), t('addStory.promptFailed'));
+      fzAlert(t('common.error'), t('addStory.promptFailed'));
     }
   };
 
   const handleCopyPrompt = async () => {
     await Clipboard.setStringAsync(promptPreviewText);
-    Alert.alert(t('addStory.copiedTitle'), t('addStory.promptCopied'));
+    fzAlert(t('addStory.copiedTitle'), t('addStory.promptCopied'));
   };
 
   const handleAmbiguityResolved = (resolutions: { [name: string]: string | 'NEW' | 'IGNORE' }) => {
@@ -351,14 +394,18 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
     }, 100);
   };
 
-  const handleRemovePerson = (id: string) => {
-    setSelectedPersonIds((prev) => prev.filter((pId) => pId !== id));
+  const togglePerson = (id: string) => {
+    setSelectedPersonIds((prev) =>
+      prev.includes(id) ? prev.filter((pId) => pId !== id) : [...prev, id]
+    );
   };
 
   const selectedPeopleObjects = allPeople?.filter((p) => selectedPersonIds.includes(p.id)) || [];
 
   const wordCount = storyText.trim().split(/\s+/).filter(Boolean).length;
   const estimatedCost = wordCount > 0 ? '$0.02' : '$0.00';
+  const hasKey = hasActiveApiKey();
+  const canSave = !isProcessing && storyText.trim().length >= 10;
 
   return (
     <View style={styles.container}>
@@ -368,91 +415,98 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <ScrollView style={styles.scrollContent} contentContainerStyle={styles.content}>
-          {/* Main Input */}
-          <MentionTextInput
-            placeholder={
-              prefillPerson
-                ? t('addStory.placeholderPerson', { name: prefillPerson.name })
-                : t('addStory.placeholder')
-            }
-            value={storyText}
-            onChangeText={setStoryText}
-            numberOfLines={16}
-            style={styles.input}
-          />
-
-          {/* Explicitly Tagged People Chips */}
-          {selectedPersonIds.length > 0 && (
-            <View style={styles.chipsContainer}>
-              <Text style={[fzText.label, { marginRight: 8 }]}>
-                {t('addStory.tagged')}
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {selectedPeopleObjects.map((person) => (
-                  <Chip
-                    key={person.id}
-                    avatar={<Avatar name={person.name} photoPath={person.photoPath} size={24} />}
-                    onClose={() => handleRemovePerson(person.id)}
-                    style={styles.chip}
-                    textStyle={styles.chipText}
-                  >
-                    {person.name}
-                  </Chip>
-                ))}
-              </ScrollView>
+        <ScrollView
+          style={styles.scrollContent}
+          contentContainerStyle={[styles.content, { paddingBottom: 120 + insets.bottom }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <FormSection plain title={t('addStory.people')}>
+            <View style={styles.pillRow}>
+              {selectedPeopleObjects.map((person) => (
+                <Pill
+                  key={person.id}
+                  label={person.name}
+                  selected
+                  onClose={() => togglePerson(person.id)}
+                />
+              ))}
+              <Pill
+                icon="plus"
+                label={t('addStory.tagPeople')}
+                variant="outline"
+                onPress={() => setPickerOpen(true)}
+              />
             </View>
-          )}
+          </FormSection>
 
-          {/* Stats Bar */}
-          <View style={styles.statsBar}>
-            <Text style={fzText.meta}>{wordCount} words</Text>
-            <Text style={[fzText.meta, { opacity: 0.4 }]}>•</Text>
-            <Text style={fzText.meta}>~{estimatedCost}</Text>
-          </View>
+          <FormSection plain title={t('addStory.story')}>
+            <MentionTextInput
+              placeholder={
+                prefillPerson
+                  ? t('addStory.placeholderPerson', { name: prefillPerson.name })
+                  : t('addStory.placeholder')
+              }
+              value={storyText}
+              onChangeText={setStoryText}
+              numberOfLines={12}
+              filled
+              style={styles.input}
+            />
+            <View style={styles.statsBar}>
+              <Text style={fzText.meta}>{t('addStory.words', { count: wordCount })}</Text>
+              {hasKey && (
+                <>
+                  <Text style={fzText.meta}>·</Text>
+                  <Text style={fzText.meta}>~{estimatedCost}</Text>
+                </>
+              )}
+            </View>
+          </FormSection>
 
-          {/* Examples Hint */}
           <View style={styles.examplesSection}>
             <Text style={fzText.label}>{t('addStory.examples')}</Text>
             <Text style={styles.example}>{t('addStory.example1')}</Text>
             <Text style={styles.example}>{t('addStory.example2')}</Text>
           </View>
 
-          <View style={styles.spacer} />
+          <Pressable
+            onPress={handleShowPrompt}
+            disabled={!canSave}
+            style={[styles.devLink, !canSave && styles.disabled]}
+          >
+            <Text style={fzText.meta}>{t('addStory.showPrompt')}</Text>
+          </Pressable>
         </ScrollView>
 
-        {/* Fixed Bottom Action */}
-        <View style={styles.bottomAction}>
-          <View style={styles.actionRow}>
-            <Button
-              mode="contained"
-              buttonColor={fz.ink}
-              textColor={fz.paper}
-              onPress={handleSubmit}
-              loading={isProcessing}
-              disabled={isProcessing || storyText.trim().length < 10}
-              style={styles.submitButton}
-              contentStyle={styles.submitButtonContent}
+        <View style={[styles.bottomAction, { paddingBottom: fz.s.md + insets.bottom }]}>
+          {hasKey && !isEdit && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={saveStoryOnly}
+              disabled={!canSave}
+              style={[styles.secondaryBtn, !canSave && styles.disabled]}
             >
-              {isProcessing
-                ? t('addStory.processing')
-                : hasActiveApiKey()
-                  ? t('addStory.saveExtract')
-                  : t('addStory.saveStory')}
-            </Button>
-          </View>
-
-          {/* DEV Button */}
-          <Button
-            mode="text"
-            onPress={handleShowPrompt}
-            disabled={storyText.trim().length < 10}
-            style={styles.devButton}
-            icon="code-tags"
-            compact
+              <Text style={fzText.btnOutline}>{t('addStory.saveOnly')}</Text>
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleSubmit}
+            disabled={!canSave}
+            style={[styles.primaryBtn, !canSave && styles.disabled]}
           >
-            {t('addStory.showPrompt')}
-          </Button>
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={fzText.btn}>
+                {isEdit
+                  ? t('common.save')
+                  : hasKey
+                    ? t('addStory.saveExtract')
+                    : t('addStory.saveStory')}
+              </Text>
+            )}
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
 
@@ -599,7 +653,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               labelStyle={styles.dialogFont}
               onPress={() => {
                 Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
-                Alert.alert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
+                fzAlert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
               }}
             >
               {t('addStory.copyAll')}
@@ -611,11 +665,14 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         </Dialog>
       </Portal>
 
-      <PersonSelector
-        visible={personSelectorVisible}
-        onDismiss={() => setPersonSelectorVisible(false)}
-        onSelect={setSelectedPersonIds}
-        initialSelectedIds={selectedPersonIds}
+      <PersonPickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('addStory.people')}
+        people={allPeople ?? []}
+        selectedIds={selectedPersonIds}
+        onToggle={togglePerson}
+        multi
       />
 
       <AmbiguityResolutionDialog
@@ -642,83 +699,68 @@ const styles = StyleSheet.create({
   content: {
     padding: fz.s.edge,
     paddingTop: fz.s.md,
-    paddingBottom: 140,
   },
   input: {
-    minHeight: 280,
-    textAlignVertical: 'top',
-    backgroundColor: fz.card,
-    fontSize: 16,
-    lineHeight: 24,
+    minHeight: 240,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: fz.s.sm,
   },
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: fz.s.sm,
     marginTop: fz.s.md,
-    paddingHorizontal: 4,
   },
   examplesSection: {
-    marginTop: fz.s.lg,
-    padding: fz.s.lg,
-    backgroundColor: fz.surfaceSoft,
-    borderRadius: fz.rCard,
+    paddingTop: fz.s.lg,
+    borderTopWidth: 1,
+    borderTopColor: fz.hairline,
   },
   example: {
     ...fzText.sub,
-    marginBottom: 6,
+    marginTop: fz.s.sm,
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  devLink: {
+    alignSelf: 'center',
+    marginTop: fz.s.lg,
+    padding: fz.s.sm,
   },
   bottomAction: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    gap: fz.s.sm,
     backgroundColor: fz.paper,
-    padding: fz.s.lg,
-    paddingBottom: 24,
+    paddingHorizontal: fz.s.edge,
+    paddingTop: fz.s.md,
     borderTopWidth: 1,
     borderTopColor: fz.hairline,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
   },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tagButton: {
-    marginRight: 8,
-    backgroundColor: '#e3f2fd',
-  },
-  submitButton: {
+  primaryBtn: {
     flex: 1,
+    backgroundColor: fz.ink,
     borderRadius: fz.rButton,
-  },
-  submitButtonContent: {
-    paddingVertical: 8, // Reduced slightly to align with icon button
-  },
-  chipsContainer: {
-    flexDirection: 'row',
+    paddingVertical: 14,
     alignItems: 'center',
-    paddingHorizontal: 4,
-    marginTop: 8,
-    marginBottom: 4,
   },
-  chipsLabel: {
-    marginRight: 8,
-    opacity: 0.6,
+  secondaryBtn: {
+    backgroundColor: fz.card,
+    borderWidth: 1.5,
+    borderColor: fz.outline,
+    borderRadius: fz.rButton,
+    paddingVertical: 14,
+    paddingHorizontal: fz.s.xl,
+    alignItems: 'center',
   },
-  chip: {
-    marginRight: 8,
-    borderRadius: fz.rPill,
-  },
-  chipText: {
-    fontFamily: fz.font,
+  disabled: {
+    opacity: 0.4,
   },
   dialog: {
     borderRadius: fz.rCard,
@@ -729,12 +771,6 @@ const styles = StyleSheet.create({
   },
   dialogFont: {
     fontFamily: fz.font,
-  },
-  devButton: {
-    opacity: 0.5,
-  },
-  spacer: {
-    height: 20,
   },
   dialogText: {
     marginBottom: 8,

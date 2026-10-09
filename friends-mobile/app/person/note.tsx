@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { appendNote, entryText, parseNotes, replaceNote } from '@/lib/people/not
 import { formatShortDate } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { NoteScreenShell } from '@/components/person/NoteScreenShell';
+import { fzAlert } from '@/lib/utils/confirm';
 
 /** One note, full screen: read mode for existing notes, editor for new ones (or `edit=1`). */
 export default function NoteScreen() {
@@ -33,7 +34,7 @@ export default function NoteScreen() {
       await updatePerson.mutateAsync({ id: personId!, notes });
       router.back();
     } catch {
-      Alert.alert(t('common.error'), t('person.notesSaveError'));
+      fzAlert(t('common.error'), t('person.notesSaveError'));
     }
   };
 

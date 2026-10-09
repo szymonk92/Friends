@@ -1,16 +1,21 @@
-import { View, StyleSheet } from 'react-native';
-import { Card, Text, Divider, List, Switch, SegmentedButtons } from 'react-native-paper';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { IconButton, Switch } from 'react-native-paper';
 import { router } from 'expo-router';
-import { type BirthdayReminderSettings } from '@/lib/notifications/birthday-reminders';
-import type { Person } from '@/lib/db/schema';
+import {
+  addBirthdayToCalendar,
+  scheduleBirthdayReminders,
+  sortByNextBirthday,
+  type BirthdayReminderSettings,
+} from '@/lib/notifications/birthday-reminders';
+import { usePeople, useUpdatePerson } from '@/hooks/usePeople';
+import { fzAlert } from '@/lib/utils/confirm';
+import { foldText, formatShortDate } from '@/lib/utils/format';
+import { SearchField } from '@/components/SearchField';
 import { useTranslation } from 'react-i18next';
-
-interface UpcomingBirthday {
-  person: Person;
-  daysUntil: number;
-  nextBirthday: Date;
-  age: number;
-}
+import { FormSection } from '@/components/FormKit';
+import { PillGroup } from '@/components/PillGroup';
+import { fz, fzText } from '@/lib/design/tokens';
 
 interface BirthdayReminderSettingsProps {
   birthdaySettings: BirthdayReminderSettings | null;
@@ -19,154 +24,132 @@ interface BirthdayReminderSettingsProps {
     key: K,
     value: BirthdayReminderSettings[K]
   ) => void;
-  upcomingBirthdays: UpcomingBirthday[];
 }
 
 export default function BirthdayReminderSettings({
   birthdaySettings,
   savingBirthdaySettings,
   handleBirthdaySettingChange,
-  upcomingBirthdays,
 }: BirthdayReminderSettingsProps) {
   const { t } = useTranslation();
+  const { data: allPeople = [] } = usePeople({ entityType: 'all' });
+  const updatePerson = useUpdatePerson();
+  const [query, setQuery] = useState('');
+  const birthdays = sortByNextBirthday(allPeople);
+  const q = foldText(query.trim());
+  const shown = q
+    ? birthdays.filter(({ person }) => foldText(`${person.name} ${person.nickname ?? ''}`).includes(q))
+    : birthdays;
+
+  const toggleReminder = async (id: string, on: boolean) => {
+    try {
+      await updatePerson.mutateAsync({ id, birthdayReminder: on });
+      await scheduleBirthdayReminders();
+    } catch (error) {
+      console.error('Birthday reminder toggle failed:', error);
+      fzAlert(t('common.error'), t('settingsScreen.saveFailed'));
+    }
+  };
+
+  const addToCalendar = async (name: string, dateOfBirth: Date) => {
+    try {
+      await addBirthdayToCalendar(dateOfBirth, t('birthdayReminders.calendarTitle', { name }));
+    } catch (error) {
+      console.error('Add birthday to calendar failed:', error);
+      fzAlert(t('common.error'), t('birthdayReminders.calendarFailed'));
+    }
+  };
+
+  if (!birthdaySettings) return null;
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          {t('birthdayReminders.title')}
-        </Text>
-        <Divider style={styles.divider} />
+    <FormSection title={t('birthdayReminders.title')} hint={t('birthdayReminders.perPersonHint')}>
+      <View style={styles.row}>
+        <View style={styles.rowText}>
+          <Text style={fzText.name}>{t('birthdayReminders.onDay')}</Text>
+          <Text style={fzText.sub}>{t('birthdayReminders.onDayDesc')}</Text>
+        </View>
+        <Switch
+          value={birthdaySettings.remindOnDay}
+          onValueChange={(value) => handleBirthdaySettingChange('remindOnDay', value)}
+          disabled={savingBirthdaySettings}
+          color={fz.ink}
+        />
+      </View>
 
-        {birthdaySettings && (
-          <>
-            <List.Item
-              title={t('birthdayReminders.enable')}
-              description={t('birthdayReminders.enableDesc')}
-              left={(props) => <List.Icon {...props} icon="bell" />}
-              right={() => (
-                <Switch
-                  value={birthdaySettings.enabled}
-                  onValueChange={(value) => handleBirthdaySettingChange('enabled', value)}
-                  disabled={savingBirthdaySettings}
-                />
-              )}
-            />
+      <Text style={[fzText.name, styles.gap]}>{t('birthdayReminders.daysBefore')}</Text>
+      <PillGroup
+        style={styles.pills}
+        value={String(birthdaySettings.daysBefore)}
+        onChange={(value) => handleBirthdaySettingChange('daysBefore', parseInt(value, 10))}
+        options={[
+          { value: '0', label: t('birthdayReminders.none') },
+          { value: '1', label: '1' },
+          { value: '3', label: '3' },
+          { value: '7', label: '7' },
+        ]}
+      />
 
-            {birthdaySettings.enabled && (
-              <>
-                <List.Item
-                  title={t('birthdayReminders.onDay')}
-                  description={t('birthdayReminders.onDayDesc')}
-                  left={(props) => <List.Icon {...props} icon="cake-variant" />}
-                  right={() => (
-                    <Switch
-                      value={birthdaySettings.remindOnDay}
-                      onValueChange={(value) => handleBirthdaySettingChange('remindOnDay', value)}
-                    />
-                  )}
-                />
-
-                <View style={styles.settingRow}>
-                  <Text variant="bodyMedium">{t('birthdayReminders.daysBefore')}</Text>
-                  <SegmentedButtons
-                    value={String(birthdaySettings.daysBefore)}
-                    onValueChange={(value) =>
-                      handleBirthdaySettingChange('daysBefore', parseInt(value))
-                    }
-                    buttons={[
-                      { value: '0', label: t('birthdayReminders.none') },
-                      { value: '1', label: '1' },
-                      { value: '3', label: '3' },
-                      { value: '7', label: '7' },
-                    ]}
-                    style={styles.segmentedButtons}
-                  />
-                </View>
-
-                <List.Item
-                  title={t('birthdayReminders.onlyImportant')}
-                  description={t('birthdayReminders.onlyImportantDesc')}
-                  left={(props) => <List.Icon {...props} icon="star" />}
-                  right={() => (
-                    <Switch
-                      value={birthdaySettings.onlyImportantPeople}
-                      onValueChange={(value) =>
-                        handleBirthdaySettingChange('onlyImportantPeople', value)
-                      }
-                    />
-                  )}
-                />
-
-                {birthdaySettings.onlyImportantPeople && (
-                  <View style={styles.settingRow}>
-                    <Text variant="bodyMedium">{t('birthdayReminders.minImportance')}</Text>
-                    <SegmentedButtons
-                      value={birthdaySettings.importanceThreshold}
-                      onValueChange={(value) =>
-                        handleBirthdaySettingChange('importanceThreshold', value)
-                      }
-                      buttons={[
-                        { value: 'important', label: t('birthdayReminders.important') },
-                        { value: 'very_important', label: t('birthdayReminders.very') },
-                        { value: 'critical', label: t('birthdayReminders.critical') },
-                      ]}
-                      style={styles.segmentedButtons}
-                    />
-                  </View>
-                )}
-              </>
-            )}
-
-            {upcomingBirthdays.length > 0 && (
-              <View style={styles.upcomingContainer}>
-                <Text variant="titleSmall" style={styles.upcomingTitle}>
-                  {t('birthdayReminders.upcoming')}
-                </Text>
-                {upcomingBirthdays.slice(0, 5).map((item) => (
-                  <List.Item
-                    key={item.person.id}
-                    title={item.person.name}
-                    description={t('birthdayReminders.inDays', { days: item.daysUntil, age: item.age })}
-                    left={(props) => <List.Icon {...props} icon="cake" />}
-                    onPress={() => router.push(`/person/${item.person.id}`)}
-                  />
-                ))}
-              </View>
-            )}
-          </>
-        )}
-      </Card.Content>
-    </Card>
+      {birthdays.length > 0 && (
+        <>
+          <Text style={[fzText.label, styles.upcomingTitle]}>{t('birthdayReminders.people')}</Text>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('comparePicker.search')}
+            style={styles.search}
+          />
+        </>
+      )}
+      {q && shown.length === 0 && (
+        <Text style={[fzText.sub, styles.noMatch]}>{t('birthdayReminders.noMatch')}</Text>
+      )}
+      {shown.map(({ person, daysUntil, nextBirthday, age }) => (
+        <View key={person.id} style={styles.row}>
+          <Pressable
+            style={styles.rowText}
+            onPress={() => router.push(`/person/${person.id}`)}
+            accessibilityRole="button"
+          >
+            <Text style={fzText.name} numberOfLines={1}>{person.name}</Text>
+            <Text style={fzText.sub}>
+              {formatShortDate(nextBirthday)} ·{' '}
+              {daysUntil === 0
+                ? t('birthdayReminders.today', { age })
+                : t('birthdayReminders.inDays', { days: daysUntil, age })}
+            </Text>
+          </Pressable>
+          <IconButton
+            icon="calendar-plus"
+            size={20}
+            iconColor={fz.ink}
+            style={styles.iconButton}
+            accessibilityLabel={t('birthdayReminders.addToCalendar')}
+            onPress={() => addToCalendar(person.name, person.dateOfBirth!)}
+          />
+          <Switch
+            value={!!person.birthdayReminder}
+            onValueChange={(on) => toggleReminder(person.id, on)}
+            color={fz.ink}
+            accessibilityLabel={t('dates.reminderOn')}
+          />
+        </View>
+      ))}
+    </FormSection>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-    marginHorizontal: 16,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: fz.s.md,
+    paddingVertical: fz.s.sm,
   },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  divider: {
-    marginBottom: 16,
-  },
-  settingRow: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  segmentedButtons: {
-    marginTop: 8,
-  },
-  upcomingContainer: {
-    marginTop: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 8,
-  },
-  upcomingTitle: {
-    marginBottom: 8,
-    marginLeft: 8,
-    marginTop: 8,
-  },
+  rowText: { flex: 1, gap: 2 },
+  gap: { marginTop: fz.s.md },
+  pills: { marginTop: fz.s.sm },
+  upcomingTitle: { marginTop: fz.s.xl, marginBottom: fz.s.xs },
+  iconButton: { margin: 0 },
+  search: { marginTop: fz.s.sm, marginBottom: fz.s.xs },
+  noMatch: { paddingVertical: fz.s.md, textAlign: 'center' },
 });

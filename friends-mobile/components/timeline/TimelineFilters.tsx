@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { Chip, Menu, useTheme, Icon } from 'react-native-paper';
 import type { PersonWithPhoto } from '@/hooks/usePeople';
 import { useTranslation } from 'react-i18next';
+import { fz } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { PersonPickerModal } from '@/components/PersonPickerModal';
 
 interface EventTypeOption {
   value: string;
@@ -23,6 +25,7 @@ interface TimelineFiltersProps {
   getPersonName: (id: string) => string;
 }
 
+// Same chip row as the Search categories: paper background, fz Pills, edge padding.
 export default function TimelineFilters({
   filtersVisible,
   filterPersonId,
@@ -36,7 +39,6 @@ export default function TimelineFilters({
   getPersonName,
 }: TimelineFiltersProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   // Sort event types to move selected to the front
   const sortedEventTypes = useMemo(() => {
@@ -51,106 +53,53 @@ export default function TimelineFilters({
   if (!filtersVisible) return null;
 
   return (
-    <View style={styles.filtersSection}>
-      <View style={styles.filtersContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {/* Person filter */}
-          <Menu
-            visible={personMenuVisible}
-            onDismiss={() => setPersonMenuVisible(false)}
-            anchor={
-              <Chip
-                icon={({ size, color }) => (
-                  <Icon
-                    source="account"
-                    size={size}
-                    color={filterPersonId ? theme.colors.onPrimary : color}
-                  />
-                )}
-                onPress={() => setPersonMenuVisible(true)}
-                onClose={filterPersonId ? () => setFilterPersonId(null) : undefined}
-                selected={!!filterPersonId}
-                style={[
-                  styles.filterChip,
-                  filterPersonId ? { backgroundColor: theme.colors.primary } : null,
-                ]}
-                selectedColor={filterPersonId ? theme.colors.onPrimary : undefined}
-              >
-                {filterPersonId ? getPersonName(filterPersonId) : t('timeline.allPeople')}
-              </Chip>
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setFilterPersonId(null);
-                setPersonMenuVisible(false);
-              }}
-              title={t('timeline.allPeople')}
-            />
-            {people.map((person) => (
-              <Menu.Item
-                key={person.id}
-                onPress={() => {
-                  setFilterPersonId(person.id);
-                  setPersonMenuVisible(false);
-                }}
-                title={person.name}
-              />
-            ))}
-          </Menu>
+    <View style={styles.section}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.row}
+        contentContainerStyle={styles.rowContent}
+      >
+        <Pill
+          icon="users"
+          label={filterPersonId ? getPersonName(filterPersonId) : t('timeline.allPeople')}
+          selected={!!filterPersonId}
+          onPress={() => setPersonMenuVisible(true)}
+          onClose={filterPersonId ? () => setFilterPersonId(null) : undefined}
+        />
 
-          {/* Event type filters */}
-          <Chip
-            icon="filter-variant"
-            onPress={() => setFilterEventType(null)}
-            selected={!filterEventType}
-            style={styles.filterChip}
-          >
-            {t('timeline.allTypes')}
-          </Chip>
-          {sortedEventTypes.map((type) => {
-            const isSelected = filterEventType === type.value;
-            return (
-              <Chip
-                key={type.value}
-                icon={({ size, color }) => (
-                  <Icon
-                    source={type.icon}
-                    size={size}
-                    color={isSelected ? theme.colors.onPrimary : color}
-                  />
-                )}
-                onPress={() => setFilterEventType(isSelected ? null : type.value)}
-                selected={isSelected}
-                style={[styles.filterChip, isSelected && { backgroundColor: theme.colors.primary }]}
-                selectedColor={isSelected ? theme.colors.onPrimary : undefined}
-                showSelectedOverlay={true}
-              >
-                {type.label}
-              </Chip>
-            );
-          })}
-        </ScrollView>
-      </View>
+        <Pill
+          label={t('timeline.allTypes')}
+          selected={!filterEventType}
+          onPress={() => setFilterEventType(null)}
+        />
+        {sortedEventTypes.map((type) => {
+          const isSelected = filterEventType === type.value;
+          return (
+            <Pill
+              key={type.value}
+              label={type.label}
+              selected={isSelected}
+              onPress={() => setFilterEventType(isSelected ? null : type.value)}
+            />
+          );
+        })}
+      </ScrollView>
+
+      <PersonPickerModal
+        visible={personMenuVisible}
+        onClose={() => setPersonMenuVisible(false)}
+        title={t('timeline.pickPerson')}
+        people={people}
+        selectedIds={filterPersonId ? [filterPersonId] : []}
+        onToggle={(id) => setFilterPersonId(id === filterPersonId ? null : id)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  filtersSection: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filtersContainer: {
-    marginTop: 0,
-  },
-  filterScroll: {
-    flexGrow: 0,
-  },
-  filterChip: {
-    marginRight: 8,
-  },
+  section: { backgroundColor: fz.paper },
+  row: { paddingHorizontal: fz.s.edge, flexGrow: 0 },
+  rowContent: { gap: 8, paddingRight: fz.s.edge, paddingBottom: fz.s.md },
 });

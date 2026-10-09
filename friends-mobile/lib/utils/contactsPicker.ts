@@ -1,7 +1,8 @@
 import { tr } from '@/lib/i18n/labels';
 import * as Contacts from 'expo-contacts';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { normalizePhone } from './pii';
+import { fzAlert } from '@/lib/utils/confirm';
 
 export type PickedContact = {
   name?: string;
@@ -40,7 +41,7 @@ export async function pickContact(): Promise<PickedContact | null> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     if (/cancel/i.test(msg)) return null;
-    Alert.alert(tr('importContacts.openFailed', 'Could not open contacts'), msg);
+    fzAlert(tr('importContacts.openFailed', 'Could not open contacts'), msg);
     return null;
   }
 }
