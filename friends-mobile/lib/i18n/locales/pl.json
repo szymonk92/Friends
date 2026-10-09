@@ -177,7 +177,15 @@
     "sideEffectsFailedMessage": "Nie udało się zapisać partnera lub cech.",
     "allNotes": "Wszystkie notatki ({{count}})",
     "deleteNote": "Usuń notatkę",
-    "deleteNoteConfirm": "Ta notatka zostanie usunięta."
+    "deleteNoteConfirm": "Ta notatka zostanie usunięta.",
+    "diet": {
+      "title": "Dieta i alkohol",
+      "vegetarian": "Wegetarianizm",
+      "vegan": "Weganizm",
+      "lactoseIntolerant": "Nietolerancja laktozy",
+      "glutenFree": "Bez glutenu",
+      "noAlcohol": "Nie pije"
+    }
   },
   "onboarding": {
     "skip": "Pomiń",

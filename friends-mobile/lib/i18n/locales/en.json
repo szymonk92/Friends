@@ -177,7 +177,15 @@
     "sideEffectsFailedMessage": "Could not write partner or attributes.",
     "allNotes": "All notes ({{count}})",
     "deleteNote": "Delete note",
-    "deleteNoteConfirm": "This note will be removed."
+    "deleteNoteConfirm": "This note will be removed.",
+    "diet": {
+      "title": "Diet & drinks",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "lactoseIntolerant": "Lactose intolerant",
+      "glutenFree": "Gluten-free",
+      "noAlcohol": "Doesn't drink"
+    }
   },
   "onboarding": {
     "skip": "Skip",
