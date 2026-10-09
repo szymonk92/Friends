@@ -391,7 +391,6 @@
     "notFound": "Connection not found",
     "deleteMenu": "Delete connection",
     "addFor": "Add Connection for {{name}}",
-    "addSubtitle": "Select multiple people or tap one for a detailed connection",
     "backToMulti": "Back to Multi-Select",
     "whatAdding": "What are you adding?",
     "kind": {
@@ -431,16 +430,16 @@
     "notesExample": "e.g. Met at Anna's wedding",
     "selectPeople": "Select People",
     "searchPlaceholder": "Search, or type a new name to add…",
-    "searchHint": "Type a name that isn't in the list to add a new person or pet.",
     "addNamed": "Add \"{{name}}\"",
     "newPersonOrPet": "New person or pet — connect now",
-    "noOthers": "No other people found. Add more people first.",
     "qualifierLong": "Qualifier (married, sibling, etc.)",
     "qualifierLongPlaceholder": "e.g., childhood friend, work colleague, cousin",
     "notesPlaceholder": "Where they met, how they get on, past history...",
     "submitOne": "Add Connection",
     "submitMany": "Add {{count}} Connection(s)",
-    "update": "Update Connection"
+    "update": "Update Connection",
+    "choosePeople": "Choose people",
+    "choosePeopleMore": "Add or remove people"
   },
   "profile": {
     "tagsTitle": "Tags",
@@ -479,7 +478,6 @@
     "deletePersonMessage": "Are you sure you want to delete {{name}}? This cannot be undone.",
     "loading": "Loading profile...",
     "notFound": "Person not found",
-    "changePhoto": "Change Photo",
     "viewRelationship": "View Relationship",
     "compareWith": "Compare With…",
     "convertToAdult": "Convert to adult",

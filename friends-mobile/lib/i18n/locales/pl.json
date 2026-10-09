@@ -391,7 +391,6 @@
     "notFound": "Nie znaleziono połączenia",
     "deleteMenu": "Usuń połączenie",
     "addFor": "Dodaj połączenie dla {{name}}",
-    "addSubtitle": "Wybierz kilka osób lub stuknij jedną, aby dodać szczegóły",
     "backToMulti": "Wróć do wyboru wielu osób",
     "whatAdding": "Co dodajesz?",
     "kind": {
@@ -431,16 +430,16 @@
     "notesExample": "np. Poznali się na weselu Ani",
     "selectPeople": "Wybierz osoby",
     "searchPlaceholder": "Szukaj lub wpisz nowe imię, aby dodać…",
-    "searchHint": "Wpisz imię, którego nie ma na liście, aby dodać nową osobę lub zwierzę.",
     "addNamed": "Dodaj „{{name}}”",
     "newPersonOrPet": "Nowa osoba lub zwierzę — połącz teraz",
-    "noOthers": "Nie znaleziono innych osób. Najpierw dodaj więcej osób.",
     "qualifierLong": "Określenie (małżonek, rodzeństwo itd.)",
     "qualifierLongPlaceholder": "np. przyjaciel z dzieciństwa, kolega z pracy, kuzyn",
     "notesPlaceholder": "Gdzie się poznali, jak się dogadują, wspólna historia...",
     "submitOne": "Dodaj połączenie",
     "submitMany": "Dodaj połączenia ({{count}})",
-    "update": "Zaktualizuj połączenie"
+    "update": "Zaktualizuj połączenie",
+    "choosePeople": "Wybierz osoby",
+    "choosePeopleMore": "Dodaj lub usuń osoby"
   },
   "profile": {
     "tagsTitle": "Tagi",
@@ -479,7 +478,6 @@
     "deletePersonMessage": "Czy na pewno chcesz usunąć {{name}}? Tej operacji nie można cofnąć.",
     "loading": "Ładowanie profilu...",
     "notFound": "Nie znaleziono osoby",
-    "changePhoto": "Zmień zdjęcie",
     "viewRelationship": "Zobacz relację",
     "compareWith": "Porównaj z…",
     "convertToAdult": "Zmień na dorosłego",

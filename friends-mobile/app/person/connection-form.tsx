@@ -1,16 +1,12 @@
-import CenteredContainer from '@/components/CenteredContainer';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   Text,
   Button,
-  TextInput,
-  ActivityIndicator,
-  Checkbox,
   IconButton,
   Menu,
 } from 'react-native-paper';
@@ -42,6 +38,7 @@ import { ActionSheet } from '@/components/ActionSheet';
 import { Avatar } from '@/components/Avatar';
 import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
+import { PersonPickerModal } from '@/components/PersonPickerModal';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -97,7 +94,10 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   const [qualifier, setQualifier] = useState('');
   const [notes, setNotes] = useState('');
   const [sinceText, setSinceText] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Add mode is all about picking people — open the picker straight away.
+  const [pickerOpen, setPickerOpen] = useState(mode === 'add');
+  // "Add partner" deep-link picks exactly one person: tap a name and it closes.
+  const pickOne = mode === 'add' && params.relationshipType === 'partner';
   const [pendingPersonName, setPendingPersonName] = useState<string | null>(null);
   const [personType, setPersonType] = useState<'primary' | 'mentioned'>('primary');
   const [newEntityKind, setNewEntityKind] = useState<'person' | 'pet' | 'child'>('person');
@@ -197,47 +197,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     return everyone.find((p) => p.id === otherId) ?? null;
   }, [mode, connection, fromPersonId, everyone]);
 
-  // Filter out the current person and filter by search with ranking
-  const availablePeople = allPeople
-    .filter((p) => p.id !== personId)
-    .filter((p) => {
-      if (!searchQuery) return true;
-
-      const query = searchQuery.toLowerCase();
-      const name = p.name.toLowerCase();
-      const nickname = p.nickname?.toLowerCase() || '';
-
-      if (name === query || nickname === query) return true; // Exact match
-      if (name.startsWith(query) || nickname.startsWith(query)) return true; // Starts with
-      if (name.includes(query) || nickname.includes(query)) return true; // Contains
-
-      return false;
-    })
-    .sort((a, b) => {
-      if (!searchQuery) return 0;
-
-      const query = searchQuery.toLowerCase();
-
-      const getScore = (p: typeof a) => {
-        const name = p.name.toLowerCase();
-        const nickname = p.nickname?.toLowerCase() || '';
-
-        if (name === query || nickname === query) return 3; // Exact match
-        if (name.startsWith(query) || nickname.startsWith(query)) return 2; // Starts with
-        if (name.includes(query) || nickname.includes(query)) return 1; // Contains
-        return 0;
-      };
-
-      const aScore = getScore(a);
-      const bScore = getScore(b);
-
-      if (aScore !== bScore) {
-        return bScore - aScore; // Higher score first
-      }
-
-      // If scores are equal, sort by name
-      return a.name.localeCompare(b.name);
-    });
+  // Everyone except the person we're adding connections for; search lives in the picker.
+  const availablePeople = allPeople.filter((p) => p.id !== personId);
+  // Picker hides anyone already linked to this person (any status — edit the
+  // existing connection instead of adding a duplicate).
+  const connectedIds = new Set(
+    existingConnections.map((c) => (c.person1Id === personId ? c.person2Id : c.person1Id))
+  );
+  const pickablePeople = availablePeople.filter((p) => !connectedIds.has(p.id));
 
   const togglePersonSelection = (personId: string) => {
     setSelectedPersonIds((prev) =>
@@ -245,11 +212,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     );
   };
 
-  const selectSinglePerson = (personId: string) => {
-    setSinglePersonId(personId);
-    setSinglePersonMode(true);
-    setSelectedPersonIds([]);
-  };
   const backToMultiMode = () => {
     setSinglePersonMode(false);
     setSinglePersonId(null);
@@ -266,12 +228,11 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     setSecondParentId(null);
   };
 
-  const handleCreateAndSelectPerson = () => {
-    if (!searchQuery.trim()) return;
-    setPendingPersonName(searchQuery.trim());
+  const handleCreateAndSelectPerson = (name: string) => {
+    setPendingPersonName(name);
     setSinglePersonMode(true);
     setPersonType('primary'); // Default to primary, user can change
-    setSearchQuery('');
+    setSelectedPersonIds([]);
   };
 
   const selectedSinglePerson = useMemo<SelectablePerson | null>(() => {
@@ -582,7 +543,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
               setSpecies('');
               setBirthdayText('');
               setSecondParentId(null);
-              setSearchQuery('');
             },
           },
           {
@@ -656,7 +616,13 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 
   return (
     <FormScreen
-      title={mode === 'add' ? t('connectionForm.addTitle') : t('connectionForm.editTitle')}
+      title={
+        mode === 'edit'
+          ? t('connectionForm.editTitle')
+          : person?.name
+            ? t('connectionForm.addFor', { name: person.name })
+            : t('connectionForm.addTitle')
+      }
       loading={isLoading}
       notFound={notFound}
       notFoundLabel={t('connectionForm.notFound')}
@@ -669,18 +635,6 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             ),
           }}
         />
-      )}
-
-      {/* Edit: the nav bar already says "Edit Connection" — no second title. */}
-      {mode === 'add' && (
-        <>
-          <Text style={fzText.titleLg}>
-            {person?.name
-              ? t('connectionForm.addFor', { name: person.name })
-              : t('connectionForm.addTitle')}
-          </Text>
-          <Text style={[fzText.sub, styles.headerSub]}>{t('connectionForm.addSubtitle')}</Text>
-        </>
       )}
 
       {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
@@ -927,43 +881,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
           {/* Add mode: pick the people first, then define the relationship below. */}
           {mode === 'add' && !singlePersonMode && (
             <FormSection title={t('connectionForm.selectPeople')}>
-              <FormInput
-                placeholder={t('connectionForm.searchPlaceholder')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                left={<TextInput.Icon icon="magnify" />}
-              />
-
-              {searchQuery.trim().length === 0 && (
-                <Text style={[fzText.sub, styles.searchHint]}>
-                  {t('connectionForm.searchHint')}
-                </Text>
-              )}
-
-              {loadingPeople && (
-                <CenteredContainer style={styles.centered}>
-                  <ActivityIndicator color={fz.ink} />
-                </CenteredContainer>
-              )}
-
-              {searchQuery.trim().length > 0 && (
-                <TouchableOpacity
-                  style={styles.listRow}
-                  onPress={handleCreateAndSelectPerson}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.listAvatar, { backgroundColor: fz.ink }]}>
-                    <LineIcon name="plus" size={16} color="#fff" />
-                  </View>
-                  <View style={styles.listRowBody}>
-                    <Text style={fzText.name}>{t('connectionForm.addNamed', { name: searchQuery })}</Text>
-                    <Text style={fzText.sub}>{t('connectionForm.newPersonOrPet')}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-
               {selectedPersonIds.length > 0 && (
-                <View style={styles.pillRow}>
+                <View style={[styles.pillRow, styles.selectedPills]}>
                   {selectedPersonIds.map((id) => {
                     const person = allPeople.find((p) => p.id === id);
                     return person ? (
@@ -976,37 +895,34 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
                   })}
                 </View>
               )}
-
-              {availablePeople.length === 0 && !loadingPeople && !searchQuery && (
-                <Text style={[fzText.sub, styles.emptyText]}>
-                  {t('connectionForm.noOthers')}
-                </Text>
-              )}
-
-              {availablePeople.length > 0 && (
-                <ScrollView style={styles.peopleList} nestedScrollEnabled>
-                  {availablePeople.map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={styles.listRow}
-                      activeOpacity={0.7}
-                      onPress={() => togglePersonSelection(p.id)}
-                    >
-                      <TouchableOpacity onPress={() => selectSinglePerson(p.id)}>
-                        <Avatar name={p.name} photoPath={p.photoPath} />
-                      </TouchableOpacity>
-                      <View style={styles.listRowBody}>
-                        <Text style={fzText.name}>{p.name}</Text>
-                        <Text style={fzText.sub}>{p.nickname || p.relationshipType}</Text>
-                      </View>
-                      <Checkbox
-                        status={selectedPersonIds.includes(p.id) ? 'checked' : 'unchecked'}
-                        color={fz.ink}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
+              <Button
+                mode="outlined"
+                icon="account-search"
+                onPress={() => setPickerOpen(true)}
+                loading={loadingPeople}
+                textColor={fz.ink}
+                style={styles.pickButton}
+                labelStyle={fzText.btnOutline}
+              >
+                {selectedPersonIds.length > 0
+                  ? t('connectionForm.choosePeopleMore')
+                  : t('connectionForm.choosePeople')}
+              </Button>
+              <PersonPickerModal
+                visible={pickerOpen}
+                onClose={() => setPickerOpen(false)}
+                title={t('connectionForm.selectPeople')}
+                people={pickablePeople}
+                selectedIds={selectedPersonIds}
+                onToggle={pickOne ? (id) => setSelectedPersonIds([id]) : togglePersonSelection}
+                multi={!pickOne}
+                create={{
+                  onCreate: handleCreateAndSelectPerson,
+                  label: (name) => t('connectionForm.addNamed', { name }),
+                  hint: t('connectionForm.newPersonOrPet'),
+                  placeholder: t('connectionForm.searchPlaceholder'),
+                }}
+              />
             </FormSection>
           )}
 
@@ -1089,17 +1005,15 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
 }
 
 const styles = StyleSheet.create({
-  headerSub: {
-    marginTop: 6,
-    marginBottom: fz.s.lg,
+  selectedPills: { marginBottom: fz.s.sm },
+  pickButton: {
+    borderColor: fz.outline,
+    borderRadius: fz.rButton,
   },
   backLink: {
     alignSelf: 'flex-start',
     marginBottom: 4,
     marginLeft: -8,
-  },
-  centered: {
-    padding: 20,
   },
   editPersonRow: {
     marginBottom: fz.s.lg,
@@ -1150,35 +1064,6 @@ const styles = StyleSheet.create({
   lastInput: {
     marginBottom: 0,
   },
-  emptyText: {
-    textAlign: 'center',
-    padding: 16,
-  },
-  searchHint: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  peopleList: {
-    maxHeight: 320,
-    marginTop: fz.s.sm,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-  listRowBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  listAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   submitButton: {
     marginTop: 8,
     marginBottom: 8,
@@ -1186,8 +1071,5 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
-  },
-  deleteMenuLabel: {
-    color: '#d32f2f',
   },
 });
