@@ -42,7 +42,7 @@ import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
 import { PersonPickerModal } from '@/components/PersonPickerModal';
 import { relationshipTypeLabel, personTypeLabel } from '@/lib/i18n/labels';
-import { IconCircle } from '@/components/IconCircle';
+import { headerIconOptions } from '@/components/IconCircle';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -653,11 +653,7 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
     >
       {mode === 'edit' && (
         <Stack.Screen
-          options={{
-            headerRight: () => (
-              <IconCircle icon="more" onPress={() => setMenuVisible(true)} />
-            ),
-          }}
+          options={headerIconOptions('right', { icon: 'more', onPress: () => setMenuVisible(true) })}
         />
       )}
 

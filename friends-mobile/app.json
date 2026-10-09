@@ -45,6 +45,13 @@
       ],
       "expo-localization",
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "FriendZ adds birthdays you choose to your calendar.",
+          "remindersPermission": "FriendZ adds birthday reminders you choose to your reminders."
+        }
+      ],
+      [
         "expo-contacts",
         {
           "contactsPermission": "FriendZ reads your contacts so you can import the people you know, with their names, phone numbers, emails, birthdays and photos."

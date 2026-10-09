@@ -1,7 +1,7 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
-import { IconCircle } from '@/components/IconCircle';
+import { headerIconOptions } from '@/components/IconCircle';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -153,10 +153,8 @@ export default function PersonProfileScreen() {
           headerTintColor: fz.ink,
           headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
           headerShadowVisible: false,
-          headerRight: () => (
-            // Same ⋮ as the people list header.
-            <IconCircle icon="more" onPress={() => setMenuVisible(true)} />
-          ),
+          // Same ⋮ as the people list header.
+          ...headerIconOptions('right', { icon: 'more', onPress: () => setMenuVisible(true) }),
         }}
       />
       <View style={styles.wrapper}>

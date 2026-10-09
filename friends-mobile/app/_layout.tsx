@@ -90,6 +90,7 @@ export default Sentry.wrap(function RootLayout() {
     ...FontAwesome.font,
   });
   const [appReady, setAppReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const splashShownAt = useRef(0);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -124,13 +125,9 @@ export default Sentry.wrap(function RootLayout() {
           const onboardingComplete = await checkOnboardingComplete();
           appLogger.debug('Onboarding status', { complete: onboardingComplete });
 
-          if (!onboardingComplete) {
-            // Redirect to onboarding after navigation is ready
-            appLogger.info('Redirecting to onboarding');
-            setTimeout(() => {
-              router.replace('/onboarding');
-            }, 100);
-          }
+          // Redirect happens in RootLayoutNav once the Stack is mounted —
+          // navigating while the splash is up remounts this layout in a loop.
+          setNeedsOnboarding(!onboardingComplete);
 
           perf.end(true);
           revealApp();
@@ -150,10 +147,10 @@ export default Sentry.wrap(function RootLayout() {
     return <ChainLockSplash />;
   }
 
-  return <RootLayoutNav />;
+  return <RootLayoutNav needsOnboarding={needsOnboarding} />;
 });
 
-function RootLayoutNav() {
+function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
   const { t } = useTranslation();
   const {
     themeColor, loadThemeColor,
@@ -169,6 +166,14 @@ function RootLayoutNav() {
     loadSelectedModel();
   }, []);
 
+  // Child effects run first, so the Stack below is mounted by now.
+  useEffect(() => {
+    if (needsOnboarding) {
+      appLogger.info('Redirecting to onboarding');
+      router.replace('/onboarding');
+    }
+  }, [needsOnboarding]);
+
   // Force light themes: the app is redesigned to a light B&W FriendZ design
   // (fz.paper surfaces). Following the system dark mode left Paper inputs /
   // dialogs dark-on-light and unreadable. Keep everything light regardless of
@@ -180,7 +185,9 @@ function RootLayoutNav() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={paperTheme}>
           <ThemeProvider value={DefaultTheme}>
-            <Stack>
+            {/* Chevron-only back on iOS: the previous route is often "(tabs)",
+                which has no title, so iOS would label the button "(tabs)". */}
+            <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="person" options={{ headerShown: false }} />
               <Stack.Screen name="import-contacts" options={{ headerShown: false }} />
