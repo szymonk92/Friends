@@ -32,6 +32,7 @@ import { connections, type Connection } from '@/lib/db/schema';
 import { useEntityById } from '@/hooks/useEntityById';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { PillGroup } from '@/components/PillGroup';
 import { useFzAlert } from '@/components/FzDialog';
 import { LineIcon } from '@/components/LineIcon';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
@@ -44,7 +45,6 @@ import { PersonPickerModal } from '@/components/PersonPickerModal';
 import { relationshipTypeLabel, personTypeLabel } from '@/lib/i18n/labels';
 import { IconCircle } from '@/components/IconCircle';
 
-type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
 type ConnectionStatus = NonNullable<Connection['status']>;
 
@@ -53,14 +53,12 @@ type SelectablePerson = Pick<
   'id' | 'name' | 'nickname' | 'personType' | 'relationshipType' | 'photoPath'
 >;
 
-interface ConnectionFormProps {
-  mode: ConnectionFormMode;
-}
-
-export default function ConnectionForm({ mode }: ConnectionFormProps) {
+/** Route: /person/connection-form?personId=… (add) or ?connectionId=… (edit). */
+export default function ConnectionForm() {
   const { t } = useTranslation();
   const { alert, dialog } = useFzAlert();
   const params = useLocalSearchParams();
+  const mode = typeof params.connectionId === 'string' ? 'edit' : 'add';
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const connectionId = mode === 'edit' ? (params.connectionId as string) : undefined;
 
@@ -606,16 +604,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
   // picked people, and edit.
   const detailFields = (
     <FormSection title={t('connectionForm.connectionStatus')} style={sectionStyle}>
-      <View style={styles.pillRow}>
-        {CONNECTION_STATUSES.map((s) => (
-          <Pill
-            key={s.value}
-            label={t(`connectionForm.statuses.${s.value}`, { defaultValue: s.label })}
-            selected={status === s.value}
-            onPress={() => handleStatusChange(s.value)}
-          />
-        ))}
-      </View>
+      <PillGroup
+        options={CONNECTION_STATUSES.map((s) => ({
+          value: s.value,
+          label: t(`connectionForm.statuses.${s.value}`, { defaultValue: s.label }),
+        }))}
+        value={status}
+        onChange={handleStatusChange}
+      />
 
       <FormInput
         label={t('connectionForm.qualifierLong')}
@@ -777,18 +773,14 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
             newEntityKind === 'person' &&
             !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType) && (
               <FormSection title={t('connectionForm.personType')}>
-                <View style={styles.pillRow}>
-                  <Pill
-                    label={t('connectionForm.primary')}
-                    selected={personType === 'primary'}
-                    onPress={() => setPersonType('primary')}
-                  />
-                  <Pill
-                    label={t('connectionForm.mentioned')}
-                    selected={personType === 'mentioned'}
-                    onPress={() => setPersonType('mentioned')}
-                  />
-                </View>
+                <PillGroup
+                  options={[
+                    { value: 'primary', label: t('connectionForm.primary') },
+                    { value: 'mentioned', label: t('connectionForm.mentioned') },
+                  ]}
+                  value={personType}
+                  onChange={setPersonType}
+                />
                 <Text style={[fzText.sub, styles.pillHint]}>
                   {personType === 'primary'
                     ? t('connectionForm.primaryHint')

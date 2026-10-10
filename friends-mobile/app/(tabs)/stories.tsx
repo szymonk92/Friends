@@ -11,6 +11,7 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/lib/i18n/labels';
 
 export default function StoriesListScreen() {
   const { t } = useTranslation();
@@ -89,7 +90,7 @@ export default function StoriesListScreen() {
 
         {item.storyDate && (
           <Text style={{ ...fzText.time, marginTop: 8 }}>
-            {t('storiesList.eventDate', { date: new Date(item.storyDate).toLocaleDateString() })}
+            {t('storiesList.eventDate', { date: new Date(item.storyDate).toLocaleDateString(dateLocale()) })}
           </Text>
         )}
 

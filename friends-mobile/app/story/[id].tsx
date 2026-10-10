@@ -28,7 +28,7 @@ import { useSettings, AI_MODELS } from '@/store/useSettings';
 import { fz, fzText } from '@/lib/design/tokens';
 import { AppBar } from '@/components/AppBar';
 import { IconCircle } from '@/components/IconCircle';
-import { relationTypeLabel } from '@/lib/i18n/labels';
+import { relationTypeLabel, dateLocale } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
 import { useTranslation } from 'react-i18next';
 
@@ -380,7 +380,7 @@ export default function StoryDetailScreen() {
             <View style={styles.metaRow}>
               <RNText style={[fzText.label, styles.metaLabel]}>{t('storyDetail.eventDate')}</RNText>
               <RNText style={fzText.sub}>
-                {new Date(story.storyDate).toLocaleDateString(undefined, {
+                {new Date(story.storyDate).toLocaleDateString(dateLocale(), {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',

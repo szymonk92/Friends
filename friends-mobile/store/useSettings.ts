@@ -3,72 +3,8 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
-export type ThemeColor =
-  | 'violet'
-  | 'blue'
-  | 'green'
-  | 'rose'
-  | 'orange'
-  | 'teal'
-  | 'inkWash'
-  | 'cherry'
-  | 'lavender';
 export type AIModel = 'anthropic' | 'gemini' | 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.5-flash-lite' | 'gemini-3.1-flash-lite' | 'ollama';
 
-
-export interface ColorPalette {
-  primary: string;
-  secondary: string;
-  tertiary: string;
-}
-
-export const THEME_PALETTES: Record<ThemeColor, ColorPalette> = {
-  violet: {
-    primary: '#8b5cf6',
-    secondary: '#ec4899', // Pink
-    tertiary: '#6366f1', // Indigo
-  },
-  blue: {
-    primary: '#3882ddff',
-    secondary: '#0ea5e9', // Sky blue
-    tertiary: '#06b6d4', // Cyan
-  },
-  green: {
-    primary: '#10b981',
-    secondary: '#14b8a6', // Teal
-    tertiary: '#22c55e', // Light green
-  },
-  rose: {
-    primary: '#f43f5e',
-    secondary: '#f97316', // Orange
-    tertiary: '#ec4899', // Pink
-  },
-  orange: {
-    primary: '#f97316',
-    secondary: '#f59e0b', // Amber
-    tertiary: '#ef4444', // Red
-  },
-  teal: {
-    primary: '#08605F',
-    secondary: '#177E89', // Teal blue
-    tertiary: '#598381', // Sage
-  },
-  inkWash: {
-    primary: '#4A4A4A',
-    secondary: '#CBCBCB', // Teal blue
-    tertiary: '#FFFFF3', // Sage
-  },
-  cherry: {
-    primary: '#F2C7C7',
-    secondary: '#F2C7C7', // Teal blue
-    tertiary: '#F2C7C7', // Sage
-  },
-  lavender: {
-    primary: '#3882ddff',
-    secondary: '#9EF0FF', // Teal blue
-    tertiary: '#A4A5F5', // Sage
-  },
-};
 
 export type FontFamily = 'System' | 'InstrumentSans' | 'Inter' | 'PlayfairDisplay';
 
@@ -79,14 +15,6 @@ export const AVAILABLE_FONTS: Record<FontFamily, string> = {
   PlayfairDisplay: 'PlayfairDisplay',
 };
 
-// Backward compatibility - export just primary colors
-export const THEME_COLORS: Record<ThemeColor, string> = Object.entries(THEME_PALETTES).reduce(
-  (acc, [key, palette]) => {
-    acc[key as ThemeColor] = palette.primary;
-    return acc;
-  },
-  {} as Record<ThemeColor, string>
-);
 
 export const AI_MODELS: Record<AIModel, { name: string; description: string }> = {
   anthropic: {
@@ -126,7 +54,6 @@ interface SettingsState {
   ollamaBaseUrl: string;
   ollamaModel: string;
   selectedModel: AIModel;
-  themeColor: ThemeColor;
   fontFamily: FontFamily;
   maxPhotosPerPerson: number;
   setApiKey: (key: string) => Promise<void>;
@@ -149,9 +76,6 @@ interface SettingsState {
   loadSelectedModel: () => Promise<void>;
   getActiveApiKey: () => string | null;
   hasActiveApiKey: () => boolean;
-  setThemeColor: (color: ThemeColor) => Promise<void>;
-  loadThemeColor: () => Promise<void>;
-  getThemeColorValue: () => string;
   setFontFamily: (font: FontFamily) => Promise<void>;
   loadFontFamily: () => Promise<void>;
   setMaxPhotosPerPerson: (limit: number) => Promise<void>;
@@ -165,7 +89,6 @@ const OLLAMA_API_KEY_STORAGE_KEY = 'friends_ollama_api_key';
 const OLLAMA_BASE_URL_STORAGE_KEY = '@friends_ollama_base_url';
 const OLLAMA_MODEL_STORAGE_KEY = '@friends_ollama_model';
 const SELECTED_MODEL_STORAGE_KEY = '@friends_selected_model';
-const THEME_COLOR_STORAGE_KEY = '@friends_theme_color';
 const FONT_FAMILY_STORAGE_KEY = '@friends_font_family';
 const MAX_PHOTOS_PER_PERSON_STORAGE_KEY = '@friends_max_photos_per_person';
 
@@ -183,7 +106,6 @@ export const useSettings = create<SettingsState>((set, get) => ({
   ollamaBaseUrl: DEFAULT_OLLAMA_BASE_URL,
   ollamaModel: DEFAULT_OLLAMA_MODEL,
   selectedModel: 'anthropic',
-  themeColor: 'violet',
   fontFamily: 'System',
   maxPhotosPerPerson: 5,
 
@@ -360,32 +282,6 @@ export const useSettings = create<SettingsState>((set, get) => ({
     const state = get();
     const key = state.getActiveApiKey();
     return !!key && key.trim().length > 0;
-  },
-
-  setThemeColor: async (color: ThemeColor) => {
-    try {
-      await AsyncStorage.setItem(THEME_COLOR_STORAGE_KEY, color);
-      set({ themeColor: color });
-    } catch (error) {
-      console.error('Failed to save theme color:', error);
-      throw error;
-    }
-  },
-
-  loadThemeColor: async () => {
-    try {
-      const color = await AsyncStorage.getItem(THEME_COLOR_STORAGE_KEY);
-      if (color && color in THEME_COLORS) {
-        set({ themeColor: color as ThemeColor });
-      }
-    } catch (error) {
-      console.error('Failed to load theme color:', error);
-    }
-  },
-
-  getThemeColorValue: () => {
-    const state = get();
-    return THEME_COLORS[state.themeColor];
   },
 
   setFontFamily: async (font: FontFamily) => {

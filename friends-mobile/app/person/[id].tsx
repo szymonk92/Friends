@@ -85,7 +85,7 @@ export default function PersonProfileScreen() {
             label: t('partnerBadge.add'),
             icon: 'heart' as const,
             onPress: () =>
-              router.push(`/person/add-connection?personId=${id}&relationshipType=partner`),
+              router.push(`/person/connection-form?personId=${id}&relationshipType=partner`),
           },
         ]
       : []),

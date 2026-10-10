@@ -61,7 +61,11 @@
     "showCategoryDividers": "Pokaż separatory kategorii",
     "hideCategoryDividers": "Ukryj separatory kategorii",
     "clearFilters": "Wyczyść filtry",
-    "myNetwork": "Moja sieć"
+    "myNetwork": "Moja sieć",
+    "keepClose_one": "{{count}} osoba, którą trzymasz blisko",
+    "keepClose_few": "{{count}} osoby, które trzymasz blisko",
+    "keepClose_many": "{{count}} osób, które trzymasz blisko",
+    "keepClose_other": "{{count}} osób, które trzymasz blisko"
   },
   "network": {
     "title": "Sieć",
@@ -89,7 +93,9 @@
     },
     "connectionCount_one": "{{count}} połączenie",
     "connectionCount_other": "{{count}} połączeń",
-    "noDetails": "Brak szczegółowych informacji."
+    "noDetails": "Brak szczegółowych informacji.",
+    "connectionCount_few": "{{count}} połączenia",
+    "connectionCount_many": "{{count}} połączeń"
   },
   "person": {
     "addTitle": "Dodaj osobę",
@@ -243,8 +249,7 @@
     "about": "O aplikacji",
     "experimental": "Eksperymentalne",
     "developerTools": "Narzędzia deweloperskie",
-    "appearanceDescription": "Dostosuj wygląd aplikacji wybierając preferowany kolor motywu.",
-    "themeColor": "Kolor motywu",
+    "appearanceDescription": "Wybierz czcionkę używaną w aplikacji.",
     "fontFamily": "Krój czcionki"
   },
   "dev": {
@@ -1131,17 +1136,7 @@
     "importHint": "Zaimportuj dane z wcześniej wyeksportowanego pliku JSON. Zduplikowane osoby (według imienia) zostaną pominięte.",
     "importJson": "Importuj z JSON"
   },
-  "relColors": {
-    "title": "Kolory relacji",
-    "description": "Dostosuj kolory dla różnych typów relacji, aby łatwo je rozpoznawać w aplikacji.",
-    "change": "Zmień",
-    "reset": "Przywróć domyślne"
-  },
   "settingsScreen": {
-    "resetTitle": "Resetuj kolory",
-    "resetMessage": "Przywrócić domyślne kolory wszystkich relacji?",
-    "reset": "Resetuj",
-    "colorsReset": "Przywrócono domyślne kolory",
     "scheduled": "Zaplanowano przypomnienia o urodzinach: {{count}}!",
     "saveFailed": "Nie udało się zapisać ustawień",
     "anthropicSaved": "Klucz API Anthropic został zapisany!",
@@ -1171,8 +1166,7 @@
     "enterGemini": "Wpisz swój klucz API Google Gemini, aby włączyć wyciąganie przez Gemini AI.",
     "changeOllama": "Zmień klucz API Ollama",
     "enterOllama": "Wpisz dowolną wartość — Ollama ignoruje klucz, to tylko wartość zastępcza, dzięki której aplikacja uznaje lokalne wyciąganie za skonfigurowane.",
-    "keyPlaceholderLabel": "Klucz API (zastępczy)",
-    "chooseColor": "Wybierz kolor dla: {{type}}"
+    "keyPlaceholderLabel": "Klucz API (zastępczy)"
   },
   "secrets": {
     "newSecret": "Nowy sekret",
@@ -1247,7 +1241,8 @@
     "deleteFailed": "Nie udało się usunąć sekretu",
     "screenTitle": "Sekrety",
     "setupScreenTitle": "Konfiguracja sekretów",
-    "checking": "Sprawdzanie zabezpieczeń urządzenia..."
+    "checking": "Sprawdzanie zabezpieczeń urządzenia...",
+    "usePin": "Użyj kodu PIN urządzenia"
   },
   "party": {
     "selectGuests": "Wybierz gości ({{count}})",
@@ -1428,7 +1423,8 @@
     "bothTrue": "Obie prawdziwe",
     "replace": "Zastąp",
     "whatLabel": "Co lubi / czego nie lubi itd.",
-    "saveApprove": "Zapisz i zatwierdź"
+    "saveApprove": "Zapisz i zatwierdź",
+    "editTitle": "Edytuj wyciągnięcie"
   },
   "documentation": {
     "thingsAPersonEnjoysPrefers": "Rzeczy, które ktoś lubi, woli lub wywołują u niego pozytywne uczucia",

@@ -10,7 +10,6 @@ const resetStore = () => {
     apiKey: null,
     geminiApiKey: null,
     selectedModel: 'anthropic',
-    themeColor: 'violet',
     fontFamily: 'System',
     maxPhotosPerPerson: 5,
   });
@@ -113,23 +112,6 @@ describe('useSettings', () => {
       await useSettings.getState().setApiKey('sk-ant-test123');
       await useSettings.getState().setSelectedModel('gemini');
       expect(useSettings.getState().hasActiveApiKey()).toBe(false);
-    });
-  });
-
-  describe('Theme Color', () => {
-    it('should have default theme color', () => {
-      expect(useSettings.getState().themeColor).toBe('violet');
-    });
-
-    it('should set and persist theme color', async () => {
-      await useSettings.getState().setThemeColor('blue');
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('@friends_theme_color', 'blue');
-      expect(useSettings.getState().themeColor).toBe('blue');
-    });
-
-    it('should get theme color value', async () => {
-      await useSettings.getState().setThemeColor('blue');
-      expect(useSettings.getState().getThemeColorValue()).toBe('#3882ddff');
     });
   });
 });

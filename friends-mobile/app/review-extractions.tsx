@@ -321,7 +321,7 @@ export default function ReviewExtractionsScreen() {
           onDismiss={() => setEditDialogVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title style={styles.dialogTitle}>Edit Extraction</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{t('reviewExtractions.editTitle')}</Dialog.Title>
           <Dialog.Content>
             <TextInput
               mode="outlined"

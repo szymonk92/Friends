@@ -326,7 +326,5 @@ export function useLocationSuggestions(query: string, kind: LocationKind = 'met'
   });
 }
 
-/** @deprecated kept for backwards compatibility — use useLocationSuggestions(query, 'met') */
-export const useMetLocationSuggestions = (query: string) => useLocationSuggestions(query, 'met');
 /** @deprecated kept for backwards compatibility */
 export type MetLocationSuggestion = LocationSuggestion;

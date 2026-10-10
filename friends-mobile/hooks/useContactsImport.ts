@@ -1,4 +1,5 @@
 import * as Contacts from 'expo-contacts';
+import { Platform } from 'react-native';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, type Person } from '@/lib/db/schema';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,8 +15,8 @@ export interface ContactRow {
   name: string;
   phone?: string;
   email?: string;
-  birthday?: Contacts.Date;
-  address?: Contacts.Address;
+  birthday?: Contacts.ContactDate;
+  address?: Contacts.ExistingAddress;
   imageUri?: string;
 }
 
@@ -50,19 +51,38 @@ export async function requestContactsPermission(): Promise<boolean> {
   return granted;
 }
 
-function projectContact(c: Contacts.ExistingContact): ContactRow | null {
-  const name = c.name || [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
+// Android has no `birthday` field (the native enum rejects it); birthdays arrive as a
+// "birthday"-labelled entry in `dates`. iOS is the opposite.
+const CONTACT_FIELDS = [
+  Contacts.ContactField.FULL_NAME,
+  Contacts.ContactField.PHONES,
+  Contacts.ContactField.EMAILS,
+  Platform.OS === 'ios' ? Contacts.ContactField.BIRTHDAY : Contacts.ContactField.DATES,
+  Contacts.ContactField.ADDRESSES,
+  Contacts.ContactField.IMAGE,
+];
+
+type Details = Contacts.PartialContactDetails<typeof CONTACT_FIELDS>;
+
+function birthdayOf(c: Details): Contacts.ContactDate | undefined {
+  if (Platform.OS === 'ios') return (c as { birthday?: Contacts.ContactDate | null }).birthday ?? undefined;
+  const dates = (c as { dates?: Contacts.ExistingDate[] }).dates ?? [];
+  return dates.find((d) => d.label?.toLowerCase() === 'birthday')?.date;
+}
+
+function projectContact(c: Details): ContactRow | null {
+  const name = c.fullName?.trim();
   if (!name) return null;
-  const phone = c.phoneNumbers?.[0]?.number;
-  const email = c.emails?.[0]?.email;
+  const phone = c.phones?.[0]?.number;
+  const email = c.emails?.[0]?.address;
   return {
     id: c.id,
     name,
     phone: phone ? normalizePhone(phone) : undefined,
     email: email?.trim() || undefined,
-    birthday: c.birthday,
+    birthday: birthdayOf(c),
     address: c.addresses?.[0],
-    imageUri: c.image?.uri,
+    imageUri: c.image ?? undefined,
   };
 }
 
@@ -72,16 +92,7 @@ function projectContact(c: Contacts.ExistingContact): ContactRow | null {
  * `contactsPicker.ts` deliberately avoided; this hook opts into it for import.
  */
 export async function loadContacts(): Promise<ContactRow[]> {
-  const { data } = await Contacts.getContactsAsync({
-    fields: [
-      Contacts.Fields.Name,
-      Contacts.Fields.PhoneNumbers,
-      Contacts.Fields.Emails,
-      Contacts.Fields.Birthday,
-      Contacts.Fields.Addresses,
-      Contacts.Fields.Image,
-    ],
-  });
+  const data = await Contacts.Contact.getAllDetails(CONTACT_FIELDS);
   return data
     .map(projectContact)
     .filter((c): c is ContactRow => c !== null)
@@ -122,12 +133,12 @@ export function matchContacts(
   return out;
 }
 
-function birthdayToDate(b: Contacts.Date): Date {
-  // expo-contacts month is already 0-indexed for `new Date`.
-  return new Date(b.year!, b.month, b.day);
+function birthdayToDate(b: Contacts.ContactDate): Date {
+  // Class-based expo-contacts API: month is 1-12.
+  return new Date(b.year!, b.month - 1, b.day);
 }
 
-function addressToString(a: Contacts.Address): string {
+function addressToString(a: Contacts.ExistingAddress): string {
   return [a.city, a.region, a.country].filter(Boolean).join(', ');
 }
 

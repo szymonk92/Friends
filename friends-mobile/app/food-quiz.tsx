@@ -232,9 +232,15 @@ export default function FoodQuizScreen() {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
+        // Paper's Card renders a Pressable that wins the touch on iOS, so the parent never
+        // sees a move. Capture once the finger actually travels; plain taps still pass through.
+        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderMove: (_, gesture) => {
           position.setValue({ x: gesture.dx, y: gesture.dy });
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(position, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
         },
         onPanResponderRelease: (_, gesture) => {
           const absX = Math.abs(gesture.dx);

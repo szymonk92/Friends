@@ -1,15 +1,13 @@
 import { MD3LightTheme, MD3DarkTheme, configureFonts } from 'react-native-paper';
 import type { MD3Theme } from 'react-native-paper';
-import { THEME_PALETTES, type ThemeColor, type FontFamily } from '@/store/useSettings';
+import type { FontFamily } from '@/store/useSettings';
 import { fz } from '@/lib/design/tokens';
 
 export const createTheme = (
-  themeColor: ThemeColor,
   fontFamily: FontFamily = 'System',
   isDark: boolean = false
 ): MD3Theme => {
   const baseTheme = isDark ? MD3DarkTheme : MD3LightTheme;
-  const palette = THEME_PALETTES[themeColor];
 
   const fontConfig = {
     fontFamily: fontFamily === 'System' ? fz.font : fontFamily,
@@ -20,9 +18,7 @@ export const createTheme = (
     fonts: configureFonts({ config: fontConfig }),
     colors: {
       ...baseTheme.colors,
-      // FriendZ B&W design: force Paper accents to ink regardless of the
-      // user's themeColor palette. Color is reintroduced later; until then
-      // every selected/contained Paper element renders ink on paper.
+      // FriendZ B&W design: Paper accents are ink on paper. Color is reintroduced later.
       primary: fz.ink,
       primaryContainer: fz.surface,
       onPrimary: fz.paper,
@@ -50,7 +46,7 @@ export const createTheme = (
       outlineVariant: isDark ? '#49454f' : '#cac4d0',
       inverseSurface: isDark ? '#e6e1e5' : '#313033',
       inverseOnSurface: isDark ? '#1c1b1f' : '#f4eff4',
-      inversePrimary: palette.primary,
+      inversePrimary: fz.surface,
       shadow: '#000000',
       scrim: '#000000',
       backdrop: 'rgba(0, 0, 0, 0.4)',

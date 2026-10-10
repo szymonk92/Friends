@@ -106,8 +106,8 @@ export async function authenticateUser(
 
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage,
-      fallbackLabel: 'Use Device PIN',
-      cancelLabel: 'Cancel',
+      fallbackLabel: tr('secrets.usePin', 'Use Device PIN'),
+      cancelLabel: tr('common.cancel', 'Cancel'),
       disableDeviceFallback: false, // Allow device PIN as fallback
     });
 

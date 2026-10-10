@@ -40,7 +40,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
       <ProfileSection
         label={t('connections.title')}
         count={personConnections.length || null}
-        onAdd={() => router.push(`/person/add-connection?personId=${personId}`)}
+        onAdd={() => router.push(`/person/connection-form?personId=${personId}`)}
         empty={
           !connectionsLoading &&
           personConnections.length === 0 &&
@@ -96,7 +96,7 @@ export default function PersonConnections({ personId, personName }: PersonConnec
                   icon: 'pencil',
                   onPress: () =>
                     router.push(
-                      `/person/edit-connection?connectionId=${selected.id}&fromPersonId=${personId}`
+                      `/person/connection-form?connectionId=${selected.id}&fromPersonId=${personId}`
                     ),
                 },
               ]

@@ -20,15 +20,11 @@ import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 import { useTranslation } from 'react-i18next';
 import { fzAlert } from '@/lib/utils/confirm';
 
-type RelationFormMode = 'add' | 'edit';
-
-interface RelationFormProps {
-  mode: RelationFormMode;
-}
-
-export default function RelationForm({ mode }: RelationFormProps) {
+/** Route: /person/relation-form?personId=… (add) or ?relationId=… (edit). */
+export default function RelationForm() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
+  const mode = typeof params.relationId === 'string' ? 'edit' : 'add';
   const personId = mode === 'add' ? (params.personId as string) : undefined;
   const relationId = mode === 'edit' ? (params.relationId as string) : undefined;
 

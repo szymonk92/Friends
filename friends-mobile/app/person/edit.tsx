@@ -253,7 +253,7 @@ export default function EditPersonScreen() {
           <>
             <Button
               mode="outlined"
-              onPress={() => router.push(`/person/add-relation?personId=${personId}`)}
+              onPress={() => router.push(`/person/relation-form?personId=${personId}`)}
               style={styles.secondaryButton}
               contentStyle={styles.secondaryButtonContent}
               labelStyle={fzText.btnOutline}
@@ -263,7 +263,7 @@ export default function EditPersonScreen() {
             </Button>
             <Button
               mode="outlined"
-              onPress={() => router.push(`/person/add-connection?personId=${personId}`)}
+              onPress={() => router.push(`/person/connection-form?personId=${personId}`)}
               style={styles.secondaryButton}
               contentStyle={styles.secondaryButtonContent}
               labelStyle={fzText.btnOutline}
