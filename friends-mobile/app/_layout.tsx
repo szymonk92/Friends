@@ -179,7 +179,7 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
               <Stack.Screen name="documentation" options={{ presentation: 'modal' }} />
             </Stack>
             <FzConfirmHost />
-            <FloatingDevTools environment="local" userRole="admin" />
+            {__DEV__ && <FloatingDevTools environment="local" userRole="admin" />}
           </ThemeProvider>
         </PaperProvider>
       </QueryClientProvider>
