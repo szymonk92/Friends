@@ -2,7 +2,7 @@ import type { DatePrecision } from '@/lib/utils/dates';
 /**
  * Formatting utilities for the Friends app
  */
-import { tr, anyRelationLabel, importanceLabel } from '@/lib/i18n/labels';
+import { tr, anyRelationLabel, dateLocale } from '@/lib/i18n/labels';
 
 /**
  * Format a date as a relative time string
@@ -68,14 +68,14 @@ export function formatYearsKnown(date: Date): string {
 /** formatShortDate that omits parts the user never gave (null precision = exact day). */
 export function formatFlexibleDate(date: Date, precision: DatePrecision | null): string {
   if (!precision || precision === 'day') return formatShortDate(date);
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(dateLocale(), {
     month: precision === 'month' ? 'short' : undefined,
     year: 'numeric',
   }).format(date);
 }
 
 export function formatShortDate(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(dateLocale(), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -108,47 +108,6 @@ export function getInitials(name: string): string {
     .map((word) => [...word][0]);
   const letters = firstChars.filter((ch) => /[\p{L}\p{N}]/u.test(ch));
   return (letters.length ? letters : firstChars).slice(0, 2).join('').toUpperCase();
-}
-
-/**
- * Format importance level for display
- */
-export function formatImportance(importance: string): string {
-  const labels: Record<string, string> = {
-    unknown: 'Unknown',
-    peripheral: 'Peripheral',
-    important: 'Important',
-    very_important: 'Very Important',
-  };
-  return labels[importance] ? importanceLabel(importance, labels[importance]) : importance;
-}
-
-/**
- * Get color for importance level
- */
-export function getImportanceColor(importance: string): string {
-  const colors: Record<string, string> = {
-    unknown: '#9E9E9E',
-    peripheral: '#2196F3',
-    important: '#FF9800',
-    very_important: '#F44336',
-  };
-  return colors[importance] || '#9E9E9E';
-}
-
-/**
- * Get color for relationship type (used for connection avatars)
- */
-export function getRelationshipColor(relationshipType: string): string {
-  const defaultColors: Record<string, string> = {
-    friend: '#4CAF50',
-    family: '#E91E63',
-    colleague: '#2196F3',
-    acquaintance: '#9E9E9E',
-    partner: '#F44336',
-  };
-
-  return defaultColors[relationshipType] || '#6200ee'; // Default to purple if unknown
 }
 
 /** Lowercase + strip accents for search matching; ł has no decomposition so map it by hand. */

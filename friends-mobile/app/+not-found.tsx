@@ -1,9 +1,9 @@
 import { Link } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import CenteredContainer from '@/components/CenteredContainer';
-import { Text } from '@/components/Themed';
+import { fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
 export default function NotFoundScreen() {
@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
     <>
       <AppBar title={t('notFound.title')} />
       <CenteredContainer style={styles.container}>
-        <Text style={styles.title}>{t('notFound.message')}</Text>
+        <Text style={fzText.title}>{t('notFound.message')}</Text>
 
         <Link href="/" style={styles.link}>
           <Text style={styles.linkText}>{t('notFound.link')}</Text>
@@ -25,10 +25,6 @@ export default function NotFoundScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   link: {
     marginTop: 15,

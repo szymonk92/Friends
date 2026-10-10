@@ -76,7 +76,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
       <ProfileSection
         label={t('profile.intoTitle')}
         count={personRelations?.length || 0}
-        onAdd={() => router.push(`/person/add-relation?personId=${personId}`)}
+        onAdd={() => router.push(`/person/relation-form?personId=${personId}`)}
         empty={
           !relationsLoading &&
           personRelations?.length === 0 &&
@@ -164,7 +164,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
                 {
                   label: t('common.edit'),
                   icon: 'pencil',
-                  onPress: () => router.push(`/person/edit-relation?relationId=${selected.id}`),
+                  onPress: () => router.push(`/person/relation-form?relationId=${selected.id}`),
                 },
                 { label: t('common.delete'), icon: 'trash', onPress: () => handleDelete(selected) },
               ]

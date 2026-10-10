@@ -143,7 +143,7 @@ export default function RelationshipScreen() {
               disabled={!directConnection || !!yearsKnown}
               onPress={() =>
                 router.push(
-                  `/person/edit-connection?connectionId=${directConnection!.id}&fromPersonId=${personId}`
+                  `/person/connection-form?connectionId=${directConnection!.id}&fromPersonId=${personId}`
                 )
               }
             >

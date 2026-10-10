@@ -8,6 +8,7 @@ import type { PersonWithPhoto } from '@/hooks/usePeople';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '@/lib/i18n/labels';
 
 /** Shape of all timeline items after merging contact events, birthdays, party events etc. */
 export interface TimelineEvent {
@@ -47,7 +48,7 @@ interface TimelineEventItemProps {
 }
 
 function formatTimelineDate(date: Date, precision?: DatePrecision | null): string {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(dateLocale(), {
     month: 'short',
     day: precision === 'month' ? undefined : 'numeric',
   })

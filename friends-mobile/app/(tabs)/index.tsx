@@ -254,7 +254,7 @@ export default function PeopleListScreen() {
 
         {/* meta */}
         <Text style={[fzText.meta, { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md }]}>
-          {people.length} {people.length === 1 ? 'person' : 'people'} you keep close
+          {t('people.keepClose', { count: people.length })}
         </Text>
 
         {/* pill filters */}

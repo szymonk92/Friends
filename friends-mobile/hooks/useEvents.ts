@@ -22,46 +22,6 @@ export function useEvents() {
 }
 
 /**
- * Hook to fetch upcoming events
- */
-export function useUpcomingEvents() {
-  return useQuery({
-    queryKey: ['events', 'upcoming'],
-    queryFn: async () => {
-      const userId = await getCurrentUserId();
-      const now = new Date();
-      const allEvents = (await db
-        .select()
-        .from(events)
-        .where(and(eq(events.userId, userId), isNull(events.deletedAt)))
-        .orderBy(desc(events.eventDate))) as Event[];
-
-      return allEvents.filter(
-        (event) =>
-          event.eventDate &&
-          new Date(event.eventDate) >= now &&
-          event.status !== 'completed' &&
-          event.status !== 'cancelled'
-      );
-    },
-  });
-}
-
-/**
- * Hook to fetch a single event by ID
- */
-export function useEvent(eventId: string) {
-  return useQuery({
-    queryKey: ['events', eventId],
-    queryFn: async () => {
-      const results = (await db.select().from(events).where(eq(events.id, eventId))) as Event[];
-      return results[0] || null;
-    },
-    enabled: !!eventId,
-  });
-}
-
-/**
  * Hook to create a new event (party/gathering)
  */
 export function useCreateEvent() {

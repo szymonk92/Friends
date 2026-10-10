@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import type { ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fz } from '@/lib/design/tokens';
 import { LineIcon, type LineIconName } from '@/components/LineIcon';
@@ -8,8 +9,8 @@ import { useTranslation } from 'react-i18next';
 // FriendZ language: line icons, ink active tint, warm paper surface.
 // paddingBottom follows the system nav inset so the bar stays tappable
 // under edgeToEdgeEnabled.
-function TabIcon({ name, color, size = 22 }: { name: LineIconName; color: string; size?: number }) {
-  return <LineIcon name={name} size={size} color={color} />;
+function TabIcon({ name, color, size = 22 }: { name: LineIconName; color: ColorValue; size?: number }) {
+  return <LineIcon name={name} size={size} color={color as string} />; // RN 0.86 types color as ColorValue; tabs pass a string
 }
 
 export default function TabLayout() {

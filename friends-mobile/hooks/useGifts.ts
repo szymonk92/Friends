@@ -1,7 +1,7 @@
 import { db, getCurrentUserId } from '@/lib/db';
-import { relations, type NewRelation } from '@/lib/db/schema';
+import { relations } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 
 export interface GiftIdea {
@@ -56,45 +56,6 @@ export function usePersonGiftIdeas(personId: string) {
       });
     },
     enabled: !!personId,
-  });
-}
-
-/**
- * Hook to fetch all gift ideas (across all people)
- */
-export function useAllGiftIdeas() {
-  return useQuery({
-    queryKey: ['gifts', 'all'],
-    queryFn: async () => {
-      const userId = await getCurrentUserId();
-      const results = await db
-        .select()
-        .from(relations)
-        .where(
-          and(
-            eq(relations.userId, userId),
-            eq(relations.category, 'gift_idea'),
-            isNull(relations.deletedAt)
-          )
-        )
-        .orderBy(desc(relations.createdAt));
-
-      return results.map((r) => {
-        const metadata = r.metadata ? JSON.parse(r.metadata) : {};
-        return {
-          id: r.id,
-          personId: r.subjectId,
-          item: r.objectLabel,
-          notes: metadata.notes,
-          priority: metadata.priority || 'medium',
-          priceRange: metadata.priceRange,
-          occasion: metadata.occasion,
-          status: r.status === 'past' ? 'given' : metadata.purchased ? 'purchased' : 'idea',
-          givenDate: r.validTo ? new Date(r.validTo) : undefined,
-          createdAt: new Date(r.createdAt),
-        } as GiftIdea;
-      });
-    },
   });
 }
 

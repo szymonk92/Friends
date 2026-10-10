@@ -17,7 +17,7 @@ export type PickedContact = {
  * `getContactsAsync`. We deliberately hide the button rather than mislead the user.
  */
 export function isContactPickerAvailable(): boolean {
-  return Platform.OS === 'ios' && typeof Contacts.presentContactPickerAsync === 'function';
+  return Platform.OS === 'ios' && typeof Contacts.Contact.presentPicker === 'function';
 }
 
 /**
@@ -35,9 +35,9 @@ export function isContactPickerAvailable(): boolean {
 export async function pickContact(): Promise<PickedContact | null> {
   if (!isContactPickerAvailable()) return null;
   try {
-    const result = await Contacts.presentContactPickerAsync();
-    if (!result) return null;
-    return projectContact(result);
+    const picked = await Contacts.Contact.presentPicker();
+    if (!picked) return null;
+    return projectContact(await picked.getDetails(PICK_FIELDS));
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     if (/cancel/i.test(msg)) return null;
@@ -46,12 +46,17 @@ export async function pickContact(): Promise<PickedContact | null> {
   }
 }
 
-function projectContact(c: Contacts.Contact): PickedContact {
-  const name = c.name || [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
-  const phone = c.phoneNumbers?.[0]?.number ?? undefined;
-  const email = c.emails?.[0]?.email ?? undefined;
+const PICK_FIELDS = [
+  Contacts.ContactField.FULL_NAME,
+  Contacts.ContactField.PHONES,
+  Contacts.ContactField.EMAILS,
+] as const;
+
+function projectContact(c: Contacts.PartialContactDetails<typeof PICK_FIELDS>): PickedContact {
+  const phone = c.phones?.[0]?.number;
+  const email = c.emails?.[0]?.address;
   return {
-    name: name || undefined,
+    name: c.fullName?.trim() || undefined,
     phone: phone ? normalizePhone(phone) : undefined,
     email: email?.trim() || undefined,
   };

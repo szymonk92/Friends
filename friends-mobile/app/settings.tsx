@@ -1,4 +1,3 @@
-import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
@@ -7,20 +6,10 @@ import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '@/store/useSettings';
-import {
-  getRelationshipColors,
-  setRelationshipColor,
-  resetRelationshipColors,
-  type RelationshipColorMap,
-  DEFAULT_COLORS,
-  AVAILABLE_COLORS,
-} from '@/lib/settings/relationship-colors';
-
 import { fz } from '@/lib/design/tokens';
 
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
 import AIConfiguration from '@/components/settings/AIConfiguration';
-import RelationshipColorsSettings from '@/components/settings/RelationshipColorsSettings';
 import LanguageSelector from '@/components/settings/LanguageSelector';
 
 export default function SettingsScreen() {
@@ -46,9 +35,6 @@ export default function SettingsScreen() {
     setSelectedModel,
     loadSelectedModel,
     hasActiveApiKey,
-    themeColor,
-    setThemeColor,
-    loadThemeColor,
     fontFamily,
     setFontFamily,
     loadFontFamily,
@@ -61,12 +47,6 @@ export default function SettingsScreen() {
   const [tempGeminiApiKey, setTempGeminiApiKey] = useState('');
   const [tempOllamaApiKey, setTempOllamaApiKey] = useState('');
 
-  // Relationship color settings
-  const [relationshipColors, setRelationshipColors] =
-    useState<RelationshipColorMap>(DEFAULT_COLORS);
-  const [colorPickerVisible, setColorPickerVisible] = useState(false);
-  const [selectedRelationType, setSelectedRelationType] = useState<string>('');
-
   useEffect(() => {
     loadApiKey();
     loadGeminiApiKey();
@@ -74,36 +54,9 @@ export default function SettingsScreen() {
     loadOllamaBaseUrl();
     loadOllamaModel();
     loadSelectedModel();
-    loadThemeColor();
     loadFontFamily();
     loadMaxPhotosPerPerson();
-    loadRelationshipColors();
   }, []);
-
-  const loadRelationshipColors = async () => {
-    const colors = await getRelationshipColors();
-    setRelationshipColors(colors);
-  };
-
-  const handleColorChange = async (color: string) => {
-    await setRelationshipColor(selectedRelationType, color);
-    setRelationshipColors((prev) => ({ ...prev, [selectedRelationType]: color }));
-    setColorPickerVisible(false);
-  };
-
-  const handleResetColors = async () => {
-    fzAlert(t('settingsScreen.resetTitle'), t('settingsScreen.resetMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('settingsScreen.reset'),
-        onPress: async () => {
-          await resetRelationshipColors();
-          setRelationshipColors(DEFAULT_COLORS);
-          fzAlert(t('common.success'), t('settingsScreen.colorsReset'));
-        },
-      },
-    ]);
-  };
 
   const handleSaveApiKey = async () => {
     if (tempApiKey.trim().length === 0) {
@@ -194,8 +147,6 @@ export default function SettingsScreen() {
       <AppBar title={t('settings.title')} />
       <ScrollView style={styles.container}>
         <AppearanceSettings
-          themeColor={themeColor}
-          setThemeColor={setThemeColor}
           fontFamily={fontFamily}
           setFontFamily={setFontFamily}
         />
@@ -215,13 +166,6 @@ export default function SettingsScreen() {
           handleClearApiKey={handleClearApiKey}
           handleClearGeminiApiKey={handleClearGeminiApiKey}
           handleClearOllamaApiKey={handleClearOllamaApiKey}
-        />
-
-        <RelationshipColorsSettings
-          relationshipColors={relationshipColors}
-          setSelectedRelationType={setSelectedRelationType}
-          setColorPickerVisible={setColorPickerVisible}
-          handleResetColors={handleResetColors}
         />
 
         <View style={styles.spacer} />
@@ -332,40 +276,6 @@ export default function SettingsScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
-
-        {/* Color Picker Dialog */}
-        <Dialog
-          visible={colorPickerVisible}
-          onDismiss={() => setColorPickerVisible(false)}
-          style={styles.dialog}
-        >
-          <Dialog.Title style={styles.dialogTitle}>
-            {t('settingsScreen.chooseColor', {
-              type: relationshipTypeLabel(selectedRelationType),
-            })}
-          </Dialog.Title>
-          <Dialog.Content>
-            <View style={styles.colorGrid}>
-              {AVAILABLE_COLORS.map((color) => (
-                <Button
-                  key={color.value}
-                  mode="outlined"
-                  onPress={() => handleColorChange(color.value)}
-                  style={[styles.colorButton, { borderColor: color.value, borderWidth: 2 }]}
-                  contentStyle={styles.colorButtonContent}
-                  labelStyle={{ color: 'transparent' }}
-                >
-                  <View style={[styles.colorCircle, { backgroundColor: color.value }]} />
-                </Button>
-              ))}
-            </View>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setColorPickerVisible(false)}>
-              {t('common.cancel')}
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
       </Portal>
     </>
   );
@@ -395,29 +305,5 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 8,
-  },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  colorButton: {
-    width: 60,
-    height: 60,
-    padding: 0,
-    margin: 4,
-    borderRadius: 30,
-  },
-  colorButtonContent: {
-    width: 60,
-    height: 60,
-    padding: 0,
-    margin: 0,
-  },
-  colorCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
   },
 });

@@ -11,6 +11,9 @@ export function tr(key: string, fallback: string, opts?: Record<string, unknown>
   return translate(key, { defaultValue: fallback, ...opts });
 }
 
+/** BCP-47 tag for Intl/toLocale* calls: the in-app language, not the device locale. */
+export const dateLocale = (): string | undefined => (i18n.isInitialized ? i18n.language : undefined);
+
 const humanize = (value: string) =>
   value
     .split(/[_-]/)

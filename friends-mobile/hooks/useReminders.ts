@@ -1,9 +1,8 @@
 import { db, getCurrentUserId } from '@/lib/db';
 import { reminders, people } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull, gte, lt } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
-import { Platform } from 'react-native';
 
 // Lazy load notifications to avoid crash if not configured
 let Notifications: any = null;
@@ -102,87 +101,6 @@ export function useReminders() {
 }
 
 /**
- * Hook to get upcoming reminders
- */
-export function useUpcomingReminders() {
-  return useQuery({
-    queryKey: ['reminders', 'upcoming'],
-    queryFn: async () => {
-      const userId = await getCurrentUserId();
-      const now = new Date();
-      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      const results = await db
-        .select({
-          reminder: reminders,
-          person: people,
-        })
-        .from(reminders)
-        .leftJoin(people, eq(reminders.personId, people.id))
-        .where(
-          and(
-            eq(reminders.userId, userId),
-            isNull(reminders.deletedAt),
-            eq(reminders.status, 'pending'),
-            gte(reminders.scheduledFor, now),
-            lt(reminders.scheduledFor, nextWeek)
-          )
-        )
-        .orderBy(reminders.scheduledFor);
-
-      return results.map((r) => ({
-        id: r.reminder.id,
-        personId: r.reminder.personId || undefined,
-        personName: r.person?.name || undefined,
-        title: r.reminder.title,
-        message: r.reminder.message || undefined,
-        reminderType: r.reminder.reminderType as any,
-        scheduledFor: new Date(r.reminder.scheduledFor),
-        repeatInterval: r.reminder.repeatInterval as any,
-        status: r.reminder.status as any,
-        createdAt: new Date(r.reminder.createdAt),
-      })) as ReminderData[];
-    },
-  });
-}
-
-/**
- * Hook to get reminders for a person
- */
-export function usePersonReminders(personId: string) {
-  return useQuery({
-    queryKey: ['reminders', 'person', personId],
-    queryFn: async () => {
-      const userId = await getCurrentUserId();
-      const results = await db
-        .select()
-        .from(reminders)
-        .where(
-          and(
-            eq(reminders.userId, userId),
-            eq(reminders.personId, personId),
-            isNull(reminders.deletedAt)
-          )
-        )
-        .orderBy(desc(reminders.scheduledFor));
-
-      return results.map((r) => ({
-        id: r.id,
-        personId: r.personId || undefined,
-        title: r.title,
-        message: r.message || undefined,
-        reminderType: r.reminderType as any,
-        scheduledFor: new Date(r.scheduledFor),
-        repeatInterval: r.repeatInterval as any,
-        status: r.status as any,
-        createdAt: new Date(r.createdAt),
-      })) as ReminderData[];
-    },
-    enabled: !!personId,
-  });
-}
-
-/**
  * Hook to create a reminder
  */
 export function useCreateReminder() {
@@ -245,84 +163,6 @@ export function useCreateReminder() {
       if (data?.personId) {
         queryClient.invalidateQueries({ queryKey: ['reminders', 'person', data.personId] });
       }
-    },
-  });
-}
-
-/**
- * Hook to cancel a reminder
- */
-export function useCancelReminder() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (reminderId: string) => {
-      // Get reminder to find notification ID
-      const reminder = await db
-        .select()
-        .from(reminders)
-        .where(eq(reminders.id, reminderId))
-        .limit(1);
-
-      if (reminder.length > 0 && reminder[0].notificationId) {
-        try {
-          const Notifications = getNotifications();
-          if (Notifications) {
-            await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
-          }
-        } catch {
-          // Notification may already be sent/cancelled
-        }
-      }
-
-      await db
-        .update(reminders)
-        .set({
-          status: 'cancelled',
-          updatedAt: new Date(),
-        })
-        .where(eq(reminders.id, reminderId));
-
-      return reminder[0];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] });
-    },
-  });
-}
-
-/**
- * Hook to delete a reminder
- */
-export function useDeleteReminder() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (reminderId: string) => {
-      // Get reminder to find notification ID
-      const reminder = await db
-        .select()
-        .from(reminders)
-        .where(eq(reminders.id, reminderId))
-        .limit(1);
-
-      if (reminder.length > 0 && reminder[0].notificationId) {
-        try {
-          const Notifications = getNotifications();
-          if (Notifications) {
-            await Notifications.cancelScheduledNotificationAsync(reminder[0].notificationId);
-          }
-        } catch {
-          // Notification may already be sent/cancelled
-        }
-      }
-
-      await db.update(reminders).set({ deletedAt: new Date() }).where(eq(reminders.id, reminderId));
-
-      return reminder[0];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] });
     },
   });
 }

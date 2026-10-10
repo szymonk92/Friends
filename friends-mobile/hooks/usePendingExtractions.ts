@@ -26,30 +26,6 @@ export function usePendingExtractions() {
 }
 
 /**
- * Hook to get pending extractions for a specific person
- */
-export function usePendingExtractionsForPerson(personId: string) {
-  return useQuery({
-    queryKey: ['pending-extractions', 'person', personId],
-    queryFn: async () => {
-      const userId = await getCurrentUserId();
-      const results = await db
-        .select()
-        .from(pendingExtractions)
-        .where(
-          and(
-            eq(pendingExtractions.userId, userId),
-            eq(pendingExtractions.subjectId, personId),
-            eq(pendingExtractions.reviewStatus, 'pending')
-          )
-        );
-
-      return results;
-    },
-  });
-}
-
-/**
  * Hook to approve a pending extraction (convert it to a relation)
  */
 export function useApprovePendingExtraction() {

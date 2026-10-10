@@ -21,13 +21,3 @@ export function isValidEmail(input: string): boolean {
   // Conservative RFC-5322-lite check; we just care about typos, not exhaustive correctness.
   return /^[^\s@]+@[^\s@.]+\.[^\s@]+$/.test(trimmed);
 }
-
-/**
- * Mask a phone or email for log lines if you ever need to. Default: drop entirely.
- * Use only when redaction is unavoidable; prefer not logging at all.
- */
-export function redact(value: string | null | undefined): string {
-  if (!value) return '';
-  if (value.length <= 4) return '*'.repeat(value.length);
-  return `${value.slice(0, 2)}***${value.slice(-2)}`;
-}

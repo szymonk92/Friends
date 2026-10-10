@@ -1,21 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { secrets, type NewSecret } from '@/lib/db/schema';
+import { secrets } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   authenticateUser,
-  getEncryptionKey,
   encryptContent,
   decryptContent,
   initializeEncryptionKey,
   isSecretsSetup,
   checkBiometricStatus,
   initializeWithPassword,
-  getEncryptionKeyWithPassword,
   isPasswordBasedEncryption,
   getEncryptionKeyUnified,
-  type BiometricStatus,
 } from '@/lib/crypto/biometric-secrets';
 
 /**
@@ -187,53 +184,6 @@ export function useDecryptSecret() {
 }
 
 /**
- * Hook to update a secret
- */
-export function useUpdateSecret() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      title,
-      content,
-      password,
-    }: {
-      id: string;
-      title?: string;
-      content?: string;
-      password?: string;
-    }) => {
-      const updates: Record<string, any> = {
-        updatedAt: new Date(),
-      };
-
-      if (title) {
-        updates.title = title;
-      }
-
-      if (content) {
-        // Authenticate and get encryption key (handles both biometric and password modes)
-        const key = await getEncryptionKeyUnified(password);
-        if (!key) {
-          throw new Error('Failed to authenticate or get encryption key');
-        }
-
-        // Re-encrypt with new content
-        updates.encryptedContent = await encryptContent(content, key);
-      }
-
-      const result = await db.update(secrets).set(updates).where(eq(secrets.id, id)).returning();
-
-      return result[0];
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['secrets'] });
-    },
-  });
-}
-
-/**
  * Hook to delete a secret
  */
 export function useDeleteSecret() {
@@ -254,21 +204,6 @@ export function useDeleteSecret() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['secrets'] });
-    },
-  });
-}
-
-/**
- * Hook to authenticate (just verify, don't decrypt anything)
- */
-export function useAuthenticateSecrets() {
-  return useMutation({
-    mutationFn: async (promptMessage?: string) => {
-      const result = await authenticateUser(promptMessage || 'Authenticate to access secrets');
-      if (!result.success) {
-        throw new Error(result.error || 'Authentication failed');
-      }
-      return result;
     },
   });
 }

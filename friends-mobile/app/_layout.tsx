@@ -1,7 +1,6 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider, Stack, router } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
@@ -140,13 +139,11 @@ export default Sentry.wrap(function RootLayout() {
 
 function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
   const {
-    themeColor, loadThemeColor,
     fontFamily, loadFontFamily,
     loadApiKey, loadGeminiApiKey, loadSelectedModel,
   } = useSettings();
 
   useEffect(() => {
-    loadThemeColor();
     loadFontFamily();
     loadApiKey();
     loadGeminiApiKey();
@@ -165,7 +162,7 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
   // (fz.paper surfaces). Following the system dark mode left Paper inputs /
   // dialogs dark-on-light and unreadable. Keep everything light regardless of
   // the OS theme until color support is intentionally added.
-  const paperTheme = createTheme(themeColor, fontFamily, false);
+  const paperTheme = createTheme(fontFamily, false);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -175,13 +172,14 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
             {/* Native headers off everywhere: every screen renders <AppBar>. */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
+              {/* gestureEnabled off: the iOS sheet's swipe-down-to-dismiss fights the quiz's swipe-down = skip. */}
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal', gestureEnabled: false }} />
               <Stack.Screen name="dev" options={{ presentation: 'modal' }} />
               <Stack.Screen name="developer/playground" options={{ presentation: 'modal' }} />
               <Stack.Screen name="documentation" options={{ presentation: 'modal' }} />
             </Stack>
             <FzConfirmHost />
-            <FloatingDevTools environment="local" userRole="admin" />
+            {__DEV__ && <FloatingDevTools environment="local" userRole="admin" />}
           </ThemeProvider>
         </PaperProvider>
       </QueryClientProvider>

@@ -133,33 +133,5 @@ export function useRemoveTagFromPerson() {
   });
 }
 
-/**
- * Hook to set all tags for a person
- */
-export function useSetPersonTags() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ personId, tags }: { personId: string; tags: string[] }) => {
-      const normalizedTags = tags.map((t) => t.trim().toLowerCase());
-
-      await db
-        .update(people)
-        .set({
-          tags: JSON.stringify(normalizedTags),
-          updatedAt: new Date(),
-        })
-        .where(eq(people.id, personId));
-
-      return normalizedTags;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
-      queryClient.invalidateQueries({ queryKey: ['people'] });
-      queryClient.invalidateQueries({ queryKey: ['people', variables.personId] });
-    },
-  });
-}
-
 /** Helper to parse a person's `tags` JSON column. */
 export const parseTags = parseJsonArray;

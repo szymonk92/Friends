@@ -61,7 +61,9 @@
     "showCategoryDividers": "Show category dividers",
     "hideCategoryDividers": "Hide category dividers",
     "clearFilters": "Clear filters",
-    "myNetwork": "My Network"
+    "myNetwork": "My Network",
+    "keepClose_one": "{{count}} person you keep close",
+    "keepClose_other": "{{count}} people you keep close"
   },
   "network": {
     "title": "Network",
@@ -243,8 +245,7 @@
     "about": "About",
     "experimental": "Experimental",
     "developerTools": "Developer Tools",
-    "appearanceDescription": "Customize the app's appearance by selecting your preferred theme color.",
-    "themeColor": "Theme Color",
+    "appearanceDescription": "Choose the font used across the app.",
     "fontFamily": "Font Family"
   },
   "dev": {
@@ -1072,7 +1073,10 @@
     "onDayDesc": "Notify me on the actual birthday",
     "daysBefore": "Days before reminder:",
     "none": "None",
-    "inDays": "In {{days}} days (turning {{age}})",
+    "inDays_one": "In {{count}} day (turning {{age}})",
+    "inDays_other": "In {{count}} days (turning {{age}})",
+    "ageYears_one": "{{count}}",
+    "ageYears_other": "{{count}}",
     "perPersonHint": "Choose who to be reminded about, or add their birthday to your calendar. Only exact dates (day known) are listed.",
     "people": "Birthdays",
     "today": "Today (turning {{age}})",
@@ -1103,17 +1107,7 @@
     "importHint": "Import data from a previously exported JSON file. Duplicate people (by name) will be skipped.",
     "importJson": "Import from JSON"
   },
-  "relColors": {
-    "title": "Relationship Colors",
-    "description": "Customize colors for different relationship types to easily identify them in the app.",
-    "change": "Change",
-    "reset": "Reset to Defaults"
-  },
   "settingsScreen": {
-    "resetTitle": "Reset Colors",
-    "resetMessage": "Reset all relationship colors to default?",
-    "reset": "Reset",
-    "colorsReset": "Colors reset to defaults",
     "scheduled": "Scheduled {{count}} birthday reminders!",
     "saveFailed": "Failed to save settings",
     "anthropicSaved": "Anthropic API key saved successfully!",
@@ -1143,8 +1137,7 @@
     "enterGemini": "Enter your Google Gemini API key to enable Gemini AI extraction.",
     "changeOllama": "Change Ollama API Key",
     "enterOllama": "Enter any value — Ollama ignores the key, it's just a placeholder so the app treats local extraction as configured.",
-    "keyPlaceholderLabel": "API Key (placeholder)",
-    "chooseColor": "Choose Color for {{type}}"
+    "keyPlaceholderLabel": "API Key (placeholder)"
   },
   "secrets": {
     "newSecret": "New Secret",
@@ -1217,7 +1210,8 @@
     "deleteFailed": "Failed to delete secret",
     "screenTitle": "Secrets",
     "setupScreenTitle": "Setup Secrets",
-    "checking": "Checking device security..."
+    "checking": "Checking device security...",
+    "usePin": "Use Device PIN"
   },
   "party": {
     "selectGuests": "Select Guests ({{count}})",
@@ -1390,7 +1384,8 @@
     "bothTrue": "Both true",
     "replace": "Replace",
     "whatLabel": "What they like/dislike/etc.",
-    "saveApprove": "Save & Approve"
+    "saveApprove": "Save & Approve",
+    "editTitle": "Edit Extraction"
   },
   "documentation": {
     "thingsAPersonEnjoysPrefers": "Things a person enjoys, prefers, or has positive feelings about",
