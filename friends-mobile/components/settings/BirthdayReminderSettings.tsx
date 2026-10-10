@@ -114,8 +114,8 @@ export default function BirthdayReminderSettings({
             <Text style={fzText.sub}>
               {formatShortDate(nextBirthday)} ·{' '}
               {daysUntil === 0
-                ? t('birthdayReminders.today', { age })
-                : t('birthdayReminders.inDays', { days: daysUntil, age })}
+                ? t('birthdayReminders.today', { age: t('birthdayReminders.ageYears', { count: age }) })
+                : t('birthdayReminders.inDays', { count: daysUntil, age: t('birthdayReminders.ageYears', { count: age }) })}
             </Text>
           </Pressable>
           <IconButton

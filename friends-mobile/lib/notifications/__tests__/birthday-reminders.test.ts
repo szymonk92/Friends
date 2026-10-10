@@ -470,7 +470,9 @@ describe('translations', () => {
     'perPersonHint',
     'people',
     'today',
-    'inDays',
+    'inDays_one',
+    'inDays_other',
+    'ageYears_other',
     'noMatch',
   ];
 
