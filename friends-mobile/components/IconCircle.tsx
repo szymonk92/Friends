@@ -1,4 +1,4 @@
-import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { fz } from '@/lib/design/tokens';
 import { LineIcon, type LineIconName } from './LineIcon';
 
@@ -34,20 +34,6 @@ export function IconCircle({
     );
   }
   return inner;
-}
-
-// Header options for an IconCircle in a native-stack header. iOS 26 wraps
-// headerLeft/headerRight in a glass pill; custom items can opt out of it.
-export function headerIconOptions(
-  side: 'left' | 'right',
-  props: Parameters<typeof IconCircle>[0],
-) {
-  const element = <IconCircle {...props} />;
-  if (Platform.OS === 'ios') {
-    const items = () => [{ type: 'custom' as const, element, hidesSharedBackground: true }];
-    return side === 'left' ? { unstable_headerLeftItems: items } : { unstable_headerRightItems: items };
-  }
-  return side === 'left' ? { headerLeft: () => element } : { headerRight: () => element };
 }
 
 const styles = StyleSheet.create({

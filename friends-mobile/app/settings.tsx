@@ -2,7 +2,7 @@ import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -191,7 +191,7 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('settings.title') }} />
+      <AppBar title={t('settings.title')} />
       <ScrollView style={styles.container}>
         <AppearanceSettings
           themeColor={themeColor}

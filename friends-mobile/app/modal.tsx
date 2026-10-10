@@ -135,6 +135,7 @@ export default function AddPersonModal() {
   return (
     <PersonForm
       mode="add"
+      title={t('person.addTitle')}
       subtitle={t('person.addSubtitle')}
       submitting={isSubmitting}
       submitLabel={t('person.addButton')}

@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { usePeople } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useCreateEvent, useEvents, useUpdateEvent } from '@/hooks/useEvents';
@@ -304,15 +305,7 @@ export default function PartyPlannerScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: eventId ? t('party.updateTitle') : t('party.planTitle'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-        }}
-      />
+      <AppBar title={eventId ? t('party.updateTitle') : t('party.planTitle')} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <PartyDetailsForm
           name={partyName}

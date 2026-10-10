@@ -18,7 +18,8 @@ import { WarningIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { devLogger } from '@/lib/utils/devLogger';
 import { ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
 import { useState } from 'react';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import {
   Card,
   Text,
@@ -128,11 +129,7 @@ export default function ReviewExtractionsScreen() {
   if (!pending || pending.length === 0) {
     return (
       <>
-        <Stack.Screen
-          options={{
-            title: t('reviewExtractions.title'),
-          }}
-        />
+        <AppBar title={t('reviewExtractions.title')} />
         <CenteredContainer style={styles.centered}>
           <CheckCircleIcon size={40} color="#1B1815" weight="bold" style={styles.emptyIcon} />
           <Text variant="headlineSmall" style={styles.emptyTitle}>
@@ -151,11 +148,7 @@ export default function ReviewExtractionsScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: t('reviewExtractions.titleCount', { count: pending.length }),
-        }}
-      />
+      <AppBar title={t('reviewExtractions.titleCount', { count: pending.length })} />
       <ScrollView style={styles.container}>
         <Card style={styles.headerCard}>
           <Card.Content>

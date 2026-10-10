@@ -10,23 +10,26 @@ import {
 } from 'react-native';
 import { Button, Text, TextInput, type TextInputProps } from 'react-native-paper';
 import type { ReactNode } from 'react';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { fz, fzText } from '@/lib/design/tokens';
 
-// The add/edit screen shell every person sub-form shares: fz-styled nav header +
+// The add/edit screen shell every person sub-form shares: <AppBar> +
 // keyboard-aware scroll + padded content, plus the standard loading / not-found
 // short-circuits. Keeps connection-form / relation-form / relation screens from
-// each re-deriving the same KeyboardAvoidingView + ScrollView + Stack.Screen.
+// each re-deriving the same KeyboardAvoidingView + ScrollView + header.
 export function FormScreen({
   title,
+  right,
   loading = false,
   notFound = false,
   notFoundLabel,
   children,
 }: {
   title: string;
+  right?: ReactNode;
   loading?: boolean;
   notFound?: boolean;
   notFoundLabel?: string;
@@ -35,17 +38,7 @@ export function FormScreen({
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerStyle: { backgroundColor: fz.paper },
-        headerTintColor: fz.ink,
-        headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-        headerShadowVisible: false,
-      }}
-    />
-  );
+  const header = <AppBar title={title} right={right} />;
 
   if (loading) {
     return (
@@ -78,22 +71,19 @@ export function FormScreen({
   }
 
   return (
-    <>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.screen}
+    >
       {header}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          style={styles.screen}
-          contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.screenContent}>{children}</View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+        <View style={styles.screenContent}>{children}</View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -176,7 +166,6 @@ export function FormInput(props: TextInputProps) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   screen: {
     flex: 1,
     backgroundColor: fz.paper,

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { StyleSheet, View, FlatList } from 'react-native';
 import { Text, ActivityIndicator, TextInput } from 'react-native-paper';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { usePeople, usePerson } from '@/hooks/usePeople';
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { PersonRow } from '@/components/PersonRow';
@@ -25,16 +26,12 @@ export default function ComparePickerScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: person
+      <AppBar
+        title={
+          person
             ? t('comparePicker.titleWithName', { name: person.name.split(' ')[0] })
-            : t('comparePicker.title'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 17 },
-          headerShadowVisible: false,
-        }}
+            : t('comparePicker.title')
+        }
       />
       <View style={styles.container}>
         {isLoading ? (

@@ -9,8 +9,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
 import { stories, pendingExtractions, people, relations } from '@/lib/db/schema';
@@ -27,7 +26,7 @@ import { createSystemPrompt } from '@/lib/ai/prompts';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { useSettings, AI_MODELS } from '@/store/useSettings';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { IconCircle } from '@/components/IconCircle';
 import { relationTypeLabel } from '@/lib/i18n/labels';
 import { Pill } from '@/components/Pill';
@@ -35,7 +34,6 @@ import { useTranslation } from 'react-i18next';
 
 export default function StoryDetailScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const deleteStory = useDeleteStory();
   const extractRelations = useExtractRelations();
@@ -324,30 +322,18 @@ export default function StoryDetailScreen() {
     }
   };
 
-  const AppBar = ({ title }: { title: string }) => (
-    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.appBarRow}>
-        <HeaderBack onPress={() => router.back()} />
-        <RNText style={fzText.screenTitle} numberOfLines={1}>
-          {title}
-        </RNText>
-        <View style={styles.appBarActions}>
-          <IconCircle
-            icon="pencil"
-            onPress={() => router.push(`/story/addStory?storyId=${id}`)}
-          />
-          <IconCircle icon="trash" onPress={handleDelete} />
-        </View>
-      </View>
-    </View>
+  const actions = (
+    <>
+      <IconCircle icon="pencil" onPress={() => router.push(`/story/addStory?storyId=${id}`)} />
+      <IconCircle icon="trash" onPress={handleDelete} />
+    </>
   );
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title={t('storyDetail.story')} />
+        <AppBar title={t('storyDetail.story')} right={actions} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
         </View>
@@ -358,9 +344,8 @@ export default function StoryDetailScreen() {
   if (!story) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <AppBar title={t('storyDetail.notFoundTitle')} />
+        <AppBar title={t('storyDetail.notFoundTitle')} right={actions} />
         <View style={styles.centered}>
           <RNText style={fzText.sub}>{t('storyDetail.notFound')}</RNText>
           <TouchableOpacity
@@ -379,10 +364,9 @@ export default function StoryDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      <AppBar title={story.title || t('storyDetail.details')} />
+      <AppBar title={story.title || t('storyDetail.details')} right={actions} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollInner}>
         {/* Story Metadata */}
@@ -766,18 +750,6 @@ export default function StoryDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
-  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
-  appBarActions: {
-    flexDirection: 'row',
-    gap: fz.s.sm,
-  },
-  appBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge,
-    paddingBottom: fz.s.sm,
-  },
   scroll: { flex: 1 },
   scrollInner: { padding: fz.s.edge, paddingTop: fz.s.md },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },

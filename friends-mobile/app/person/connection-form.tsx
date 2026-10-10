@@ -1,5 +1,5 @@
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +42,7 @@ import { describeConnection } from '@/lib/connections/describeConnection';
 import { RelationshipTypePicker } from '@/components/person/RelationshipTypePicker';
 import { PersonPickerModal } from '@/components/PersonPickerModal';
 import { relationshipTypeLabel, personTypeLabel } from '@/lib/i18n/labels';
-import { headerIconOptions } from '@/components/IconCircle';
+import { IconCircle } from '@/components/IconCircle';
 
 type ConnectionFormMode = 'add' | 'edit';
 type ConnectionRelationshipType = NonNullable<Connection['relationshipType']>;
@@ -650,12 +650,8 @@ export default function ConnectionForm({ mode }: ConnectionFormProps) {
       loading={isLoading}
       notFound={notFound}
       notFoundLabel={t('connectionForm.notFound')}
+      right={mode === 'edit' && <IconCircle icon="more" onPress={() => setMenuVisible(true)} />}
     >
-      {mode === 'edit' && (
-        <Stack.Screen
-          options={headerIconOptions('right', { icon: 'more', onPress: () => setMenuVisible(true) })}
-        />
-      )}
 
       {mode === 'add' && singlePersonMode && selectedSinglePerson ? (
         // Single person detailed mode (add only)

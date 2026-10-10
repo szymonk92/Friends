@@ -1,7 +1,7 @@
 import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useRef } from 'react';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import {
   View,
   Image,
@@ -184,7 +184,6 @@ export default function OnboardingScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
       <View
         style={[
           styles.container,

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 import { usePeople } from '@/hooks/usePeople';
 import { useCreateRelations, useDeleteRelation, useRelations } from '@/hooks/useRelations';
@@ -72,7 +72,7 @@ export default function DietChecklistScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('dietChecklist.title') }} />
+      <AppBar title={t('dietChecklist.title')} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <FormSection hint={t('dietChecklist.hint')}>
           {DIET_PRESETS.map((p, i) => (

@@ -1,6 +1,7 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { Text, Button, Card, Divider, TextInput } from 'react-native-paper';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { seedSampleData, clearAllData } from '@/lib/db/seed';
 import { seedTestData, clearTestData } from '@/scripts/seedTestData';
@@ -219,12 +220,7 @@ export default function DevScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: t('dev.title'),
-          presentation: 'modal',
-        }}
-      />
+      <AppBar title={t('dev.title')} />
       <ScrollView style={styles.container}>
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>

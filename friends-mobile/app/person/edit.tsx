@@ -230,13 +230,12 @@ export default function EditPersonScreen() {
         isPet={isPet}
         initial={initial}
         subtitle={t('person.editSubtitle', { name: person.name })}
-        headerTitle={
+        title={
           <RNText style={styles.headerTitle} numberOfLines={1}>
             {t('person.editHeader')}{' '}
             <RNText style={styles.headerTitleName}>{person.name}</RNText>
           </RNText>
         }
-        headerBackTitle={t('common.cancel')}
         submitting={isSubmitting}
         submitLabel={t('person.saveButton')}
         onSubmit={handleSubmit}

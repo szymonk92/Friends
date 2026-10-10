@@ -1,6 +1,7 @@
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { Button, List } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import {
   useExportData,
   useExportStats,
@@ -123,15 +124,7 @@ export default function MenuScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: t('common.moreOptions'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-        }}
-      />
+      <AppBar title={t('common.moreOptions')} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <FormSection title={t('settings.security')} hint={t('settingsScreen.secretsIntro')}>
           <Button

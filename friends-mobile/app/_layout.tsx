@@ -17,7 +17,6 @@ import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
 import { useSettings } from '@/store/useSettings';
 import { createTheme } from '@/lib/theme';
-import { fz } from '@/lib/design/tokens';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -55,17 +54,6 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-
-// Shared Stack header styling — paper bg, ink title, Space Grotesk.
-// Forces the light FriendZ header on modal/story/quiz screens regardless of
-// the system dark theme (which was rendering these headers black).
-const fzHeader = {
-  headerStyle: { backgroundColor: fz.paper },
-  headerTintColor: fz.ink,
-  headerTitleStyle: { fontFamily: fz.font, fontWeight: '600' as const, fontSize: 18 },
-  headerShadowVisible: false,
-};
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -151,7 +139,6 @@ export default Sentry.wrap(function RootLayout() {
 });
 
 function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
-  const { t } = useTranslation();
   const {
     themeColor, loadThemeColor,
     fontFamily, loadFontFamily,
@@ -185,25 +172,13 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={paperTheme}>
           <ThemeProvider value={DefaultTheme}>
-            {/* Chevron-only back on iOS: the previous route is often "(tabs)",
-                which has no title, so iOS would label the button "(tabs)". */}
-            <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="person" options={{ headerShown: false }} />
-              <Stack.Screen name="import-contacts" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="modal"
-                options={{
-                  presentation: 'modal',
-                  title: t('person.addTitle'),
-                  ...fzHeader,
-                }}
-              />
-              <Stack.Screen name="story/[id]" options={{ ...fzHeader }} />
-              <Stack.Screen name="story/addStory" options={{ ...fzHeader }} />
-              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-              <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
-              <Stack.Screen name="diet-checklist" options={{ ...fzHeader }} />
+            {/* Native headers off everywhere: every screen renders <AppBar>. */}
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="dev" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="developer/playground" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="documentation" options={{ presentation: 'modal' }} />
             </Stack>
             <FzConfirmHost />
             <FloatingDevTools environment="local" userRole="admin" />

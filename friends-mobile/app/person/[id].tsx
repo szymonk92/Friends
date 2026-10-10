@@ -1,10 +1,11 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
-import { headerIconOptions } from '@/components/IconCircle';
+import { IconCircle } from '@/components/IconCircle';
+import { AppBar } from '@/components/AppBar';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { usePerson, useDeletePerson, useUpdatePerson } from '@/hooks/usePeople';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { useSetProfilePhoto } from '@/hooks/usePhotos';
@@ -146,18 +147,11 @@ export default function PersonProfileScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: person.name,
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-          // Same ⋮ as the people list header.
-          ...headerIconOptions('right', { icon: 'more', onPress: () => setMenuVisible(true) }),
-        }}
-      />
       <View style={styles.wrapper}>
+        <AppBar
+          title={person.name}
+          right={<IconCircle icon="more" onPress={() => setMenuVisible(true)} />}
+        />
         <ScrollView
           style={styles.container}
           contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}

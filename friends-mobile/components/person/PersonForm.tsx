@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, ScrollView, View, KeyboardAvoidingView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MetLocationInput from '@/components/person/MetLocationInput';
@@ -148,10 +148,8 @@ type Props = {
   onBrainDumpApply?: (applied: AppliedBrainDump) => void;
   /** Extra buttons rendered under the submit button (edit: add relation/connection). */
   footer?: ReactNode;
-  /** Custom nav-bar title node (edit only). Rendered next to the header Save button. */
-  headerTitle?: ReactNode;
-  /** iOS back-button label (edit only). */
-  headerBackTitle?: string;
+  /** App bar title; edit mode also gets a Save button on the right. */
+  title?: ReactNode;
 };
 
 export default function PersonForm({
@@ -167,8 +165,7 @@ export default function PersonForm({
   brainDumpContext,
   onBrainDumpApply,
   footer,
-  headerTitle,
-  headerBackTitle,
+  title,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -277,13 +274,14 @@ export default function PersonForm({
     mode === 'add' && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType);
 
   return (
-    <>
-    {mode === 'edit' && (
-      <Stack.Screen
-        options={{
-          ...(headerTitle ? { headerTitle: () => <>{headerTitle}</> } : {}),
-          ...(headerBackTitle ? { headerBackTitle } : {}),
-          headerRight: () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <AppBar
+        title={title}
+        right={
+          mode === 'edit' && (
             <Button
               mode="text"
               onPress={handleSubmitPress}
@@ -294,15 +292,9 @@ export default function PersonForm({
             >
               {submitLabel}
             </Button>
-          ),
-        }}
+          )
+        }
       />
-    )}
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
@@ -580,7 +572,6 @@ export default function PersonForm({
         <StatusBar style={Platform.OS === 'ios' ? 'light' : 'dark'} />
       </ScrollView>
     </KeyboardAvoidingView>
-    </>
   );
 }
 

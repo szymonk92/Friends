@@ -1,7 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useMePerson } from '@/hooks/usePeople';
@@ -54,7 +54,6 @@ export default function SharedInterestsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
