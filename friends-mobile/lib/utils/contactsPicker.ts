@@ -46,7 +46,7 @@ export async function pickContact(): Promise<PickedContact | null> {
   }
 }
 
-function projectContact(c: Contacts.Contact): PickedContact {
+function projectContact(c: Contacts.ExistingContact): PickedContact {
   const name = c.name || [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
   const phone = c.phoneNumbers?.[0]?.number ?? undefined;
   const email = c.emails?.[0]?.email ?? undefined;
