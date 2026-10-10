@@ -166,7 +166,7 @@ export default function ChainLockSplash() {
               letterSpacing: -0.56,
             }}
           >
-            FriendZ
+            Inner Circle
           </Text>
         </Animated.View>
       </View>

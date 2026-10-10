@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FriendZ",
+    "name": "Inner Circle",
     "slug": "friendz",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -40,28 +40,28 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "FriendZ uses Face ID to protect the secrets you store about people."
+          "faceIDPermission": "Inner Circle uses Face ID to protect the secrets you store about people."
         }
       ],
       "expo-localization",
       [
         "expo-calendar",
         {
-          "calendarPermission": "FriendZ adds birthdays you choose to your calendar.",
-          "remindersPermission": "FriendZ adds birthday reminders you choose to your reminders."
+          "calendarPermission": "Inner Circle adds birthdays you choose to your calendar.",
+          "remindersPermission": "Inner Circle adds birthday reminders you choose to your reminders."
         }
       ],
       [
         "expo-contacts",
         {
-          "contactsPermission": "FriendZ reads your contacts so you can import the people you know, with their names, phone numbers, emails, birthdays and photos."
+          "contactsPermission": "Inner Circle reads your contacts so you can import the people you know, with their names, phone numbers, emails, birthdays and photos."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "FriendZ uses your photo library so you can pick profile photos for the people you save.",
-          "cameraPermission": "FriendZ uses the camera so you can take profile photos of the people you save.",
+          "photosPermission": "Inner Circle uses your photo library so you can pick profile photos for the people you save.",
+          "cameraPermission": "Inner Circle uses the camera so you can take profile photos of the people you save.",
           "microphonePermission": false
         }
       ],
