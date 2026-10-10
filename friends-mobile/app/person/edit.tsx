@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, View, Text as RNText } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,7 +10,13 @@ import {
   usePeople,
 } from '@/hooks/usePeople';
 import { useCreateConnection, useUpdateConnection } from '@/hooks/useConnections';
-import { useCreateRelations, useUpdateRelation, usePersonRelations } from '@/hooks/useRelations';
+import {
+  useCreateRelations,
+  useUpdateRelation,
+  useDeleteRelation,
+  usePersonRelations,
+} from '@/hooks/useRelations';
+import { activeDietKeys, dietChanges, type DietKey } from '@/lib/constants/relations';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { devLogger } from '@/lib/utils/devLogger';
 import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
@@ -64,12 +70,17 @@ export default function EditPersonScreen() {
   const updateConnection = useUpdateConnection();
   const createRelations = useCreateRelations();
   const updateRelation = useUpdateRelation();
-  const { data: personRelations = [] } = usePersonRelations(personId!);
+  const deleteRelation = useDeleteRelation();
+  const { data: personRelations = [], isLoading: relationsLoading } = usePersonRelations(personId!);
   const { data: personConnections = [] } = usePersonConnections(personId!);
   const { data: allPeople = [] } = usePeople();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Snapshot of what the chips showed on open — brain-dump writes can refetch
+  // relations mid-edit, and the diff must only touch chips the user toggled.
+  const initialDiet = useRef<DietKey[] | null>(null);
 
-  if (isLoading) {
+  // Relations must be loaded before the form seeds its diet chips once.
+  if (isLoading || relationsLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={fz.ink} />
@@ -180,6 +191,20 @@ export default function EditPersonScreen() {
         importanceToUser: v.importanceToUser as any,
         gender: v.gender === 'other' ? v.genderOther.trim() || 'other' : v.gender || null,
       });
+      const { toCreate, toDeleteIds } = dietChanges(initialDiet.current ?? [], v.diet, personRelations);
+      if (toCreate.length) {
+        await createRelations.mutateAsync(
+          toCreate.map((p) => ({
+            subjectId: personId!,
+            subjectType: 'person',
+            relationType: p.relationType,
+            objectLabel: p.objectLabel,
+            source: 'manual' as const,
+            status: 'current' as const,
+          }))
+        );
+      }
+      await Promise.all(toDeleteIds.map((id) => deleteRelation.mutateAsync(id)));
       router.back();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t('common.unknownError');
@@ -194,7 +219,8 @@ export default function EditPersonScreen() {
     }
   };
 
-  const initial = mapPersonToForm(person);
+  initialDiet.current ??= activeDietKeys(personRelations);
+  const initial = { ...mapPersonToForm(person), diet: initialDiet.current };
   const isPet = person.entityType === 'pet';
 
   return (
@@ -204,13 +230,12 @@ export default function EditPersonScreen() {
         isPet={isPet}
         initial={initial}
         subtitle={t('person.editSubtitle', { name: person.name })}
-        headerTitle={
+        title={
           <RNText style={styles.headerTitle} numberOfLines={1}>
             {t('person.editHeader')}{' '}
             <RNText style={styles.headerTitleName}>{person.name}</RNText>
           </RNText>
         }
-        headerBackTitle={t('common.cancel')}
         submitting={isSubmitting}
         submitLabel={t('person.saveButton')}
         onSubmit={handleSubmit}

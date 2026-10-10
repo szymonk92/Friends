@@ -1,12 +1,14 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { confirmDestructive } from '@/lib/utils/confirm';
-import { Text, ActivityIndicator, Button, IconButton } from 'react-native-paper';
+import { Text, ActivityIndicator, Button } from 'react-native-paper';
+import { IconCircle } from '@/components/IconCircle';
+import { AppBar } from '@/components/AppBar';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { usePerson, useDeletePerson, useUpdatePerson } from '@/hooks/usePeople';
 import { usePersonConnections } from '@/hooks/useConnections';
-import { usePersonPhotos, useSetProfilePhoto } from '@/hooks/usePhotos';
+import { useSetProfilePhoto } from '@/hooks/usePhotos';
 import { usePhotoPicker } from '@/hooks/usePhotoPicker';
 import { ActionSheet, type ActionSheetAction } from '@/components/ActionSheet';
 
@@ -45,7 +47,6 @@ export default function PersonProfileScreen() {
         (c.relationshipType === 'parent' && c.person1Id === id)
     );
 
-  const { data: personPhotos = [] } = usePersonPhotos(id!);
   const setProfilePhoto = useSetProfilePhoto();
   const { pickPhoto, photoSheet } = usePhotoPicker(id!);
 
@@ -70,12 +71,23 @@ export default function PersonProfileScreen() {
       },
     });
 
-  const profilePhoto = person?.photoId ? personPhotos.find((p) => p.id === person.photoId) : null;
   const isHuman = person?.entityType !== 'pet';
   const isOther = person?.personType !== 'self' && isHuman;
+  // Existing partners are shown under the name (PartnerBadge); adding one lives here.
+  const canAddPartner =
+    isHuman &&
+    person?.relationshipType !== 'partner' &&
+    !connections.some((c) => c.relationshipType === 'partner' && c.status !== 'ended');
   const topActions: ActionSheetAction[] = [
-    ...(profilePhoto
-      ? [{ label: t('profile.changePhoto'), icon: 'camera' as const, onPress: handleAvatarPress }]
+    ...(canAddPartner
+      ? [
+          {
+            label: t('partnerBadge.add'),
+            icon: 'heart' as const,
+            onPress: () =>
+              router.push(`/person/add-connection?personId=${id}&relationshipType=partner`),
+          },
+        ]
       : []),
     ...(isOther
       ? [
@@ -135,25 +147,11 @@ export default function PersonProfileScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: person.name,
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-          headerRight: () => (
-            <View style={{ marginRight: 4 }}>
-              <IconButton
-                icon="dots-vertical"
-                onPress={() => setMenuVisible(true)}
-                iconColor={fz.ink}
-              />
-            </View>
-          ),
-        }}
-      />
       <View style={styles.wrapper}>
+        <AppBar
+          title={person.name}
+          right={<IconCircle icon="more" onPress={() => setMenuVisible(true)} />}
+        />
         <ScrollView
           style={styles.container}
           contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
@@ -179,7 +177,7 @@ export default function PersonProfileScreen() {
           <PersonNotes person={person} />
           <PersonConnections personId={id!} personName={person.name} />
           <Text style={styles.footer}>
-            Last updated {formatRelativeTime(new Date(person.updatedAt))}
+            {t('profile.lastUpdated', { time: formatRelativeTime(new Date(person.updatedAt)) })}
           </Text>
         </ScrollView>
       </View>

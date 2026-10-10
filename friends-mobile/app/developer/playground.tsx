@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, Card, SegmentedButtons, ActivityIndicator, HelperText, useTheme, Chip } from 'react-native-paper';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { extractRelationsFromStorySession, ExtractionResult } from '../../lib/ai/extraction';
 import { AIModel, useSettings } from '../../store/useSettings';
 import { AIServiceConfig } from '../../lib/ai/ai-service';
@@ -292,9 +293,8 @@ export default function PlaygroundScreen() {
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
-            <Stack.Screen options={{ title: 'AI Playground', presentation: 'modal' }} />
+            <AppBar title="AI Playground" />
             <ScrollView contentContainerStyle={styles.container}>
                 <Card style={styles.inputCard}>
                     <Card.Content>

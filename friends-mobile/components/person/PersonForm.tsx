@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, ScrollView, View, KeyboardAvoidingView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MetLocationInput from '@/components/person/MetLocationInput';
@@ -15,6 +15,8 @@ import { isValidEmail, isValidPhone, normalizePhone } from '@/lib/utils/pii';
 import { pickContact, isContactPickerAvailable } from '@/lib/utils/contactsPicker';
 import { fz, fzText } from '@/lib/design/tokens';
 import { PillGroup } from '@/components/PillGroup';
+import { Pill } from '@/components/Pill';
+import { DIET_PRESETS, ALWAYS_PRIMARY_RELATIONSHIPS, type DietKey } from '@/lib/constants/relations';
 import { FormSection, FormInput, Foldable } from '@/components/FormKit';
 import { fzAlert } from '@/lib/utils/confirm';
 
@@ -36,6 +38,7 @@ export type PersonFormValues = {
   languages: string[];
   socialLinks: SocialLink[];
   notes: string;
+  diet: DietKey[];
 };
 
 const DEFAULTS: PersonFormValues = {
@@ -56,10 +59,9 @@ const DEFAULTS: PersonFormValues = {
   languages: [],
   socialLinks: [],
   notes: '',
+  diet: [],
 };
 
-// Relationships that force personType = primary (so the picker is hidden on add).
-const ALWAYS_PRIMARY_RELATIONSHIPS = ['partner', 'friend', 'family'];
 
 type RelationRow = {
   id: string;
@@ -146,10 +148,8 @@ type Props = {
   onBrainDumpApply?: (applied: AppliedBrainDump) => void;
   /** Extra buttons rendered under the submit button (edit: add relation/connection). */
   footer?: ReactNode;
-  /** Custom nav-bar title node (edit only). Rendered next to the header Save button. */
-  headerTitle?: ReactNode;
-  /** iOS back-button label (edit only). */
-  headerBackTitle?: string;
+  /** App bar title; edit mode also gets a Save button on the right. */
+  title?: ReactNode;
 };
 
 export default function PersonForm({
@@ -165,8 +165,7 @@ export default function PersonForm({
   brainDumpContext,
   onBrainDumpApply,
   footer,
-  headerTitle,
-  headerBackTitle,
+  title,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -189,6 +188,9 @@ export default function PersonForm({
   const [languages, setLanguages] = useState<string[]>(seed.languages);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(seed.socialLinks);
   const [notes, setNotes] = useState(seed.notes);
+  const [diet, setDiet] = useState<DietKey[]>(seed.diet);
+  const toggleDiet = (k: DietKey) =>
+    setDiet((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
 
   const handleRelationshipChange = (value: string) => {
     setRelationshipType(value);
@@ -264,6 +266,7 @@ export default function PersonForm({
       languages,
       socialLinks,
       notes,
+      diet,
     });
   };
 
@@ -271,13 +274,14 @@ export default function PersonForm({
     mode === 'add' && !ALWAYS_PRIMARY_RELATIONSHIPS.includes(relationshipType);
 
   return (
-    <>
-    {mode === 'edit' && (
-      <Stack.Screen
-        options={{
-          ...(headerTitle ? { headerTitle: () => <>{headerTitle}</> } : {}),
-          ...(headerBackTitle ? { headerBackTitle } : {}),
-          headerRight: () => (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <AppBar
+        title={title}
+        right={
+          mode === 'edit' && (
             <Button
               mode="text"
               onPress={handleSubmitPress}
@@ -288,15 +292,9 @@ export default function PersonForm({
             >
               {submitLabel}
             </Button>
-          ),
-        }}
+          )
+        }
       />
-    )}
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: insets.bottom + fz.s.xxl }}
@@ -506,6 +504,21 @@ export default function PersonForm({
             </FormSection>
           )}
 
+          {!isPet && (
+            <FormSection title={t('person.diet.title')}>
+              <View style={styles.dietRow}>
+                {DIET_PRESETS.map((p) => (
+                  <Pill
+                    key={p.key}
+                    label={t(`person.diet.${p.key}`)}
+                    selected={diet.includes(p.key)}
+                    onPress={() => toggleDiet(p.key)}
+                  />
+                ))}
+              </View>
+            </FormSection>
+          )}
+
           <View style={styles.plainGroup}>
             <FormInput
               label={t('person.notes')}
@@ -559,7 +572,6 @@ export default function PersonForm({
         <StatusBar style={Platform.OS === 'ios' ? 'light' : 'dark'} />
       </ScrollView>
     </KeyboardAvoidingView>
-    </>
   );
 }
 
@@ -583,6 +595,11 @@ const styles = StyleSheet.create({
   // ponytail: flat variant — white fill bleeds to the screen edges (cancel the
   // parent's edge padding with a negative margin, add it back as padding so the
   // text stays exactly where it was); drop the border/rounding.
+  dietRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   flatSection: {
     borderWidth: 0,
     borderRadius: 0,

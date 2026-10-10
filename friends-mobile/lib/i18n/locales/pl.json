@@ -29,7 +29,8 @@
     "hide": "Ukryj",
     "unknownError": "Nieznany błąd",
     "notFound": "Nie znaleziono",
-    "done": "Gotowe"
+    "done": "Gotowe",
+    "other": "Inne"
   },
   "splash": {
     "connecting": "Łączenie z Twoim kręgiem…"
@@ -177,7 +178,15 @@
     "sideEffectsFailedMessage": "Nie udało się zapisać partnera lub cech.",
     "allNotes": "Wszystkie notatki ({{count}})",
     "deleteNote": "Usuń notatkę",
-    "deleteNoteConfirm": "Ta notatka zostanie usunięta."
+    "deleteNoteConfirm": "Ta notatka zostanie usunięta.",
+    "diet": {
+      "title": "Dieta i alkohol",
+      "vegetarian": "Wegetarianizm",
+      "vegan": "Weganizm",
+      "lactoseIntolerant": "Nietolerancja laktozy",
+      "glutenFree": "Bez glutenu",
+      "noAlcohol": "Nie pije"
+    }
   },
   "onboarding": {
     "skip": "Pomiń",
@@ -383,8 +392,6 @@
     "notFound": "Nie znaleziono połączenia",
     "deleteMenu": "Usuń połączenie",
     "addFor": "Dodaj połączenie dla {{name}}",
-    "addSubtitle": "Wybierz kilka osób lub stuknij jedną, aby dodać szczegóły",
-    "backToMulti": "Wróć do wyboru wielu osób",
     "whatAdding": "Co dodajesz?",
     "kind": {
       "person": "Osobę",
@@ -401,7 +408,6 @@
     "selected": "Wybrano",
     "linkOwner": "Połącz drugiego właściciela",
     "linkParent": "Połącz drugiego rodzica",
-    "none": "Brak",
     "personType": "Typ osoby",
     "primary": "Główna",
     "mentioned": "Wspomniana",
@@ -409,7 +415,6 @@
     "mentionedHint": "Ukryta na głównych listach, służy tylko jako kontekst.",
     "relationshipType": "Typ relacji",
     "createdMentioned": "Ta osoba zostanie utworzona jako „Wspomniana” (ukryta).",
-    "status": "Status",
     "connectionStatus": "Status połączenia",
     "statuses": {
       "active": "Aktywne",
@@ -417,22 +422,19 @@
       "ended": "Zakończone",
       "complicated": "Skomplikowane"
     },
-    "additional": "Dodatkowe szczegóły",
-    "qualifierShort": "Określenie (np. najlepszy, bliski, były)",
-    "qualifierShortPlaceholder": "Jak opisać tę relację",
-    "notesExample": "np. Poznali się na weselu Ani",
     "selectPeople": "Wybierz osoby",
     "searchPlaceholder": "Szukaj lub wpisz nowe imię, aby dodać…",
-    "searchHint": "Wpisz imię, którego nie ma na liście, aby dodać nową osobę lub zwierzę.",
     "addNamed": "Dodaj „{{name}}”",
     "newPersonOrPet": "Nowa osoba lub zwierzę — połącz teraz",
-    "noOthers": "Nie znaleziono innych osób. Najpierw dodaj więcej osób.",
     "qualifierLong": "Określenie (małżonek, rodzeństwo itd.)",
     "qualifierLongPlaceholder": "np. przyjaciel z dzieciństwa, kolega z pracy, kuzyn",
     "notesPlaceholder": "Gdzie się poznali, jak się dogadują, wspólna historia...",
     "submitOne": "Dodaj połączenie",
     "submitMany": "Dodaj połączenia ({{count}})",
-    "update": "Zaktualizuj połączenie"
+    "update": "Zaktualizuj połączenie",
+    "choosePeople": "Wybierz osoby",
+    "choosePeopleMore": "Dodaj lub usuń osoby",
+    "changePerson": "Zmień osobę"
   },
   "profile": {
     "tagsTitle": "Tagi",
@@ -471,11 +473,11 @@
     "deletePersonMessage": "Czy na pewno chcesz usunąć {{name}}? Tej operacji nie można cofnąć.",
     "loading": "Ładowanie profilu...",
     "notFound": "Nie znaleziono osoby",
-    "changePhoto": "Zmień zdjęcie",
     "viewRelationship": "Zobacz relację",
     "compareWith": "Porównaj z…",
     "convertToAdult": "Zmień na dorosłego",
-    "reminderFailed": "Nie udało się ustawić przypomnienia"
+    "reminderFailed": "Nie udało się ustawić przypomnienia",
+    "lastUpdated": "Ostatnia zmiana: {{time}}"
   },
   "gifts": {
     "enterItem": "Wpisz pomysł na prezent",
@@ -1158,7 +1160,7 @@
     "ollamaCleared": "Klucz API Ollama został usunięty.",
     "secretsIntro": "Przechowuj poufne informacje bezpiecznie dzięki ochronie biometrycznej (odcisk palca / Face ID).",
     "manageSecrets": "Zarządzaj sekretami",
-    "appName": "Aplikacja Friends",
+    "appName": "Inner Circle",
     "appDesc": "Osobisty CRM do zarządzania relacjami",
     "version": "Wersja",
     "dataStorage": "Przechowywanie danych",
@@ -1533,5 +1535,13 @@
   "errors": {
     "noAiKey": "Klucz API AI nie jest skonfigurowany. Ustaw go w Ustawieniach.",
     "contradiction": "Ta osoba ma już wpis ({{type}}) „{{item}}”. Edytuj lub zarchiwizuj ten wpis zamiast dodawać sprzeczny."
+  },
+  "dietChecklist": {
+    "title": "Dieta i alkohol",
+    "hint": "Wybierz jedno i zaznacz wszystkie osoby, których dotyczy. Zmiany zapisują się od razu.",
+    "count_one": "{{count}} osoba",
+    "count_few": "{{count}} osoby",
+    "count_many": "{{count}} osób",
+    "count_other": "{{count}} osób"
   }
 }

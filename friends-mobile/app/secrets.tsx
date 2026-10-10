@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
 import { Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { IconCircle } from '@/components/IconCircle';
 import {
   useBiometricStatus,
@@ -242,24 +241,9 @@ export default function SecretsScreen() {
     });
   };
 
-  const AppBar = ({ title, onAdd }: { title: string; onAdd?: () => void }) => (
-    <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.appBarRow}>
-        <HeaderBack onPress={() => router.back()} />
-        <RNText style={fzText.screenTitle}>{title}</RNText>
-        {onAdd ? (
-          <IconCircle icon="plus" onPress={onAdd} />
-        ) : (
-          <View style={{ width: 38 }} />
-        )}
-      </View>
-    </View>
-  );
-
   if (loadingBiometric || loadingSetup) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
         <AppBar title={t('secrets.screenTitle')} />
         <View style={styles.centered}>
@@ -274,7 +258,6 @@ export default function SecretsScreen() {
   if (!isSetup) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
         <AppBar title={t('secrets.setupScreenTitle')} />
         <SecretsSetup
@@ -297,9 +280,11 @@ export default function SecretsScreen() {
   // Main secrets list
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-      <AppBar title={t('secrets.screenTitle')} onAdd={() => setShowCreateDialog(true)} />
+      <AppBar
+        title={t('secrets.screenTitle')}
+        right={<IconCircle icon="plus" onPress={() => setShowCreateDialog(true)} />}
+      />
       <SecretList
         secrets={secrets}
         loadingSecrets={loadingSecrets}
@@ -361,14 +346,6 @@ export default function SecretsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
-  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
-  appBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge,
-    paddingBottom: fz.s.sm,
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',

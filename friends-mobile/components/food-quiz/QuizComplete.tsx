@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, Chip } from 'react-native-paper';
 import { router } from 'expo-router';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import CenteredContainer from '@/components/CenteredContainer';
 import { fz } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ export default function QuizComplete({ savedCount }: QuizCompleteProps) {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('foodQuiz.completeTitle') }} />
+      <AppBar title={t('foodQuiz.completeTitle')} />
       <CenteredContainer style={styles.centered}>
         <Text style={styles.completeIcon}>🎉</Text>
         <Text variant="headlineMedium" style={styles.completeTitle}>

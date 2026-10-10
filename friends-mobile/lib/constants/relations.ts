@@ -160,9 +160,70 @@ export const FAMILY_SUBTYPES = RELATIONSHIP_TYPES.filter((t) =>
  * Constants for connection statuses used in connection management
  * These define the current state of relationships between people
  */
+/** Relationships that always make someone a primary contact (personType picker hidden). */
+export const ALWAYS_PRIMARY_RELATIONSHIPS: readonly string[] = [
+  'partner',
+  'ex-partner',
+  'friend',
+  'family',
+];
+
 export const CONNECTION_STATUSES = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
   { label: 'Ended', value: 'ended' },
   { label: 'Complicated', value: 'complicated' },
 ];
+
+/**
+ * One-tap diet/drink chips on the edit-person screen. Each chip is just a
+ * normal relation with a fixed label, so filters, party planning and the AI
+ * conflict check all see the same canonical string.
+ */
+export const DIET_PRESETS = [
+  { key: 'vegetarian', relationType: 'IS', objectLabel: 'vegetarian' },
+  { key: 'vegan', relationType: 'IS', objectLabel: 'vegan' },
+  { key: 'lactoseIntolerant', relationType: 'IS', objectLabel: 'lactose intolerant' },
+  { key: 'glutenFree', relationType: 'AVOIDS', objectLabel: 'gluten' },
+  { key: 'noAlcohol', relationType: 'AVOIDS', objectLabel: 'alcohol' },
+] as const;
+
+export type DietKey = (typeof DIET_PRESETS)[number]['key'];
+
+type DietRow = { id: string; relationType: string; objectLabel: string; status?: string | null };
+
+const matchesPreset = (r: DietRow, p: (typeof DIET_PRESETS)[number]) =>
+  r.relationType === p.relationType &&
+  r.objectLabel.trim().toLowerCase() === p.objectLabel &&
+  (r.status ?? 'current') === 'current';
+
+/**
+ * Relation label for display: diet presets are stored in English (canonical),
+ * so show the translated chip name instead; anything else is user text as-is.
+ */
+export function displayObjectLabel(relationType: string, objectLabel: string): string {
+  const preset = DIET_PRESETS.find(
+    (p) => p.relationType === relationType && p.objectLabel === objectLabel.trim().toLowerCase()
+  );
+  return preset ? tr(`person.diet.${preset.key}`, objectLabel) : objectLabel;
+}
+
+/** Diet chips that are already "on" for this person. */
+export function activeDietKeys(rows: readonly DietRow[]): DietKey[] {
+  return DIET_PRESETS.filter((p) => rows.some((r) => matchesPreset(r, p))).map((p) => p.key);
+}
+
+/**
+ * What to write when the chips go from `before` to `after`. Only chips the
+ * user actually toggled are touched — never deletes a relation it didn't show.
+ */
+export function dietChanges(
+  before: readonly DietKey[],
+  after: readonly DietKey[],
+  rows: readonly DietRow[]
+) {
+  const toCreate = DIET_PRESETS.filter((p) => after.includes(p.key) && !before.includes(p.key));
+  const removed = DIET_PRESETS.filter((p) => before.includes(p.key) && !after.includes(p.key));
+  const toDeleteIds = rows.filter((r) => removed.some((p) => matchesPreset(r, p))).map((r) => r.id);
+  return { toCreate, toDeleteIds };
+}

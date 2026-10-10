@@ -17,7 +17,8 @@ import { useCreateStory, useStory, useUpdateStory } from '@/hooks/useStories';
 import { useExtractStory } from '@/hooks/useExtraction';
 import { useSettings } from '@/store/useSettings';
 import type { AIServiceConfig, AIDebugInfo } from '@/lib/ai/ai-service';
-import { router, useFocusEffect, useNavigation, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { createExtractionPrompt } from '@/lib/ai/prompts';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people } from '@/lib/db/schema';
@@ -38,7 +39,6 @@ import { fzAlert } from '@/lib/utils/confirm';
 export default function StoryInputScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const { personId: prefillPersonId, storyId: editStoryId } = useLocalSearchParams<{
     personId?: string;
     storyId?: string;
@@ -95,23 +95,16 @@ export default function StoryInputScreen() {
     loadSelectedModel();
   }, []);
 
-  // Set navigation options
-  useEffect(() => {
-    navigation.setOptions(
-      isEdit
-        ? { title: t('addStory.editTitle') }
-        : prefillPerson
-        ? {
-            headerTitle: () => (
-              <RNText style={styles.headerTitle} numberOfLines={1}>
-                {t('addStory.quickNote')} ·{' '}
-                <RNText style={styles.headerTitleName}>{prefillPerson.name}</RNText>
-              </RNText>
-            ),
-          }
-        : { title: t('addStory.title') }
-    );
-  }, [navigation, prefillPerson, isEdit, t]);
+  const title = isEdit ? (
+    t('addStory.editTitle')
+  ) : prefillPerson ? (
+    <RNText style={styles.headerTitle} numberOfLines={1}>
+      {t('addStory.quickNote')} ·{' '}
+      <RNText style={styles.headerTitleName}>{prefillPerson.name}</RNText>
+    </RNText>
+  ) : (
+    t('addStory.title')
+  );
 
   // Handle back button and unsaved changes
   useFocusEffect(
@@ -410,10 +403,10 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <AppBar title={title} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           style={styles.scrollContent}

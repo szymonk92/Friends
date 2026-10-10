@@ -13,6 +13,7 @@ import type { PersonWithPhoto } from '@/hooks/usePeople';
 /**
  * Searchable, virtualized people picker (scales to hundreds of people).
  * `multi`: rows toggle and a Done button closes; otherwise tapping a row picks it and closes.
+ * `create`: while typing, shows an "Add <query>" row on top for someone not in the list.
  */
 export function PersonPickerModal({
   visible,
@@ -22,6 +23,7 @@ export function PersonPickerModal({
   selectedIds,
   onToggle,
   multi = false,
+  create,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -30,6 +32,12 @@ export function PersonPickerModal({
   selectedIds: string[];
   onToggle: (id: string) => void;
   multi?: boolean;
+  create?: {
+    onCreate: (name: string) => void;
+    label: (name: string) => string;
+    hint?: string;
+    placeholder?: string;
+  };
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -39,7 +47,8 @@ export function PersonPickerModal({
     onClose();
   };
 
-  const q = foldText(query.trim());
+  const typed = query.trim();
+  const q = foldText(typed);
   const matches = q
     ? people.filter((p) => foldText(`${p.name} ${p.nickname ?? ''}`).includes(q))
     : people;
@@ -58,17 +67,43 @@ export function PersonPickerModal({
       }
     >
       <View style={styles.searchRow}>
-        <SearchField value={query} onChangeText={setQuery} placeholder={t('comparePicker.search')} />
+        <SearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={create?.placeholder ?? t('comparePicker.search')}
+        />
       </View>
       <FlatList
         data={matches}
         keyExtractor={(p) => p.id}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          create && typed ? (
+            <Pressable
+              accessibilityRole="button"
+              style={styles.createRow}
+              onPress={() => {
+                create.onCreate(typed);
+                close();
+              }}
+            >
+              <View style={styles.createIcon}>
+                <LineIcon name="plus" size={16} color="#fff" />
+              </View>
+              <View style={styles.createBody}>
+                <Text style={fzText.name}>{create.label(typed)}</Text>
+                {create.hint && <Text style={fzText.sub}>{create.hint}</Text>}
+              </View>
+            </Pressable>
+          ) : null
+        }
         ListEmptyComponent={
+          create ? null : (
           <Text style={[fzText.sub, styles.empty]}>
-            {t('comparePicker.noMatch', { query: query.trim() })}
+            {t('comparePicker.noMatch', { query: typed })}
           </Text>
+          )
         }
         renderItem={({ item }) => {
           const selected = selectedIds.includes(item.id);
@@ -116,4 +151,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkOn: { backgroundColor: fz.ink, borderColor: fz.ink },
+  createRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: fz.hairline,
+  },
+  createIcon: {
+    // Same size as PersonRow's avatar so the list stays aligned.
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: fz.ink,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createBody: { flex: 1 },
 });

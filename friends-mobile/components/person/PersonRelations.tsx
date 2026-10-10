@@ -1,4 +1,5 @@
 import { StyleSheet, View, Pressable } from 'react-native';
+import { displayObjectLabel } from '@/lib/constants/relations';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -123,7 +124,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
                       return (
                         <Pill
                           key={relation.id}
-                          label={`${relation.objectLabel}${intensitySuffix}`}
+                          label={`${displayObjectLabel(relation.relationType, relation.objectLabel)}${intensitySuffix}`}
                           variant="surface"
                           onPress={() => setSelectedId(relation.id)}
                         />
@@ -141,7 +142,7 @@ export default function PersonRelations({ personId, personName }: PersonRelation
         visible={selected !== null}
         title={
           selected
-            ? `${formatRelationType(selected.relationType)} · ${selected.objectLabel}`
+            ? `${formatRelationType(selected.relationType)} · ${displayObjectLabel(selected.relationType, selected.objectLabel)}`
             : undefined
         }
         message={

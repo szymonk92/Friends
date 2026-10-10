@@ -1,8 +1,6 @@
 import { StyleSheet, ScrollView, View, Text as RNText, StatusBar } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { Pill } from '@/components/Pill';
 import { IconCircle } from '@/components/IconCircle';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +11,6 @@ import { useTranslation } from 'react-i18next';
  */
 export default function DocumentationScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
 
   const Row = ({
     title,
@@ -39,16 +36,9 @@ export default function DocumentationScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <RNText style={fzText.screenTitle}>{t('documentation.documentation')}</RNText>
-          <View style={{ width: 38 }} />
-        </View>
-      </View>
+      <AppBar title={t('documentation.documentation')} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <RNText style={styles.title}>{t('documentation.friendsAppNomenclatureGuide')}</RNText>
@@ -188,14 +178,6 @@ export default function DocumentationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
-  appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.sm },
-  appBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge,
-    paddingBottom: fz.s.sm,
-  },
   scroll: { flex: 1 },
   content: { padding: fz.s.lg },
   title: { ...fzText.titleLg, marginBottom: fz.s.sm },

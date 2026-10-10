@@ -5,6 +5,7 @@ import { Text, Button, Card, Chip } from 'react-native-paper';
 import { devLogger } from '@/lib/utils/devLogger';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
+import { AppBar } from '@/components/AppBar';
 
 /**
  * Development Logs Viewer
@@ -63,41 +64,46 @@ export default function DevLogsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Card style={styles.infoCard}>
-        <Card.Content>
-          <Text variant="titleMedium">{t('devLogs.info')}</Text>
-          {logInfo && (
-            <View style={styles.infoRow}>
-              <Chip icon="file-document">
-                {logInfo.exists ? `${logInfo.sizeKB} KB` : t('devLogs.noFile')}
-              </Chip>
-              <Chip icon="folder">{logInfo.exists ? t('devLogs.exists') : t('devLogs.empty')}</Chip>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
+    <>
+      <AppBar title={t('dev.viewLogs')} />
+      <View style={styles.container}>
+        <Card style={styles.infoCard}>
+          <Card.Content>
+            <Text variant="titleMedium">{t('devLogs.info')}</Text>
+            {logInfo && (
+              <View style={styles.infoRow}>
+                <Chip icon="file-document">
+                  {logInfo.exists ? `${logInfo.sizeKB} KB` : t('devLogs.noFile')}
+                </Chip>
+                <Chip icon="folder">
+                  {logInfo.exists ? t('devLogs.exists') : t('devLogs.empty')}
+                </Chip>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
 
-      <View style={styles.actions}>
-        <Button mode="contained" onPress={loadLogs} style={styles.button} loading={refreshing}>
-          {t('devLogs.refresh')}
-        </Button>
-        <Button mode="contained-tonal" onPress={handleShare} style={styles.button}>
-          {t('devLogs.share')}
-        </Button>
-        <Button mode="outlined" onPress={handleClear} style={styles.button}>
-          {t('settingsScreen.clear')}
-        </Button>
+        <View style={styles.actions}>
+          <Button mode="contained" onPress={loadLogs} style={styles.button} loading={refreshing}>
+            {t('devLogs.refresh')}
+          </Button>
+          <Button mode="contained-tonal" onPress={handleShare} style={styles.button}>
+            {t('devLogs.share')}
+          </Button>
+          <Button mode="outlined" onPress={handleClear} style={styles.button}>
+            {t('settingsScreen.clear')}
+          </Button>
+        </View>
+
+        <Text variant="titleSmall" style={styles.logsTitle}>
+          {t('devLogs.logs')}
+        </Text>
+
+        <ScrollView style={styles.logsContainer}>
+          <Text style={styles.logsText}>{logs}</Text>
+        </ScrollView>
       </View>
-
-      <Text variant="titleSmall" style={styles.logsTitle}>
-        {t('devLogs.logs')}
-      </Text>
-
-      <ScrollView style={styles.logsContainer}>
-        <Text style={styles.logsText}>{logs}</Text>
-      </ScrollView>
-    </View>
+    </>
   );
 }
 

@@ -17,7 +17,6 @@ import { checkOnboardingComplete } from './onboarding';
 import { appLogger, logPerformance } from '@/lib/logger';
 import { useSettings } from '@/store/useSettings';
 import { createTheme } from '@/lib/theme';
-import { fz } from '@/lib/design/tokens';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -55,17 +54,6 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-
-// Shared Stack header styling — paper bg, ink title, Space Grotesk.
-// Forces the light FriendZ header on modal/story/quiz screens regardless of
-// the system dark theme (which was rendering these headers black).
-const fzHeader = {
-  headerStyle: { backgroundColor: fz.paper },
-  headerTintColor: fz.ink,
-  headerTitleStyle: { fontFamily: fz.font, fontWeight: '600' as const, fontSize: 18 },
-  headerShadowVisible: false,
-};
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -90,6 +78,7 @@ export default Sentry.wrap(function RootLayout() {
     ...FontAwesome.font,
   });
   const [appReady, setAppReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const splashShownAt = useRef(0);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -124,13 +113,9 @@ export default Sentry.wrap(function RootLayout() {
           const onboardingComplete = await checkOnboardingComplete();
           appLogger.debug('Onboarding status', { complete: onboardingComplete });
 
-          if (!onboardingComplete) {
-            // Redirect to onboarding after navigation is ready
-            appLogger.info('Redirecting to onboarding');
-            setTimeout(() => {
-              router.replace('/onboarding');
-            }, 100);
-          }
+          // Redirect happens in RootLayoutNav once the Stack is mounted —
+          // navigating while the splash is up remounts this layout in a loop.
+          setNeedsOnboarding(!onboardingComplete);
 
           perf.end(true);
           revealApp();
@@ -150,11 +135,10 @@ export default Sentry.wrap(function RootLayout() {
     return <ChainLockSplash />;
   }
 
-  return <RootLayoutNav />;
+  return <RootLayoutNav needsOnboarding={needsOnboarding} />;
 });
 
-function RootLayoutNav() {
-  const { t } = useTranslation();
+function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
   const {
     themeColor, loadThemeColor,
     fontFamily, loadFontFamily,
@@ -169,6 +153,14 @@ function RootLayoutNav() {
     loadSelectedModel();
   }, []);
 
+  // Child effects run first, so the Stack below is mounted by now.
+  useEffect(() => {
+    if (needsOnboarding) {
+      appLogger.info('Redirecting to onboarding');
+      router.replace('/onboarding');
+    }
+  }, [needsOnboarding]);
+
   // Force light themes: the app is redesigned to a light B&W FriendZ design
   // (fz.paper surfaces). Following the system dark mode left Paper inputs /
   // dialogs dark-on-light and unreadable. Keep everything light regardless of
@@ -180,22 +172,13 @@ function RootLayoutNav() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={paperTheme}>
           <ThemeProvider value={DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="person" options={{ headerShown: false }} />
-              <Stack.Screen name="import-contacts" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="modal"
-                options={{
-                  presentation: 'modal',
-                  title: t('person.addTitle'),
-                  ...fzHeader,
-                }}
-              />
-              <Stack.Screen name="story/[id]" options={{ ...fzHeader }} />
-              <Stack.Screen name="story/addStory" options={{ ...fzHeader }} />
-              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-              <Stack.Screen name="food-quiz" options={{ presentation: 'modal', ...fzHeader }} />
+            {/* Native headers off everywhere: every screen renders <AppBar>. */}
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="food-quiz" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="dev" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="developer/playground" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="documentation" options={{ presentation: 'modal' }} />
             </Stack>
             <FzConfirmHost />
             <FloatingDevTools environment="local" userRole="admin" />

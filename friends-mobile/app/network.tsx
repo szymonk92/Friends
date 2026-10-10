@@ -5,7 +5,7 @@ import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
 import { Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -89,7 +89,6 @@ export default function NetworkScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
@@ -102,7 +101,6 @@ export default function NetworkScreen() {
   if (people.length === 0) {
     return (
       <View style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
         <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
           <View style={styles.appBarRow}>
@@ -129,7 +127,6 @@ export default function NetworkScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}

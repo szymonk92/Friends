@@ -197,6 +197,11 @@ export default function PeopleListScreen() {
                   title={t('importContacts.menu')}
                   leadingIcon="contacts"
                 />
+                <Menu.Item
+                  onPress={() => { setMenuVisible(false); router.push('/diet-checklist'); }}
+                  title={t('dietChecklist.title')}
+                  leadingIcon="food-apple-outline"
+                />
                 <Divider />
                 <Menu.Item
                   onPress={() => { setSortBy('name'); setMenuVisible(false); }}
@@ -342,7 +347,9 @@ export default function PeopleListScreen() {
             <View>
               {showCategoryHeader && (
                 <View style={s.categoryHeader}>
-                  <Text style={fzText.label}>{formatRelationType(currentCategory)}</Text>
+                  <Text style={fzText.label}>
+                    {currentCategory === 'Other' ? t('common.other') : formatRelationType(currentCategory)}
+                  </Text>
                 </View>
               )}
               <TouchableOpacity

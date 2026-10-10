@@ -1,16 +1,6 @@
 import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 
+// Native header off: each person screen renders its own <AppBar>.
 export default function PersonLayout() {
-  const { t } = useTranslation();
-  return (
-    <Stack screenOptions={{ headerShown: true }}>
-      <Stack.Screen name="[id]" options={{ title: t('screens.person') }} />
-      <Stack.Screen name="edit" options={{ title: t('screens.editPerson') }} />
-      <Stack.Screen name="add-relation" options={{ title: t('screens.addRelation') }} />
-      <Stack.Screen name="add-connection" options={{ title: t('screens.addConnection') }} />
-      <Stack.Screen name="edit-relation" options={{ title: t('screens.editRelation') }} />
-      <Stack.Screen name="edit-connection" options={{ title: t('screens.editConnection') }} />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

@@ -1,6 +1,7 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { useMemo } from 'react';
 import { usePerson, usePeople, useMePerson } from '@/hooks/usePeople';
 import { usePersonConnections } from '@/hooks/useConnections';
@@ -104,15 +105,7 @@ export default function RelationshipScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: t('relationship.title'),
-          headerStyle: { backgroundColor: fz.paper },
-          headerTintColor: fz.ink,
-          headerTitleStyle: { fontFamily: fz.font, fontWeight: '600', fontSize: 18 },
-          headerShadowVisible: false,
-        }}
-      />
+      <AppBar title={t('relationship.title')} />
       <View style={styles.wrapper}>
         <ScrollView contentContainerStyle={styles.scroll}>
           {/* the pair */}

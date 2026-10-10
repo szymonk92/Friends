@@ -9,7 +9,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { router } from 'expo-router';
-import { Stack } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { Dimensions, LogBox, View, StyleSheet, Animated, PanResponder } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
@@ -293,7 +293,7 @@ export default function FoodQuizScreen() {
   if (primaryPeople.length === 0) {
     return (
       <>
-        <Stack.Screen options={{ title: t('foodQuiz.title') }} />
+        <AppBar title={t('foodQuiz.title')} />
         <CenteredContainer style={styles.centered}>
           <Text variant="titleLarge">{t('foodQuiz.noPrimary')}</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
@@ -310,7 +310,7 @@ export default function FoodQuizScreen() {
   if (questionsToAsk.length === 0 && !isComplete) {
     return (
       <>
-        <Stack.Screen options={{ title: t('foodQuiz.title') }} />
+        <AppBar title={t('foodQuiz.title')} />
         <CenteredContainer style={styles.centered}>
           <Text style={styles.completeIcon}>✅</Text>
           <Text variant="titleLarge">{t('foodQuiz.allAnswered')}</Text>
@@ -331,7 +331,7 @@ export default function FoodQuizScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('foodQuiz.title') }} />
+      <AppBar title={t('foodQuiz.title')} />
       <View style={styles.container}>
         <QuizProgress
           currentQuestionIndex={currentQuestionIndex}

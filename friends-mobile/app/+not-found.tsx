@@ -1,4 +1,5 @@
-import { Link, Stack } from 'expo-router';
+import { Link } from 'expo-router';
+import { AppBar } from '@/components/AppBar';
 import { StyleSheet } from 'react-native';
 
 import CenteredContainer from '@/components/CenteredContainer';
@@ -9,7 +10,7 @@ export default function NotFoundScreen() {
   const { t } = useTranslation();
   return (
     <>
-      <Stack.Screen options={{ title: t('notFound.title') }} />
+      <AppBar title={t('notFound.title')} />
       <CenteredContainer style={styles.container}>
         <Text style={styles.title}>{t('notFound.message')}</Text>
 
