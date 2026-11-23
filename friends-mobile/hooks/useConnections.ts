@@ -1,8 +1,15 @@
 import { db, getCurrentUserId } from '@/lib/db';
-import { connections, type NewConnection, type Connection } from '@/lib/db/schema';
+import { connections, people, type NewConnection, type Connection } from '@/lib/db/schema';
+import { activePeople } from '@/lib/db/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+
+/** Both endpoints still exist (rows from before delete-cascade was added may point at deleted people). */
+const bothActive = (userId: string) => {
+  const alive = db.select({ id: people.id }).from(people).where(activePeople(userId));
+  return and(inArray(connections.person1Id, alive), inArray(connections.person2Id, alive));
+};
 
 /**
  * Hook to fetch connections for a specific person
@@ -19,7 +26,8 @@ export function usePersonConnections(personId: string) {
           and(
             eq(connections.userId, userId),
             or(eq(connections.person1Id, personId), eq(connections.person2Id, personId)),
-            isNull(connections.deletedAt)
+            isNull(connections.deletedAt),
+            bothActive(userId)
           )
         )
         .orderBy(desc(connections.createdAt));
@@ -44,7 +52,7 @@ export function useConnections() {
       const result = await db
         .select()
         .from(connections)
-        .where(and(eq(connections.userId, userId), isNull(connections.deletedAt)))
+        .where(and(eq(connections.userId, userId), isNull(connections.deletedAt), bothActive(userId)))
         .orderBy(desc(connections.createdAt));
 
 

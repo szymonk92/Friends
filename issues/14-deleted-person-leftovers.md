@@ -1,6 +1,6 @@
 # 14 — Deleting a person leaves connections, events, reminders visible
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** M
 
