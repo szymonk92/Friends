@@ -1,3 +1,4 @@
+import { toDateText } from '@/lib/utils/dates';
 import type { BrainDumpAttribute, BrainDumpResult } from './brain-dump';
 import type { SocialLink } from '@/lib/social/socialLinks';
 
@@ -107,7 +108,7 @@ function classifyDate(
   if (!proposed) return undefined;
   if (!existing) return { class: 'NEW', proposed };
   const existingStr =
-    existing instanceof Date ? existing.toISOString().split('T')[0] : String(existing);
+    existing instanceof Date ? toDateText(existing) : String(existing);
   return classifyString(proposed, existingStr);
 }
 

@@ -63,7 +63,9 @@
     "clearFilters": "Clear filters",
     "myNetwork": "My Network",
     "keepClose_one": "{{count}} person you keep close",
-    "keepClose_other": "{{count}} people you keep close"
+    "keepClose_other": "{{count}} people you keep close",
+    "bdayToday": "Today!",
+    "bdayInDays": "{{count}}d"
   },
   "network": {
     "title": "Network",
@@ -91,7 +93,13 @@
     },
     "connectionCount_one": "{{count}} connection",
     "connectionCount_other": "{{count}} connections",
-    "noDetails": "No detailed information available yet."
+    "noDetails": "No detailed information available yet.",
+    "suggestions": {
+      "title": "Might know each other",
+      "connect": "Connect",
+      "sharedStories_one": "{{count}} story together",
+      "sharedStories_other": "{{count}} stories together"
+    }
   },
   "person": {
     "addTitle": "Add a Person",
@@ -1498,5 +1506,9 @@
     "hint": "Pick one, then tick everyone it applies to. Changes save right away.",
     "count_one": "{{count}} person",
     "count_other": "{{count}} people"
+  },
+  "reminders": {
+    "reachOutTitle": "Reach out to {{name}}",
+    "reachOutMessage": "It's been a while since you contacted {{name}}. Consider reaching out!"
   }
 }

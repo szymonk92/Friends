@@ -116,13 +116,13 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
               placeholder={t('profile.tagPlaceholder')}
               value={newTagName}
               onChangeText={setNewTagName}
-              style={[{ marginBottom: 12 }, styles.dialogFont]}
+              style={{ marginBottom: 12 }}
               autoCapitalize="none"
             />
 
             {availableTags.length > 0 && (
               <>
-                <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
+                <Text variant="labelMedium" style={{ marginBottom: 8 }}>
                   {t('profile.tagExisting')}
                 </Text>
                 <View style={styles.existingTagsContainer}>
@@ -134,11 +134,10 @@ export default function PersonTags({ personId, personName }: PersonTagsProps) {
             )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setAddTagDialogVisible(false)}>
+            <Button onPress={() => setAddTagDialogVisible(false)}>
               {t('common.cancel')}
             </Button>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={handleAddTag}
               loading={isAddingTag}
               disabled={isAddingTag}
@@ -163,9 +162,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
 });

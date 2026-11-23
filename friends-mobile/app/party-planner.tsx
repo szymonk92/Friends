@@ -1,3 +1,4 @@
+import { parseFlexibleDate, toDateText } from '@/lib/utils/dates';
 import { useState, useMemo, useEffect } from 'react';
 import { StyleSheet, ScrollView, View } from 'react-native';
 import { Button } from 'react-native-paper';
@@ -56,7 +57,7 @@ export default function PartyPlannerScreen() {
         });
 
         setPartyName(event.name || '');
-        setPartyDate(event.eventDate ? event.eventDate.toISOString().split('T')[0] : '');
+        setPartyDate(event.eventDate ? toDateText(event.eventDate) : '');
         setPartyLocation(event.location || '');
         setPartyType((event.eventType as any) || 'party');
 
@@ -163,7 +164,7 @@ export default function PartyPlannerScreen() {
         dislikes,
       };
     });
-  }, [selectedGuests, primaryPeople, allRelations]);
+  }, [selectedGuests, primaryPeople, allRelations, t]);
 
   // Calculate food suggestions (common likes, avoid common dislikes)
   const foodSuggestions = useMemo(() => {
@@ -233,7 +234,7 @@ export default function PartyPlannerScreen() {
     }
 
     return pairs.sort((a, b) => b.score - a.score).slice(0, 5);
-  }, [guestData]);
+  }, [guestData, t]);
 
   const toggleGuest = (personId: string) => {
     setSelectedGuests((prev) =>
@@ -254,7 +255,7 @@ export default function PartyPlannerScreen() {
     const eventData = {
       name: partyName,
       eventType: partyType,
-      eventDate: partyDate ? new Date(partyDate) : new Date(),
+      eventDate: (partyDate && parseFlexibleDate(partyDate)) || new Date(),
       location: partyLocation || undefined,
       guestIds: JSON.stringify(selectedGuests),
       menuSuggestions: JSON.stringify(foodSuggestions),

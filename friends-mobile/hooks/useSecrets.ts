@@ -3,6 +3,7 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { secrets } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
+import { SEALED_PREFIX } from '@/lib/crypto/aead';
 import {
   authenticateUser,
   encryptContent,
@@ -164,11 +165,14 @@ export function useDecryptSecret() {
       // Decrypt the content
       const decryptedContent = await decryptContent(secret.encryptedContent, key);
 
-      // Update last accessed timestamp
+      // Update last accessed timestamp; upgrade legacy XOR ciphertext to the v2 format.
       await db
         .update(secrets)
         .set({
           updatedAt: new Date(),
+          ...(secret.encryptedContent.startsWith(SEALED_PREFIX)
+            ? {}
+            : { encryptedContent: await encryptContent(decryptedContent, key) }),
         })
         .where(eq(secrets.id, secretId));
 
@@ -191,10 +195,11 @@ export function useDeleteSecret() {
 
   return useMutation({
     mutationFn: async (secretId: string) => {
-      // Soft delete
+      // Soft delete, wiping the ciphertext so it isn't left in the DB / backups.
       await db
         .update(secrets)
         .set({
+          encryptedContent: '',
           deletedAt: new Date(),
           updatedAt: new Date(),
         })

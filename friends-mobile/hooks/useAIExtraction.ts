@@ -97,6 +97,7 @@ export function useExtractRelations() {
           aiProcessed: true,
           aiProcessedAt: new Date(),
           extractedData: JSON.stringify(result),
+          peopleIds: JSON.stringify(processedResults.personIds),
           updatedAt: new Date(),
         })
         .where(eq(stories.id, storyId));
@@ -107,7 +108,8 @@ export function useExtractRelations() {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
     },
   });
 }
@@ -120,6 +122,8 @@ interface ProcessedResults {
   tokensUsed: number;
   processingTime: number;
   rawResponse?: string;
+  /** Real ids of everyone the story mentions (stored in stories.peopleIds). */
+  personIds: string[];
 }
 
 /**
@@ -277,6 +281,7 @@ async function processExtractionResults(
     tokensUsed: result.tokensUsed || 0,
     processingTime: result.processingTime || 0,
     rawResponse,
+    personIds: [...new Set(personIdMap.values())],
   };
 }
 
@@ -298,6 +303,8 @@ export function useAcceptNewConflict() {
 
       if (!pending[0]) throw new Error('Pending extraction not found');
       const extraction = pending[0];
+      // Already resolved (double tap / stale card): don't insert the relation twice.
+      if (extraction.reviewStatus !== 'pending') return { success: true };
 
       // Archive the conflicting old relation
       if (extraction.conflictingRelationId) {
@@ -331,7 +338,8 @@ export function useAcceptNewConflict() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });
@@ -355,6 +363,8 @@ export function useAcceptBothConflict() {
 
       if (!pending[0]) throw new Error('Pending extraction not found');
       const extraction = pending[0];
+      // Already resolved (double tap / stale card): don't insert the relation twice.
+      if (extraction.reviewStatus !== 'pending') return { success: true };
 
       // Insert new relation without touching the old one
       await db.insert(relations).values({
@@ -380,7 +390,8 @@ export function useAcceptBothConflict() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });

@@ -1,6 +1,5 @@
-import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Text } from 'react-native-paper';
@@ -10,6 +9,7 @@ import { formatRelativeTime } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '@/lib/i18n/labels';
 
@@ -57,9 +57,7 @@ export default function StoriesListScreen() {
     return (
       <View style={s.centered}>
         <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('storiesList.loadFailed')}</Text>
-        <TouchableOpacity style={s.primaryBtn} onPress={() => refetch()} activeOpacity={0.8}>
-          <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('timeline.retry')}</Text>
-        </TouchableOpacity>
+        <PrimaryButton label={t('timeline.retry')} onPress={() => refetch()} />
       </View>
     );
   }
@@ -141,15 +139,7 @@ export default function StoriesListScreen() {
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
             {t('storiesList.emptyMessage')}
           </Text>
-          <TouchableOpacity
-            style={s.primaryBtn}
-            onPress={() => router.push('/story/addStory')}
-            activeOpacity={0.8}
-          >
-            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
-              {t('storiesList.addFirst')}
-            </Text>
-          </TouchableOpacity>
+          <PrimaryButton label={t('storiesList.addFirst')} onPress={() => router.push('/story/addStory')} />
         </View>
       ) : (
         <FlatList
@@ -200,9 +190,5 @@ const s = StyleSheet.create({
     ...fzText.time, fontStyle: 'italic', marginTop: 12,
   },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  primaryBtn: {
-    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
-    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
-  },
   noResults: { padding: 32, alignItems: 'center' },
 });

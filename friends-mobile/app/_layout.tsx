@@ -39,6 +39,11 @@ Sentry.init({
 import '@/lib/i18n'; // Initialize i18n
 import '@/lib/i18n/types'; // Import type definitions
 
+// Release builds: silence debug logging (61+ console.log calls in hooks/lib); keep warn/error.
+if (!__DEV__) {
+  console.log = console.info = console.debug = () => {};
+}
+
 // Create QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,6 +153,7 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
     loadApiKey();
     loadGeminiApiKey();
     loadSelectedModel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: store loaders are stable
   }, []);
 
   // Child effects run first, so the Stack below is mounted by now.

@@ -1,7 +1,10 @@
+import { toDateText, toFlexibleText } from '@/lib/utils/dates';
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, relations, connections, stories, contactEvents, files } from '@/lib/db/schema';
+import { people, relations, connections, stories, contactEvents } from '@/lib/db/schema';
 import { buildObsidianVault } from '@/lib/export/obsidianExport';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { parseJsonArray } from '@/lib/utils/json';
+import { scheduleBirthdayReminders } from '@/lib/notifications/birthday-reminders';
 import { eq, isNull, and } from 'drizzle-orm';
 import { activePeople } from '@/lib/db/filters';
 import * as Sharing from 'expo-sharing';
@@ -165,11 +168,17 @@ export function useExportStats() {
  * Hook to import data from JSON
  */
 export function useImportData() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (jsonData: string): Promise<{ imported: number; errors: string[] }> => {
       const userId = await getCurrentUserId();
       const errors: string[] = [];
       let imported = 0;
+      // Export id → id in this database. A skipped duplicate maps to the existing person,
+      // so its relations/connections/events attach to them instead of becoming orphans.
+      const idMap = new Map<string, string>();
+      const remap = (id: string) => idMap.get(id) ?? id;
+      const remapOpt = (id: string | null | undefined) => (id ? remap(id) : id);
 
       try {
         const data: ExportData = JSON.parse(jsonData);
@@ -199,6 +208,7 @@ export function useImportData() {
                 ...person,
                 id: person.id, // Keep original ID for relations
                 userId,
+                photoId: null, // photos are not part of the export
                 createdAt: new Date(person.createdAt),
                 updatedAt: new Date(person.updatedAt),
                 metDate: person.metDate ? new Date(person.metDate) : null,
@@ -207,8 +217,10 @@ export function useImportData() {
                 archivedAt: person.archivedAt ? new Date(person.archivedAt) : null,
                 deletedAt: null,
               });
+              idMap.set(person.id, person.id);
               imported++;
             } else {
+              idMap.set(person.id, existing[0].id);
               errors.push(`Person "${person.name}" already exists, skipped`);
             }
           } catch (error: any) {
@@ -222,6 +234,8 @@ export function useImportData() {
             try {
               await db.insert(relations).values({
                 ...relation,
+                subjectId: remap(relation.subjectId),
+                objectId: remapOpt(relation.objectId),
                 userId,
                 createdAt: new Date(relation.createdAt),
                 updatedAt: new Date(relation.updatedAt),
@@ -242,6 +256,8 @@ export function useImportData() {
             try {
               await db.insert(connections).values({
                 ...connection,
+                person1Id: remap(connection.person1Id),
+                person2Id: remap(connection.person2Id),
                 userId,
                 createdAt: new Date(connection.createdAt),
                 updatedAt: new Date(connection.updatedAt),
@@ -282,6 +298,7 @@ export function useImportData() {
             try {
               await db.insert(contactEvents).values({
                 ...event,
+                personId: remap(event.personId),
                 userId,
                 createdAt: new Date(event.createdAt),
                 eventDate: new Date(event.eventDate),
@@ -298,6 +315,10 @@ export function useImportData() {
       } catch (error: any) {
         throw new Error(`Import failed: ${error.message}`);
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      scheduleBirthdayReminders().catch(() => {});
     },
   });
 }
@@ -360,15 +381,15 @@ export function useExportPeopleCSV() {
 
       // Create CSV rows
       const rows = peopleData.map((p) => {
-        const tags = p.tags ? JSON.parse(p.tags).join('; ') : '';
+        const tags = parseJsonArray<string>(p.tags).join('; ');
         return [
           p.name,
           p.nickname || '',
           p.relationshipType || '',
           p.importanceToUser || '',
-          p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
-          p.metDate ? new Date(p.metDate).toISOString().split('T')[0] : '',
-          (p.notes || '').replace(/"/g, '""'), // Escape quotes
+          p.dateOfBirth ? toFlexibleText(new Date(p.dateOfBirth), p.dateOfBirthPrecision) : '',
+          p.metDate ? toDateText(new Date(p.metDate)) : '',
+          p.notes || '',
           tags,
         ];
       });
@@ -376,7 +397,7 @@ export function useExportPeopleCSV() {
       // Convert to CSV string
       const csvContent = [
         headers.join(','),
-        ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+        ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
       ].join('\n');
 
       // Create export file

@@ -18,10 +18,9 @@ import {
   useImportContacts,
   type ContactRow,
   type ImportDecision,
-  type MatchInfo,
 } from '@/hooks/useContactsImport';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 import { fzAlert } from '@/lib/utils/confirm';
 
@@ -51,6 +50,7 @@ export default function ImportContactsScreen() {
 
   useEffect(() => {
     void init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   async function init() {
@@ -209,19 +209,22 @@ export default function ImportContactsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}
-      <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={s.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <View style={s.titleWrap}>
-            <Text style={fzText.screenTitle}>{t('importContacts.title')}</Text>
-            <Text style={fzText.meta}>
-              {t('importContacts.counts', { selected: selected.size, total: rows.length })}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={toggleAll} disabled={selectableCount === 0}>
-            <Text style={fzText.chipSolid}>{allSelected ? t('importContacts.clear') : t('importContacts.selectAll')}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={s.appBar}>
+        <AppBar
+          title={
+            <View style={s.titleWrap}>
+              <Text style={fzText.screenTitle}>{t('importContacts.title')}</Text>
+              <Text style={fzText.meta}>
+                {t('importContacts.counts', { selected: selected.size, total: rows.length })}
+              </Text>
+            </View>
+          }
+          right={
+            <TouchableOpacity onPress={toggleAll} disabled={selectableCount === 0}>
+              <Text style={fzText.chipSolid}>{allSelected ? t('importContacts.clear') : t('importContacts.selectAll')}</Text>
+            </TouchableOpacity>
+          }
+        />
 
         {/* search */}
         <View style={[s.searchRow, { paddingBottom: fz.s.md }]}>
@@ -320,13 +323,13 @@ export default function ImportContactsScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('skip')}>
+            <Button onPress={() => onReviewDecision('skip')}>
               {t('importContacts.skip')}
             </Button>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('create')}>
+            <Button onPress={() => onReviewDecision('create')}>
               {t('importContacts.addNew')}
             </Button>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('update')}>
+            <Button onPress={() => onReviewDecision('update')}>
               {t('importContacts.updateExisting')}
             </Button>
           </Dialog.Actions>
@@ -351,11 +354,7 @@ const s = StyleSheet.create({
     padding: 32, backgroundColor: fz.paper,
   },
   appBar: { backgroundColor: fz.paper },
-  appBarRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: fz.s.edge, paddingBottom: fz.s.sm,
-  },
-  titleWrap: { flex: 1 },
+  titleWrap: { alignItems: 'center' },
   searchRow: { paddingHorizontal: fz.s.edge, paddingTop: fz.s.xs },
   searchInput: {
     height: 42, borderRadius: fz.rPill, backgroundColor: fz.surface,
@@ -368,17 +367,17 @@ const s = StyleSheet.create({
   },
   rowBody: { flex: 1, minWidth: 0 },
   dupText: {
-    fontFamily: fz.font, fontSize: 12, color: '#C77700', marginTop: 2,
+    fontFamily: fz.font, fontSize: 12, color: fz.warn, marginTop: 2,
   },
   existsText: {
     fontFamily: fz.font, fontSize: 12, color: fz.textMute, marginTop: 2,
   },
   chip: {
-    backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
+    backgroundColor: fz.warnBg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
   },
   chipMuted: { backgroundColor: fz.surface },
   chipText: {
-    fontFamily: fz.font, fontWeight: '500', fontSize: 11, color: '#C77700',
+    fontFamily: fz.font, fontWeight: '500', fontSize: 11, color: fz.warn,
   },
   fab: {
     position: 'absolute', right: fz.s.edge, left: fz.s.edge, height: 50,
@@ -387,8 +386,7 @@ const s = StyleSheet.create({
     shadowColor: fz.ink, shadowOpacity: 0.32, shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
-  fabText: { color: '#fff', fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
+  fabText: { color: fz.onInk, fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
   dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
   dialogTitle: { fontFamily: fz.font },
-  dialogFont: { fontFamily: fz.font },
 });

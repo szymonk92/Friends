@@ -28,7 +28,7 @@ export default function PasswordPromptDialog({
     <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
       <Dialog.Title style={styles.dialogTitle}>{t('secrets.enterPassword')}</Dialog.Title>
       <Dialog.Content>
-        <Text variant="bodySmall" style={[styles.passwordPromptText, styles.dialogFont]}>
+        <Text variant="bodySmall" style={styles.passwordPromptText}>
           {pendingAction === 'create' ? t('secrets.promptSave') : t('secrets.promptDecrypt')}
         </Text>
         <TextInput
@@ -37,16 +37,15 @@ export default function PasswordPromptDialog({
           onChangeText={setAccessPassword}
           mode="outlined"
           secureTextEntry
-          style={[styles.input, styles.dialogFont]}
+          style={styles.input}
           autoFocus
         />
       </Dialog.Content>
       <Dialog.Actions>
-        <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+        <Button onPress={onDismiss}>
           {t('common.cancel')}
         </Button>
         <Button
-          labelStyle={styles.dialogFont}
           onPress={handlePasswordSubmit}
           loading={loading}
           disabled={!accessPassword || loading}
@@ -64,9 +63,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
   passwordPromptText: {

@@ -1,3 +1,4 @@
+import { toDateText } from '@/lib/utils/dates';
 import {
   type Person,
   type Connection,
@@ -42,7 +43,7 @@ export function buildFilenameMap(peopleRows: Person[]): Map<string, string> {
 function toDateStr(d: Date | number | null | undefined): string | null {
   if (!d) return null;
   const date = d instanceof Date ? d : new Date(d);
-  return date.toISOString().split('T')[0];
+  return toDateText(date);
 }
 
 function frontmatterValue(v: string | string[] | null): string | null {

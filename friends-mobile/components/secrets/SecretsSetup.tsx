@@ -118,7 +118,7 @@ export default function SecretsSetup({
         >
           <Dialog.Title style={styles.dialogTitle}>{t('secrets.setPasswordTitle')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodySmall" style={[styles.warningBanner, styles.dialogFont]}>
+            <Text variant="bodySmall" style={styles.warningBanner}>
               {t('secrets.warning')}
             </Text>
             <TextInput
@@ -127,7 +127,7 @@ export default function SecretsSetup({
               onChangeText={setSetupPassword}
               mode="outlined"
               secureTextEntry
-              style={[styles.input, styles.dialogFont]}
+              style={styles.input}
             />
             <TextInput
               label={t('secrets.confirmPassword')}
@@ -135,22 +135,21 @@ export default function SecretsSetup({
               onChangeText={setConfirmPassword}
               mode="outlined"
               secureTextEntry
-              style={[styles.input, styles.dialogFont]}
+              style={styles.input}
             />
             {setupPassword.length > 0 && setupPassword.length < 8 && (
-              <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
+              <Text variant="bodySmall" style={styles.errorText}>
                 {t('secrets.tooShort')}
               </Text>
             )}
             {confirmPassword.length > 0 && setupPassword !== confirmPassword && (
-              <Text variant="bodySmall" style={[styles.errorText, styles.dialogFont]}>
+              <Text variant="bodySmall" style={styles.errorText}>
                 {t('secrets.mismatch')}
               </Text>
             )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={() => {
                 setShowPasswordSetupDialog(false);
                 setSetupPassword('');
@@ -160,7 +159,6 @@ export default function SecretsSetup({
               {t('common.cancel')}
             </Button>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={handlePasswordSetup}
               loading={initializeWithPassword.isPending}
               disabled={
@@ -184,9 +182,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
   centered: {
@@ -215,7 +210,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   warningText: {
-    color: '#f57c00',
+    color: fz.warn,
     fontWeight: '500',
   },
   setupButton: {
@@ -227,11 +222,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   warningBanner: {
-    backgroundColor: '#fff3e0',
+    backgroundColor: fz.warnBg,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
-    color: '#e65100',
+    color: fz.warn,
     fontWeight: '500',
     lineHeight: 20,
   },
@@ -239,7 +234,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errorText: {
-    color: '#d32f2f',
+    color: fz.danger,
     marginTop: -8,
     marginBottom: 8,
   },

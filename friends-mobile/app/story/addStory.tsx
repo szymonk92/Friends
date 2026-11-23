@@ -93,6 +93,7 @@ export default function StoryInputScreen() {
     loadApiKey();
     loadGeminiApiKey();
     loadSelectedModel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: store loaders are stable
   }, []);
 
   const title = isEdit ? (
@@ -489,7 +490,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             style={[styles.primaryBtn, !canSave && styles.disabled]}
           >
             {isProcessing ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={fz.onInk} />
             ) : (
               <Text style={fzText.btn}>
                 {isEdit
@@ -512,10 +513,10 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         >
           <Dialog.Title style={styles.dialogTitle}>{t('addStory.setKeyTitle')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={[styles.dialogText, styles.dialogFont]}>
+            <Text variant="bodyMedium" style={styles.dialogText}>
               {t('addStory.setKeyMessage')}
             </Text>
-            <Text variant="bodySmall" style={[styles.dialogHelper, styles.dialogFont]}>
+            <Text variant="bodySmall" style={styles.dialogHelper}>
               {t('addStory.getKey')} https://console.anthropic.com
             </Text>
             <TextInput
@@ -525,14 +526,14 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
               value={tempApiKey}
               onChangeText={setTempApiKey}
               secureTextEntry
-              style={[styles.apiKeyInput, styles.dialogFont]}
+              style={styles.apiKeyInput}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setApiKeyDialogVisible(false)}>
+            <Button onPress={() => setApiKeyDialogVisible(false)}>
               {t('common.cancel')}
             </Button>
-            <Button labelStyle={styles.dialogFont} onPress={handleSaveApiKey}>
+            <Button onPress={handleSaveApiKey}>
               {t('common.save')}
             </Button>
           </Dialog.Actions>
@@ -555,10 +556,10 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             </ScrollView>
           </Dialog.ScrollArea>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={handleCopyPrompt} icon="content-copy">
+            <Button onPress={handleCopyPrompt} icon="content-copy">
               {t('addStory.copy')}
             </Button>
-            <Button labelStyle={styles.dialogFont} onPress={() => setPromptPreviewDialogVisible(false)}>
+            <Button onPress={() => setPromptPreviewDialogVisible(false)}>
               {t('common.close')}
             </Button>
           </Dialog.Actions>
@@ -570,15 +571,15 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
         <Dialog visible={unsavedDialogVisible} onDismiss={handleCancelDiscard} style={styles.dialog}>
           <Dialog.Title style={styles.dialogTitle}>{t('addStory.unsavedTitle')}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogFont}>
+            <Text variant="bodyMedium">
               {t('addStory.unsavedMessage')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={handleCancelDiscard}>
+            <Button onPress={handleCancelDiscard}>
               {t('common.cancel')}
             </Button>
-            <Button labelStyle={styles.dialogFont} onPress={handleDiscard} textColor="#d32f2f">
+            <Button onPress={handleDiscard} textColor={fz.danger}>
               {t('addStory.discard')}
             </Button>
           </Dialog.Actions>
@@ -597,7 +598,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             <ScrollView>
               {debugInfo && (
                 <View>
-                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
                     {t('addStory.debugModel')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
@@ -608,21 +609,21 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
                     Cost: ${debugInfo.cost?.toFixed(6) || 'N/A'}
                   </Text>
 
-                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
                     {t('addStory.debugSystem')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.systemPrompt || 'N/A'}
                   </Text>
 
-                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
                     {t('addStory.debugUser')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
                     {debugInfo.userPrompt}
                   </Text>
 
-                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
                     {t('addStory.debugStatus')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugValue}>
@@ -631,7 +632,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
                     Headers: {JSON.stringify(debugInfo.requestHeaders || {}, null, 2)}
                   </Text>
 
-                  <Text variant="labelLarge" style={[styles.debugLabel, styles.dialogFont]}>
+                  <Text variant="labelLarge" style={styles.debugLabel}>
                     {t('addStory.debugRaw')}
                   </Text>
                   <Text variant="bodySmall" style={styles.debugCode}>
@@ -643,7 +644,6 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
           </Dialog.ScrollArea>
           <Dialog.Actions>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={() => {
                 Clipboard.setStringAsync(JSON.stringify(debugInfo, null, 2));
                 fzAlert(t('addStory.copiedTitle'), t('addStory.debugCopied'));
@@ -651,7 +651,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             >
               {t('addStory.copyAll')}
             </Button>
-            <Button labelStyle={styles.dialogFont} onPress={() => setDebugDialogVisible(false)}>
+            <Button onPress={() => setDebugDialogVisible(false)}>
               {t('common.close')}
             </Button>
           </Dialog.Actions>
@@ -762,9 +762,6 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontFamily: fz.font,
   },
-  dialogFont: {
-    fontFamily: fz.font,
-  },
   dialogText: {
     marginBottom: 8,
   },
@@ -795,14 +792,14 @@ const styles = StyleSheet.create({
   },
   debugValue: {
     fontFamily: 'monospace',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.surfaceSoft,
     padding: 8,
     borderRadius: 4,
   },
   debugCode: {
     fontFamily: 'monospace',
     fontSize: 10,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: fz.surface,
     padding: 8,
     borderRadius: 4,
     marginBottom: 8,

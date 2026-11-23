@@ -136,7 +136,7 @@ export default function TimelineScreen() {
           guestNames,
         };
       });
-  }, [partyEvents, people]);
+  }, [partyEvents, people, t]);
 
   // Combine and filter events
   const filteredEvents = useMemo(() => {
@@ -203,6 +203,17 @@ export default function TimelineScreen() {
           notes: notes.trim() || undefined,
           eventDate: parsedDate,
         });
+        // People added while editing get their own copy (one event row = one person).
+        await Promise.all(
+          selectedPersonIds.slice(1).map((personId) =>
+            createEvent.mutateAsync({
+              personId,
+              eventType: eventType as any,
+              notes: notes.trim() || undefined,
+              eventDate: parsedDate,
+            })
+          )
+        );
         fzAlert(t('common.success'), t('timeline.updated'));
       } else {
         await Promise.all(
@@ -308,7 +319,7 @@ export default function TimelineScreen() {
             <IconCircle
               icon={filtersVisible ? 'filterRemove' : 'filter'}
               fill={hasActiveFilters ? fz.ink : 'transparent'}
-              color={hasActiveFilters ? '#fff' : fz.ink}
+              color={hasActiveFilters ? fz.onInk : fz.ink}
               onPress={() => setFiltersVisible(!filtersVisible)}
             />
           </View>

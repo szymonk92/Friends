@@ -89,13 +89,22 @@ export function useMarkStoryProcessed() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, extractedData }: { id: string; extractedData: any }) => {
+    mutationFn: async ({
+      id,
+      extractedData,
+      peopleIds,
+    }: {
+      id: string;
+      extractedData: any;
+      peopleIds?: string[];
+    }) => {
       const result = await db
         .update(stories)
         .set({
           aiProcessed: true,
           aiProcessedAt: new Date(),
           extractedData: JSON.stringify(extractedData),
+          ...(peopleIds ? { peopleIds: JSON.stringify(peopleIds) } : {}),
           updatedAt: new Date(),
         })
         .where(eq(stories.id, id))

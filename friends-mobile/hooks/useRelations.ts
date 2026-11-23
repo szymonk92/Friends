@@ -4,7 +4,7 @@ import { activePeople } from '@/lib/db/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, getTableColumns, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
-import { relationsLogger, logPerformance } from '@/lib/logger';
+import { relationsLogger } from '@/lib/logger';
 import { findDirectContradiction } from '@/lib/constants/relations';
 
 /**
@@ -106,6 +106,7 @@ export function useCreateRelation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
       queryClient.invalidateQueries({ queryKey: ['relations', 'person', data.subjectId] });
     },
   });
@@ -130,6 +131,7 @@ export function useCreateRelations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
     },
   });
 }
@@ -151,6 +153,7 @@ export function useUpdateRelation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
       if (data?.subjectId) {
         queryClient.invalidateQueries({ queryKey: ['relations', 'person', data.subjectId] });
       }
@@ -170,6 +173,7 @@ export function useDeleteRelation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
     },
   });
 }

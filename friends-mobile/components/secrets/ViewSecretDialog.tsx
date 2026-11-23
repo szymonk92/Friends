@@ -21,7 +21,7 @@ export default function ViewSecretDialog({
     <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
       <Dialog.Title style={styles.dialogTitle}>{viewedSecret?.title || t('secrets.secret')}</Dialog.Title>
       <Dialog.Content>
-        <Text variant="bodySmall" style={[styles.securityTimer, styles.dialogFont]}>
+        <Text variant="bodySmall" style={styles.securityTimer}>
           {t('secrets.autoClosing', { seconds: remainingTime })}
         </Text>
         <Text variant="bodyMedium" style={styles.secretContent}>
@@ -29,7 +29,7 @@ export default function ViewSecretDialog({
         </Text>
       </Dialog.Content>
       <Dialog.Actions>
-        <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+        <Button onPress={onDismiss}>
           {t('common.close')}
         </Button>
       </Dialog.Actions>
@@ -45,11 +45,8 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontFamily: fz.font,
   },
-  dialogFont: {
-    fontFamily: fz.font,
-  },
   securityTimer: {
-    color: '#ff5722',
+    color: fz.warn,
     marginBottom: 12,
   },
   secretContent: {

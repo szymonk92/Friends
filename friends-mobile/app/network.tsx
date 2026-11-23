@@ -1,8 +1,10 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator, StatusBar, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
-import { useConnections } from '@/hooks/useConnections';
+import { useConnections, useCreateConnection } from '@/hooks/useConnections';
+import { useStories } from '@/hooks/useStories';
+import { storyPeople, suggestConnections } from '@/lib/graph/suggestions';
+import { Avatar } from '@/components/Avatar';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router } from 'expo-router';
@@ -13,20 +15,23 @@ import ForceDirectedGraph from '@/components/graph/ForceDirectedGraph';
 import NetworkPersonDetails from '@/components/graph/NetworkPersonDetails';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 export default function NetworkScreen() {
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
   const { data: allTags = [] } = useAllTags();
+  const { data: stories = [] } = useStories();
+  const createConnection = useCreateConnection();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [graphTouched, setGraphTouched] = useState(false);
 
   const { data: selectedPersonRelations = [] } = usePersonRelations(selectedPersonId || '');
 
@@ -77,12 +82,31 @@ export default function NetworkScreen() {
 
   const hasActiveFilters = selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
-  const selectedConnections = useMemo(() => {
+  // Who the selected person knows (within the current filter), with the person on the other end.
+  const selectedLinks = useMemo(() => {
     if (!selectedPersonId) return [];
-    return filteredConnections.filter(
-      (c) => c.person1Id === selectedPersonId || c.person2Id === selectedPersonId
-    );
-  }, [selectedPersonId, filteredConnections]);
+    const byId = new Map(filteredPeople.map((p) => [p.id, p]));
+    return filteredConnections.flatMap((connection) => {
+      const otherId =
+        connection.person1Id === selectedPersonId
+          ? connection.person2Id
+          : connection.person2Id === selectedPersonId
+            ? connection.person1Id
+            : null;
+      const other = otherId ? byId.get(otherId) : undefined;
+      return other ? [{ connection, other }] : [];
+    });
+  }, [selectedPersonId, filteredConnections, filteredPeople]);
+
+  // People mentioned together in stories but not connected yet.
+  const suggestions = useMemo(() => {
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return suggestConnections(stories.map(storyPeople), connections, new Set(byId.keys())).map((s) => ({
+      ...s,
+      personA: byId.get(s.a)!,
+      personB: byId.get(s.b)!,
+    }));
+  }, [stories, connections, people]);
 
   const isLoading = loadingPeople || loadingConnections;
 
@@ -102,21 +126,13 @@ export default function NetworkScreen() {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-          <View style={styles.appBarRow}>
-            <HeaderBack onPress={() => router.back()} />
-            <Text style={fzText.screenTitle}>{t('network.title')}</Text>
-            <View style={{ width: 38 }} />
-          </View>
-        </View>
+        <AppBar title={t('network.title')} />
         <View style={styles.empty}>
           <Text style={fzText.title}>{t('network.empty.title')}</Text>
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
             {t('network.empty.description')}
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/')} activeOpacity={0.8}>
-            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('network.empty.addPeople')}</Text>
-          </TouchableOpacity>
+          <PrimaryButton label={t('network.empty.addPeople')} onPress={() => router.push('/')} />
         </View>
       </View>
     );
@@ -130,22 +146,23 @@ export default function NetworkScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}
-      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <Text style={fzText.screenTitle}>{t('network.title')}</Text>
-          <View style={styles.appBarActions}>
-            <IconCircle icon="heart" onPress={() => router.push('/shared-interests')} />
-            {allTags.length > 0 || relationshipTypes.length > 0 ? (
-              <IconCircle
-                icon="filter"
-                fill={hasActiveFilters ? fz.ink : undefined}
-                color={hasActiveFilters ? fz.paper : fz.ink}
-                onPress={() => setFiltersVisible(!filtersVisible)}
-              />
-            ) : null}
-          </View>
-        </View>
+      <View style={styles.appBar}>
+        <AppBar
+          title={t('network.title')}
+          right={
+            <>
+              <IconCircle icon="heart" onPress={() => router.push('/shared-interests')} />
+              {allTags.length > 0 || relationshipTypes.length > 0 ? (
+                <IconCircle
+                  icon="filter"
+                  fill={hasActiveFilters ? fz.ink : undefined}
+                  color={hasActiveFilters ? fz.paper : fz.ink}
+                  onPress={() => setFiltersVisible(!filtersVisible)}
+                />
+              ) : null}
+            </>
+          }
+        />
 
         {/* Search */}
         <View style={styles.searchRow}>
@@ -161,7 +178,7 @@ export default function NetworkScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
+      <ScrollView scrollEnabled={!graphTouched} style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
         {/* Filters */}
         {showFilters && (
           <View style={styles.filterSection}>
@@ -228,23 +245,57 @@ export default function NetworkScreen() {
 
         {/* Graph */}
         <View style={styles.graphCard}>
-          <ForceDirectedGraph
-            people={filteredPeople}
-            connections={filteredConnections}
-            selectedPersonId={selectedPersonId}
-            onSelectPerson={setSelectedPersonId}
-          />
+          {filteredPeople.length > 0 ? (
+            <ForceDirectedGraph
+              onTouchingChange={setGraphTouched}
+              people={filteredPeople}
+              connections={filteredConnections}
+              selectedPersonId={selectedPersonId}
+              onSelectPerson={setSelectedPersonId}
+            />
+          ) : (
+            <View style={styles.noMatches}>
+              <Text style={fzText.sub}>{t('search.noResults')}</Text>
+            </View>
+          )}
         </View>
         <Text style={[fzText.time, { paddingHorizontal: fz.s.edge, marginTop: 8 }]}>
           {t('network.hint')}
         </Text>
+
+        {/* Suggested connections */}
+        {suggestions.length > 0 && !selectedPerson && (
+          <View style={styles.suggestions}>
+            <Text style={fzText.label}>{t('network.suggestions.title')}</Text>
+            {suggestions.map((sug) => (
+              <View key={`${sug.a}|${sug.b}`} style={styles.suggestionRow}>
+                <Avatar name={sug.personA.name} photoPath={sug.personA.photoPath} size={32} />
+                <Avatar name={sug.personB.name} photoPath={sug.personB.photoPath} size={32} style={styles.avatarOverlap} />
+                <View style={styles.suggestionText}>
+                  <Text style={fzText.name} numberOfLines={1}>
+                    {sug.personA.name} & {sug.personB.name}
+                  </Text>
+                  <Text style={fzText.sub}>{t('network.suggestions.sharedStories', { count: sug.sharedStories })}</Text>
+                </View>
+                <Pill
+                  label={t('network.suggestions.connect')}
+                  variant="solid"
+                  onPress={() =>
+                    createConnection.mutate({ person1Id: sug.a, person2Id: sug.b, relationshipType: 'acquaintance' })
+                  }
+                />
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Selected person details */}
         {selectedPerson && (
           <NetworkPersonDetails
             person={selectedPerson}
             relations={selectedPersonRelations}
-            connectionCount={selectedConnections.length}
+            links={selectedLinks}
+            onSelectPerson={setSelectedPersonId}
           />
         )}
 
@@ -258,11 +309,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.md },
-  appBarRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge, paddingBottom: fz.s.sm,
-  },
-  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchRow: { paddingHorizontal: fz.s.edge },
   searchInput: {
     height: 44, borderRadius: fz.rPill, backgroundColor: fz.surface,
@@ -292,9 +338,13 @@ const styles = StyleSheet.create({
     marginHorizontal: fz.s.edge, backgroundColor: fz.card, borderRadius: fz.rCard,
     borderWidth: 1, borderColor: fz.cardBorder, padding: 8, overflow: 'hidden',
   },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  primaryBtn: {
-    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
-    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
+  suggestions: {
+    marginHorizontal: fz.s.edge, marginTop: fz.s.lg, padding: fz.s.lg,
+    backgroundColor: fz.card, borderRadius: fz.rCard, borderWidth: 1, borderColor: fz.cardBorder,
   },
+  suggestionRow: { flexDirection: 'row', alignItems: 'center', paddingTop: fz.s.md },
+  avatarOverlap: { marginLeft: -10, borderWidth: 2, borderColor: fz.card },
+  suggestionText: { flex: 1, marginHorizontal: fz.s.md },
+  noMatches: { height: 450, justifyContent: 'center', alignItems: 'center' },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
 });

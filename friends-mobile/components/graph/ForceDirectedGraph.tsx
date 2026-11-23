@@ -1,454 +1,344 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ActivityIndicator, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   Canvas,
   Circle,
+  DashPathEffect,
   Group,
   Image,
+  Line,
+  Skia,
   Text as SkiaText,
   useFont,
   useImage,
   vec,
-  Skia,
-  Line,
+  type SkFont,
+  type SkPath,
 } from '@shopify/react-native-skia';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import * as d3 from 'd3-force';
 import { fz } from '@/lib/design/tokens';
+import { fitCamera, layoutGraph, NODE_RADIUS, type Camera, type Point } from '@/lib/graph/layout';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRAPH_HEIGHT = 450;
-
-// --- CONFIGURATION ---
-const NODE_RADIUS = 28;
-const STROKE_WIDTH = 3;
-const IMAGE_SIZE = NODE_RADIUS * 2;
 const FONT_SIZE = 12;
-const TITLE_FONT_SIZE = 14;
+const INITIALS_FONT_SIZE = 14;
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 3;
 
-const MANY_BODY_STRENGTH = -150;
-const COLLISION_RADIUS = NODE_RADIUS + 5;
-const LINK_DISTANCE = 70;
-const CENTER_FORCE = 0.1;
-
-interface Node extends d3.SimulationNodeDatum {
+export interface GraphConnection {
   id: string;
-  name: string;
-  photoPath?: string | null;
+  person1Id: string;
+  person2Id: string;
+  status?: string | null;
+  strength?: number | null;
   relationshipType?: string | null;
-  color: string;
-}
-
-interface Link extends d3.SimulationLinkDatum<Node> {
-  id: string;
-  source: string | Node;
-  target: string | Node;
 }
 
 interface ForceDirectedGraphProps {
-  people: Array<{
-    id: string;
-    name: string;
-    photoPath?: string | null;
-    relationshipType?: string | null;
-  }>;
-  connections: Array<{ id: string; person1Id: string; person2Id: string }>;
+  people: Array<{ id: string; name: string; photoPath?: string | null }>;
+  connections: GraphConnection[];
   selectedPersonId: string | null;
+  /** True while a finger is on the graph, so the parent can lock its ScrollView (it steals pinch on Android). */
+  onTouchingChange?: (touching: boolean) => void;
   onSelectPerson: (personId: string | null) => void;
 }
 
-// Helper to check if d3 has resolved the node link references yet
-const isNode = (n: string | Node): n is Node => {
-  return typeof n !== 'string' && n.x !== undefined;
-};
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
 
-// --- SUB-COMPONENT FOR INDIVIDUAL NODE RENDERING ---
-const GraphNode = ({
-  node,
-  x,
-  y,
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
+
+// Ended / inactive / ex links are drawn dashed so past relationships read differently.
+const isPastLink = (c: GraphConnection) =>
+  c.status === 'ended' || c.status === 'inactive' || c.relationshipType === 'ex-partner';
+
+function GraphNode({
+  person,
+  p,
   isSelected,
-  isNeighbor,
+  dimmed,
   font,
-  titleFont,
+  initialsFont,
   clipPath,
 }: {
-  node: Node;
-  x: number;
-  y: number;
+  person: { name: string; photoPath?: string | null };
+  p: Point;
   isSelected: boolean;
-  isNeighbor: boolean;
-  font: any;
-  titleFont: any;
-  clipPath: any;
-}) => {
+  dimmed: boolean;
+  font: SkFont | null;
+  initialsFont: SkFont | null;
+  clipPath: SkPath;
+}) {
   // ponytail: null (not '') so Skia doesn't attempt to decode an empty source.
-  const image = useImage(node.photoPath ?? null);
-  const shouldShowLabel = isSelected || isNeighbor;
-
-  const opacity = isSelected || isNeighbor ? 1 : 0.6;
-  const scale = isSelected ? 1.2 : 1;
-
-  // Measure the label so it centers on the node instead of the old length*3.5 hack.
-  const labelOffsetX = font ? -font.measureText(node.name).width / 2 : 0;
+  const image = useImage(person.photoPath ?? null);
+  const label = isSelected ? person.name : firstName(person.name);
+  const ini = initials(person.name);
+  const labelW = font ? font.measureText(label).width : 0;
+  const iniW = initialsFont ? initialsFont.measureText(ini).width : 0;
 
   return (
-    <Group transform={[{ translateX: x }, { translateY: y }, { scale: scale }]} opacity={opacity}>
-      {/* 1. Node Circle Background (White filler) */}
-      <Circle cx={0} cy={0} r={NODE_RADIUS} color="#ffffff" style="fill" />
-
-      {/* 2. Avatar Image OR Initials */}
+    <Group
+      transform={[{ translateX: p.x }, { translateY: p.y }, { scale: isSelected ? 1.15 : 1 }]}
+      opacity={dimmed ? 0.3 : 1}
+    >
+      <Circle cx={0} cy={0} r={NODE_RADIUS} color={image ? fz.card : fz.surface} />
       {image ? (
-        // Use Group clipping instead of boolean prop
         <Group clip={clipPath}>
           <Image
             image={image}
             x={-NODE_RADIUS}
             y={-NODE_RADIUS}
-            width={IMAGE_SIZE}
-            height={IMAGE_SIZE}
+            width={NODE_RADIUS * 2}
+            height={NODE_RADIUS * 2}
             fit="cover"
           />
         </Group>
-      ) : titleFont ? (
-        <SkiaText
-          x={-8}
-          y={TITLE_FONT_SIZE / 2 - 2}
-          text={node.name.substring(0, 2).toUpperCase()}
-          font={titleFont}
-          color={node.color}
-          opacity={1}
-        />
+      ) : initialsFont ? (
+        <SkiaText x={-iniW / 2} y={INITIALS_FONT_SIZE / 2 - 1} text={ini} font={initialsFont} color={fz.ink} />
       ) : null}
-
-      {/* 3. Node Border */}
       <Circle
         cx={0}
         cy={0}
         r={NODE_RADIUS}
-        color={node.color}
+        color={fz.ink}
         style="stroke"
-        strokeWidth={STROKE_WIDTH}
+        strokeWidth={isSelected ? 3 : 1.5}
       />
-
-      {/* 4. Label */}
-      {shouldShowLabel && font && (
-        <Group transform={[{ translateY: NODE_RADIUS + 18 }]}>
-          <SkiaText
-            x={labelOffsetX}
-            y={0}
-            text={node.name}
-            font={font}
-            color={fz.ink}
-            opacity={1}
-          />
-        </Group>
+      {font && (
+        <SkiaText x={-labelW / 2} y={NODE_RADIUS + 16} text={label} font={font} color={fz.ink} />
       )}
     </Group>
   );
-};
+}
 
-// --- MAIN COMPONENT ---
 export default function ForceDirectedGraph({
   people,
   connections,
   selectedPersonId,
   onSelectPerson,
+  onTouchingChange,
 }: ForceDirectedGraphProps) {
   const font = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), FONT_SIZE);
-  const titleFont = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), TITLE_FONT_SIZE);
+  const initialsFont = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), INITIALS_FONT_SIZE);
 
-  // DEBUG: proves whether Metro is serving this instrumented source or a stale bundle.
-  useEffect(() => {
-    console.warn('[FDG] mount — instrumented build');
-  }, []);
+  const [width, setWidth] = useState(0);
+  const prevPositions = useRef<Map<string, Point>>(new Map());
 
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [links, setLinks] = useState<Link[]>([]);
-  const simulationRef = useRef<d3.Simulation<Node, Link> | null>(null);
+  // Layout is a pure function of (people, connections, width): no per-tick re-renders,
+  // and an empty filter result simply yields an empty map (no stale graph).
+  const positions = useMemo(() => {
+    if (width === 0) return new Map<string, Point>();
+    const next = layoutGraph(
+      people.map((p) => p.id),
+      connections.map((c) => ({ source: c.person1Id, target: c.person2Id })),
+      width,
+      GRAPH_HEIGHT,
+      prevPositions.current
+    );
+    prevPositions.current = new Map([...prevPositions.current, ...next]);
+    return next;
+  }, [people, connections, width]);
 
-  // Refs mirror state so gesture handlers can read live values without rebuilding
-  // the gesture on every simulation tick (which would tear down + rebuild it ~60x/s).
-  const nodesRef = useRef<Node[]>([]);
-  const linksRef = useRef<Link[]>([]);
-  const cameraRef = useRef({ x: 0, y: 0, scale: 1 });
-  const selectedPersonIdRef = useRef<string | null>(selectedPersonId);
-  const onSelectPersonRef = useRef(onSelectPerson);
+  const fit = useMemo(() => fitCamera([...positions.values()], width, GRAPH_HEIGHT), [positions, width]);
 
-  const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
-  const startCamera = useRef({ x: 0, y: 0, scale: 1 });
-
-  // Live container width via onLayout instead of the stale module-load SCREEN_WIDTH.
-  const [layoutWidth, setLayoutWidth] = useState(SCREEN_WIDTH);
-  const layoutRef = useRef(SCREEN_WIDTH);
-
-  const commitCamera = useCallback((next: { x: number; y: number; scale: number }) => {
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  const cameraRef = useRef(camera);
+  const commitCamera = useCallback((next: Camera) => {
     cameraRef.current = next;
     setCamera(next);
   }, []);
 
-  // Create a reusable path for clipping circles
-  const circleClipPath = useMemo(() => {
-    const path = Skia.Path.Make();
-    path.addCircle(0, 0, NODE_RADIUS - 1); // Slightly smaller to avoid jagged edges at border
-    return path;
-  }, []);
+  // Refit whenever the visible set changes (filters, search, new people).
+  useEffect(() => commitCamera(fit), [fit, commitCamera]);
 
-  // --- 1. SETUP SIMULATION ---
-  useEffect(() => {
-    if (!people.length) return;
+  // Refs so the gesture object is built once and still reads live values.
+  const positionsRef = useRef(positions);
+  positionsRef.current = positions;
+  const fitRef = useRef(fit);
+  fitRef.current = fit;
+  const selectedRef = useRef(selectedPersonId);
+  selectedRef.current = selectedPersonId;
+  const onSelectRef = useRef(onSelectPerson);
+  onSelectRef.current = onSelectPerson;
+  const touchingRef = useRef(onTouchingChange);
+  touchingRef.current = onTouchingChange;
+  const widthRef = useRef(width);
+  widthRef.current = width;
 
-    const w = layoutWidth;
-
-    // Initialize Nodes, preserving last simulated positions for people still present.
-    const newNodes: Node[] = people.map((p) => {
-      const existing = nodesRef.current.find((n) => n.id === p.id);
-      return {
-        ...p,
-        x: existing?.x ?? w / 2 + (Math.random() - 0.5) * 50,
-        y: existing?.y ?? GRAPH_HEIGHT / 2 + (Math.random() - 0.5) * 50,
-        color: fz.ink,
-      };
-    });
-
-    const nodeMap = new Map(newNodes.map((n) => [n.id, n]));
-
-    // Initialize Links with references to actual node objects if available
-    const newLinks: Link[] = connections
-      .filter((c) => nodeMap.has(c.person1Id) && nodeMap.has(c.person2Id))
-      .map((c) => ({
-        id: c.id,
-        source: c.person1Id,
-        target: c.person2Id,
-      }));
-
-    nodesRef.current = newNodes;
-    linksRef.current = newLinks;
-
-    if (simulationRef.current) simulationRef.current.stop();
-
-    simulationRef.current = d3
-      .forceSimulation<Node, Link>(newNodes)
-      .force(
-        'link',
-        d3
-          .forceLink<Node, Link>(newLinks)
-          .id((d) => d.id)
-          .distance(LINK_DISTANCE)
-      )
-      .force('charge', d3.forceManyBody().strength(MANY_BODY_STRENGTH).distanceMax(250))
-      .force('center', d3.forceCenter(w / 2, GRAPH_HEIGHT / 2).strength(CENTER_FORCE))
-      .force('collide', d3.forceCollide(COLLISION_RADIUS));
-
-    simulationRef.current.on('tick', () => {
-      // Trigger React render. node objects are mutated in place by d3, so the
-      // new array refs carry live positions; refs keep the same live objects for hit-testing.
-      setNodes([...newNodes]);
-      setLinks([...newLinks]);
-    });
-
-    simulationRef.current.restart();
-
-    return () => {
-      simulationRef.current?.stop();
-    };
-  }, [people, connections, layoutWidth]);
-
-  // Keep selection + callback refs current.
-  useEffect(() => {
-    selectedPersonIdRef.current = selectedPersonId;
-  }, [selectedPersonId]);
-  useEffect(() => {
-    onSelectPersonRef.current = onSelectPerson;
-  }, [onSelectPerson]);
-
-  // --- AUTO-CENTER THE SELECTED NODE if it's outside the viewport ---
+  // Bring the selected node into view if it sits outside the viewport.
   useEffect(() => {
     if (!selectedPersonId) return;
-    const node = nodesRef.current.find((n) => n.id === selectedPersonId);
-    if (!node || node.x == null || node.y == null) return;
-
-    const { scale, x: camX, y: camY } = cameraRef.current;
-    const screenX = node.x * scale + camX;
-    const screenY = node.y * scale + camY;
-    const margin = NODE_RADIUS * 3;
-    const w = layoutRef.current || SCREEN_WIDTH;
-    const inView =
-      screenX > margin && screenX < w - margin && screenY > margin && screenY < GRAPH_HEIGHT - margin;
-    if (inView) return;
-
-    commitCamera({ x: w / 2 - node.x * scale, y: GRAPH_HEIGHT / 2 - node.y * scale, scale });
+    const p = positionsRef.current.get(selectedPersonId);
+    if (!p) return;
+    const { scale, x, y } = cameraRef.current;
+    const sx = p.x * scale + x;
+    const sy = p.y * scale + y;
+    const m = NODE_RADIUS * 2;
+    const w = widthRef.current;
+    if (sx > m && sx < w - m && sy > m && sy < GRAPH_HEIGHT - m) return;
+    commitCamera({ x: w / 2 - p.x * scale, y: GRAPH_HEIGHT / 2 - p.y * scale, scale });
   }, [selectedPersonId, commitCamera]);
 
-  // --- 2. GESTURE HANDLERS ---
-  // Built once: handlers read live state from refs, so the gesture composition
-  // isn't rebuilt on every tick / camera change.
   const gesture = useMemo(() => {
+    const start = { cam: { x: 0, y: 0, scale: 1 }, fx: 0, fy: 0, wx: 0, wy: 0, pinned: false };
+
+    // One finger pans; two fingers are handled entirely by pinch (zoom + move together).
     const pan = Gesture.Pan()
       .runOnJS(true)
+      .maxPointers(1)
+      .onBegin(() => touchingRef.current?.(true))
+      .onFinalize(() => touchingRef.current?.(false))
       .onStart(() => {
-        startCamera.current = { ...cameraRef.current };
+        start.cam = { ...cameraRef.current };
       })
       .onUpdate((e) => {
-        // ponytail: read scale LIVE, not from startCamera. Pan and pinch run
-        // simultaneously; if pan re-wrote startCamera.scale (captured at gesture
-        // start = 1.0) it would clobber the scale pinch just applied. Reading
-        // cameraRef.current.scale preserves whatever pinch set, order-independent.
         commitCamera({
-          x: startCamera.current.x + e.translationX,
-          y: startCamera.current.y + e.translationY,
+          x: start.cam.x + e.translationX,
+          y: start.cam.y + e.translationY,
           scale: cameraRef.current.scale,
         });
       });
 
+    // Zoom around the fingers: the world point under the starting focal point
+    // stays under the (moving) focal point.
     const pinch = Gesture.Pinch()
       .runOnJS(true)
-      .onStart(() => {
-        startCamera.current = { ...cameraRef.current };
-        console.warn(`[PINCH] start | startScale=${startCamera.current.scale}`);
+      .onBegin(() => touchingRef.current?.(true))
+      .onFinalize(() => touchingRef.current?.(false))
+      .onStart((e) => {
+        start.cam = { ...cameraRef.current };
+        // With someone selected, zoom around that person (they stay put on screen);
+        // otherwise around the fingers.
+        const sel = selectedRef.current ? positionsRef.current.get(selectedRef.current) : undefined;
+        if (sel) {
+          start.wx = sel.x;
+          start.wy = sel.y;
+          start.fx = sel.x * start.cam.scale + start.cam.x;
+          start.fy = sel.y * start.cam.scale + start.cam.y;
+          start.pinned = true;
+        } else {
+          start.wx = (e.focalX - start.cam.x) / start.cam.scale;
+          start.wy = (e.focalY - start.cam.y) / start.cam.scale;
+          start.fx = e.focalX;
+          start.fy = e.focalY;
+          start.pinned = false;
+        }
       })
       .onUpdate((e) => {
-        const newScale = Math.max(0.5, Math.min(startCamera.current.scale * e.scale, 3));
-        console.warn(`[PINCH] update | e.scale=${e.scale.toFixed(3)} startScale=${startCamera.current.scale.toFixed(3)} newScale=${newScale.toFixed(3)} committed=${cameraRef.current.scale.toFixed(3)}`);
-        commitCamera({ ...cameraRef.current, scale: newScale });
+        const scale = Math.max(MIN_SCALE, Math.min(start.cam.scale * e.scale, MAX_SCALE));
+        const fx = start.pinned ? start.fx : e.focalX;
+        const fy = start.pinned ? start.fy : e.focalY;
+        commitCamera({ x: fx - start.wx * scale, y: fy - start.wy * scale, scale });
       });
 
     const tap = Gesture.Tap()
       .runOnJS(true)
       .maxDistance(10)
       .onEnd((e) => {
-        // Transform Touch to World Coordinates
         const cam = cameraRef.current;
-        const worldX = (e.x - cam.x) / cam.scale;
-        const worldY = (e.y - cam.y) / cam.scale;
-
-        const HIT_SLOP = 40;
-        let closestNode: string | null = null;
-        let minDist = HIT_SLOP;
-
-        for (const node of nodesRef.current) {
-          if (node.x === undefined || node.y === undefined) continue;
-
-          const dx = node.x - worldX;
-          const dy = node.y - worldY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < minDist) {
-            minDist = dist;
-            closestNode = node.id;
+        const wx = (e.x - cam.x) / cam.scale;
+        const wy = (e.y - cam.y) / cam.scale;
+        // Hit radius in screen pixels, so small zoom levels stay tappable.
+        let best: string | null = null;
+        let bestDist = (NODE_RADIUS + 8) / Math.min(cam.scale, 1);
+        for (const [id, p] of positionsRef.current) {
+          const d = Math.hypot(p.x - wx, p.y - wy);
+          if (d < bestDist) {
+            bestDist = d;
+            best = id;
           }
         }
-
-        // Toggle selection
-        const current = selectedPersonIdRef.current;
-        onSelectPersonRef.current(closestNode === current ? null : closestNode);
+        onSelectRef.current(best === selectedRef.current ? null : best);
       });
 
-    // Double-tap resets to overview: recenter camera AND clear selection.
-    // Runs simultaneously with the single tap, so the first tap's fleeting
-    // selection is immediately cleared by this — no 300ms single-tap delay.
     const doubleTap = Gesture.Tap()
       .runOnJS(true)
       .numberOfTaps(2)
       .maxDelay(300)
       .onEnd(() => {
-        onSelectPersonRef.current(null);
-        commitCamera({ x: 0, y: 0, scale: 1 });
+        onSelectRef.current(null);
+        commitCamera(fitRef.current);
       });
 
     return Gesture.Simultaneous(Gesture.Exclusive(doubleTap, tap), pan, pinch);
-    // Built once: all mutable values are read from refs; commitCamera is stable (useCallback).
   }, [commitCamera]);
 
-  const neighborIds = useMemo(
-    () =>
-      new Set(
-        links
-          .filter(
-            (l) =>
-              (l.source as Node).id === selectedPersonId ||
-              (l.target as Node).id === selectedPersonId
-          )
-          .flatMap((l) => [(l.source as Node).id, (l.target as Node).id])
-      ),
-    [links, selectedPersonId]
-  );
+  const clipPath = useMemo(() => {
+    const path = Skia.Path.Make();
+    path.addCircle(0, 0, NODE_RADIUS - 1);
+    return path;
+  }, []);
 
-  if (nodes.length === 0) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  const neighborIds = useMemo(() => {
+    const s = new Set<string>();
+    if (!selectedPersonId) return s;
+    for (const c of connections) {
+      if (c.person1Id === selectedPersonId) s.add(c.person2Id);
+      if (c.person2Id === selectedPersonId) s.add(c.person1Id);
+    }
+    return s;
+  }, [connections, selectedPersonId]);
+
+  // Draw the selected node and its neighbours last so they sit on top.
+  const orderedPeople = useMemo(() => {
+    if (!selectedPersonId) return people;
+    const rank = (id: string) => (id === selectedPersonId ? 2 : neighborIds.has(id) ? 1 : 0);
+    return [...people].sort((a, b) => rank(a.id) - rank(b.id));
+  }, [people, selectedPersonId, neighborIds]);
 
   return (
     <View
       style={styles.container}
       onLayout={(e) => {
-        const w = e.nativeEvent.layout.width;
-        if (w > 0 && w !== layoutRef.current) {
-          layoutRef.current = w;
-          setLayoutWidth(w);
-        }
+        const w = Math.round(e.nativeEvent.layout.width);
+        if (w > 0 && w !== width) setWidth(w);
       }}
     >
       <GestureDetector gesture={gesture}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.canvas}>
           <Canvas style={styles.canvas}>
-            <Group
-              transform={[
-                { translateX: camera.x },
-                { translateY: camera.y },
-                { scale: camera.scale },
-              ]}
-            >
-              {/* Links */}
-              {links.map((link) => {
-                const s = link.source;
-                const t = link.target;
-
-                // FIX: Ensure nodes are fully resolved objects before rendering line
-                if (!isNode(s) || !isNode(t)) return null;
-
-                // Extra safety for NaN
-                if (isNaN(s.x!) || isNaN(s.y!) || isNaN(t.x!) || isNaN(t.y!)) return null;
-
-                const isConnected =
-                  selectedPersonId && (s.id === selectedPersonId || t.id === selectedPersonId);
-                const opacity = selectedPersonId ? (isConnected ? 1 : 0.1) : 0.2;
-                const color = isConnected ? fz.ink : fz.outline;
-                const width = isConnected ? 2 : 1;
-
+            <Group transform={[{ translateX: camera.x }, { translateY: camera.y }, { scale: camera.scale }]}>
+              {connections.map((c) => {
+                const a = positions.get(c.person1Id);
+                const b = positions.get(c.person2Id);
+                if (!a || !b) return null;
+                const active =
+                  !!selectedPersonId && (c.person1Id === selectedPersonId || c.person2Id === selectedPersonId);
+                const strength = c.strength ?? 0.5;
                 return (
                   <Line
-                    key={link.id}
-                    p1={vec(s.x!, s.y!)}
-                    p2={vec(t.x!, t.y!)}
-                    color={color}
+                    key={c.id}
+                    p1={vec(a.x, a.y)}
+                    p2={vec(b.x, b.y)}
+                    color={active ? fz.ink : fz.line}
                     style="stroke"
-                    strokeWidth={width}
-                    opacity={opacity}
-                  />
+                    strokeWidth={(active ? 1.5 : 0.75) + strength * 2}
+                    opacity={selectedPersonId ? (active ? 0.9 : 0.15) : 0.8}
+                  >
+                    {isPastLink(c) && <DashPathEffect intervals={[6, 5]} />}
+                  </Line>
                 );
               })}
-
-              {/* Nodes */}
-              {nodes.map((node) => {
-                // Skip if coordinates are missing
-                if (node.x === undefined || node.y === undefined) return null;
-
+              {orderedPeople.map((person) => {
+                const p = positions.get(person.id);
+                if (!p) return null;
+                const isSelected = person.id === selectedPersonId;
                 return (
                   <GraphNode
-                    key={node.id}
-                    node={node}
-                    x={node.x}
-                    y={node.y}
-                    isSelected={node.id === selectedPersonId}
-                    isNeighbor={neighborIds.has(node.id)}
+                    key={person.id}
+                    person={person}
+                    p={p}
+                    isSelected={isSelected}
+                    dimmed={!!selectedPersonId && !isSelected && !neighborIds.has(person.id)}
                     font={font}
-                    titleFont={titleFont}
-                    clipPath={circleClipPath}
+                    initialsFont={initialsFont}
+                    clipPath={clipPath}
                   />
                 );
               })}
@@ -468,11 +358,5 @@ const styles = StyleSheet.create({
     borderRadius: fz.rCard,
     overflow: 'hidden',
   },
-  canvas: {
-    flex: 1,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  canvas: { flex: 1 },
 });

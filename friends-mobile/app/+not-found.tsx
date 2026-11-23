@@ -3,7 +3,7 @@ import { AppBar } from '@/components/AppBar';
 import { StyleSheet, Text } from 'react-native';
 
 import CenteredContainer from '@/components/CenteredContainer';
-import { fzText } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
 export default function NotFoundScreen() {
@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: '#2e78b7',
+    color: fz.ink,
   },
 });

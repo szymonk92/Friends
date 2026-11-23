@@ -2,6 +2,7 @@ import { tr } from '@/lib/i18n/labels';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import { NONCE_BYTES, open, seal, SEALED_PREFIX } from './aead';
 
 /**
  * Biometric-First Secrets Protection
@@ -188,47 +189,25 @@ export async function getEncryptionKey(): Promise<string | null> {
 }
 
 /**
- * Simple XOR-based encryption (for demo - use AES in production)
- * This provides basic protection; for stronger security, use react-native-aes-crypto
+ * Encrypts with XChaCha20-Poly1305 and a random nonce per secret (`v2:` format).
  */
 export async function encryptContent(content: string, key: string): Promise<string> {
-  // Convert to bytes
-  const contentBytes = new TextEncoder().encode(content);
-  const keyBytes = hexToBytes(key);
-
-  // XOR encryption (expandable key)
-  const encrypted = new Uint8Array(contentBytes.length);
-  for (let i = 0; i < contentBytes.length; i++) {
-    encrypted[i] = contentBytes[i] ^ keyBytes[i % keyBytes.length];
-  }
-
-  // Return as base64 - convert Uint8Array to string without spread operator
-  let binaryString = '';
-  for (let i = 0; i < encrypted.length; i++) {
-    binaryString += String.fromCharCode(encrypted[i]);
-  }
-  return btoa(binaryString);
+  const nonce = await Crypto.getRandomBytesAsync(NONCE_BYTES);
+  return seal(content, hexToBytes(key), nonce);
 }
 
 /**
- * Decrypt content
+ * Decrypts `v2:` (authenticated) content; anything else is the legacy repeating-key XOR
+ * format from before issue #13, kept readable so existing secrets still open.
  */
-export async function decryptContent(encryptedBase64: string, key: string): Promise<string> {
-  // Decode base64
-  const encrypted = new Uint8Array(
-    atob(encryptedBase64)
-      .split('')
-      .map((c) => c.charCodeAt(0))
-  );
+export async function decryptContent(encrypted: string, key: string): Promise<string> {
   const keyBytes = hexToBytes(key);
+  if (encrypted.startsWith(SEALED_PREFIX)) return open(encrypted, keyBytes);
 
-  // XOR decryption (same as encryption)
-  const decrypted = new Uint8Array(encrypted.length);
-  for (let i = 0; i < encrypted.length; i++) {
-    decrypted[i] = encrypted[i] ^ keyBytes[i % keyBytes.length];
-  }
-
-  return new TextDecoder().decode(decrypted);
+  const bytes = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) out[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
+  return new TextDecoder().decode(out);
 }
 
 /**

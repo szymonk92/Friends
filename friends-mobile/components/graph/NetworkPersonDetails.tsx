@@ -1,9 +1,13 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
+import { describeConnection } from '@/lib/connections/describeConnection';
+import type { Connection, Person } from '@/lib/db/schema';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { RelationIcon } from '@/components/RelationIcon';
 import {
   LIKES,
@@ -31,7 +35,9 @@ interface NetworkPersonDetailsProps {
     relationshipType?: string | null;
   };
   relations: Relation[];
-  connectionCount: number;
+  /** Connections touching this person, each paired with the person on the other end. */
+  links: Array<{ connection: Connection; other: Person }>;
+  onSelectPerson: (id: string) => void;
 }
 
 const SECTION_META = [
@@ -46,7 +52,8 @@ const SECTION_META = [
 export default function NetworkPersonDetails({
   person,
   relations,
-  connectionCount,
+  links,
+  onSelectPerson,
 }: NetworkPersonDetailsProps) {
   const { t } = useTranslation();
 
@@ -73,12 +80,35 @@ export default function NetworkPersonDetails({
               <Pill label={relationshipTypeLabel(person.relationshipType)} variant="surface" />
             )}
             <Pill
-              label={t('network.connectionCount', { count: connectionCount })}
+              label={t('network.connectionCount', { count: links.length })}
               variant="soft"
             />
           </View>
         </View>
       </View>
+
+      <PrimaryButton label={t('connections.openProfile')} onPress={() => router.push(`/person/${person.id}`)} />
+
+      {links.length > 0 && (
+        <>
+          <View style={styles.divider} />
+          <Text style={fzText.label}>{t('connections.title')}</Text>
+          {links.map(({ connection, other }) => (
+            <TouchableOpacity
+              key={connection.id}
+              style={styles.linkRow}
+              onPress={() => onSelectPerson(other.id)}
+              activeOpacity={0.6}
+            >
+              <Avatar name={other.name} photoPath={other.photoPath} size={32} />
+              <View style={styles.headerInfo}>
+                <Text style={fzText.name}>{other.name}</Text>
+                <Text style={fzText.sub}>{describeConnection(connection, other, person.id)}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
 
       <View style={styles.divider} />
 
@@ -148,6 +178,12 @@ const styles = StyleSheet.create({
     marginVertical: fz.s.md,
   },
   contentWrapper: {},
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: fz.s.md,
+    paddingVertical: 8,
+  },
   section: {
     marginBottom: fz.s.lg,
   },

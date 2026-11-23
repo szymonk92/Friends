@@ -23,11 +23,10 @@ import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import {
   parseSocialLinksJson,
   serializeSocialLinks,
-  type SocialLink,
 } from '@/lib/social/socialLinks';
 import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
 import { normalizePhone } from '@/lib/utils/pii';
-import { flexiblePrecision, parseFlexibleDate, toFlexibleText } from '@/lib/utils/dates';
+import { flexiblePrecision, parseFlexibleDate, toDateText, toFlexibleText } from '@/lib/utils/dates';
 import { fz, fzText } from '@/lib/design/tokens';
 import PersonForm, { type PersonFormValues } from '@/components/person/PersonForm';
 import { fzAlert } from '@/lib/utils/confirm';
@@ -49,7 +48,7 @@ function mapPersonToForm(person: PersonRecord): Partial<PersonFormValues> {
     dateOfBirth: person.dateOfBirth
       ? toFlexibleText(new Date(person.dateOfBirth), person.dateOfBirthPrecision)
       : '',
-    metDate: person.metDate ? new Date(person.metDate).toISOString().split('T')[0] : '',
+    metDate: person.metDate ? toDateText(new Date(person.metDate)) : '',
     metLocation: person.metLocation || '',
     homeLocation: person.homeLocation || '',
     phone: person.phone || '',
@@ -176,8 +175,8 @@ export default function EditPersonScreen() {
         name: v.name.trim(),
         nickname: v.nickname.trim() || null,
         relationshipType: v.relationshipType as any,
-        dateOfBirth: parseFlexibleDate(v.dateOfBirth) || undefined,
-        dateOfBirthPrecision: flexiblePrecision(v.dateOfBirth) ?? undefined,
+        dateOfBirth: parseFlexibleDate(v.dateOfBirth) ?? null,
+        dateOfBirthPrecision: flexiblePrecision(v.dateOfBirth) ?? null,
         species: v.species.trim() || null,
         metDate: parseFlexibleDate(v.metDate) || null,
         metLocation: v.metLocation.trim() || null,

@@ -21,16 +21,8 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { ChainLogo } from '@/components/ChainLogo';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
-
-function getDaysUntilBirthday(dateOfBirth: Date | null | undefined): number | null {
-  if (!dateOfBirth) return null;
-  const today = new Date();
-  const dob = new Date(dateOfBirth);
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-  if (nextBirthday < todayStart) nextBirthday.setFullYear(today.getFullYear() + 1);
-  return Math.round((nextBirthday.getTime() - todayStart.getTime()) / 86400000);
-}
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { getDaysUntilBirthday, hasExactBirthday } from '@/lib/notifications/birthday-reminders';
 
 export default function PeopleListScreen() {
   const { t } = useTranslation();
@@ -304,22 +296,8 @@ export default function PeopleListScreen() {
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24 }]}>
             {t('people.noPeopleDesc')}
           </Text>
-          <TouchableOpacity
-            style={s.primaryBtn}
-            onPress={() => router.push('/modal')}
-            activeOpacity={0.8}
-          >
-            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
-              {t('people.addPerson')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.secondaryBtn}
-            onPress={() => router.push('/import-contacts')}
-            activeOpacity={0.8}
-          >
-            <Text style={fzText.btnOutline}>{t('importContacts.menu')}</Text>
-          </TouchableOpacity>
+          <PrimaryButton label={t('people.addPerson')} onPress={() => router.push('/modal')} />
+          <PrimaryButton label={t('importContacts.menu')} onPress={() => router.push('/import-contacts')} variant="outline" style={{ marginTop: 12 }} />
         </View>
       )}
       {filteredPeople.length === 0 && searchQuery && (
@@ -362,12 +340,12 @@ export default function PeopleListScreen() {
                   <View style={s.nameRow}>
                     <Text style={fzText.name} numberOfLines={1}>{item.name}</Text>
                     {(() => {
-                      const exact = !item.dateOfBirthPrecision || item.dateOfBirthPrecision === 'day';
-                      const days = exact ? getDaysUntilBirthday(item.dateOfBirth) : null;
+                      const days =
+                        item.dateOfBirth && hasExactBirthday(item) ? getDaysUntilBirthday(item.dateOfBirth) : null;
                       if (days === null || days > 7) return null;
                       return (
                         <View style={s.bday}>
-                          <Text style={s.bdayText}>🎂 {days === 0 ? 'Today!' : `${days}d`}</Text>
+                          <Text style={s.bdayText}>🎂 {days === 0 ? t('people.bdayToday') : t('people.bdayInDays', { count: days })}</Text>
                         </View>
                       );
                     })()}
@@ -413,15 +391,6 @@ const s = StyleSheet.create({
   chipsRow: { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md },
   chipsContent: { gap: 8, paddingRight: fz.s.edge },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  primaryBtn: {
-    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
-    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
-  },
-  secondaryBtn: {
-    height: 50, borderRadius: fz.rButton, paddingHorizontal: 28,
-    justifyContent: 'center', alignItems: 'center', marginTop: 12,
-    borderWidth: 1.5, borderColor: fz.ink,
-  },
   categoryHeader: { paddingHorizontal: fz.s.edge, paddingTop: 18, paddingBottom: 6 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -429,6 +398,6 @@ const s = StyleSheet.create({
   },
   rowBody: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
-  bday: { backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
-  bdayText: { fontSize: 11, fontWeight: '600', color: '#E65100', fontFamily: fz.font },
+  bday: { backgroundColor: fz.warnBg, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  bdayText: { fontSize: 11, fontWeight: '600', color: fz.warn, fontFamily: fz.font },
 });

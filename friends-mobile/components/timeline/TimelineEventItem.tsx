@@ -76,10 +76,6 @@ export default function TimelineEventItem({
   const currentYear = new Date(item.eventDate!).getFullYear();
   const previousYear =
     index > 0 ? new Date(filteredEvents[index - 1].eventDate!).getFullYear() : null;
-  const nextYear =
-    index < filteredEvents.length - 1
-      ? new Date(filteredEvents[index + 1].eventDate!).getFullYear()
-      : null;
   const showYearHeader = index === 0 || currentYear !== previousYear;
   const isLast = index >= filteredEvents.length - 1;
   const isLatest = index === 0; // list is sorted desc — index 0 is most recent

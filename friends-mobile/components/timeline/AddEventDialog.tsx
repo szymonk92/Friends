@@ -63,7 +63,7 @@ export default function AddEventDialog({
           style={styles.saveBtn}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={fz.onInk} />
           ) : (
             <Text style={fzText.btn}>{editingEvent ? t('timeline.save') : t('timeline.add')}</Text>
           )}

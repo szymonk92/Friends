@@ -42,7 +42,6 @@ export default function MentionTextInput({
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState<Person[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [currentMentionQuery, setCurrentMentionQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const [mentions, setMentions] = useState<Mention[]>([]);
 
@@ -89,7 +88,6 @@ export default function MentionTextInput({
       }
 
       // We're in a mention context
-      setCurrentMentionQuery(textAfterAt);
       setShowSuggestions(true);
       searchPeople(textAfterAt);
     };

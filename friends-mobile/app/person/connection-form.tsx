@@ -34,7 +34,6 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
 import { PillGroup } from '@/components/PillGroup';
 import { useFzAlert } from '@/components/FzDialog';
-import { LineIcon } from '@/components/LineIcon';
 import { FormSection, FormInput, FormScreen } from '@/components/FormKit';
 import { PersonRow } from '@/components/PersonRow';
 import { ActionSheet } from '@/components/ActionSheet';

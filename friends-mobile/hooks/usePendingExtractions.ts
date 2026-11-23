@@ -1,8 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { pendingExtractions, relations } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { pendingExtractions, people, relations, stories } from '@/lib/db/schema';
+import { eq, and, inArray, isNull, or } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { ALLOWED_RELATION_TYPES } from '@/lib/constants/relations';
+
+/** Pending rows whose person and story still exist (soft deletes don't cascade). */
+const livePending = (userId: string) =>
+  and(
+    eq(pendingExtractions.userId, userId),
+    eq(pendingExtractions.reviewStatus, 'pending'),
+    inArray(pendingExtractions.subjectId, db.select({ id: people.id }).from(people).where(activePeople(userId))),
+    or(
+      isNull(pendingExtractions.storyId),
+      inArray(pendingExtractions.storyId, db.select({ id: stories.id }).from(stories).where(isNull(stories.deletedAt)))
+    )
+  );
 
 /**
  * Hook to get all pending extractions for the current user
@@ -16,7 +29,7 @@ export function usePendingExtractions() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
+livePending(userId)
         )
         .orderBy(pendingExtractions.confidence); // Low confidence first (needs most attention)
 
@@ -65,7 +78,8 @@ export function useApprovePendingExtraction() {
             eq(relations.subjectId, extraction.subjectId),
             eq(relations.relationType, extraction.relationType as any),
             eq(relations.objectLabel, extraction.objectLabel),
-            eq(relations.userId, extraction.userId)
+            eq(relations.userId, extraction.userId),
+            isNull(relations.deletedAt)
           )
         )
         .limit(1);
@@ -78,8 +92,10 @@ export function useApprovePendingExtraction() {
         );
       }
 
-      // Create the relation
-      const [newRelation] = (await db
+      // Same fact already on file: just close the review item, don't insert a duplicate.
+      const [newRelation] = existingRelations.length
+        ? existingRelations
+        : ((await db
         .insert(relations)
         .values({
           userId: extraction.userId,
@@ -95,7 +111,7 @@ export function useApprovePendingExtraction() {
           status: extraction.status as any,
           source: 'ai_extraction',
         })
-        .returning()) as any[];
+        .returning()) as any[]);
 
       // Mark the extraction as approved
       await db
@@ -223,7 +239,7 @@ export function usePendingExtractionsCount() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
+livePending(userId)
         );
 
       return results.length;

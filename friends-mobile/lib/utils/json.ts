@@ -21,7 +21,9 @@ export function parseJsonArray<T = string>(json: string | null | undefined): T[]
 export function parseJsonObject<T extends object>(json: string | null | undefined, fallback: T): T {
   if (!json) return fallback;
   try {
-    const parsed = JSON.parse(json);
+    let parsed = JSON.parse(json);
+    // Older pending extractions were stringified twice ('"{\\"precision\\":...}"').
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? { ...fallback, ...(parsed as Partial<T>) }
       : fallback;

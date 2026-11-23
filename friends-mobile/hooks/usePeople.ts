@@ -1,7 +1,9 @@
+import * as Notifications from 'expo-notifications';
+import { scheduleBirthdayReminders } from '@/lib/notifications/birthday-reminders';
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, files, events, type NewPerson, type Person } from '@/lib/db/schema';
+import { people, files, events, reminders, connections, contactEvents, pendingExtractions, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { activePeople } from '@/lib/db/filters';
 import { randomUUID } from 'expo-crypto';
 import { peopleLogger, logPerformance } from '@/lib/logger';
@@ -19,7 +21,7 @@ export type PersonWithPhoto = Person & {
 /**
  * Check if a person name already exists (case-insensitive)
  */
-async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
+export async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = name.trim().toLowerCase();
   const conditions = [
     activePeople(userId),
@@ -29,6 +31,11 @@ async function checkNameExists(userId: string, name: string, excludeId?: string)
   const existingPeople = await db.select().from(people).where(and(...conditions)).limit(1);
   return existingPeople.length > 0;
 }
+
+const BIRTHDAY_FIELDS = ['dateOfBirth', 'dateOfBirthPrecision', 'birthdayReminder', 'name', 'deletedAt'] as const;
+
+const rescheduleBirthdays = () =>
+  scheduleBirthdayReminders().catch((e) => peopleLogger.warn('Birthday reschedule failed', { error: String(e) }));
 
 /**
  * Hook to fetch all people
@@ -81,7 +88,7 @@ export function usePeople(filter?: {
           const photosResults = await db
             .select({ id: files.id, filePath: files.filePath })
             .from(files)
-            .where(inArray(files.id, photoIds));
+            .where(and(inArray(files.id, photoIds), isNull(files.deletedAt)));
 
           for (const photo of photosResults) {
             photoMap[photo.id] = resolvePhotoUri(photo.filePath);
@@ -115,7 +122,11 @@ export function usePerson(personId: string) {
   return useQuery({
     queryKey: ['people', personId],
     queryFn: async () => {
-      const result = await db.select().from(people).where(eq(people.id, personId)).limit(1);
+      const result = await db
+        .select()
+        .from(people)
+        .where(and(eq(people.id, personId), isNull(people.deletedAt)))
+        .limit(1);
       return result[0] || null;
     },
     enabled: !!personId,
@@ -164,8 +175,9 @@ export function useCreatePerson() {
       perf.end(true, { personId: created?.id, name: data.name });
       return created;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      if (variables.dateOfBirth) rescheduleBirthdays();
     },
   });
 }
@@ -202,6 +214,8 @@ export function useUpdatePerson() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['people', variables.id] });
+      // Yearly birthday notifications are pre-scheduled; refresh them whenever an input changes.
+      if (BIRTHDAY_FIELDS.some((k) => k in variables)) rescheduleBirthdays();
     },
   });
 }
@@ -215,12 +229,42 @@ export function useDeletePerson() {
   return useMutation({
     mutationFn: async (id: string) => {
       peopleLogger.info('Deleting person (soft)', { personId: id });
-      await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, id));
+      const now = new Date();
+      // Soft delete never triggers the FK cascades, so retire dependent rows explicitly.
+      const personReminders = await db
+        .select({ notificationId: reminders.notificationId })
+        .from(reminders)
+        .where(and(eq(reminders.personId, id), isNull(reminders.deletedAt)));
+      for (const r of personReminders) {
+        if (r.notificationId) {
+          await Notifications.cancelScheduledNotificationAsync(r.notificationId).catch(() => {});
+        }
+      }
+      await db
+        .update(reminders)
+        .set({ deletedAt: now, status: 'cancelled' })
+        .where(and(eq(reminders.personId, id), isNull(reminders.deletedAt)));
+      await db
+        .update(connections)
+        .set({ deletedAt: now })
+        .where(and(or(eq(connections.person1Id, id), eq(connections.person2Id, id)), isNull(connections.deletedAt)));
+      await db
+        .update(contactEvents)
+        .set({ deletedAt: now })
+        .where(and(eq(contactEvents.personId, id), isNull(contactEvents.deletedAt)));
+      await db
+        .update(pendingExtractions)
+        .set({ reviewStatus: 'rejected', reviewedAt: now })
+        .where(and(eq(pendingExtractions.subjectId, id), eq(pendingExtractions.reviewStatus, 'pending')));
+      await db.update(people).set({ deletedAt: now }).where(eq(people.id, id));
       peopleLogger.info('Person deleted', { personId: id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
-      queryClient.invalidateQueries({ queryKey: ['relations'] });
+      for (const key of ['relations', 'connections', 'contactEvents', 'reminders', 'pending-extractions']) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
+      rescheduleBirthdays();
     },
   });
 }

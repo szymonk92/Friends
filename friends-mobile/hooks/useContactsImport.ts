@@ -1,3 +1,4 @@
+import { scheduleBirthdayReminders } from '@/lib/notifications/birthday-reminders';
 import * as Contacts from 'expo-contacts';
 import { Platform } from 'react-native';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -205,7 +206,7 @@ export function useImportContacts() {
           const photoId = c.imageUri
             ? (await saveProfileImageFile({ sourceUri: c.imageUri, personId: id })).id
             : null;
-          const [created] = (await db
+          await db
             .insert(people)
             .values({
               id,
@@ -221,8 +222,7 @@ export function useImportContacts() {
               status: 'active',
               importanceToUser: 'unknown',
               photoId,
-            })
-            .returning()) as Person[];
+            });
 
           result.imported++;
         } catch (e) {
@@ -233,6 +233,8 @@ export function useImportContacts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      // Imported contacts may carry birthdays.
+      scheduleBirthdayReminders().catch(() => {});
     },
   });
 }

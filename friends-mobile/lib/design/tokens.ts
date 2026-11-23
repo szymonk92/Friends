@@ -23,6 +23,15 @@ export const fz = {
   outline: '#DAD4C8', // outlined chip border
   outlineDim: '#CFC9BD',
   line: '#C2BBAF', // graph edges
+  // Content on ink fills + status (the only non-neutral colours)
+  onInk: '#FFFFFF',
+  textChipOutline: '#6B655B',
+  danger: '#D32F2F',
+  dangerBg: '#FFEBEE',
+  warn: '#E65100',
+  warnBg: '#FFF3E0',
+  success: '#2E7D32',
+  successBg: '#E8F5E9',
   lineDim: '#DED8CC',
   // Radii
   rPill: 999,
@@ -57,9 +66,9 @@ export const fzText = {
   time: { fontFamily: fz.font, fontWeight: '500', fontSize: 12, color: fz.textDim },
   label: { fontFamily: fz.font, fontWeight: '600', fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase', color: fz.textLabel },
   chip: { fontFamily: fz.font, fontWeight: '500', fontSize: 13, color: fz.textStrong2 },
-  chipOn: { fontFamily: fz.font, fontWeight: '500', fontSize: 13, color: '#FFFFFF' },
+  chipOn: { fontFamily: fz.font, fontWeight: '500', fontSize: 13, color: fz.onInk },
   chipSolid: { fontFamily: fz.font, fontWeight: '500', fontSize: 13, color: fz.ink },
   // Full-width action buttons (Save, Add note, ...) — design uses 15-15.5px 600.
-  btn: { fontFamily: fz.font, fontWeight: '600', fontSize: 15, color: '#FFFFFF' },
+  btn: { fontFamily: fz.font, fontWeight: '600', fontSize: 15, color: fz.onInk },
   btnOutline: { fontFamily: fz.font, fontWeight: '600', fontSize: 15, color: fz.ink },
 } as const;

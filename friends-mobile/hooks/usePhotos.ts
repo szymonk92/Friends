@@ -173,6 +173,8 @@ export function useDeletePhoto() {
 
         // Soft delete in database
         await db.update(files).set({ deletedAt: new Date() }).where(eq(files.id, photoId));
+        // If it was someone's profile photo, drop the pointer so the avatar falls back to initials.
+        await db.update(people).set({ photoId: null }).where(eq(people.photoId, photoId));
 
         return photo[0];
       }
@@ -181,6 +183,7 @@ export function useDeletePhoto() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ['people'] });
       if (data?.personId) {
         queryClient.invalidateQueries({ queryKey: ['photos', 'person', data.personId] });
       }

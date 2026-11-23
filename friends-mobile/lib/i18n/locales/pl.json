@@ -65,7 +65,9 @@
     "keepClose_one": "{{count}} osoba, którą trzymasz blisko",
     "keepClose_few": "{{count}} osoby, które trzymasz blisko",
     "keepClose_many": "{{count}} osób, które trzymasz blisko",
-    "keepClose_other": "{{count}} osób, które trzymasz blisko"
+    "keepClose_other": "{{count}} osób, które trzymasz blisko",
+    "bdayToday": "Dziś!",
+    "bdayInDays": "{{count}} d."
   },
   "network": {
     "title": "Sieć",
@@ -95,7 +97,15 @@
     "connectionCount_other": "{{count}} połączeń",
     "noDetails": "Brak szczegółowych informacji.",
     "connectionCount_few": "{{count}} połączenia",
-    "connectionCount_many": "{{count}} połączeń"
+    "connectionCount_many": "{{count}} połączeń",
+    "suggestions": {
+      "title": "Mogą się znać",
+      "connect": "Połącz",
+      "sharedStories_one": "{{count}} wspólna historia",
+      "sharedStories_few": "{{count}} wspólne historie",
+      "sharedStories_many": "{{count}} wspólnych historii",
+      "sharedStories_other": "{{count}} wspólnej historii"
+    }
   },
   "person": {
     "addTitle": "Dodaj osobę",
@@ -1546,5 +1556,9 @@
     "count_few": "{{count}} osoby",
     "count_many": "{{count}} osób",
     "count_other": "{{count}} osób"
+  },
+  "reminders": {
+    "reachOutTitle": "Odezwij się do: {{name}}",
+    "reachOutMessage": "Dawno nie kontaktowałeś się z: {{name}}. Może warto się odezwać?"
   }
 }

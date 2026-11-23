@@ -25,15 +25,15 @@ export function Pill({
 }) {
   const v: Variant = selected ? 'solid' : variant;
   const s = styles[v];
-  const text = v === 'solid' ? fzText.chipOn : v === 'outline' ? { ...fzText.chip, color: '#6B655B' } : fzText.chip;
+  const text = v === 'solid' ? fzText.chipOn : v === 'outline' ? { ...fzText.chip, color: fz.textChipOutline } : fzText.chip;
 
   const inner = (
     <View style={[styles.base, s, style]}>
-      {icon && <LineIcon name={icon} size={13} color={v === 'solid' ? '#fff' : fz.ink} />}
+      {icon && <LineIcon name={icon} size={13} color={v === 'solid' ? fz.onInk : fz.ink} />}
       <Text style={text}>{label}</Text>
       {onClose && (
         <TouchableOpacity onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
-          <LineIcon name="close" size={12} color={v === 'solid' ? '#fff' : fz.textMute} />
+          <LineIcon name="close" size={12} color={v === 'solid' ? fz.onInk : fz.textMute} />
         </TouchableOpacity>
       )}
     </View>

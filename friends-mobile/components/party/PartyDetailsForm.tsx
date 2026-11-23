@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { fz } from '@/lib/design/tokens';
 import { FormSection, FormInput } from '@/components/FormKit';
 import { PillGroup } from '@/components/PillGroup';
