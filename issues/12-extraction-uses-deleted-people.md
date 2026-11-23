@@ -1,6 +1,6 @@
 # 12 — AI extraction & review queue include deleted people/stories
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P1 · **Effort:** S
 

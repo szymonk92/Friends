@@ -1,3 +1,4 @@
+import { activePeople } from '@/lib/db/filters';
 import { useMutation } from '@tanstack/react-query';
 import { extractRelationsFromStorySession, shouldAutoAccept } from '@/lib/ai/extraction';
 import { useCreatePerson, useUpdatePerson } from './usePeople';
@@ -58,7 +59,7 @@ export function useExtractStory() {
       const existingPeople = await db
         .select({ id: people.id, name: people.name })
         .from(people)
-        .where(eq(people.userId, userId));
+        .where(activePeople(userId));
 
       const explicitlyTaggedPeople = explicitlyTaggedPersonIds
         ? existingPeople.filter((p) => explicitlyTaggedPersonIds.includes(p.id))

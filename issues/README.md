@@ -13,7 +13,7 @@
 | [09](09-dates-utc-off-by-one.md) | Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff | done | none | P1 |
 | [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | done | none | P1 |
 | [11](11-birthday-notifications-not-rescheduled.md) | Birthday notifications not rescheduled on edit/delete | done | 10 | P1 |
-| [12](12-extraction-uses-deleted-people.md) | AI extraction & review queue include deleted people/stories | todo | none | P1 |
+| [12](12-extraction-uses-deleted-people.md) | AI extraction & review queue include deleted people/stories | done | none | P1 |
 | [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | todo | none | P1 (security) |
 | [14](14-deleted-person-leftovers.md) | Deleting a person leaves connections, events, reminders visible | todo | none | P2 |
 | [15](15-pending-metadata-double-json.md) | Pending extraction metadata JSON-encoded twice | todo | none | P2 |

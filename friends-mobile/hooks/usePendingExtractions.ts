@@ -1,8 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, getCurrentUserId } from '@/lib/db';
-import { pendingExtractions, relations } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { pendingExtractions, people, relations, stories } from '@/lib/db/schema';
+import { eq, and, inArray, isNull, or } from 'drizzle-orm';
+import { activePeople } from '@/lib/db/filters';
 import { ALLOWED_RELATION_TYPES } from '@/lib/constants/relations';
+
+/** Pending rows whose person and story still exist (soft deletes don't cascade). */
+const livePending = (userId: string) =>
+  and(
+    eq(pendingExtractions.userId, userId),
+    eq(pendingExtractions.reviewStatus, 'pending'),
+    inArray(pendingExtractions.subjectId, db.select({ id: people.id }).from(people).where(activePeople(userId))),
+    or(
+      isNull(pendingExtractions.storyId),
+      inArray(pendingExtractions.storyId, db.select({ id: stories.id }).from(stories).where(isNull(stories.deletedAt)))
+    )
+  );
 
 /**
  * Hook to get all pending extractions for the current user
@@ -16,7 +29,7 @@ export function usePendingExtractions() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
+livePending(userId)
         )
         .orderBy(pendingExtractions.confidence); // Low confidence first (needs most attention)
 
@@ -223,7 +236,7 @@ export function usePendingExtractionsCount() {
         .select()
         .from(pendingExtractions)
         .where(
-          and(eq(pendingExtractions.userId, userId), eq(pendingExtractions.reviewStatus, 'pending'))
+livePending(userId)
         );
 
       return results.length;
