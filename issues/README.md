@@ -2,12 +2,12 @@
 
 | # | Title | Status | Depends on | Priority |
 |---|---|---|---|---|
-| [01](01-graph-layout-and-readability.md) | Network graph: layout, readability, who-knows-whom | in-progress | none | P1 |
-| [02](02-graph-pan-vs-scroll.md) | Graph: one-finger pan fights the page ScrollView | blocked | 01 | P2 |
-| [03](03-graph-suggested-connections.md) | Graph: suggest connections from shared stories | in-progress | 01 | P3 |
+| [01](01-graph-layout-and-readability.md) | Network graph: layout, readability, who-knows-whom | done | none | P1 |
+| [02](02-graph-pan-vs-scroll.md) | Graph: one-finger pan fights the page ScrollView | done | 01 | P2 |
+| [03](03-graph-suggested-connections.md) | Graph: suggest connections from shared stories | done | 01 | P3 |
 | [04](04-design-tokens-status-colors.md) | Design tokens: onInk, danger, warn; remove remaining hex literals | done | none | P2 |
-| [05](05-fzdialog-migration.md) | Migrate Paper `Dialog` to `FzDialog` | in-progress | none | P2 |
-| [06](06-shared-buttons-cards-appbar.md) | Shared PrimaryButton / FzCard / AppBar / EmptyState | in-progress | 04 | P2 |
+| [05](05-fzdialog-migration.md) | Migrate Paper `Dialog` to `FzDialog` | done | none | P2 |
+| [06](06-shared-buttons-cards-appbar.md) | Shared PrimaryButton / FzCard / AppBar / EmptyState | done | 04 | P2 |
 | [07](07-redesign-old-screens.md) | Redesign remaining old-style screens | done | 04, 05, 06 | P2 |
 | [08](08-extraction-wrong-query-key.md) | AI extraction invalidates wrong query key → stale conflicts, duplicate relations | done | none | P1 |
 | [09](09-dates-utc-off-by-one.md) | Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff | done | none | P1 |

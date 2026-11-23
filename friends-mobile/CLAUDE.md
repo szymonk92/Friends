@@ -1,4 +1,6 @@
-# Project: FriendZ Mobile
+# Project: Inner Circle (FriendZ Mobile)
+
+Product name is **Inner Circle**; repo/folder/bundle id (`friends-mobile`, `com.friendz.app`) keep the old FriendZ name.
 
 AI-powered social memory manager — tracks people, relationships, stories, and preferences with local-first SQLite storage and AI extraction.
 
@@ -8,16 +10,16 @@ AI-powered social memory manager — tracks people, relationships, stories, and 
 
 | Layer | Technology |
 |-------|-----------|
-| Platform | Expo SDK 54 + React Native 0.81 |
+| Platform | Expo SDK 58 + React Native 0.88 (React 19.3, Hermes) |
 | Language | TypeScript 5.9 (strict) |
-| UI | React Native Paper 5 (Material Design 3) |
-| Navigation | Expo Router 6 (file-based) |
-| Database | expo-sqlite 16 + Drizzle ORM 0.44 |
+| UI | `fz` design system (`lib/design/tokens.ts`, `components/{PrimaryButton,Pill,AppBar,FormKit}`) on top of React Native Paper 5 (themed to fz) |
+| Navigation | Expo Router 58 (file-based) |
+| Database | expo-sqlite 58 + Drizzle ORM 0.45 |
 | Server state | TanStack Query 5 |
 | Client state | Zustand 5 |
 | Forms | React Hook Form 7 + Zod 3 |
-| AI | Anthropic Claude SDK + Google Gemini SDK |
-| Testing | Jest 30 + React Native Testing Library 13 |
+| AI | Anthropic Claude SDK 1.x (no `temperature`) + Google Gemini SDK |
+| Testing | Jest 30 + jest-expo (no RNTL) |
 | i18n | i18next 25 + react-i18next 16 |
 
 ---
@@ -99,6 +101,7 @@ Use `@friendz` for all FriendZ-specific work — it has full codebase context.
 
 ### Security
 - API keys and secrets via `expo-secure-store` only — never in source
+- Secrets tab: XChaCha20-Poly1305 (`lib/crypto/aead.ts`); password mode = random data key wrapped with Argon2id (`lib/crypto/password-kdf.ts`). Unlock once per visit (`unlockSession`), key lives in memory only, locked on leave/background. Old XOR format intentionally unsupported
 - No sensitive data in logs or error messages
 
 ### i18n

@@ -24,6 +24,7 @@ Improve Inner Circle (repo/dir still `Friends`/`friends-mobile`, bundle `com.fri
 - Native: ported from a fresh `expo prebuild` in a temp dir: Gradle 9.4.1, `android.builtInKotlin=false`/`newDsl=false`, `proguard-android-optimize.txt`, `sentry.gradle.kts`. R8 (`enableMinifyInReleaseBuilds`) deliberately NOT enabled.
 - Skia 2.14: `Skia.Path.Circle()` instead of `Make().addCircle`. RN 0.88: `ViewToken` not exported; FlatList header/empty must be `undefined`, not `null`.
 - Still on old majors, separate task: async-storage 3, @anthropic-ai/sdk 1.x, drizzle 0.45.
+- Docs refreshed: `friends-mobile/CLAUDE.md` stack (SDK 58, Argon2/session secrets), `docs/BUILD_APK.md` local build steps, issues index.
 - `ios/` is gitignored, local only; app name is Inner Circle (workspace `InnerCircle`).
 
 ## Key paths
