@@ -60,7 +60,8 @@ adb install -r path/to/build.apk
 The Android signing keystore is stored remotely on EAS servers (`szymonk92` account).  
 To view/manage: `npx eas credentials`
 
-## Current build (first)
+## Local builds (SDK 58)
 
-- Build ID: `6693ff0f-2a17-493e-85b1-893a04077669`
-- Dashboard: https://expo.dev/accounts/szymonk92/projects/friends/builds/6693ff0f-2a17-493e-85b1-893a04077669
+**Android** (from `android/`): `export $(grep '^SENTRY_AUTH_TOKEN=' ../.env.local)` then `./gradlew assembleRelease`. Check Gradle's own exit code, not a piped `tail`. The phone copy is debug-signed: `apksigner sign --ks android/app/debug.keystore --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android --out signed.apk app-release.apk`, then `adb install -r signed.apk` (never uninstall). If the Semgrep malware-firewall proxy breaks JDK 17 TLS, point `JAVA_TOOL_OPTIONS` at a truststore copy that includes `~/.semgrep/mfw/ca.pem`. R8 minify is off on purpose. Native `android/` is checked in and not synced with `package.json`; compare with `expo prebuild` in a temp dir after SDK bumps.
+
+**iPhone** (free personal team): `ios/` is gitignored; regenerate with `npx expo prebuild --platform ios --no-install` + `pod install`. From `ios/`: `SENTRY_DISABLE_AUTO_UPLOAD=true xcodebuild -workspace InnerCircle.xcworkspace -scheme InnerCircle -configuration Release -destination 'id=<UDID>' -derivedDataPath build/dd -allowProvisioningUpdates DEVELOPMENT_TEAM=<team> CODE_SIGN_STYLE=Automatic CODE_SIGN_ENTITLEMENTS=<empty-dict .entitlements> PRODUCT_BUNDLE_IDENTIFIER=com.szymonk92.friendz build`, then `xcrun devicectl device install app --device <UDID> build/dd/Build/Products/Release-iphoneos/InnerCircle.app`. First launch needs the developer profile trusted on the phone; profile expires after 7 days.
