@@ -4,7 +4,7 @@ import { activePeople } from '@/lib/db/filters';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { and, desc, eq, getTableColumns, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
-import { relationsLogger, logPerformance } from '@/lib/logger';
+import { relationsLogger } from '@/lib/logger';
 import { findDirectContradiction } from '@/lib/constants/relations';
 
 /**

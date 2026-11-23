@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Text, Button, Portal, TextInput } from 'react-native-paper';
+import { Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';

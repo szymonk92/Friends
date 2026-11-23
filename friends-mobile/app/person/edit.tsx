@@ -23,7 +23,6 @@ import type { AppliedBrainDump } from '@/components/person/BrainDumpSection';
 import {
   parseSocialLinksJson,
   serializeSocialLinks,
-  type SocialLink,
 } from '@/lib/social/socialLinks';
 import { parseLanguagesJson, serializeLanguages } from '@/lib/utils/languages';
 import { normalizePhone } from '@/lib/utils/pii';

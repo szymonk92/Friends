@@ -164,7 +164,7 @@ export default function PartyPlannerScreen() {
         dislikes,
       };
     });
-  }, [selectedGuests, primaryPeople, allRelations]);
+  }, [selectedGuests, primaryPeople, allRelations, t]);
 
   // Calculate food suggestions (common likes, avoid common dislikes)
   const foodSuggestions = useMemo(() => {
@@ -234,7 +234,7 @@ export default function PartyPlannerScreen() {
     }
 
     return pairs.sort((a, b) => b.score - a.score).slice(0, 5);
-  }, [guestData]);
+  }, [guestData, t]);
 
   const toggleGuest = (personId: string) => {
     setSelectedGuests((prev) =>

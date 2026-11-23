@@ -1,6 +1,5 @@
-import CenteredContainer from '@/components/CenteredContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, StatusBar, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Text } from 'react-native-paper';

@@ -56,6 +56,7 @@ export default function SettingsScreen() {
     loadSelectedModel();
     loadFontFamily();
     loadMaxPhotosPerPerson();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: store loaders are stable
   }, []);
 
   const handleSaveApiKey = async () => {

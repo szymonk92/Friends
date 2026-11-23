@@ -1,5 +1,5 @@
-import { View, StyleSheet } from 'react-native';
-import { Card, Text, List, Divider, Menu, Button } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
+import { Card, Text, List, Divider, Menu } from 'react-native-paper';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

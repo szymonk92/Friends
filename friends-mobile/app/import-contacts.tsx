@@ -18,7 +18,6 @@ import {
   useImportContacts,
   type ContactRow,
   type ImportDecision,
-  type MatchInfo,
 } from '@/hooks/useContactsImport';
 import { fz, fzText } from '@/lib/design/tokens';
 import { HeaderBack } from '@/components/HeaderBack';
@@ -51,6 +50,7 @@ export default function ImportContactsScreen() {
 
   useEffect(() => {
     void init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   async function init() {

@@ -153,6 +153,7 @@ function RootLayoutNav({ needsOnboarding }: { needsOnboarding: boolean }) {
     loadApiKey();
     loadGeminiApiKey();
     loadSelectedModel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: store loaders are stable
   }, []);
 
   // Child effects run first, so the Stack below is mounted by now.

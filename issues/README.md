@@ -22,6 +22,6 @@
 | [18](18-deleted-profile-photo.md) | Deleting current profile photo leaves a broken avatar | done | none | P2 |
 | [19](19-home-birthday-badge.md) | Home birthday badge: duplicated logic, leap-day bug, untranslated | done | none | P2 |
 | [20](20-ambiguous-new-person-fails.md) | Choosing NEW for an ambiguous name can abort extraction | done | none | P2 |
-| [21](21-lint-ignores-ui.md) | ESLint ignores app/, components/, hooks/, store/ | todo | none | P2 |
+| [21](21-lint-ignores-ui.md) | ESLint ignores app/, components/, hooks/, store/ | done | none | P2 |
 | [22](22-i18n-reminders-and-prod-logging.md) | Reminder text hardcoded English; debug logging in production | done | none | P3 |
 | [23](23-small-ux-bugs.md) | Small UX bugs: search story result, timeline multi-person edit | done | none | P3 |

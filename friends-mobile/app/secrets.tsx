@@ -103,6 +103,7 @@ export default function SecretsScreen() {
         clearInterval(countdownTimerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- timers must not restart on language change
   }, [showViewDialog, viewedSecret]);
 
   const handleSetup = async () => {

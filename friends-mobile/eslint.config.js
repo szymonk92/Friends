@@ -1,5 +1,6 @@
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const reactHooks = require('eslint-plugin-react-hooks');
 
 module.exports = [
   {
@@ -16,10 +17,6 @@ module.exports = [
       '**/*.config.ts', // Ignore TypeScript config files
       '**/jest.setup.js',
       '**/__tests__/**', // Ignore all test directories
-      'app/**', // Ignore app directory (UI code, less critical for CI)
-      'components/**', // Ignore components (UI code)
-      'hooks/**', // Ignore hooks (UI code)
-      'store/**', // Ignore store (UI code)
     ],
   },
   {
@@ -46,6 +43,25 @@ module.exports = [
           varsIgnorePattern: '^_',
           ignoreRestSiblings: true,
         },
+      ],
+    },
+  },
+  {
+    // UI code: hooks correctness + unused code. Looser than lib (no-console off, `_` ignore).
+    files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'hooks/**/*.{ts,tsx}', 'store/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parser: tsParser,
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    plugins: { '@typescript-eslint': tsPlugin, 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true, caughtErrors: 'none' },
       ],
     },
   },

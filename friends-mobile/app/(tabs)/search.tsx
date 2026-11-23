@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 import {
   View,
@@ -15,7 +15,6 @@ import { Text } from 'react-native-paper';
 import { useMePerson, usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useRelations } from '@/hooks/useRelations';
 import { useStories } from '@/hooks/useStories';
-import { useConnections } from '@/hooks/useConnections';
 import { formatRelativeTime } from '@/lib/utils/format';
 import { Avatar } from '@/components/Avatar';
 import { parseJsonArray } from '@/lib/utils/json';
@@ -56,15 +55,17 @@ export default function SearchScreen() {
   const { data: me } = useMePerson();
   const { data: relations = [], isLoading: loadingRelations } = useRelations();
   const { data: stories = [], isLoading: loadingStories } = useStories();
-  const { data: connections = [], isLoading: loadingConnections } = useConnections();
 
-  const isLoading = loadingPeople || loadingRelations || loadingStories || loadingConnections;
+  const isLoading = loadingPeople || loadingRelations || loadingStories;
 
-  const getPersonName = (personId: string) => {
-    // usePeople leaves out self, so the user's own relations need `me`.
-    const person = people.find((p) => p.id === personId) ?? (me?.id === personId ? me : null);
-    return person?.name || t('timeline.unknown');
-  };
+  const getPersonName = useCallback(
+    (personId: string) => {
+      // usePeople leaves out self, so the user's own relations need `me`.
+      const person = people.find((p) => p.id === personId) ?? (me?.id === personId ? me : null);
+      return person?.name || t('timeline.unknown');
+    },
+    [people, me, t]
+  );
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) return [];
@@ -142,7 +143,7 @@ export default function SearchScreen() {
     }
 
     return results;
-  }, [searchQuery, category, people, relations, stories]);
+  }, [searchQuery, category, people, t, relations, getPersonName, stories]);
 
   const preferenceSummary = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) return null;
@@ -172,7 +173,7 @@ export default function SearchScreen() {
         intensity: r.intensity,
       })),
     };
-  }, [searchQuery, relations, people]);
+  }, [searchQuery, relations, getPersonName]);
 
   const handleResultPress = (result: SearchResult) => {
     if ((result.type === 'person' || result.type === 'pet') && result.personId) {

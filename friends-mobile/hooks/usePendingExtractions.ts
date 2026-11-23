@@ -78,7 +78,8 @@ export function useApprovePendingExtraction() {
             eq(relations.subjectId, extraction.subjectId),
             eq(relations.relationType, extraction.relationType as any),
             eq(relations.objectLabel, extraction.objectLabel),
-            eq(relations.userId, extraction.userId)
+            eq(relations.userId, extraction.userId),
+            isNull(relations.deletedAt)
           )
         )
         .limit(1);
@@ -91,8 +92,10 @@ export function useApprovePendingExtraction() {
         );
       }
 
-      // Create the relation
-      const [newRelation] = (await db
+      // Same fact already on file: just close the review item, don't insert a duplicate.
+      const [newRelation] = existingRelations.length
+        ? existingRelations
+        : ((await db
         .insert(relations)
         .values({
           userId: extraction.userId,
@@ -108,7 +111,7 @@ export function useApprovePendingExtraction() {
           status: extraction.status as any,
           source: 'ai_extraction',
         })
-        .returning()) as any[];
+        .returning()) as any[]);
 
       // Mark the extraction as approved
       await db

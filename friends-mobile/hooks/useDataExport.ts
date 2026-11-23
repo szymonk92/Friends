@@ -1,6 +1,6 @@
 import { toDateText, toFlexibleText } from '@/lib/utils/dates';
 import { db, getCurrentUserId } from '@/lib/db';
-import { people, relations, connections, stories, contactEvents, files } from '@/lib/db/schema';
+import { people, relations, connections, stories, contactEvents } from '@/lib/db/schema';
 import { buildObsidianVault } from '@/lib/export/obsidianExport';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseJsonArray } from '@/lib/utils/json';

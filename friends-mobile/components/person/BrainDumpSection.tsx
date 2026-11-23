@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
   Banner,
   Button,
   Card,
@@ -10,8 +9,7 @@ import {
   IconButton,
   Text,
   TextInput,
-  useTheme,
-} from 'react-native-paper';
+  useTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSettings, type AIModel } from '@/store/useSettings';
 import { extractPersonBrainDump, type BrainDumpResult, type BrainDumpAttribute } from '@/lib/ai/brain-dump';

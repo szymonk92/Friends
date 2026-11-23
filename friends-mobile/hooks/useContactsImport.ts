@@ -206,7 +206,7 @@ export function useImportContacts() {
           const photoId = c.imageUri
             ? (await saveProfileImageFile({ sourceUri: c.imageUri, personId: id })).id
             : null;
-          const [created] = (await db
+          await db
             .insert(people)
             .values({
               id,
@@ -222,8 +222,7 @@ export function useImportContacts() {
               status: 'active',
               importanceToUser: 'unknown',
               photoId,
-            })
-            .returning()) as Person[];
+            });
 
           result.imported++;
         } catch (e) {

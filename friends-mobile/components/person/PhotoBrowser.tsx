@@ -5,11 +5,9 @@ import {
   View,
   Modal,
   Dimensions,
-  TouchableOpacity,
   FlatList,
-  ViewToken,
-} from 'react-native';
-import { Text, IconButton, useTheme } from 'react-native-paper';
+  ViewToken } from 'react-native';
+import { Text, IconButton } from 'react-native-paper';
 import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -45,10 +43,8 @@ export default function PhotoBrowser({
   currentPhotoId,
   onClose,
   onSetAsProfile,
-  onDelete,
-}: PhotoBrowserProps) {
+  onDelete }: PhotoBrowserProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<Photo>[] }) => {
@@ -83,12 +79,10 @@ export default function PhotoBrowser({
           getItemLayout={(_, index) => ({
             length: SCREEN_WIDTH,
             offset: SCREEN_WIDTH * index,
-            index,
-          })}
+            index })}
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={{
-            itemVisiblePercentThreshold: 50,
-          }}
+            itemVisiblePercentThreshold: 50 }}
           renderItem={({ item }) => (
             <ZoomableImage uri={item.filePath} isProfile={item.id === currentPhotoId} />
           )}
@@ -184,8 +178,7 @@ function ZoomableImage({ uri }: ZoomableImageProps) {
       { translateX: translateX.value },
       { translateY: translateY.value },
       { scale: scale.value },
-    ],
-  }));
+    ] }));
 
   return (
     <View style={styles.imageContainer}>
@@ -205,8 +198,7 @@ function ZoomableImage({ uri }: ZoomableImageProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     position: 'absolute',
     top: 0,
@@ -217,12 +209,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 40,
     paddingHorizontal: 8,
-    zIndex: 10,
-  },
+    zIndex: 10 },
   counter: {
     color: fz.onInk,
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -233,24 +223,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingBottom: 40,
     paddingHorizontal: 16,
-    zIndex: 10,
-  },
+    zIndex: 10 },
   profileText: {
     color: fz.success,
-    fontWeight: '600',
-  },
+    fontWeight: '600' },
   imageContainer: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   imageWrapper: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-  },
+    height: SCREEN_HEIGHT },
   image: {
     width: '100%',
-    height: '100%',
-  },
-});
+    height: '100%' } });

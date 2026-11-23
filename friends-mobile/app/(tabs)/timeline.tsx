@@ -136,7 +136,7 @@ export default function TimelineScreen() {
           guestNames,
         };
       });
-  }, [partyEvents, people]);
+  }, [partyEvents, people, t]);
 
   // Combine and filter events
   const filteredEvents = useMemo(() => {

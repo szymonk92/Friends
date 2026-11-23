@@ -16,7 +16,6 @@ import { fz } from '@/lib/design/tokens';
 // Two chain links slide in from ±52dp, snap together with a small overshoot,
 // hold, then exit — while a click ring pulses outward at the snap moment.
 // 2.8s loop, mirrors the design keyframes fz-lockL/R-lg + fz-click.
-const CYCLE = 2800;
 
 // fz-lockL-lg: -52 → 0 (ease-in-out), +3 overshoot, settle, hold, exit to -52.
 const leftX = withSequence(

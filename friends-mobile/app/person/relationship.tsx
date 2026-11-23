@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, Pressable } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable } from 'react-native';
 import { Text, ActivityIndicator, Button } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';

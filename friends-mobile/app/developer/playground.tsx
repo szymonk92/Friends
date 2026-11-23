@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Card, SegmentedButtons, ActivityIndicator, HelperText, useTheme, Chip } from 'react-native-paper';
+import { Text, TextInput, Button, Card, SegmentedButtons, HelperText, Chip } from 'react-native-paper';
 import { router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
 import { extractRelationsFromStorySession, ExtractionResult } from '../../lib/ai/extraction';
@@ -199,8 +199,7 @@ const PRESET_STORIES: { label: string; emoji: string; text: string }[] = [
 ];
 
 export default function PlaygroundScreen() {
-    const theme = useTheme();
-    const { apiKey, geminiApiKey, ollamaApiKey, hasActiveApiKey } = useSettings();
+    const { apiKey, geminiApiKey, ollamaApiKey } = useSettings();
     const createStory = useCreateStory();
 
     const [story, setStory] = useState('');
@@ -209,7 +208,6 @@ export default function PlaygroundScreen() {
     const [error, setError] = useState<string | null>(null);
 
     const [selectedModel, setSelectedModel] = useState<AIModel>('gemini');
-    const [variant, setVariant] = useState<'default' | 'strict' | 'creative'>('default');
 
     const [seeding, setSeeding] = useState(false);
     const [seedError, setSeedError] = useState<string | null>(null);

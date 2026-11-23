@@ -93,6 +93,7 @@ export default function StoryInputScreen() {
     loadApiKey();
     loadGeminiApiKey();
     loadSelectedModel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: store loaders are stable
   }, []);
 
   const title = isEdit ? (

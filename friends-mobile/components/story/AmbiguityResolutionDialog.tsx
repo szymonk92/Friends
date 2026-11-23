@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
-import { Portal, Dialog, Button, Text, RadioButton, Avatar, List } from 'react-native-paper';
+import { Portal, Dialog, Button, Text, RadioButton, List } from 'react-native-paper';
 import { fz } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
