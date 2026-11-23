@@ -270,9 +270,7 @@ export default function ForceDirectedGraph({
   }, [commitCamera]);
 
   const clipPath = useMemo(() => {
-    const path = Skia.Path.Make();
-    path.addCircle(0, 0, NODE_RADIUS - 1);
-    return path;
+    return Skia.Path.Circle(0, 0, NODE_RADIUS - 1);
   }, []);
 
   const neighborIds = useMemo(() => {

@@ -51,7 +51,7 @@ export default function SharedInterestsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       <View style={styles.appBar}>
         <AppBar title={t('sharedInterests.title')} />

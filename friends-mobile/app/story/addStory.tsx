@@ -403,7 +403,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
       <AppBar title={title} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

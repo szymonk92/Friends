@@ -113,7 +113,7 @@ export default function NetworkScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
           <Text style={[fzText.sub, { marginTop: 12 }]}>{t('network.loading')}</Text>
@@ -125,7 +125,7 @@ export default function NetworkScreen() {
   if (people.length === 0) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <AppBar title={t('network.title')} />
         <View style={styles.empty}>
           <Text style={fzText.title}>{t('network.empty.title')}</Text>
@@ -143,7 +143,7 @@ export default function NetworkScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       {/* App bar */}
       <View style={styles.appBar}>

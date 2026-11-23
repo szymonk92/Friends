@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { fz } from '@/lib/design/tokens';
 import { useState } from 'react';
 import {
@@ -5,8 +6,7 @@ import {
   View,
   Modal,
   Dimensions,
-  FlatList,
-  ViewToken } from 'react-native';
+  FlatList } from 'react-native';
 import { Text, IconButton } from 'react-native-paper';
 import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -47,8 +47,10 @@ export default function PhotoBrowser({
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken<Photo>[] }) => {
-    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+  const handleViewableItemsChanged: NonNullable<ComponentProps<typeof FlatList>['onViewableItemsChanged']> = ({
+    viewableItems,
+  }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
       setCurrentIndex(viewableItems[0].index);
     }
   };
