@@ -1,6 +1,6 @@
 # 09 — Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P1 · **Effort:** S
 

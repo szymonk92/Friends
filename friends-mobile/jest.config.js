@@ -13,6 +13,7 @@ module.exports = {
     // d3 packages are ESM-only; use their bundled UMD builds under Jest.
     '^d3-(force|quadtree|dispatch|timer)$': '<rootDir>/node_modules/d3-$1/dist/d3-$1.js',
   },
+  globalSetup: '<rootDir>/jest.globalSetup.js',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

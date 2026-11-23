@@ -1,3 +1,4 @@
+import { toDateText, toFlexibleText } from '@/lib/utils/dates';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, relations, connections, stories, contactEvents, files } from '@/lib/db/schema';
 import { buildObsidianVault } from '@/lib/export/obsidianExport';
@@ -366,8 +367,8 @@ export function useExportPeopleCSV() {
           p.nickname || '',
           p.relationshipType || '',
           p.importanceToUser || '',
-          p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : '',
-          p.metDate ? new Date(p.metDate).toISOString().split('T')[0] : '',
+          p.dateOfBirth ? toFlexibleText(new Date(p.dateOfBirth), p.dateOfBirthPrecision) : '',
+          p.metDate ? toDateText(new Date(p.metDate)) : '',
           (p.notes || '').replace(/"/g, '""'), // Escape quotes
           tags,
         ];

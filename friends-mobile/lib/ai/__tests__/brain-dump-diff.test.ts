@@ -15,6 +15,12 @@ const make = (overrides: Partial<BrainDumpResult>): BrainDumpResult => ({
 });
 
 describe('diffBrainDump', () => {
+  it('treats a stored local-midnight met date as MATCH (no UTC day shift)', () => {
+    // Stored dates are local midnight; in UTC+ zones toISOString() gave the previous day.
+    const diff = diffBrainDump(make({ metDate: '2020-06-15' }), { metDate: new Date(2020, 5, 15) });
+    expect(diff.metDate?.class).toBe('MATCH');
+  });
+
   describe('empty state', () => {
     it('classifies all proposed values as NEW when no existing data', () => {
       const result = make({
