@@ -1,7 +1,8 @@
 # 02 — Graph: one-finger pan fights the page ScrollView
 
-**Status:** todo
+**Status:** blocked
 **Depends on:** 01
+**Blocked by:** needs a real-device gesture test on R5CY141Z1DD (behaviour of RNGH Pan inside ScrollView can't be judged from code)
 **Priority:** P2 · **Effort:** S
 
 ## Goal
