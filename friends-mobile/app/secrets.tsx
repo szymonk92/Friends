@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, ActivityIndicator, StatusBar, Text as RNText } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, View, ActivityIndicator, StatusBar, AppState, Text as RNText } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { lockSession, unlockSession } from '@/lib/crypto/biometric-secrets';
 import { Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { confirmDestructive, fzAlert } from '@/lib/utils/confirm';
@@ -51,8 +54,8 @@ export default function SecretsScreen() {
   const [setupPassword, setSetupPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accessPassword, setAccessPassword] = useState('');
-  const [pendingAction, setPendingAction] = useState<'create' | 'view' | null>(null);
-  const [pendingSecretId, setPendingSecretId] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
   const [viewedSecret, setViewedSecret] = useState<{
     id: string;
     title: string;
@@ -106,6 +109,46 @@ export default function SecretsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- timers must not restart on language change
   }, [showViewDialog, viewedSecret]);
 
+  const lock = useCallback(() => {
+    lockSession();
+    setUnlocked(false);
+    setShowViewDialog(false);
+    setViewedSecret(null);
+    setShowCreateDialog(false);
+  }, []);
+
+  // Lock when leaving the screen or sending the app to the background.
+  useFocusEffect(useCallback(() => lock, [lock]));
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') lock(); // not 'inactive': Face ID prompt triggers it
+    });
+    return () => sub.remove();
+  }, [lock]);
+
+  const handleUnlock = async (password?: string) => {
+    if (isPasswordBased && !password) {
+      setShowPasswordPrompt(true);
+      return;
+    }
+    setUnlocking(true);
+    const ok = await unlockSession(password);
+    setUnlocking(false);
+    if (ok) {
+      setUnlocked(true);
+    } else if (password) {
+      fzAlert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
+    }
+  };
+
+  // Unlock automatically on entry (biometric prompt; password mode shows the dialog).
+  useEffect(() => {
+    if (isSetup && !unlocked && isPasswordBased !== undefined && !unlocking) {
+      void handleUnlock();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when setup/mode is known or after a lock
+  }, [isSetup, isPasswordBased, unlocked]);
+
   const handleSetup = async () => {
     try {
       await initializeSecrets.mutateAsync();
@@ -150,16 +193,9 @@ export default function SecretsScreen() {
     );
   };
 
-  const handleCreateSecret = async (password?: string) => {
+  const handleCreateSecret = async () => {
     if (!newSecretTitle.trim() || !newSecretContent.trim()) {
       fzAlert(t('common.error'), t('secrets.needBoth'));
-      return;
-    }
-
-    // If password mode and no password provided, show prompt
-    if (isPasswordBased && !password) {
-      setPendingAction('create');
-      setShowPasswordPrompt(true);
       return;
     }
 
@@ -168,7 +204,6 @@ export default function SecretsScreen() {
         title: newSecretTitle.trim(),
         content: newSecretContent.trim(),
         personId: selectedPersonId,
-        password,
       });
       setShowCreateDialog(false);
       setNewSecretTitle('');
@@ -176,35 +211,17 @@ export default function SecretsScreen() {
       setSelectedPersonId(undefined);
       fzAlert(t('common.success'), t('secrets.saved'));
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : t('secrets.saveFailed');
-      if (errorMsg === 'Invalid password') {
-        fzAlert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
-      } else {
-        fzAlert(t('common.error'), errorMsg);
-      }
+      fzAlert(t('common.error'), error instanceof Error ? error.message : t('secrets.saveFailed'));
     }
   };
 
-  const handleViewSecret = async (secretId: string, password?: string) => {
-    // If password mode and no password provided, show prompt
-    if (isPasswordBased && !password) {
-      setPendingAction('view');
-      setPendingSecretId(secretId);
-      setShowPasswordPrompt(true);
-      return;
-    }
-
+  const handleViewSecret = async (secretId: string) => {
     try {
-      const decrypted = await decryptSecret.mutateAsync({ secretId, password });
+      const decrypted = await decryptSecret.mutateAsync({ secretId });
       setViewedSecret(decrypted);
       setShowViewDialog(true);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : t('secrets.decryptFailed');
-      if (errorMsg === 'Invalid password') {
-        fzAlert(t('secrets.wrongTitle'), t('secrets.wrongMessage'));
-      } else {
-        fzAlert(t('secrets.accessDenied'), errorMsg);
-      }
+      fzAlert(t('secrets.accessDenied'), error instanceof Error ? error.message : t('secrets.decryptFailed'));
     }
   };
 
@@ -213,18 +230,10 @@ export default function SecretsScreen() {
       fzAlert(t('common.error'), t('secrets.enterPasswordMsg'));
       return;
     }
-
+    const pw = accessPassword;
     setShowPasswordPrompt(false);
-
-    if (pendingAction === 'create') {
-      await handleCreateSecret(accessPassword);
-    } else if (pendingAction === 'view' && pendingSecretId) {
-      await handleViewSecret(pendingSecretId, accessPassword);
-    }
-
     setAccessPassword('');
-    setPendingAction(null);
-    setPendingSecretId(null);
+    await handleUnlock(pw);
   };
 
   const handleDeleteSecret = (secretId: string, title: string) => {
@@ -278,6 +287,38 @@ export default function SecretsScreen() {
     );
   }
 
+  if (!unlocked) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <AppBar title={t('secrets.screenTitle')} />
+        <View style={styles.centered}>
+          {unlocking ? (
+            <ActivityIndicator size="large" color={fz.ink} />
+          ) : (
+            <>
+              <RNText style={[fzText.title, { marginBottom: 16 }]}>{t('secrets.locked')}</RNText>
+              <PrimaryButton label={t('secrets.unlock')} onPress={() => handleUnlock()} />
+            </>
+          )}
+        </View>
+        <Portal>
+          <PasswordPromptDialog
+            visible={showPasswordPrompt}
+            onDismiss={() => {
+              setShowPasswordPrompt(false);
+              setAccessPassword('');
+            }}
+            accessPassword={accessPassword}
+            setAccessPassword={setAccessPassword}
+            handlePasswordSubmit={handlePasswordSubmit}
+            loading={unlocking}
+          />
+        </Portal>
+      </View>
+    );
+  }
+
   // Main secrets list
   return (
     <View style={styles.container}>
@@ -311,7 +352,7 @@ export default function SecretsScreen() {
         setSelectedPersonId={setSelectedPersonId}
         people={people}
         isPasswordBased={!!isPasswordBased}
-        handleCreateSecret={() => handleCreateSecret()}
+        handleCreateSecret={handleCreateSecret}
         createSecretPending={createSecret.isPending}
       />
 
@@ -324,21 +365,6 @@ export default function SecretsScreen() {
           }}
           viewedSecret={viewedSecret}
           remainingTime={remainingTime}
-        />
-
-        <PasswordPromptDialog
-          visible={showPasswordPrompt}
-          onDismiss={() => {
-            setShowPasswordPrompt(false);
-            setAccessPassword('');
-            setPendingAction(null);
-            setPendingSecretId(null);
-          }}
-          accessPassword={accessPassword}
-          setAccessPassword={setAccessPassword}
-          pendingAction={pendingAction}
-          handlePasswordSubmit={handlePasswordSubmit}
-          loading={createSecret.isPending || decryptSecret.isPending}
         />
       </Portal>
     </View>

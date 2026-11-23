@@ -9,7 +9,6 @@ interface PasswordPromptDialogProps {
   onDismiss: () => void;
   accessPassword: string;
   setAccessPassword: (pass: string) => void;
-  pendingAction: 'create' | 'view' | null;
   handlePasswordSubmit: () => void;
   loading: boolean;
 }
@@ -19,7 +18,6 @@ export default function PasswordPromptDialog({
   onDismiss,
   accessPassword,
   setAccessPassword,
-  pendingAction,
   handlePasswordSubmit,
   loading,
 }: PasswordPromptDialogProps) {
@@ -29,7 +27,7 @@ export default function PasswordPromptDialog({
       <Dialog.Title style={styles.dialogTitle}>{t('secrets.enterPassword')}</Dialog.Title>
       <Dialog.Content>
         <Text variant="bodySmall" style={styles.passwordPromptText}>
-          {pendingAction === 'create' ? t('secrets.promptSave') : t('secrets.promptDecrypt')}
+          {t('secrets.promptUnlock')}
         </Text>
         <TextInput
           label={t('secrets.password')}

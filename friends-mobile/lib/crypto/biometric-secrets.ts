@@ -314,3 +314,30 @@ export async function getEncryptionKeyUnified(password?: string): Promise<string
     return getEncryptionKey();
   }
 }
+
+// ========== SESSION (unlock once, keep the data key in memory only) ==========
+
+let sessionKey: string | null = null;
+
+export const isSessionUnlocked = () => sessionKey !== null;
+
+/** Drop the in-memory key (leaving the Secrets screen, app to background). */
+export function lockSession(): void {
+  sessionKey = null;
+}
+
+/** Unlock once (biometric prompt or password); false if cancelled / wrong password. */
+export async function unlockSession(password?: string): Promise<boolean> {
+  try {
+    sessionKey = await getEncryptionKeyUnified(password);
+  } catch {
+    sessionKey = null;
+  }
+  return sessionKey !== null;
+}
+
+/** Key for create/view; throws `SECRETS_LOCKED` if the screen wasn't unlocked. */
+export function requireSessionKey(): string {
+  if (!sessionKey) throw new Error('SECRETS_LOCKED');
+  return sessionKey;
+}
