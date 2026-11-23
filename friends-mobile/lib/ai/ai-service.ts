@@ -602,7 +602,6 @@ async function callAnthropic(
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: 4000,
-      temperature: 0.3,
       ...(systemPrompt ? { system: systemPrompt } : {}),
       messages: [
         {
@@ -649,7 +648,6 @@ async function callAnthropicWithHistory(
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: 4000,
-      temperature: 0.3,
       messages: anthropicMessages,
     });
 
