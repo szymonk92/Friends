@@ -11,7 +11,7 @@
 | [07](07-redesign-old-screens.md) | Redesign remaining old-style screens | todo | 04, 05, 06 | P2 |
 | [08](08-extraction-wrong-query-key.md) | AI extraction invalidates wrong query key → stale conflicts, duplicate relations | done | none | P1 |
 | [09](09-dates-utc-off-by-one.md) | Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff | done | none | P1 |
-| [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | todo | none | P1 |
+| [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | done | none | P1 |
 | [11](11-birthday-notifications-not-rescheduled.md) | Birthday notifications not rescheduled on edit/delete | todo | 10 | P1 |
 | [12](12-extraction-uses-deleted-people.md) | AI extraction & review queue include deleted people/stories | todo | none | P1 |
 | [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | todo | none | P1 (security) |

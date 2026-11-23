@@ -1,6 +1,6 @@
 # 10 — Birthday / date precision can't be cleared from edit form
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P1 · **Effort:** S
 
