@@ -93,7 +93,13 @@
     },
     "connectionCount_one": "{{count}} connection",
     "connectionCount_other": "{{count}} connections",
-    "noDetails": "No detailed information available yet."
+    "noDetails": "No detailed information available yet.",
+    "suggestions": {
+      "title": "Might know each other",
+      "connect": "Connect",
+      "sharedStories_one": "{{count}} story together",
+      "sharedStories_other": "{{count}} stories together"
+    }
   },
   "person": {
     "addTitle": "Add a Person",

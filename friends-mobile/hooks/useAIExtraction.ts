@@ -97,6 +97,7 @@ export function useExtractRelations() {
           aiProcessed: true,
           aiProcessedAt: new Date(),
           extractedData: JSON.stringify(result),
+          peopleIds: JSON.stringify(processedResults.personIds),
           updatedAt: new Date(),
         })
         .where(eq(stories.id, storyId));
@@ -121,6 +122,8 @@ interface ProcessedResults {
   tokensUsed: number;
   processingTime: number;
   rawResponse?: string;
+  /** Real ids of everyone the story mentions (stored in stories.peopleIds). */
+  personIds: string[];
 }
 
 /**
@@ -278,6 +281,7 @@ async function processExtractionResults(
     tokensUsed: result.tokensUsed || 0,
     processingTime: result.processingTime || 0,
     rawResponse,
+    personIds: [...new Set(personIdMap.values())],
   };
 }
 

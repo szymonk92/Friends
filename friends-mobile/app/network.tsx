@@ -1,7 +1,10 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
 import { StyleSheet, View, ActivityIndicator, StatusBar, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
-import { useConnections } from '@/hooks/useConnections';
+import { useConnections, useCreateConnection } from '@/hooks/useConnections';
+import { useStories } from '@/hooks/useStories';
+import { storyPeople, suggestConnections } from '@/lib/graph/suggestions';
+import { Avatar } from '@/components/Avatar';
 import { usePersonRelations } from '@/hooks/useRelations';
 import { useAllTags, parseTags } from '@/hooks/useTags';
 import { router } from 'expo-router';
@@ -21,6 +24,8 @@ export default function NetworkScreen() {
   const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
   const { data: allTags = [] } = useAllTags();
+  const { data: stories = [] } = useStories();
+  const createConnection = useCreateConnection();
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
@@ -91,6 +96,16 @@ export default function NetworkScreen() {
       return other ? [{ connection, other }] : [];
     });
   }, [selectedPersonId, filteredConnections, filteredPeople]);
+
+  // People mentioned together in stories but not connected yet.
+  const suggestions = useMemo(() => {
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return suggestConnections(stories.map(storyPeople), connections, new Set(byId.keys())).map((s) => ({
+      ...s,
+      personA: byId.get(s.a)!,
+      personB: byId.get(s.b)!,
+    }));
+  }, [stories, connections, people]);
 
   const isLoading = loadingPeople || loadingConnections;
 
@@ -246,6 +261,32 @@ export default function NetworkScreen() {
           {t('network.hint')}
         </Text>
 
+        {/* Suggested connections */}
+        {suggestions.length > 0 && !selectedPerson && (
+          <View style={styles.suggestions}>
+            <Text style={fzText.label}>{t('network.suggestions.title')}</Text>
+            {suggestions.map((sug) => (
+              <View key={`${sug.a}|${sug.b}`} style={styles.suggestionRow}>
+                <Avatar name={sug.personA.name} photoPath={sug.personA.photoPath} size={32} />
+                <Avatar name={sug.personB.name} photoPath={sug.personB.photoPath} size={32} style={styles.avatarOverlap} />
+                <View style={styles.suggestionText}>
+                  <Text style={fzText.name} numberOfLines={1}>
+                    {sug.personA.name} & {sug.personB.name}
+                  </Text>
+                  <Text style={fzText.sub}>{t('network.suggestions.sharedStories', { count: sug.sharedStories })}</Text>
+                </View>
+                <Pill
+                  label={t('network.suggestions.connect')}
+                  variant="solid"
+                  onPress={() =>
+                    createConnection.mutate({ person1Id: sug.a, person2Id: sug.b, relationshipType: 'acquaintance' })
+                  }
+                />
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Selected person details */}
         {selectedPerson && (
           <NetworkPersonDetails
@@ -295,6 +336,13 @@ const styles = StyleSheet.create({
     marginHorizontal: fz.s.edge, backgroundColor: fz.card, borderRadius: fz.rCard,
     borderWidth: 1, borderColor: fz.cardBorder, padding: 8, overflow: 'hidden',
   },
+  suggestions: {
+    marginHorizontal: fz.s.edge, marginTop: fz.s.lg, padding: fz.s.lg,
+    backgroundColor: fz.card, borderRadius: fz.rCard, borderWidth: 1, borderColor: fz.cardBorder,
+  },
+  suggestionRow: { flexDirection: 'row', alignItems: 'center', paddingTop: fz.s.md },
+  avatarOverlap: { marginLeft: -10, borderWidth: 2, borderColor: fz.card },
+  suggestionText: { flex: 1, marginHorizontal: fz.s.md },
   noMatches: { height: 450, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
 });

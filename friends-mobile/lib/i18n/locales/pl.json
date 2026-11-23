@@ -97,7 +97,15 @@
     "connectionCount_other": "{{count}} połączeń",
     "noDetails": "Brak szczegółowych informacji.",
     "connectionCount_few": "{{count}} połączenia",
-    "connectionCount_many": "{{count}} połączeń"
+    "connectionCount_many": "{{count}} połączeń",
+    "suggestions": {
+      "title": "Mogą się znać",
+      "connect": "Połącz",
+      "sharedStories_one": "{{count}} wspólna historia",
+      "sharedStories_few": "{{count}} wspólne historie",
+      "sharedStories_many": "{{count}} wspólnych historii",
+      "sharedStories_other": "{{count}} wspólnej historii"
+    }
   },
   "person": {
     "addTitle": "Dodaj osobę",

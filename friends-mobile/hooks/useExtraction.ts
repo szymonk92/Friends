@@ -191,6 +191,7 @@ export function useExtractStory() {
       // Step 6: Mark story as processed
       await markProcessed.mutateAsync({
         id: storyId,
+        peopleIds: [...new Set(personIdMap.values())],
         extractedData: {
           people: extractionResult.people,
           relations: extractionResult.relations,

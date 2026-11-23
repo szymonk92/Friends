@@ -1,6 +1,6 @@
 # 03 — Graph: suggest connections from shared stories
 
-**Status:** todo
+**Status:** in-progress
 **Depends on:** 01
 **Priority:** P3 · **Effort:** M
 
@@ -17,3 +17,10 @@ AI inference of relationship type.
 
 ## Open questions
 Is a single co-mention enough, or require ≥2?
+
+## Progress
+- [x] Root cause: stories never recorded their people (`stories.peopleIds` unused). Both extraction paths now save the resolved person ids; older stories fall back to known ids in `extractedData`
+- [x] `lib/graph/suggestions.ts` (+ tests): co-mentioned pairs without a connection, ranked by shared stories, deleted people excluded
+- [x] Network screen: "Might know each other" card (top 5, hidden while a person is selected) with one-tap Connect → `acquaintance` connection (en + pl strings)
+- [ ] Dotted suggested edges in the graph / long-press A → B quick connect (later, if the list proves useful)
+- [ ] Verify on device
