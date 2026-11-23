@@ -1,9 +1,10 @@
-import { View, StyleSheet } from 'react-native';
-import { Text, Button, Chip } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
 import CenteredContainer from '@/components/CenteredContainer';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 
 interface QuizCompleteProps {
@@ -23,30 +24,22 @@ export default function QuizComplete({ savedCount }: QuizCompleteProps) {
       <AppBar title={t('foodQuiz.completeTitle')} />
       <CenteredContainer style={styles.centered}>
         <Text style={styles.completeIcon}>🎉</Text>
-        <Text variant="headlineMedium" style={styles.completeTitle}>
+        <Text style={[fzText.titleLg, styles.completeTitle]}>
           {t('foodQuiz.completeBang')}
         </Text>
-        <Text variant="bodyLarge" style={styles.completeSummary}>
+        <Text style={[fzText.body, styles.completeSummary]}>
           {t('foodQuiz.saved', { count: totalSaved })}
         </Text>
-        <Text variant="titleMedium" style={styles.statsTitle}>
+        <Text style={[fzText.label, styles.statsTitle]}>
           {t('foodQuiz.results')}
         </Text>
         <View style={styles.statsContainer}>
-          <Chip icon="thumb-up" style={styles.statChip}>
-            {t('foodQuiz.likesCount', { count: savedCount.likes })}
-          </Chip>
-          <Chip icon="thumb-down" style={styles.statChip}>
-            {t('foodQuiz.dislikesCount', { count: savedCount.dislikes })}
-          </Chip>
-          <Chip icon="help-circle" style={styles.statChip}>
-            {t('foodQuiz.skippedCount', { count: savedCount.skipped })}
-          </Chip>
+          <Pill label={t('foodQuiz.likesCount', { count: savedCount.likes })} />
+          <Pill label={t('foodQuiz.dislikesCount', { count: savedCount.dislikes })} />
+          <Pill label={t('foodQuiz.skippedCount', { count: savedCount.skipped })} />
         </View>
 
-        <Button mode="contained" onPress={() => router.back()} style={styles.saveButton}>
-          {t('connectionForm.done')}
-        </Button>
+        <PrimaryButton label={t('connectionForm.done')} onPress={() => router.back()} style={styles.saveButton} />
       </CenteredContainer>
     </>
   );
@@ -63,23 +56,20 @@ const styles = StyleSheet.create({
   },
   completeTitle: {
     marginBottom: 8,
-    fontWeight: 'bold',
   },
   completeSummary: {
     textAlign: 'center',
     marginBottom: 24,
-    opacity: 0.8,
   },
   statsTitle: {
     marginBottom: 12,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     marginBottom: 32,
-  },
-  statChip: {
-    paddingHorizontal: 8,
   },
   saveButton: {
     marginBottom: 12,

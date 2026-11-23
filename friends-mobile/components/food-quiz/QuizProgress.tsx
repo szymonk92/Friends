@@ -1,7 +1,6 @@
-import { View, StyleSheet } from 'react-native';
-import { Text, ProgressBar } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
 import { getInitials } from '@/lib/utils/format';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
 interface QuizProgressProps {
@@ -21,17 +20,19 @@ export default function QuizProgress({
   return (
     <View>
       <View style={styles.progressContainer}>
-        <Text variant="bodySmall" style={styles.progressText}>
+        <Text style={[fzText.sub, styles.progressText]}>
           {t('foodQuiz.questionOf', { current: currentQuestionIndex + 1, total: totalQuestions })}
         </Text>
-        <ProgressBar progress={progress} style={styles.progressBar} />
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%` }]} />
+        </View>
       </View>
 
       <View style={styles.personInfo}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(currentPerson?.name || '')}</Text>
         </View>
-        <Text variant="titleLarge">{currentPerson?.name}</Text>
+        <Text style={fzText.title}>{currentPerson?.name}</Text>
       </View>
     </View>
   );
@@ -45,11 +46,16 @@ const styles = StyleSheet.create({
   progressText: {
     textAlign: 'center',
     marginBottom: 8,
-    opacity: 0.7,
   },
   progressBar: {
     height: 8,
     borderRadius: 4,
+    backgroundColor: fz.surface,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 8,
+    backgroundColor: fz.ink,
   },
   personInfo: {
     alignItems: 'center',

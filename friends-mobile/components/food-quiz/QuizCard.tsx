@@ -1,9 +1,9 @@
-import { StyleSheet, Animated, Dimensions, View } from 'react-native';
-import { Card, Text, Chip } from 'react-native-paper';
+import { StyleSheet, Animated, Dimensions, Text, View } from 'react-native';
 import { QuestionIcon, ForkKnifeIcon } from 'phosphor-react-native';
 import { RelationIcon } from '@/components/RelationIcon';
 import { LIKES, DISLIKES } from '@/lib/constants/relations';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
 import { tr } from '@/lib/i18n/labels';
 import { useTranslation } from 'react-i18next';
 
@@ -70,20 +70,21 @@ export default function QuizCard({
         </View>
       </Animated.View>
 
-      <Card style={styles.questionCard}>
-        <Card.Content style={styles.questionContent}>
+      <View style={styles.questionCard}>
+        <View style={styles.questionContent}>
           <ForkKnifeIcon size={40} color={fz.ink} weight="bold" style={styles.foodIcon} />
-          <Text variant="headlineMedium" style={styles.questionText}>
+          <Text style={[fzText.titleLg, styles.questionText]}>
             {t('foodQuiz.question', { name: currentPerson?.name?.split(' ')[0] })}
           </Text>
-          <Text variant="displaySmall" style={styles.foodItem}>
+          <Text style={[fzText.titleLg, styles.foodItem]}>
             {currentFood ? tr(`foodQuiz.items.${currentFood.item}`, currentFood.item) : ''}?
           </Text>
-          <Chip style={styles.categoryChip}>
-            {currentFood ? tr(`foodQuiz.categories.${currentFood.category}`, currentFood.category) : ''}
-          </Chip>
-        </Card.Content>
-      </Card>
+          <Pill
+            style={styles.categoryChip}
+            label={currentFood ? tr(`foodQuiz.categories.${currentFood.category}`, currentFood.category) : ''}
+          />
+        </View>
+      </View>
     </Animated.View>
   );
 }
@@ -98,6 +99,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: fz.card,
     borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
   },
   questionContent: {
     alignItems: 'center',
@@ -112,13 +115,12 @@ const styles = StyleSheet.create({
   },
   foodItem: {
     textAlign: 'center',
-    fontWeight: 'bold',
+    fontSize: 34,
     color: fz.ink,
     marginBottom: 16,
   },
   categoryChip: {
     marginTop: 8,
-    borderRadius: fz.rPill,
   },
   likeOverlay: {
     position: 'absolute',
