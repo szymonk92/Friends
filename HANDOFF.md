@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom graph useful, make the UI consistent (fz design system).
+Improve Inner Circle (repo/dir still `Friends`/`friends-mobile`, bundle `com.friendz.app`): fix audited bugs, make the who-knows-whom graph useful, make the UI consistent (fz design system).
 
 ## State (2026-11-23)
 - `main`: PR #10, #11 (#13 Argon2id secrets + #07 screens → fz, both `done`) and #12 (Expo SDK 58 / RN 0.88.1 / React 19.3) merged. `npm run ci` green (368 tests).
@@ -10,10 +10,13 @@ Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom grap
 - iOS rebuilt on SDK 58 (`expo prebuild --platform ios`, scheme `InnerCircle`, bundle `com.szymonk92.friendz`), installed on iPhone, launches (7-day profile).
 - Not hand-tested: password mode (Argon2 unlock time; tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s), graph gestures on gesture-handler 3, notifications.
 
-## Device checklist (one build covers #07 + #13 + SDK 58)
-- Secrets: biometric create/view/delete; password setup + unlock (Argon2 time on Hermes, tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s). Old XOR secrets are intentionally unreadable.
-- #07 screens: Settings, Menu, Home ⋮ sheet, Review extractions (+ edit dialog), Food quiz swipe, Secrets setup.
-- SDK 58 regressions: graph pan/pinch/tap, notifications, SQLite data intact, photos, sharing/export, Sentry init, status bar look (RN 0.88 dropped StatusBar `backgroundColor`/`translucent`).
+## Still to verify by hand (nothing blocking)
+- Secrets password mode: setup + unlock; Argon2 time on Hermes (tune `DEFAULT_KDF` if > ~3 s).
+- Graph gestures (pan/pinch/tap) on gesture-handler 3, both phones; notifications; photos; export; status bar look.
+- Done on device: biometric secrets (old XOR ones intentionally unreadable), Settings redesign, iOS launches.
+
+## Next
+- Nothing queued. Candidates: async-storage 3 (wait for Expo 59 pin), R8 minify (only with full release test), iOS profile renewal every 7 days (rebuild).
 
 ## SDK 58 notes
 - Clean install needed (`rm -rf node_modules package-lock.json && npm install`); `expo-symbols ~58` added explicitly (expo-router peer). Removed unused `@testing-library/*` (no tests use them; expo-router 58 wants RNTL 14 + test-renderer).
