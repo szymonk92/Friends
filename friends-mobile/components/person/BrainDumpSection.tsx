@@ -3,16 +3,19 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   Banner,
   Button,
-  Card,
   Checkbox,
-  Chip,
   IconButton,
   Text,
   TextInput,
-  useTheme } from 'react-native-paper';
+  useTheme,
+} from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSettings, type AIModel } from '@/store/useSettings';
-import { extractPersonBrainDump, type BrainDumpResult, type BrainDumpAttribute } from '@/lib/ai/brain-dump';
+import {
+  extractPersonBrainDump,
+  type BrainDumpResult,
+  type BrainDumpAttribute,
+} from '@/lib/ai/brain-dump';
 import {
   diffBrainDump,
   type BrainDumpDiff,
@@ -23,6 +26,8 @@ import {
 import type { SocialLink } from '@/lib/social/socialLinks';
 import { useTranslation } from 'react-i18next';
 import { fzAlert } from '@/lib/utils/confirm';
+import { fz, fzText } from '@/lib/design/tokens';
+import { Pill } from '@/components/Pill';
 
 const CONSENT_KEY = 'brainDump.consentSeen.v1';
 
@@ -172,7 +177,11 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
         .map((l, i) => {
           const ld = d.languages[i];
           if (ld?.class === 'MATCH') return null;
-          return { value: l, accepted: defaultAccept(ld?.class), diff: ld?.class } as ListChipState<string>;
+          return {
+            value: l,
+            accepted: defaultAccept(ld?.class),
+            diff: ld?.class,
+          } as ListChipState<string>;
         })
         .filter((x): x is ListChipState<string> => x !== null)
     );
@@ -184,9 +193,7 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
           if (ad?.class === 'MATCH') return null;
           // Confidence still gates NEW chips (low-confidence ones pre-unchecked); UPDATE/CONFLICT also off.
           const accepted =
-            ad?.class === 'NEW' || ad?.class === undefined
-              ? a.confidence >= 0.7
-              : false;
+            ad?.class === 'NEW' || ad?.class === undefined ? a.confidence >= 0.7 : false;
           return {
             value: a,
             accepted,
@@ -259,13 +266,10 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
     attributeChips.length;
 
   return (
-    <Card style={styles.card} mode="outlined">
-      <Card.Content>
-        <Text variant="titleSmall">{t('brainDump.title')}</Text>
-        <Text
-          variant="bodySmall"
-          style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}
-        >
+    <View style={styles.card}>
+      <View>
+        <Text style={fzText.name}>{t('brainDump.title')}</Text>
+        <Text variant="bodySmall" style={[styles.hint, { color: theme.colors.onSurfaceVariant }]}>
           {t('brainDump.hint')}
         </Text>
 
@@ -295,15 +299,12 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
         {__DEV__ && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.devModelRow}>
             {DEV_MODELS.map((m) => (
-              <Chip
+              <Pill
                 key={m.key}
+                label={m.label}
                 selected={devModel === m.key}
                 onPress={() => setDevModel(m.key)}
-                compact
-                style={styles.devModelChip}
-              >
-                {m.label}
-              </Chip>
+              />
             ))}
           </ScrollView>
         )}
@@ -331,12 +332,11 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
           </Text>
         )}
 
-
-
         {result && (
           <View style={styles.results}>
             <Text variant="titleSmall" style={styles.sectionLabel}>
-              {t('brainDump.found')} {countAccepted({
+              {t('brainDump.found')}{' '}
+              {countAccepted({
                 metLocationChip,
                 metDateChip,
                 homeLocationChip,
@@ -379,15 +379,16 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                 metLocationChip &&
                 setMetLocationChip({ ...metLocationChip, accepted: !metLocationChip.accepted })
               }
-              onEdit={(v) => setMetLocationChip(metLocationChip ? { ...metLocationChip, value: v } : null)}
+              onEdit={(v) =>
+                setMetLocationChip(metLocationChip ? { ...metLocationChip, value: v } : null)
+              }
             />
             <FieldRow
               icon="calendar"
               label={t('brainDump.met')}
               chip={metDateChip}
               onToggle={() =>
-                metDateChip &&
-                setMetDateChip({ ...metDateChip, accepted: !metDateChip.accepted })
+                metDateChip && setMetDateChip({ ...metDateChip, accepted: !metDateChip.accepted })
               }
               onEdit={(v) => setMetDateChip(metDateChip ? { ...metDateChip, value: v } : null)}
             />
@@ -441,20 +442,16 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                 </Text>
                 <View style={styles.chipsRow}>
                   {socialChips.map((c, i) => (
-                    <Chip
+                    <Pill
                       key={`${c.value.platform}-${i}`}
-                      icon="check"
+                      label={`${c.value.platform}: ${c.value.handle}`}
                       selected={c.accepted}
-                      showSelectedOverlay
                       onPress={() => {
                         const next = [...socialChips];
                         next[i] = { ...c, accepted: !c.accepted };
                         setSocialChips(next);
                       }}
-                      style={styles.chip}
-                    >
-                      {c.value.platform}: {c.value.handle}
-                    </Chip>
+                    />
                   ))}
                 </View>
               </View>
@@ -467,20 +464,16 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                 </Text>
                 <View style={styles.chipsRow}>
                   {languageChips.map((c, i) => (
-                    <Chip
+                    <Pill
                       key={c.value + i}
-                      icon="translate"
+                      label={c.value}
                       selected={c.accepted}
-                      showSelectedOverlay
                       onPress={() => {
                         const next = [...languageChips];
                         next[i] = { ...c, accepted: !c.accepted };
                         setLanguageChips(next);
                       }}
-                      style={styles.chip}
-                    >
-                      {c.value}
-                    </Chip>
+                    />
                   ))}
                 </View>
               </View>
@@ -522,12 +515,11 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
                           </Text>
                         )}
                       </View>
-                      <Text
-                        variant="bodySmall"
-                        style={{ color: theme.colors.onSurfaceVariant }}
-                      >
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                         {c.value.relationType.toLowerCase().replace('_', ' ')} ·{' '}
-                        {t('brainDump.confidence', { percent: Math.round(c.value.confidence * 100) })}
+                        {t('brainDump.confidence', {
+                          percent: Math.round(c.value.confidence * 100),
+                        })}
                       </Text>
                     </View>
                   </View>
@@ -536,23 +528,21 @@ export default function BrainDumpSection({ personName, existing, onApply }: Prop
             )}
 
             {hasChips ? (
-              <Button
-                mode="contained"
-                icon="check-all"
-                onPress={apply}
-                style={styles.applyButton}
-              >
+              <Button mode="contained" icon="check-all" onPress={apply} style={styles.applyButton}>
                 {t('brainDump.apply')}
               </Button>
             ) : (
-              <Text variant="bodySmall" style={[styles.error, { color: theme.colors.onSurfaceVariant }]}>
+              <Text
+                variant="bodySmall"
+                style={[styles.error, { color: theme.colors.onSurfaceVariant }]}
+              >
                 {t('brainDump.nothing')}
               </Text>
             )}
           </View>
         )}
-      </Card.Content>
-    </Card>
+      </View>
+    </View>
   );
 }
 
@@ -593,8 +583,8 @@ function FieldRow({
     cls === 'CONFLICT'
       ? theme.colors.error
       : cls === 'UPDATE'
-      ? theme.colors.tertiary ?? theme.colors.primary
-      : theme.colors.primary;
+        ? (theme.colors.tertiary ?? theme.colors.primary)
+        : theme.colors.primary;
   return (
     <View style={styles.fieldRow}>
       <Checkbox status={chip.accepted ? 'checked' : 'unchecked'} onPress={onToggle} />
@@ -687,6 +677,11 @@ function countAccepted(state: {
 const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
+    padding: fz.s.lg,
+    backgroundColor: fz.card,
+    borderRadius: fz.rCard,
+    borderWidth: 1,
+    borderColor: fz.cardBorder,
   },
   hint: {
     marginTop: 4,
@@ -709,9 +704,6 @@ const styles = StyleSheet.create({
   },
   devModelRow: {
     marginBottom: 8,
-  },
-  devModelChip: {
-    marginRight: 4,
   },
   error: {
     marginTop: 8,
@@ -738,10 +730,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-  },
-  chip: {
-    marginRight: 4,
-    marginBottom: 4,
   },
   attrRow: {
     flexDirection: 'row',

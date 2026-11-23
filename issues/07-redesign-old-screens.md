@@ -1,6 +1,6 @@
 # 07 — Redesign remaining old-style screens
 
-**Status:** todo
+**Status:** in-progress
 **Depends on:** 04, 05, 06
 **Priority:** P2 · **Effort:** L
 
@@ -8,7 +8,7 @@
 Bring the last Material-looking screens to fz.
 
 ## Tasks
-- **BrainDumpSection** (shown in Add person + Edit person): Paper Card/Chip/IconButton, 16 `theme.colors.*` — biggest holdout on real screens
+- [x] **BrainDumpSection** (Add + Edit person): Paper outlined Card → fz card, 3× Paper Chip → Pill, title in fzText (theme colours now fz via #05)
 - **Settings**: AIConfiguration, AppearanceSettings, LanguageSelector (Card, List.Item, Menu, SegmentedButtons, opacity text) → `SettingsRow` component (also menu ×3)
 - **review-extractions**: 5 Card, Chip, SegmentedButtons, 15 `Text variant`, opacity text
 - **food-quiz**: QuizCard, QuizControls, QuizComplete, QuizProgress
@@ -19,3 +19,7 @@ Bring the last Material-looking screens to fz.
 
 ## Out of scope
 dev, dev-logs, developer/playground (dev-only).
+
+## Progress
+- Paper Card/List/Menu/SegmentedButtons on the remaining screens already pick up fz colours from the theme fix in #05 (white surfaces, ink text, fz outlines).
+- Remaining structural redesign (settings sub-components, review-extractions, food-quiz, menu, home ⋮ menu, person children) should be done screen-by-screen with device feedback.
