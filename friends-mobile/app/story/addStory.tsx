@@ -795,7 +795,7 @@ const styles = StyleSheet.create({
   },
   debugValue: {
     fontFamily: 'monospace',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.surfaceSoft,
     padding: 8,
     borderRadius: 4,
   },

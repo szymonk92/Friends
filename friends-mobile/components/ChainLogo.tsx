@@ -1,3 +1,4 @@
+import { fz } from '@/lib/design/tokens';
 import { Svg, Rect } from 'react-native-svg';
 
 export type ChainLogoVariant = 'linked' | 'apart' | 'partner';
@@ -17,7 +18,7 @@ const HEART_DX = (Math.SQRT1_2 * (HEART_H - HEART_W)) / 2;
 export function ChainLogo({
   size = 30,
   strokeWidth = 8,
-  color = '#1B1815',
+  color = fz.ink,
   connected = true,
   variant = connected ? 'linked' : 'apart',
 }: {

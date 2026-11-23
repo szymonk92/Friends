@@ -1,3 +1,4 @@
+import { fz } from '@/lib/design/tokens';
 import { Svg, G, Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 import type { ReactNode } from 'react';
 
@@ -50,7 +51,7 @@ export type LineIconName = keyof typeof ICONS;
 export function LineIcon({
   name,
   size = 18,
-  color = '#1B1815',
+  color = fz.ink,
   strokeWidth,
 }: {
   name: LineIconName;

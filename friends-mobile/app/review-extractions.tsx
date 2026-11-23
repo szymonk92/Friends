@@ -366,7 +366,7 @@ export default function ReviewExtractionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: fz.paper,
   },
   centered: {
     padding: 20,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   objectLabel: {
     fontWeight: 'bold',
-    color: '#6200ee',
+    color: fz.ink,
   },
   metadataRow: {
     flexDirection: 'row',

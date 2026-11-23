@@ -1,3 +1,4 @@
+import { fz } from '@/lib/design/tokens';
 import {
   HeartIcon,
   ThumbsDownIcon,
@@ -36,7 +37,7 @@ const RELATION_ICONS: Record<string, Icon> = {
 export function RelationIcon({
   type,
   size = 14,
-  color = '#1B1815',
+  color = fz.ink,
 }: {
   type: string;
   size?: number;
