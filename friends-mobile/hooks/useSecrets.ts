@@ -12,7 +12,7 @@ import {
   checkBiometricStatus,
   initializeWithPassword,
   isPasswordBasedEncryption,
-  getEncryptionKeyUnified,
+  requireSessionKey,
 } from '@/lib/crypto/biometric-secrets';
 
 /**
@@ -97,18 +97,12 @@ export function useCreateSecret() {
       title,
       content,
       personId,
-      password,
     }: {
       title: string;
       content: string;
       personId?: string;
-      password?: string;
     }) => {
-      // Authenticate and get encryption key (handles both biometric and password modes)
-      const key = await getEncryptionKeyUnified(password);
-      if (!key) {
-        throw new Error('Failed to authenticate or get encryption key');
-      }
+      const key = requireSessionKey(); // unlocked once on entering the Secrets screen
 
       // Encrypt the content
       const encryptedContent = await encryptContent(content, key);
@@ -145,12 +139,8 @@ export function useCreateSecret() {
  */
 export function useDecryptSecret() {
   return useMutation({
-    mutationFn: async ({ secretId, password }: { secretId: string; password?: string }) => {
-      // Authenticate and get encryption key (handles both biometric and password modes)
-      const key = await getEncryptionKeyUnified(password);
-      if (!key) {
-        throw new Error('Failed to authenticate or get encryption key');
-      }
+    mutationFn: async ({ secretId }: { secretId: string }) => {
+      const key = requireSessionKey(); // unlocked once on entering the Secrets screen
 
       // Fetch the encrypted secret
       const result = await db.select().from(secrets).where(eq(secrets.id, secretId)).limit(1);
