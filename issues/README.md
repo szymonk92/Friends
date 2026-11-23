@@ -17,7 +17,7 @@
 | [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | todo | none | P1 (security) |
 | [14](14-deleted-person-leftovers.md) | Deleting a person leaves connections, events, reminders visible | done | none | P2 |
 | [15](15-pending-metadata-double-json.md) | Pending extraction metadata JSON-encoded twice | done | none | P2 |
-| [16](16-import-export-gaps.md) | Import: no UI refresh, orphan ids; export misses events, CSV escaping | todo | 09 | P2 |
+| [16](16-import-export-gaps.md) | Import: no UI refresh, orphan ids; export misses events, CSV escaping | done | 09 | P2 |
 | [17](17-gifts-relations-invalidation.md) | Gifts and Relations sections go out of sync | done | none | P2 |
 | [18](18-deleted-profile-photo.md) | Deleting current profile photo leaves a broken avatar | done | none | P2 |
 | [19](19-home-birthday-badge.md) | Home birthday badge: duplicated logic, leap-day bug, untranslated | done | none | P2 |
