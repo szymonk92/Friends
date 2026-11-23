@@ -245,7 +245,7 @@ export default function SecretsScreen() {
   if (loadingBiometric || loadingSetup) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <AppBar title={t('secrets.screenTitle')} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
@@ -259,7 +259,7 @@ export default function SecretsScreen() {
   if (!isSetup) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <AppBar title={t('secrets.setupScreenTitle')} />
         <SecretsSetup
           biometricStatus={biometricStatus}
@@ -281,7 +281,7 @@ export default function SecretsScreen() {
   // Main secrets list
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
       <AppBar
         title={t('secrets.screenTitle')}
         right={<IconCircle icon="plus" onPress={() => setShowCreateDialog(true)} />}

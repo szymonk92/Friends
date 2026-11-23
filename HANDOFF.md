@@ -4,22 +4,21 @@
 Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom graph useful, make the UI consistent (fz design system).
 
 ## State (2026-11-23)
-PR #10 merged to `main` (2ba7bc9). `npm run ci` green, 364 tests. Build on phone R5CY141Z1DD is current.
-- `done`: 01–06, 08–12, 14–23 (graph, bugs, tokens, Paper→fz theme, buttons/AppBar)
-- Open: **07** (redesign old screens, L) and **13** (secrets, partial)
-- Deps bumped within SDK 57 (expo 57.0.33). No SDK 58 yet.
+- `main`: PR #10 merged (graph, bugs, tokens, Paper→fz theme).
+- PR #11 `claude/secrets-hardening`: #13 secrets (Argon2id password mode, legacy XOR dropped, backup stays on) + #07 remaining screens → fz. Code done, **device check pending** (issues stay `in-progress`).
+- PR #12 `claude/sdk-58` (stacked on #11, base = secrets-hardening): Expo SDK 58 / RN 0.88.1 / React 19.3. `npm run ci` green (368 tests), release APK builds and starts on R5CY141Z1DD, **not yet exercised by hand**.
 
-## Open issues
-- **#07**: BrainDumpSection done. Left, one screen at a time with device feedback: settings sub-components (AIConfiguration, AppearanceSettings, LanguageSelector → `SettingsRow`), review-extractions, food-quiz (4 components), person/[id] children (PartnerBadge, SocialLinksStrip, PhotoBrowser), home ⋮ Paper `Menu`, menu screen, SecretsSetup. They already get fz colours from the theme; remaining work is structural.
-- **#13**: XChaCha20-Poly1305 + legacy upgrade + wipe on delete done. Needs decisions: (a) password mode: salted PBKDF2/Argon2, store a verifier not the key (flow redesign, existing password secrets must migrate); (b) `allowBackup=false` (users lose Android backup of the DB).
+## Device checklist (one build covers #07 + #13 + SDK 58)
+- Secrets: biometric create/view/delete; password setup + unlock (Argon2 time on Hermes, tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s). Old XOR secrets are intentionally unreadable.
+- #07 screens: Settings, Menu, Home ⋮ sheet, Review extractions (+ edit dialog), Food quiz swipe, Secrets setup.
+- SDK 58 regressions: graph pan/pinch/tap, notifications, SQLite data intact, photos, sharing/export, Sentry init, status bar look (RN 0.88 dropped StatusBar `backgroundColor`/`translucent`).
 
-## Next: SDK 58 migration (own branch, not mixed with features)
-Stable since 2026-09-29, now 58.0.26 → ready. Target: RN 0.86.3→0.88.1, reanimated 4.5→4.7, worklets 0.10→0.13, screens 4.26→4.30, skia 2.6→2.14, gesture-handler 2.32→**3.3 (major)**.
-1. `npx expo install expo@^58 --fix`, read the SDK 58 changelog for breaking changes.
-2. Gesture-handler 3: re-check `components/graph/ForceDirectedGraph.tsx` (Pan/Pinch/Tap, `runOnJS`, `onBegin/onFinalize`) and the app root.
-3. Native dirs are checked in and don't follow package.json: compare `android/` with a fresh `expo prebuild` in a temp dir and port the diff; don't run `prebuild --clean` over hand-tweaks.
-4. Also consider: sentry-react-native 8, async-storage 3, @anthropic-ai/sdk 1.x (separate, after SDK).
-5. `npm run ci`, device check of graph gestures, secrets, notifications, SQLite.
+## SDK 58 notes
+- Clean install needed (`rm -rf node_modules package-lock.json && npm install`); `expo-symbols ~58` added explicitly (expo-router peer). Removed unused `@testing-library/*` (no tests use them; expo-router 58 wants RNTL 14 + test-renderer).
+- Native: ported from a fresh `expo prebuild` in a temp dir: Gradle 9.4.1, `android.builtInKotlin=false`/`newDsl=false`, `proguard-android-optimize.txt`, `sentry.gradle.kts`. R8 (`enableMinifyInReleaseBuilds`) deliberately NOT enabled.
+- Skia 2.14: `Skia.Path.Circle()` instead of `Make().addCircle`. RN 0.88: `ViewToken` not exported; FlatList header/empty must be `undefined`, not `null`.
+- Still on old majors, separate task: async-storage 3, @anthropic-ai/sdk 1.x, drizzle 0.45.
+- iOS not rebuilt (`ios/` is gitignored, local only).
 
 ## Key paths
 - Graph: `app/network.tsx`, `components/graph/*`, `lib/graph/{layout,suggestions}.ts`
@@ -27,7 +26,7 @@ Stable since 2026-09-29, now 58.0.26 → ready. Target: RN 0.86.3→0.88.1, rean
 - Secrets: `lib/crypto/aead.ts`, `lib/crypto/biometric-secrets.ts`
 
 ## Gotchas
-- Android build: `export $(grep '^SENTRY_AUTH_TOKEN=' .env.local)` then `./gradlew assembleRelease` from `android/`. **Check the exit code, not a piped `tail`** (a piped failure once installed a stale APK).
+- Android build (check exit code!): `export $(grep '^SENTRY_AUTH_TOKEN=' .env.local)` then `./gradlew assembleRelease` from `android/`. **Check the exit code, not a piped `tail`** (a piped failure once installed a stale APK).
 - Semgrep malware-firewall proxy (`~/.gradle/gradle.properties`, mfw block) → JDK 17 gives SSL PKIX errors on Maven. Fix per build: copy JDK17 `cacerts`, `keytool -importcert` `~/.semgrep/mfw/ca.pem`, then `JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=<copy> -Djavax.net.ssl.trustStorePassword=changeit"`.
 - Phone copy is debug-signed: `apksigner sign --ks android/app/debug.keystore` (pass `android`, alias `androiddebugkey`) then `adb install -r`. Never uninstall.
 - Graph: page ScrollView is locked while touching the graph (`onTouchingChange`); pinch zooms around the selected person if any.

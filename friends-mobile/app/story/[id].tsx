@@ -332,7 +332,7 @@ export default function StoryDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <AppBar title={t('storyDetail.story')} right={actions} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={fz.ink} />
@@ -344,7 +344,7 @@ export default function StoryDetailScreen() {
   if (!story) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <AppBar title={t('storyDetail.notFoundTitle')} right={actions} />
         <View style={styles.centered}>
           <RNText style={fzText.sub}>{t('storyDetail.notFound')}</RNText>
@@ -364,7 +364,7 @@ export default function StoryDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       <AppBar title={story.title || t('storyDetail.details')} right={actions} />
 

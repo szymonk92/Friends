@@ -36,7 +36,7 @@ export default function DocumentationScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       <AppBar title={t('documentation.documentation')} />
 

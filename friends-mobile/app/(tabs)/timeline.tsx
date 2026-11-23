@@ -308,7 +308,7 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       {/* App bar */}
       <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>

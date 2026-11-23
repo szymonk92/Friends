@@ -17,7 +17,7 @@ export function NoteScreenShell({
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
       <AppBar title={title} right={right} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

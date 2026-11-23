@@ -96,10 +96,10 @@ export function PersonPickerModal({
                 {create.hint && <Text style={fzText.sub}>{create.hint}</Text>}
               </View>
             </Pressable>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
-          create ? null : (
+          create ? undefined : (
           <Text style={[fzText.sub, styles.empty]}>
             {t('comparePicker.noMatch', { query: typed })}
           </Text>

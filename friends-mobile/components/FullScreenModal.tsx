@@ -22,7 +22,7 @@ export function FullScreenModal({
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <View style={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom }]}>
-        <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.bar}>
           <HeaderBack onPress={onClose} />
           <Text style={[fzText.screenTitle, styles.title]} numberOfLines={1}>

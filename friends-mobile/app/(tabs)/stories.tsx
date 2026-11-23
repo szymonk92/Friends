@@ -99,7 +99,7 @@ export default function StoriesListScreen() {
 
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
+      <StatusBar barStyle="dark-content" />
 
       {/* App bar */}
       <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
