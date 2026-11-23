@@ -1,8 +1,10 @@
 import { ScrollView, StyleSheet } from 'react-native';
-import { Text, Card, Button, Portal, TextInput } from 'react-native-paper';
+import { Text, Button, Portal, TextInput } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
 import { getBiometricTypeName } from '@/lib/crypto/biometric-secrets';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { FormSection } from '@/components/FormKit';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 
 interface SecretsSetupProps {
@@ -38,70 +40,49 @@ export default function SecretsSetup({
   return (
     <>
       <ScrollView contentContainerStyle={styles.centered}>
-        <Text variant="headlineSmall" style={styles.title}>
-          {t('secrets.secureTitle')}
-        </Text>
+        <Text style={[fzText.titleLg, styles.title]}>{t('secrets.secureTitle')}</Text>
 
-        {hasBiometrics ? (
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              <Text variant="bodyMedium" style={styles.infoText}>
+        <FormSection style={styles.infoCard}>
+          {hasBiometrics ? (
+            <>
+              <Text style={fzText.body}>
                 {t('secrets.bioEncrypted')}{' '}
-                <Text style={styles.bold}>
-                  {getBiometricTypeName(biometricStatus.biometricType)}
-                </Text>
-                .
+                <Text style={styles.bold}>{getBiometricTypeName(biometricStatus.biometricType)}</Text>.
               </Text>
-              <Text variant="bodySmall" style={styles.infoSubtext}>
-                {t('secrets.bioBullets')}
+              <Text style={[fzText.sub, styles.infoSubtext]}>{t('secrets.bioBullets')}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={fzText.body}>
+                {t('secrets.noBio')} <Text style={styles.bold}>{t('secrets.passwordWord')}</Text>.
               </Text>
-            </Card.Content>
-          </Card>
-        ) : (
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              <Text variant="bodyMedium" style={styles.infoText}>
-                {t('secrets.noBio')}{' '}
-                <Text style={styles.bold}>{t('secrets.passwordWord')}</Text>.
-              </Text>
-              <Text variant="bodySmall" style={[styles.infoSubtext, styles.warningText]}>
-                {t('secrets.important')}
-              </Text>
-            </Card.Content>
-          </Card>
-        )}
+              <Text style={[fzText.sub, styles.infoSubtext, { color: fz.warn }]}>{t('secrets.important')}</Text>
+            </>
+          )}
+        </FormSection>
 
         {hasBiometrics ? (
-          <Button
-            mode="contained"
-            icon="fingerprint"
+          <PrimaryButton
+            label={initializeSecrets.isPending ? t('secrets.settingUp') : t('secrets.useBiometrics')}
             onPress={handleSetup}
-            loading={initializeSecrets.isPending}
             disabled={initializeSecrets.isPending}
             style={styles.setupButton}
-          >
-            {initializeSecrets.isPending ? t('secrets.settingUp') : t('secrets.useBiometrics')}
-          </Button>
+          />
         ) : (
-          <Button
-            mode="contained"
-            icon="lock"
+          <PrimaryButton
+            label={t('secrets.setUpPassword')}
             onPress={() => setShowPasswordSetupDialog(true)}
             style={styles.setupButton}
-          >
-            {t('secrets.setUpPassword')}
-          </Button>
+          />
         )}
 
         {hasBiometrics && (
-          <Button
-            mode="outlined"
-            icon="lock"
+          <PrimaryButton
+            variant="outline"
+            label={t('secrets.usePasswordInstead')}
             onPress={() => setShowPasswordSetupDialog(true)}
             style={styles.alternativeButton}
-          >
-            {t('secrets.usePasswordInstead')}
-          </Button>
+          />
         )}
       </ScrollView>
 
@@ -195,7 +176,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   infoCard: {
-    marginHorizontal: 20,
+    alignSelf: 'stretch',
     marginBottom: 24,
   },
   infoText: {
@@ -214,12 +195,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   setupButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
+    alignSelf: 'stretch',
   },
   alternativeButton: {
+    alignSelf: 'stretch',
     marginTop: 12,
-    paddingHorizontal: 24,
   },
   warningBanner: {
     backgroundColor: fz.warnBg,

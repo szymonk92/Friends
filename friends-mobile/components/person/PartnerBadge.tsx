@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { HeartIcon } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { usePersonConnections } from '@/hooks/useConnections';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { Avatar } from '@/components/Avatar';
+import { fz, fzText } from '@/lib/design/tokens';
 
 type Props = {
   personId: string;
@@ -13,7 +13,6 @@ type Props = {
 
 // Shows existing partners only — "Add partner" lives in the profile's ⋮ menu.
 export default function PartnerBadge({ personId }: Props) {
-  const theme = useTheme();
   const { data: personConnections = [] } = usePersonConnections(personId);
   const { data: allPeople = [] } = usePeople();
 
@@ -38,11 +37,9 @@ export default function PartnerBadge({ personId }: Props) {
           onPress={() => router.push(`/person/${partner.id}`)}
           style={styles.row}
         >
-          <HeartIcon size={14} color={theme.colors.onSurface} weight="fill" />
+          <HeartIcon size={14} color={fz.ink} weight="fill" />
           <Avatar name={partner.name} photoPath={partner.photoPath} size={24} variant="ink" />
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-            {partner.name}
-          </Text>
+          <Text style={fzText.name}>{partner.name}</Text>
         </Pressable>
       ))}
     </View>

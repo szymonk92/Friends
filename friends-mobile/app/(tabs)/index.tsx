@@ -8,7 +8,7 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
-import { Text, ActivityIndicator, Button, Menu, Divider } from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +22,7 @@ import { ChainLogo } from '@/components/ChainLogo';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { ActionSheet, type ActionSheetAction } from '@/components/ActionSheet';
 import { getDaysUntilBirthday, hasExactBirthday } from '@/lib/notifications/birthday-reminders';
 
 export default function PeopleListScreen() {
@@ -34,7 +35,6 @@ export default function PeopleListScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [menuKey, setMenuKey] = useState(0);
   const [showCategoryDividers, setShowCategoryDividers] = useState(true);
   const [viewMode, setViewMode] = useState<'network' | 'all'>('network');
   // Deep link from a person's tag menu: /?tag=<tag> filters everyone with that tag.
@@ -133,7 +133,7 @@ export default function PeopleListScreen() {
     return (
       <View style={s.centered}>
         <Text style={{ ...fzText.sub, marginBottom: 16 }}>{t('people.error')}</Text>
-        <Button mode="contained" onPress={() => refetch()}>{t('common.retry')}</Button>
+        <PrimaryButton onPress={() => refetch()} label={t('common.retry')} />
       </View>
     );
   }
@@ -141,8 +141,26 @@ export default function PeopleListScreen() {
   const hasActiveFilters =
     searchQuery || selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
+  const menuActions: ActionSheetAction[] = [
+    { label: t('common.moreOptions'), icon: 'dotsH', onPress: () => router.push('/menu') },
+    { label: t('navigation.settings'), icon: 'settings', onPress: () => router.push('/settings') },
+    { label: t('importContacts.menu'), icon: 'accountPlus', onPress: () => router.push('/import-contacts') },
+    { label: t('dietChecklist.title'), icon: 'tag', onPress: () => router.push('/diet-checklist') },
+    { label: t('people.sortByName'), icon: sortBy === 'name' ? 'check' : 'sort', divider: true, onPress: () => setSortBy('name') },
+    { label: t('people.sortByRecent'), icon: sortBy === 'date' ? 'check' : 'clock', onPress: () => setSortBy('date') },
+    { label: t('people.sortByImportance'), icon: sortBy === 'importance' ? 'check' : 'heart', onPress: () => setSortBy('importance') },
+    {
+      label: showCategoryDividers ? t('people.hideCategoryDividers') : t('people.showCategoryDividers'),
+      icon: showCategoryDividers ? 'eyeOff' : 'eye',
+      divider: true,
+      onPress: () => setShowCategoryDividers(!showCategoryDividers),
+    },
+    { label: t('people.clearFilters'), icon: 'filterRemove', disabled: !hasActiveFilters, onPress: clearAllFilters },
+  ];
+
   return (
     <View style={s.container}>
+      <ActionSheet visible={menuVisible} actions={menuActions} onDismiss={() => setMenuVisible(false)} />
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}
@@ -156,73 +174,7 @@ export default function PeopleListScreen() {
             <View style={s.appBarActions}>
               <IconCircle icon="search" onPress={() => setSearchVisible(true)} />
               <IconCircle icon="plus" onPress={() => router.push('/modal')} />
-              <Menu
-                key={menuKey}
-                visible={menuVisible}
-                onDismiss={() => {
-                  setMenuVisible(false);
-                  setMenuKey((p) => p + 1);
-                }}
-                anchor={
-                  <IconCircle
-                    icon="more"
-                    fill="transparent"
-                    onPress={() => {
-                      setMenuVisible(!menuVisible);
-                      if (!menuVisible) setMenuKey((p) => p + 1);
-                    }}
-                  />
-                }
-              >
-                <Menu.Item
-                  onPress={() => { setMenuVisible(false); router.push('/menu'); }}
-                  title={t('common.moreOptions') || 'More Options'}
-                  leadingIcon="dots-horizontal"
-                />
-                <Menu.Item
-                  onPress={() => { setMenuVisible(false); router.push('/settings'); }}
-                  title={t('navigation.settings')}
-                  leadingIcon="cog"
-                />
-                <Menu.Item
-                  onPress={() => { setMenuVisible(false); router.push('/import-contacts'); }}
-                  title={t('importContacts.menu')}
-                  leadingIcon="contacts"
-                />
-                <Menu.Item
-                  onPress={() => { setMenuVisible(false); router.push('/diet-checklist'); }}
-                  title={t('dietChecklist.title')}
-                  leadingIcon="food-apple-outline"
-                />
-                <Divider />
-                <Menu.Item
-                  onPress={() => { setSortBy('name'); setMenuVisible(false); }}
-                  title={t('people.sortByName')}
-                  leadingIcon={sortBy === 'name' ? 'check' : 'sort-alphabetical-ascending'}
-                />
-                <Menu.Item
-                  onPress={() => { setSortBy('date'); setMenuVisible(false); }}
-                  title={t('people.sortByRecent')}
-                  leadingIcon={sortBy === 'date' ? 'check' : 'clock-outline'}
-                />
-                <Menu.Item
-                  onPress={() => { setSortBy('importance'); setMenuVisible(false); }}
-                  title={t('people.sortByImportance')}
-                  leadingIcon={sortBy === 'importance' ? 'check' : 'star'}
-                />
-                <Divider />
-                <Menu.Item
-                  onPress={() => { setShowCategoryDividers(!showCategoryDividers); setMenuVisible(false); }}
-                  title={showCategoryDividers ? t('people.hideCategoryDividers') : t('people.showCategoryDividers')}
-                  leadingIcon={showCategoryDividers ? 'eye-off' : 'eye'}
-                />
-                <Menu.Item
-                  onPress={() => { setMenuVisible(false); clearAllFilters(); }}
-                  title={t('people.clearFilters')}
-                  leadingIcon="filter-remove"
-                  disabled={!hasActiveFilters}
-                />
-              </Menu>
+              <IconCircle icon="more" fill="transparent" onPress={() => setMenuVisible(true)} />
             </View>
           </View>
         ) : (
