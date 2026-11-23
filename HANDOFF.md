@@ -4,9 +4,9 @@
 Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom graph useful, make the UI consistent (fz design system).
 
 ## State (2026-11-23)
-- `main`: PR #10 merged (graph, bugs, tokens, Paper→fz theme).
-- PR #11 `claude/secrets-hardening`: #13 secrets (Argon2id password mode, legacy XOR dropped, backup stays on) + #07 remaining screens → fz. Code done, **device check pending** (issues stay `in-progress`).
-- PR #12 `claude/sdk-58` (stacked on #11, base = secrets-hardening): Expo SDK 58 / RN 0.88.1 / React 19.3. `npm run ci` green (368 tests), release APK builds and starts on R5CY141Z1DD, **not yet exercised by hand**.
+- `main`: PR #10, #11 (#13 Argon2id secrets + #07 screens → fz, both `done`) and #12 (Expo SDK 58 / RN 0.88.1 / React 19.3) merged. `npm run ci` green (368 tests).
+- Verified on R5CY141Z1DD: new secrets (biometric) work, old XOR ones are intentionally unreadable, Settings redesign OK.
+- Not hand-tested: password mode (Argon2 unlock time; tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s), graph gestures on gesture-handler 3, notifications.
 
 ## Device checklist (one build covers #07 + #13 + SDK 58)
 - Secrets: biometric create/view/delete; password setup + unlock (Argon2 time on Hermes, tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s). Old XOR secrets are intentionally unreadable.
