@@ -107,7 +107,8 @@ export function useExtractRelations() {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
     },
   });
 }
@@ -298,6 +299,8 @@ export function useAcceptNewConflict() {
 
       if (!pending[0]) throw new Error('Pending extraction not found');
       const extraction = pending[0];
+      // Already resolved (double tap / stale card): don't insert the relation twice.
+      if (extraction.reviewStatus !== 'pending') return { success: true };
 
       // Archive the conflicting old relation
       if (extraction.conflictingRelationId) {
@@ -331,7 +334,8 @@ export function useAcceptNewConflict() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });
@@ -355,6 +359,8 @@ export function useAcceptBothConflict() {
 
       if (!pending[0]) throw new Error('Pending extraction not found');
       const extraction = pending[0];
+      // Already resolved (double tap / stale card): don't insert the relation twice.
+      if (extraction.reviewStatus !== 'pending') return { success: true };
 
       // Insert new relation without touching the old one
       await db.insert(relations).values({
@@ -380,7 +386,8 @@ export function useAcceptBothConflict() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pendingExtractions'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-extractions'] });
+      queryClient.invalidateQueries({ queryKey: ['story-extractions'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
     },
   });

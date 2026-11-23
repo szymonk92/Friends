@@ -1,6 +1,6 @@
 # 08 — AI extraction invalidates wrong query key → stale conflicts, duplicate relations
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P1 · **Effort:** S
 

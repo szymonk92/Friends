@@ -9,7 +9,7 @@
 | [05](05-fzdialog-migration.md) | Migrate Paper `Dialog` to `FzDialog` | todo | none | P2 |
 | [06](06-shared-buttons-cards-appbar.md) | Shared PrimaryButton / FzCard / AppBar / EmptyState | todo | 04 | P2 |
 | [07](07-redesign-old-screens.md) | Redesign remaining old-style screens | todo | 04, 05, 06 | P2 |
-| [08](08-extraction-wrong-query-key.md) | AI extraction invalidates wrong query key → stale conflicts, duplicate relations | todo | none | P1 |
+| [08](08-extraction-wrong-query-key.md) | AI extraction invalidates wrong query key → stale conflicts, duplicate relations | done | none | P1 |
 | [09](09-dates-utc-off-by-one.md) | Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff | todo | none | P1 |
 | [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | todo | none | P1 |
 | [11](11-birthday-notifications-not-rescheduled.md) | Birthday notifications not rescheduled on edit/delete | todo | 10 | P1 |
