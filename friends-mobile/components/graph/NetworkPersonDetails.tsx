@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { fz, fzText } from '@/lib/design/tokens';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { RelationIcon } from '@/components/RelationIcon';
 import {
   LIKES,
@@ -86,13 +87,7 @@ export default function NetworkPersonDetails({
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.profileBtn}
-        onPress={() => router.push(`/person/${person.id}`)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.profileBtnText}>{t('connections.openProfile')}</Text>
-      </TouchableOpacity>
+      <PrimaryButton label={t('connections.openProfile')} onPress={() => router.push(`/person/${person.id}`)} />
 
       {links.length > 0 && (
         <>
@@ -183,14 +178,6 @@ const styles = StyleSheet.create({
     marginVertical: fz.s.md,
   },
   contentWrapper: {},
-  profileBtn: {
-    backgroundColor: fz.ink,
-    height: 44,
-    borderRadius: fz.rButton,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileBtnText: { ...fzText.chipOn, fontSize: 15, fontWeight: '600' },
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',

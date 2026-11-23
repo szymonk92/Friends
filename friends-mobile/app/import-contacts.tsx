@@ -20,7 +20,7 @@ import {
   type ImportDecision,
 } from '@/hooks/useContactsImport';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 import { fzAlert } from '@/lib/utils/confirm';
 
@@ -209,19 +209,22 @@ export default function ImportContactsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}
-      <View style={[s.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={s.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <View style={s.titleWrap}>
-            <Text style={fzText.screenTitle}>{t('importContacts.title')}</Text>
-            <Text style={fzText.meta}>
-              {t('importContacts.counts', { selected: selected.size, total: rows.length })}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={toggleAll} disabled={selectableCount === 0}>
-            <Text style={fzText.chipSolid}>{allSelected ? t('importContacts.clear') : t('importContacts.selectAll')}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={s.appBar}>
+        <AppBar
+          title={
+            <View style={s.titleWrap}>
+              <Text style={fzText.screenTitle}>{t('importContacts.title')}</Text>
+              <Text style={fzText.meta}>
+                {t('importContacts.counts', { selected: selected.size, total: rows.length })}
+              </Text>
+            </View>
+          }
+          right={
+            <TouchableOpacity onPress={toggleAll} disabled={selectableCount === 0}>
+              <Text style={fzText.chipSolid}>{allSelected ? t('importContacts.clear') : t('importContacts.selectAll')}</Text>
+            </TouchableOpacity>
+          }
+        />
 
         {/* search */}
         <View style={[s.searchRow, { paddingBottom: fz.s.md }]}>
@@ -351,11 +354,7 @@ const s = StyleSheet.create({
     padding: 32, backgroundColor: fz.paper,
   },
   appBar: { backgroundColor: fz.paper },
-  appBarRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: fz.s.edge, paddingBottom: fz.s.sm,
-  },
-  titleWrap: { flex: 1 },
+  titleWrap: { alignItems: 'center' },
   searchRow: { paddingHorizontal: fz.s.edge, paddingTop: fz.s.xs },
   searchInput: {
     height: 42, borderRadius: fz.rPill, backgroundColor: fz.surface,

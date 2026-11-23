@@ -1,7 +1,5 @@
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, StatusBar, ScrollView, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
-import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { usePeople, type PersonWithPhoto } from '@/hooks/usePeople';
 import { useMePerson } from '@/hooks/usePeople';
@@ -9,7 +7,7 @@ import { useRelations } from '@/hooks/useRelations';
 import { LIKES } from '@/lib/constants/relations';
 import { getInitials } from '@/lib/utils/format';
 import { fz, fzText } from '@/lib/design/tokens';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { useTranslation } from 'react-i18next';
 
 type Interest = {
@@ -19,7 +17,6 @@ type Interest = {
 
 export default function SharedInterestsScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: me } = useMePerson();
   const { data: relations = [], isLoading: loadingRelations } = useRelations();
@@ -56,12 +53,8 @@ export default function SharedInterestsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
-      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <Text style={fzText.screenTitle}>{t('sharedInterests.title')}</Text>
-          <View style={{ width: 38 }} />
-        </View>
+      <View style={styles.appBar}>
+        <AppBar title={t('sharedInterests.title')} />
         <Text style={[fzText.meta, styles.subtitle]}>{t('sharedInterests.subtitle')}</Text>
       </View>
 
@@ -111,12 +104,6 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptySub: { marginTop: 8, textAlign: 'center' },
   appBar: { backgroundColor: fz.paper },
-  appBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge,
-  },
   subtitle: {
     paddingHorizontal: fz.s.edge,
     paddingTop: 2,

@@ -21,6 +21,7 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { ChainLogo } from '@/components/ChainLogo';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { getDaysUntilBirthday, hasExactBirthday } from '@/lib/notifications/birthday-reminders';
 
 export default function PeopleListScreen() {
@@ -295,22 +296,8 @@ export default function PeopleListScreen() {
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24 }]}>
             {t('people.noPeopleDesc')}
           </Text>
-          <TouchableOpacity
-            style={s.primaryBtn}
-            onPress={() => router.push('/modal')}
-            activeOpacity={0.8}
-          >
-            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>
-              {t('people.addPerson')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.secondaryBtn}
-            onPress={() => router.push('/import-contacts')}
-            activeOpacity={0.8}
-          >
-            <Text style={fzText.btnOutline}>{t('importContacts.menu')}</Text>
-          </TouchableOpacity>
+          <PrimaryButton label={t('people.addPerson')} onPress={() => router.push('/modal')} />
+          <PrimaryButton label={t('importContacts.menu')} onPress={() => router.push('/import-contacts')} variant="outline" style={{ marginTop: 12 }} />
         </View>
       )}
       {filteredPeople.length === 0 && searchQuery && (
@@ -404,15 +391,6 @@ const s = StyleSheet.create({
   chipsRow: { paddingHorizontal: fz.s.edge, paddingBottom: fz.s.md },
   chipsContent: { gap: 8, paddingRight: fz.s.edge },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  primaryBtn: {
-    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
-    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
-  },
-  secondaryBtn: {
-    height: 50, borderRadius: fz.rButton, paddingHorizontal: 28,
-    justifyContent: 'center', alignItems: 'center', marginTop: 12,
-    borderWidth: 1.5, borderColor: fz.ink,
-  },
   categoryHeader: { paddingHorizontal: fz.s.edge, paddingTop: 18, paddingBottom: 6 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 14,

@@ -1,5 +1,4 @@
 import { relationshipTypeLabel } from '@/lib/i18n/labels';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator, StatusBar, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { usePeople } from '@/hooks/usePeople';
 import { useConnections } from '@/hooks/useConnections';
@@ -13,11 +12,11 @@ import ForceDirectedGraph from '@/components/graph/ForceDirectedGraph';
 import NetworkPersonDetails from '@/components/graph/NetworkPersonDetails';
 import { fz, fzText } from '@/lib/design/tokens';
 import { IconCircle } from '@/components/IconCircle';
-import { HeaderBack } from '@/components/HeaderBack';
+import { AppBar } from '@/components/AppBar';
 import { Pill } from '@/components/Pill';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 export default function NetworkScreen() {
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { data: people = [], isLoading: loadingPeople } = usePeople();
   const { data: connections = [], isLoading: loadingConnections } = useConnections();
@@ -111,21 +110,13 @@ export default function NetworkScreen() {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
-        <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-          <View style={styles.appBarRow}>
-            <HeaderBack onPress={() => router.back()} />
-            <Text style={fzText.screenTitle}>{t('network.title')}</Text>
-            <View style={{ width: 38 }} />
-          </View>
-        </View>
+        <AppBar title={t('network.title')} />
         <View style={styles.empty}>
           <Text style={fzText.title}>{t('network.empty.title')}</Text>
           <Text style={[fzText.sub, { marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
             {t('network.empty.description')}
           </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/')} activeOpacity={0.8}>
-            <Text style={{ ...fzText.chipOn, fontSize: 15, fontWeight: '600' }}>{t('network.empty.addPeople')}</Text>
-          </TouchableOpacity>
+          <PrimaryButton label={t('network.empty.addPeople')} onPress={() => router.push('/')} />
         </View>
       </View>
     );
@@ -139,22 +130,23 @@ export default function NetworkScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={fz.paper} translucent />
 
       {/* App bar */}
-      <View style={[styles.appBar, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.appBarRow}>
-          <HeaderBack onPress={() => router.back()} />
-          <Text style={fzText.screenTitle}>{t('network.title')}</Text>
-          <View style={styles.appBarActions}>
-            <IconCircle icon="heart" onPress={() => router.push('/shared-interests')} />
-            {allTags.length > 0 || relationshipTypes.length > 0 ? (
-              <IconCircle
-                icon="filter"
-                fill={hasActiveFilters ? fz.ink : undefined}
-                color={hasActiveFilters ? fz.paper : fz.ink}
-                onPress={() => setFiltersVisible(!filtersVisible)}
-              />
-            ) : null}
-          </View>
-        </View>
+      <View style={styles.appBar}>
+        <AppBar
+          title={t('network.title')}
+          right={
+            <>
+              <IconCircle icon="heart" onPress={() => router.push('/shared-interests')} />
+              {allTags.length > 0 || relationshipTypes.length > 0 ? (
+                <IconCircle
+                  icon="filter"
+                  fill={hasActiveFilters ? fz.ink : undefined}
+                  color={hasActiveFilters ? fz.paper : fz.ink}
+                  onPress={() => setFiltersVisible(!filtersVisible)}
+                />
+              ) : null}
+            </>
+          }
+        />
 
         {/* Search */}
         <View style={styles.searchRow}>
@@ -274,11 +266,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: fz.paper },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   appBar: { backgroundColor: fz.paper, paddingBottom: fz.s.md },
-  appBarRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: fz.s.edge, paddingBottom: fz.s.sm,
-  },
-  appBarActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchRow: { paddingHorizontal: fz.s.edge },
   searchInput: {
     height: 44, borderRadius: fz.rPill, backgroundColor: fz.surface,
@@ -310,8 +297,4 @@ const styles = StyleSheet.create({
   },
   noMatches: { height: 450, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  primaryBtn: {
-    backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,
-    paddingHorizontal: 28, justifyContent: 'center', alignItems: 'center',
-  },
 });

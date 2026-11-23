@@ -1,6 +1,6 @@
 # 06 — Shared PrimaryButton / FzCard / AppBar / EmptyState
 
-**Status:** todo
+**Status:** in-progress
 **Depends on:** 04
 **Priority:** P2 · **Effort:** M
 
@@ -16,3 +16,10 @@ Same element = same component. Today ~20 hand-rolled ink buttons, 15 copies of t
 
 ## Out of scope
 New visual design — extraction only, pixels should stay the same.
+
+## Result
+- [x] `components/PrimaryButton.tsx` (solid / outline): (tabs)/index ×2, stories ×2, network empty state, NetworkPersonDetails
+- [x] Shared `AppBar` instead of local rows: network (both states), shared-interests, import-contacts
+- Paper `mode="contained"` buttons are ink via the theme (#05) — left as is
+- Skipped `FzCard` / `EmptyState` / remaining local ink buttons (onboarding, addStory bottom bar, note, pickers): same values already, so extraction is churn without visual change. Do it when one of them needs to change.
+- [ ] Verify on device: network, shared-interests, import-contacts headers; empty states on People/Stories
