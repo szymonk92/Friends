@@ -11,9 +11,10 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
 import { Dimensions, LogBox, View, StyleSheet, Animated, PanResponder } from 'react-native';
-import { Text, Button } from 'react-native-paper';
+import { Text } from 'react-native';
 import { LIKES, DISLIKES, MEDIUM } from '@/lib/constants/relations';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { PrimaryButton } from '@/components/PrimaryButton';
 
 import QuizCard from '@/components/food-quiz/QuizCard';
 import QuizControls from '@/components/food-quiz/QuizControls';
@@ -301,13 +302,11 @@ export default function FoodQuizScreen() {
       <>
         <AppBar title={t('foodQuiz.title')} />
         <CenteredContainer style={styles.centered}>
-          <Text variant="titleLarge">{t('foodQuiz.noPrimary')}</Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={fzText.title}>{t('foodQuiz.noPrimary')}</Text>
+          <Text style={[fzText.sub, styles.emptyText]}>
             {t('foodQuiz.noPrimaryMessage')}
           </Text>
-          <Button mode="contained" onPress={() => router.back()}>
-            {t('person.goBack')}
-          </Button>
+          <PrimaryButton label={t('person.goBack')} onPress={() => router.back()} />
         </CenteredContainer>
       </>
     );
@@ -319,13 +318,11 @@ export default function FoodQuizScreen() {
         <AppBar title={t('foodQuiz.title')} />
         <CenteredContainer style={styles.centered}>
           <Text style={styles.completeIcon}>✅</Text>
-          <Text variant="titleLarge">{t('foodQuiz.allAnswered')}</Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
+          <Text style={fzText.title}>{t('foodQuiz.allAnswered')}</Text>
+          <Text style={[fzText.sub, styles.emptyText]}>
             {t('foodQuiz.allAnsweredMessage')}
           </Text>
-          <Button mode="contained" onPress={() => router.back()}>
-            {t('person.goBack')}
-          </Button>
+          <PrimaryButton label={t('person.goBack')} onPress={() => router.back()} />
         </CenteredContainer>
       </>
     );
@@ -379,7 +376,6 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     marginVertical: 16,
-    opacity: 0.7,
   },
   cardContainer: {
     alignItems: 'center',

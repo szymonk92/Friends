@@ -1,6 +1,7 @@
 import { Linking, StyleSheet } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { IconButton, useTheme } from 'react-native-paper';
+import { IconButton } from 'react-native-paper';
+import { fz } from '@/lib/design/tokens';
 import {
   buildSocialUrl,
   platformIcon,
@@ -16,7 +17,6 @@ type Props = {
 
 export default function SocialLinksStrip({ links }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   if (!links.length) return null;
 
   const open = async (link: SocialLink) => {
@@ -48,7 +48,7 @@ export default function SocialLinksStrip({ links }: Props) {
           onPress={() => open(link)}
           onLongPress={() => copyHandle(link)}
           accessibilityLabel={`${platformLabel(link.platform)}: ${link.handle}`}
-          iconColor={theme.colors.primary}
+          iconColor={fz.ink}
           style={styles.icon}
         />
       ))}

@@ -1,5 +1,4 @@
-import { StyleSheet, ScrollView, View } from 'react-native';
-import { Button, List } from 'react-native-paper';
+import { StyleSheet, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
 import {
@@ -13,7 +12,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { FormSection } from '@/components/FormKit';
 import ExportImportSettings from '@/components/settings/ExportImportSettings';
 import DataStatistics from '@/components/settings/DataStatistics';
@@ -127,16 +127,11 @@ export default function MenuScreen() {
       <AppBar title={t('common.moreOptions')} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <FormSection title={t('settings.security')} hint={t('settingsScreen.secretsIntro')}>
-          <Button
-            mode="outlined"
+          <PrimaryButton
+            variant="outline"
             onPress={() => router.push('/secrets')}
-            icon="shield-lock"
-            textColor={fz.ink}
-            style={[styles.button, styles.lastButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('settingsScreen.manageSecrets')}
-          </Button>
+            label={t('settingsScreen.manageSecrets')}
+          />
         </FormSection>
 
         <BirthdayReminderSettingsSection
@@ -145,66 +140,39 @@ export default function MenuScreen() {
           handleBirthdaySettingChange={handleBirthdaySettingChange}
         />
 
-        <FormSection
-          title={t('settings.experimental')}
-          hint={t('menu.experimentalHint')}
-        >
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/network')}
-            icon="share-variant"
-            textColor={fz.ink}
-            style={styles.button}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('menu.networkGraph')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/party-planner')}
-            icon="party-popper"
-            textColor={fz.ink}
-            style={styles.button}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('menu.partyPlanner')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/food-quiz')}
-            icon="food"
-            textColor={fz.ink}
-            style={[styles.button, styles.lastButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('foodQuiz.title')}
-          </Button>
+        <FormSection title={t('settings.experimental')} hint={t('menu.experimentalHint')}>
+          <View style={styles.stack}>
+            <PrimaryButton
+              variant="outline"
+              onPress={() => router.push('/network')}
+              label={t('menu.networkGraph')}
+            />
+            <PrimaryButton
+              variant="outline"
+              onPress={() => router.push('/party-planner')}
+              label={t('menu.partyPlanner')}
+            />
+            <PrimaryButton
+              variant="outline"
+              onPress={() => router.push('/food-quiz')}
+              label={t('foodQuiz.title')}
+            />
+          </View>
         </FormSection>
 
-        <FormSection
-          title={t('settings.developerTools')}
-          hint={t('menu.devHint')}
-        >
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/dev')}
-            icon="code-tags"
-            textColor={fz.ink}
-            style={styles.button}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('menu.openDev')}
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/developer/playground' as any)}
-            icon="test-tube"
-            textColor={fz.ink}
-            style={[styles.button, styles.lastButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            {t('menu.playground')}
-          </Button>
+        <FormSection title={t('settings.developerTools')} hint={t('menu.devHint')}>
+          <View style={styles.stack}>
+            <PrimaryButton
+              variant="outline"
+              onPress={() => router.push('/dev')}
+              label={t('menu.openDev')}
+            />
+            <PrimaryButton
+              variant="outline"
+              onPress={() => router.push('/developer/playground' as any)}
+              label={t('menu.playground')}
+            />
+          </View>
         </FormSection>
 
         <ExportImportSettings
@@ -222,21 +190,16 @@ export default function MenuScreen() {
         <DataStatistics stats={stats} loading={statsLoading} />
 
         <FormSection title={t('settings.about')}>
-          <List.Item
-            title={t('settingsScreen.appName')}
-            description={t('settingsScreen.appDesc')}
-            left={(props) => <List.Icon {...props} icon="account-group" />}
-          />
-          <List.Item
-            title={t('settingsScreen.version')}
-            description="1.0.0"
-            left={(props) => <List.Icon {...props} icon="information" />}
-          />
-          <List.Item
-            title={t('settingsScreen.dataStorage')}
-            description={t('settingsScreen.dataStorageDesc')}
-            left={(props) => <List.Icon {...props} icon="database" />}
-          />
+          {[
+            [t('settingsScreen.appName'), t('settingsScreen.appDesc')],
+            [t('settingsScreen.version'), '1.0.0'],
+            [t('settingsScreen.dataStorage'), t('settingsScreen.dataStorageDesc')],
+          ].map(([title, desc]) => (
+            <View key={title} style={styles.aboutRow}>
+              <Text style={fzText.name}>{title}</Text>
+              <Text style={fzText.sub}>{desc}</Text>
+            </View>
+          ))}
         </FormSection>
 
         <View style={styles.spacer} />
@@ -253,17 +216,11 @@ const styles = StyleSheet.create({
   content: {
     padding: fz.s.edge,
   },
-  button: {
-    borderRadius: fz.rButton,
-    borderColor: fz.outline,
-    marginBottom: fz.s.md,
+  stack: {
+    gap: fz.s.md,
   },
-  lastButton: {
-    marginBottom: 0,
-  },
-  buttonLabel: {
-    fontFamily: fz.font,
-    fontWeight: '600',
+  aboutRow: {
+    paddingVertical: fz.s.sm,
   },
   spacer: {
     height: fz.s.xxl,

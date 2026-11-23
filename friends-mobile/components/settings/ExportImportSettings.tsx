@@ -1,7 +1,6 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
-import { Button } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
 import { fz } from '@/lib/design/tokens';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { FormSection } from '@/components/FormKit';
 import { useTranslation } from 'react-i18next';
 
@@ -31,84 +30,41 @@ export default function ExportImportSettings({
   const { t } = useTranslation();
   return (
     <>
-      <FormSection
-        title={t('exportImport.exportTitle')}
-        hint={t('exportImport.exportHint')}
-      >
-        <Button
-          mode="contained"
-          buttonColor={fz.ink}
-          textColor={fz.paper}
-          onPress={handleExportJSON}
-          loading={exportDataPending}
-          disabled={exportDataPending}
-          icon="file-export"
-          style={styles.button}
-          labelStyle={styles.buttonLabel}
-        >
-          {t('exportImport.json')}
-        </Button>
+      <FormSection title={t('exportImport.exportTitle')} hint={t('exportImport.exportHint')}>
+        <View style={styles.stack}>
+          <PrimaryButton
+            onPress={handleExportJSON}
+            disabled={exportDataPending}
+            label={t('exportImport.json')}
+          />
 
-        <Button
-          mode="outlined"
-          textColor={fz.ink}
-          onPress={handleExportCSV}
-          loading={exportCSVPending}
-          disabled={exportCSVPending}
-          icon="file-delimited"
-          style={styles.button}
-          labelStyle={styles.buttonLabel}
-        >
-          {t('exportImport.csv')}
-        </Button>
+          <PrimaryButton
+            variant="outline"
+            onPress={handleExportCSV}
+            disabled={exportCSVPending}
+            label={t('exportImport.csv')}
+          />
 
-        <Button
-          mode="outlined"
-          textColor={fz.ink}
-          onPress={handleExportObsidian}
-          loading={exportObsidianPending}
-          disabled={exportObsidianPending}
-          icon="file-tree"
-          style={[styles.button, styles.lastButton]}
-          labelStyle={styles.buttonLabel}
-        >
-          {t('exportImport.obsidian')}
-        </Button>
+          <PrimaryButton
+            variant="outline"
+            onPress={handleExportObsidian}
+            disabled={exportObsidianPending}
+            label={t('exportImport.obsidian')}
+          />
+        </View>
       </FormSection>
 
-      <FormSection
-        title={t('exportImport.importTitle')}
-        hint={t('exportImport.importHint')}
-      >
-        <Button
-          mode="contained"
-          buttonColor={fz.ink}
-          textColor={fz.paper}
+      <FormSection title={t('exportImport.importTitle')} hint={t('exportImport.importHint')}>
+        <PrimaryButton
           onPress={handleImport}
-          loading={importLoading || importDataPending}
           disabled={importLoading || importDataPending}
-          icon="file-import"
-          style={[styles.button, styles.lastButton]}
-          labelStyle={styles.buttonLabel}
-        >
-          {t('exportImport.importJson')}
-        </Button>
+          label={t('exportImport.importJson')}
+        />
       </FormSection>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: fz.rButton,
-    borderColor: fz.outline,
-    marginBottom: fz.s.md,
-  },
-  lastButton: {
-    marginBottom: 0,
-  },
-  buttonLabel: {
-    fontFamily: fz.font,
-    fontWeight: '600',
-  },
+  stack: { gap: fz.s.md },
 });

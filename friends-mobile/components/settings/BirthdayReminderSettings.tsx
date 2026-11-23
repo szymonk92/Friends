@@ -38,7 +38,9 @@ export default function BirthdayReminderSettings({
   const birthdays = sortByNextBirthday(allPeople);
   const q = foldText(query.trim());
   const shown = q
-    ? birthdays.filter(({ person }) => foldText(`${person.name} ${person.nickname ?? ''}`).includes(q))
+    ? birthdays.filter(({ person }) =>
+        foldText(`${person.name} ${person.nickname ?? ''}`).includes(q)
+      )
     : birthdays;
 
   const toggleReminder = async (id: string, on: boolean) => {
@@ -110,12 +112,19 @@ export default function BirthdayReminderSettings({
             onPress={() => router.push(`/person/${person.id}`)}
             accessibilityRole="button"
           >
-            <Text style={fzText.name} numberOfLines={1}>{person.name}</Text>
+            <Text style={fzText.name} numberOfLines={1}>
+              {person.name}
+            </Text>
             <Text style={fzText.sub}>
               {formatShortDate(nextBirthday)} ·{' '}
               {daysUntil === 0
-                ? t('birthdayReminders.today', { age: t('birthdayReminders.ageYears', { count: age }) })
-                : t('birthdayReminders.inDays', { count: daysUntil, age: t('birthdayReminders.ageYears', { count: age }) })}
+                ? t('birthdayReminders.today', {
+                    age: t('birthdayReminders.ageYears', { count: age }),
+                  })
+                : t('birthdayReminders.inDays', {
+                    count: daysUntil,
+                    age: t('birthdayReminders.ageYears', { count: age }),
+                  })}
             </Text>
           </Pressable>
           <IconButton

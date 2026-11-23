@@ -1,7 +1,7 @@
-import { View, StyleSheet } from 'react-native';
-import { IconButton, Text } from 'react-native-paper';
+import { View, StyleSheet, Text } from 'react-native';
+import { IconButton } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
 import { useTranslation } from 'react-i18next';
 
 interface QuizControlsProps {
@@ -24,7 +24,7 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
           onPress={() => onSwipe('left')}
           style={styles.button}
         />
-        <Text variant="labelMedium" style={styles.label}>{t('foodQuiz.dislike')}</Text>
+        <Text style={fzText.meta}>{t('foodQuiz.dislike')}</Text>
       </View>
       
       <View style={styles.buttonContainer}>
@@ -37,7 +37,7 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
           onPress={() => onSwipe('down')}
           style={styles.smallButton}
         />
-        <Text variant="labelMedium" style={styles.label}>{t('foodQuiz.skip')}</Text>
+        <Text style={fzText.meta}>{t('foodQuiz.skip')}</Text>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -50,7 +50,7 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
           onPress={() => onSwipe('right')}
           style={styles.button}
         />
-        <Text variant="labelMedium" style={styles.label}>{t('foodQuiz.like')}</Text>
+        <Text style={fzText.meta}>{t('foodQuiz.like')}</Text>
       </View>
     </View>
   );
@@ -82,7 +82,4 @@ const styles = StyleSheet.create({
     height: 48,
     marginBottom: 8,
   },
-  label: {
-    opacity: 0.6,
-  }
 });

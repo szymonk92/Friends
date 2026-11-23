@@ -3,6 +3,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import { NONCE_BYTES, open, seal, SEALED_PREFIX } from './aead';
+import { SALT_BYTES, parsePasswordRecord, unwrapDataKey, wrapDataKey } from './password-kdf';
 
 /**
  * Biometric-First Secrets Protection
@@ -28,6 +29,7 @@ export interface AuthenticationResult {
 
 const ENCRYPTION_KEY_ALIAS = 'secrets_encryption_key';
 const KEY_CHECK_ALIAS = 'secrets_key_initialized';
+const PASSWORD_HASH_ALIAS = 'secrets_password_hash'; // legacy, only deleted
 
 /**
  * Check biometric availability on device
@@ -148,9 +150,7 @@ export async function initializeEncryptionKey(): Promise<boolean> {
 
     // Generate a random 256-bit encryption key
     const keyBytes = await Crypto.getRandomBytesAsync(32);
-    const key = Array.from(keyBytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+    const key = toHex(keyBytes);
 
     // Store key in Secure Store (protected by device security)
     await SecureStore.setItemAsync(ENCRYPTION_KEY_ALIAS, key, {
@@ -197,22 +197,19 @@ export async function encryptContent(content: string, key: string): Promise<stri
 }
 
 /**
- * Decrypts `v2:` (authenticated) content; anything else is the legacy repeating-key XOR
- * format from before issue #13, kept readable so existing secrets still open.
+ * Decrypts `v2:` (authenticated) content. The pre-#13 repeating-key XOR format is no longer
+ * supported (dropped deliberately; those secrets are unreadable).
  */
 export async function decryptContent(encrypted: string, key: string): Promise<string> {
-  const keyBytes = hexToBytes(key);
-  if (encrypted.startsWith(SEALED_PREFIX)) return open(encrypted, keyBytes);
-
-  const bytes = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
-  const out = new Uint8Array(bytes.length);
-  for (let i = 0; i < bytes.length; i++) out[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
-  return new TextDecoder().decode(out);
+  if (!encrypted.startsWith(SEALED_PREFIX)) throw new Error('UNSUPPORTED_SECRET_FORMAT');
+  return open(encrypted, hexToBytes(key));
 }
 
 /**
  * Convert hex string to bytes
  */
+const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+
 function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
@@ -227,8 +224,8 @@ function hexToBytes(hex: string): Uint8Array {
 export async function isSecretsSetup(): Promise<boolean> {
   try {
     const initialized = await SecureStore.getItemAsync(KEY_CHECK_ALIAS);
-    // Support both biometric ('true') and password ('password') modes
-    return initialized === 'true' || initialized === 'password';
+    // Biometric ('true') or password mode; a pre-#13 password setup counts as not set up.
+    return initialized === 'true' || (initialized === 'password' && (await isPasswordBasedEncryption()));
   } catch {
     return false;
   }
@@ -251,44 +248,29 @@ export async function resetSecretsEncryption(): Promise<boolean> {
 
 // ========== PASSWORD-BASED FALLBACK ==========
 
-const PASSWORD_HASH_ALIAS = 'secrets_password_hash';
-
-/**
- * Derive encryption key from password using simple hash
- * WARNING: This is a simplified implementation. For production, use PBKDF2 or Argon2.
- */
-export async function deriveKeyFromPassword(password: string): Promise<string> {
-  // Hash password multiple times for basic key stretching
-  let hash = password;
-  for (let i = 0; i < 1000; i++) {
-    const hashBytes = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, hash);
-    hash = hashBytes;
-  }
-  return hash;
+/** The password record (Argon2id salt/params + wrapped data key) lives under ENCRYPTION_KEY_ALIAS. */
+async function readPasswordRecord() {
+  const mode = await SecureStore.getItemAsync(KEY_CHECK_ALIAS);
+  if (mode !== 'password') return null;
+  return parsePasswordRecord(await SecureStore.getItemAsync(ENCRYPTION_KEY_ALIAS));
 }
 
 /**
- * Initialize encryption with password (for devices without biometrics)
+ * Initialize encryption with a password (for devices without biometrics).
+ * Overwrites any previous setup, including pre-#13 password setups.
  */
 export async function initializeWithPassword(password: string): Promise<boolean> {
   try {
-    // Generate encryption key
-    const keyBytes = await Crypto.getRandomBytesAsync(32);
-    const key = Array.from(keyBytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    // Hash password for verification
-    const passwordHash = await deriveKeyFromPassword(password);
-
-    // Encrypt the key with password-derived key
-    const encryptedKey = await encryptContent(key, passwordHash);
-
-    // Store encrypted key and password hash
-    await SecureStore.setItemAsync(ENCRYPTION_KEY_ALIAS, encryptedKey);
-    await SecureStore.setItemAsync(PASSWORD_HASH_ALIAS, passwordHash);
+    const dataKey = toHex(await Crypto.getRandomBytesAsync(32));
+    const record = await wrapDataKey(
+      password,
+      dataKey,
+      await Crypto.getRandomBytesAsync(SALT_BYTES),
+      await Crypto.getRandomBytesAsync(NONCE_BYTES)
+    );
+    await SecureStore.setItemAsync(ENCRYPTION_KEY_ALIAS, JSON.stringify(record));
+    await SecureStore.deleteItemAsync(PASSWORD_HASH_ALIAS); // legacy unsalted hash, if any
     await SecureStore.setItemAsync(KEY_CHECK_ALIAS, 'password');
-
     return true;
   } catch (error) {
     console.error('Failed to initialize with password:', error);
@@ -296,58 +278,24 @@ export async function initializeWithPassword(password: string): Promise<boolean>
   }
 }
 
-/**
- * Verify password and get encryption key
- */
+/** Unlock with the password; null if wrong or not set up. */
 export async function getEncryptionKeyWithPassword(password: string): Promise<string | null> {
-  try {
-    const storedHash = await SecureStore.getItemAsync(PASSWORD_HASH_ALIAS);
-    const encryptedKey = await SecureStore.getItemAsync(ENCRYPTION_KEY_ALIAS);
-
-    if (!storedHash || !encryptedKey) {
-      throw new Error('Password-based encryption not initialized');
-    }
-
-    // Verify password
-    const passwordHash = await deriveKeyFromPassword(password);
-    if (passwordHash !== storedHash) {
-      throw new Error('Invalid password');
-    }
-
-    // Decrypt the encryption key
-    const key = await decryptContent(encryptedKey, passwordHash);
-    return key;
-  } catch (error) {
-    console.error('Failed to get encryption key with password:', error);
-    return null;
-  }
+  const record = await readPasswordRecord();
+  return record ? unwrapDataKey(password, record) : null;
 }
 
 /**
  * Check if using password-based encryption
  */
 export async function isPasswordBasedEncryption(): Promise<boolean> {
-  try {
-    const keyType = await SecureStore.getItemAsync(KEY_CHECK_ALIAS);
-    return keyType === 'password';
-  } catch {
-    return false;
-  }
+  return (await readPasswordRecord()) !== null;
 }
 
 /**
  * Verify if password is correct without returning key
  */
 export async function verifyPassword(password: string): Promise<boolean> {
-  try {
-    const storedHash = await SecureStore.getItemAsync(PASSWORD_HASH_ALIAS);
-    if (!storedHash) return false;
-
-    const passwordHash = await deriveKeyFromPassword(password);
-    return passwordHash === storedHash;
-  } catch {
-    return false;
-  }
+  return (await getEncryptionKeyWithPassword(password)) !== null;
 }
 
 /**

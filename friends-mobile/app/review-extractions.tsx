@@ -16,21 +16,17 @@ import { INTENSITY_OPTIONS } from '@/lib/constants/relations';
 import { RelationIcon } from '@/components/RelationIcon';
 import { WarningIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { devLogger } from '@/lib/utils/devLogger';
-import { ActivityIndicator, ScrollView, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { AppBar } from '@/components/AppBar';
-import {
-  Card,
-  Text,
-  Button,
-  Chip,
-  Portal,
-  TextInput,
-  SegmentedButtons,
-} from 'react-native-paper';
+import { Button, Portal } from 'react-native-paper';
 import { Dialog } from '@/components/KeyboardAwareDialog';
-import { fz } from '@/lib/design/tokens';
+import { fz, fzText } from '@/lib/design/tokens';
+import { FormInput, FormSection } from '@/components/FormKit';
+import { Pill } from '@/components/Pill';
+import { PillGroup } from '@/components/PillGroup';
+import { PrimaryButton } from '@/components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 
 export default function ReviewExtractionsScreen() {
@@ -120,8 +116,8 @@ export default function ReviewExtractionsScreen() {
   if (isLoading) {
     return (
       <CenteredContainer style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>{t('reviewExtractions.loading')}</Text>
+        <ActivityIndicator size="large" color={fz.ink} />
+        <Text style={[fzText.sub, styles.loadingText]}>{t('reviewExtractions.loading')}</Text>
       </CenteredContainer>
     );
   }
@@ -132,15 +128,9 @@ export default function ReviewExtractionsScreen() {
         <AppBar title={t('reviewExtractions.title')} />
         <CenteredContainer style={styles.centered}>
           <CheckCircleIcon size={40} color={fz.ink} weight="bold" style={styles.emptyIcon} />
-          <Text variant="headlineSmall" style={styles.emptyTitle}>
-            {t('reviewExtractions.caughtUp')}
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {t('reviewExtractions.noneMessage')}
-          </Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-            {t('person.goBack')}
-          </Button>
+          <Text style={[fzText.title, styles.emptyTitle]}>{t('reviewExtractions.caughtUp')}</Text>
+          <Text style={[fzText.sub, styles.emptyText]}>{t('reviewExtractions.noneMessage')}</Text>
+          <PrimaryButton label={t('person.goBack')} onPress={() => router.back()} />
         </CenteredContainer>
       </>
     );
@@ -149,166 +139,109 @@ export default function ReviewExtractionsScreen() {
   return (
     <>
       <AppBar title={t('reviewExtractions.titleCount', { count: pending.length })} />
-      <ScrollView style={styles.container}>
-        <Card style={styles.headerCard}>
-          <Card.Content>
-            <Text variant="titleLarge" style={styles.headerTitle}>
-              {t('reviewExtractions.pending')}
-            </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              {t('reviewExtractions.pendingMessage')}
-            </Text>
-          </Card.Content>
-        </Card>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <FormSection title={t('reviewExtractions.pending')} hint={t('reviewExtractions.pendingMessage')} plain>
+          <View />
+        </FormSection>
 
         {pending.map((extraction) => (
-          <Card
-            key={extraction.id}
-            style={[styles.extractionCard, extraction.isConflict && styles.conflictCard]}
-          >
-            <Card.Content>
+          <FormSection key={extraction.id} style={extraction.isConflict ? styles.conflictCard : undefined}>
+            {extraction.isConflict ? (
+              <>
+                <View style={styles.rowGap}>
+                  <WarningIcon size={16} color={fz.warn} weight="bold" />
+                  <Text style={[fzText.label, { color: fz.warn }]}>{t('reviewExtractions.conflict')}</Text>
+                </View>
+                {extraction.conflictDescription && (
+                  <Text style={[fzText.sub, styles.gap]}>{extraction.conflictDescription}</Text>
+                )}
+                <Text style={[fzText.meta, styles.gap]}>{t('reviewExtractions.newInfo')}</Text>
+                <View style={styles.rowGap}>
+                  <RelationIcon type={extraction.relationType} size={14} />
+                  <Text style={fzText.body}>{formatRelationType(extraction.relationType)}</Text>
+                </View>
+                <Text style={fzText.title}>"{extraction.objectLabel}"</Text>
+                <Text style={[fzText.sub, styles.gap]}>
+                  {t('reviewExtractions.person', { name: extraction.subjectName })}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={fzText.meta}>{extraction.subjectName}</Text>
+                <View style={[styles.rowGap, styles.gap]}>
+                  <RelationIcon type={extraction.relationType} size={16} />
+                  <Text style={fzText.name}>{formatRelationType(extraction.relationType)}</Text>
+                </View>
+                <Text style={fzText.title}>"{extraction.objectLabel}"</Text>
+
+                <View style={styles.metadataRow}>
+                  {extraction.category && <Pill label={extraction.category} />}
+                  {extraction.intensity && (
+                    <Pill label={intensityLabel(extraction.intensity, extraction.intensity)} />
+                  )}
+                  <Pill
+                    variant="outline"
+                    label={`${getConfidenceLabel(extraction.confidence)} (${(extraction.confidence * 100).toFixed(0)}%)`}
+                    style={{ borderColor: getConfidenceColor(extraction.confidence) }}
+                  />
+                </View>
+
+                {extraction.extractionReason && (
+                  <Text style={[fzText.sub, styles.gap]}>{extraction.extractionReason}</Text>
+                )}
+              </>
+            )}
+
+            <View style={styles.actions}>
               {extraction.isConflict ? (
                 <>
-                  <View style={styles.conflictTitleRow}>
-                    <WarningIcon size={16} color={fz.warn} weight="bold" />
-                    <Text variant="titleSmall" style={styles.conflictTitle}>
-                      {t('reviewExtractions.conflict')}
-                    </Text>
-                  </View>
-                  {extraction.conflictDescription && (
-                    <Text variant="bodySmall" style={styles.conflictDescription}>
-                      {extraction.conflictDescription}
-                    </Text>
-                  )}
-                  <View style={styles.conflictCompare}>
-                    <View style={styles.conflictSide}>
-                      <Text variant="labelSmall" style={styles.conflictSideLabel}>
-                        {t('reviewExtractions.newInfo')}
-                      </Text>
-                      <View style={styles.relationRow}>
-                        <RelationIcon type={extraction.relationType} size={14} />
-                        <Text variant="bodyMedium" style={styles.objectLabel}>
-                          {formatRelationType(extraction.relationType)}
-                        </Text>
-                      </View>
-                      <Text variant="titleMedium" style={styles.conflictValue}>
-                        "{extraction.objectLabel}"
-                      </Text>
-                    </View>
-                  </View>
-                  <Text variant="bodySmall" style={styles.personName}>
-                    {t('reviewExtractions.person', { name: extraction.subjectName })}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <View style={styles.extractionHeader}>
-                    <View style={styles.extractionInfo}>
-                      <Text variant="bodySmall" style={styles.personName}>
-                        {extraction.subjectName}
-                      </Text>
-                      <View style={styles.relationRow}>
-                        <RelationIcon type={extraction.relationType} size={16} />
-                        <Text variant="titleMedium">
-                          {formatRelationType(extraction.relationType)}
-                        </Text>
-                      </View>
-                      <Text variant="titleLarge" style={styles.objectLabel}>
-                        "{extraction.objectLabel}"
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.metadataRow}>
-                    {extraction.category && (
-                      <Chip compact style={styles.metadataChip}>
-                        {extraction.category}
-                      </Chip>
-                    )}
-                    {extraction.intensity && (
-                      <Chip compact style={styles.metadataChip}>
-                        {intensityLabel(extraction.intensity, extraction.intensity)}
-                      </Chip>
-                    )}
-                    <Chip
-                      compact
-                      style={[
-                        styles.confidenceChip,
-                        { backgroundColor: getConfidenceColor(extraction.confidence) },
-                      ]}
-                      textStyle={{ color: 'white' }}
-                    >
-                      {getConfidenceLabel(extraction.confidence)} (
-                      {(extraction.confidence * 100).toFixed(0)}%)
-                    </Chip>
-                  </View>
-
-                  {extraction.extractionReason && (
-                    <Text variant="bodySmall" style={styles.reason}>
-                      {extraction.extractionReason}
-                    </Text>
-                  )}
-                </>
-              )}
-            </Card.Content>
-
-            <Card.Actions>
-              {extraction.isConflict ? (
-                <>
-                  <Button
-                    mode="outlined"
-                    onPress={() =>
-                      rejectMutation.mutate({ extractionId: extraction.id })
-                    }
+                  <PrimaryButton
+                    variant="outline"
+                    label={t('reviewExtractions.keepOld')}
+                    onPress={() => rejectMutation.mutate({ extractionId: extraction.id })}
                     disabled={rejectMutation.isPending}
-                  >
-                    {t('reviewExtractions.keepOld')}
-                  </Button>
-                  <Button
-                    mode="outlined"
+                    style={styles.action}
+                  />
+                  <PrimaryButton
+                    variant="outline"
+                    label={t('reviewExtractions.bothTrue')}
                     onPress={() => acceptBothConflictMutation.mutate(extraction.id)}
-                    loading={acceptBothConflictMutation.isPending}
                     disabled={acceptBothConflictMutation.isPending}
-                  >
-                    {t('reviewExtractions.bothTrue')}
-                  </Button>
-                  <Button
-                    mode="contained"
+                    style={styles.action}
+                  />
+                  <PrimaryButton
+                    label={t('reviewExtractions.replace')}
                     onPress={() => acceptNewConflictMutation.mutate(extraction.id)}
-                    loading={acceptNewConflictMutation.isPending}
                     disabled={acceptNewConflictMutation.isPending}
-                  >
-                    {t('reviewExtractions.replace')}
-                  </Button>
+                    style={styles.action}
+                  />
                 </>
               ) : (
                 <>
-                  <Button
-                    mode="outlined"
+                  <PrimaryButton
+                    variant="outline"
+                    label={t('storyDetail.reject')}
                     onPress={() => handleReject(extraction)}
                     disabled={rejectMutation.isPending}
-                  >
-                    {t('storyDetail.reject')}
-                  </Button>
-                  <Button
-                    mode="outlined"
+                    style={styles.action}
+                  />
+                  <PrimaryButton
+                    variant="outline"
+                    label={t('common.edit')}
                     onPress={() => handleEdit(extraction)}
                     disabled={editMutation.isPending}
-                  >
-                    {t('common.edit')}
-                  </Button>
-                  <Button
-                    mode="contained"
+                    style={styles.action}
+                  />
+                  <PrimaryButton
+                    label={t('storyDetail.approve')}
                     onPress={() => handleApprove(extraction)}
-                    loading={approveMutation.isPending}
                     disabled={approveMutation.isPending}
-                  >
-                    {t('storyDetail.approve')}
-                  </Button>
+                    style={styles.action}
+                  />
                 </>
               )}
-            </Card.Actions>
-          </Card>
+            </View>
+          </FormSection>
         ))}
 
         <View style={styles.spacer} />
@@ -323,31 +256,25 @@ export default function ReviewExtractionsScreen() {
         >
           <Dialog.Title style={styles.dialogTitle}>{t('reviewExtractions.editTitle')}</Dialog.Title>
           <Dialog.Content>
-            <TextInput
-              mode="outlined"
+            <FormInput
               label={t('reviewExtractions.whatLabel')}
               value={editedLabel}
               onChangeText={setEditedLabel}
               style={styles.dialogInput}
             />
 
-            <Text variant="titleSmall" style={styles.dialogLabel}>
-              {t('relationForm.intensity')}
-            </Text>
-            <SegmentedButtons
+            <Text style={[fzText.label, styles.dialogLabel]}>{t('relationForm.intensity')}</Text>
+            <PillGroup
               value={editedIntensity}
-              onValueChange={setEditedIntensity}
-              buttons={INTENSITY_OPTIONS.map((option) => ({
+              onChange={setEditedIntensity}
+              options={INTENSITY_OPTIONS.map((option) => ({
                 value: option.value,
                 label: intensityLabel(option.value, option.label),
               }))}
-              style={styles.dialogSegmented}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setEditDialogVisible(false)}>
-              {t('common.cancel')}
-            </Button>
+            <Button onPress={() => setEditDialogVisible(false)}>{t('common.cancel')}</Button>
             <Button
               onPress={handleSaveEdit}
               loading={editMutation.isPending}
@@ -363,142 +290,22 @@ export default function ReviewExtractionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: fz.paper,
-  },
-  centered: {
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  emptyIcon: {
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.7,
-  },
-  backButton: {
-    marginTop: 8,
-  },
-  headerCard: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  headerTitle: {
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    opacity: 0.7,
-  },
-  extractionCard: {
-    margin: 16,
-    marginTop: 8,
-  },
-  conflictCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: fz.warn,
-  },
-  conflictTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  conflictTitle: {
-    color: fz.warn,
-    fontWeight: 'bold',
-  },
-  conflictDescription: {
-    opacity: 0.7,
-    fontStyle: 'italic',
-    marginBottom: 12,
-  },
-  conflictCompare: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  conflictSide: {
-    flex: 1,
-    padding: 8,
-    backgroundColor: fz.warnBg,
-    borderRadius: 8,
-  },
-  conflictSideLabel: {
-    opacity: 0.6,
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  conflictValue: {
-    fontWeight: 'bold',
-  },
-  extractionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  extractionInfo: {
-    flex: 1,
-  },
-  personName: {
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  relationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  objectLabel: {
-    fontWeight: 'bold',
-    color: fz.ink,
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  metadataChip: {
-    marginRight: 4,
-  },
-  confidenceChip: {
-    marginRight: 4,
-  },
-  reason: {
-    marginTop: 8,
-    opacity: 0.6,
-    fontStyle: 'italic',
-  },
-  spacer: {
-    height: 40,
-  },
-  dialog: {
-    borderRadius: fz.rCard,
-    backgroundColor: fz.card,
-  },
-  dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogInput: {
-    marginBottom: 16,
-  },
-  dialogLabel: {
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  dialogSegmented: {
-    marginBottom: 16,
-  },
+  container: { flex: 1, backgroundColor: fz.paper },
+  content: { padding: fz.s.edge },
+  centered: { padding: 20 },
+  loadingText: { marginTop: 12 },
+  emptyIcon: { marginBottom: 12 },
+  emptyTitle: { marginBottom: 8, textAlign: 'center' },
+  emptyText: { marginBottom: 24, textAlign: 'center' },
+  conflictCard: { borderColor: fz.warn, backgroundColor: fz.warnBg },
+  rowGap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gap: { marginTop: fz.s.sm },
+  metadataRow: { flexDirection: 'row', flexWrap: 'wrap', gap: fz.s.sm, marginTop: fz.s.md },
+  actions: { flexDirection: 'row', gap: fz.s.sm, marginTop: fz.s.lg },
+  action: { flex: 1, paddingHorizontal: 4 },
+  spacer: { height: fz.s.xxl },
+  dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
+  dialogTitle: { fontFamily: fz.font },
+  dialogInput: { marginBottom: fz.s.lg },
+  dialogLabel: { marginBottom: fz.s.sm },
 });

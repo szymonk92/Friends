@@ -3,7 +3,6 @@ import { db, getCurrentUserId } from '@/lib/db';
 import { secrets } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
-import { SEALED_PREFIX } from '@/lib/crypto/aead';
 import {
   authenticateUser,
   encryptContent,
@@ -165,16 +164,7 @@ export function useDecryptSecret() {
       // Decrypt the content
       const decryptedContent = await decryptContent(secret.encryptedContent, key);
 
-      // Update last accessed timestamp; upgrade legacy XOR ciphertext to the v2 format.
-      await db
-        .update(secrets)
-        .set({
-          updatedAt: new Date(),
-          ...(secret.encryptedContent.startsWith(SEALED_PREFIX)
-            ? {}
-            : { encryptedContent: await encryptContent(decryptedContent, key) }),
-        })
-        .where(eq(secrets.id, secretId));
+      await db.update(secrets).set({ updatedAt: new Date() }).where(eq(secrets.id, secretId));
 
       return {
         id: secret.id,
