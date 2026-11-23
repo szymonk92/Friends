@@ -20,6 +20,13 @@ Bring the last Material-looking screens to fz.
 ## Out of scope
 dev, dev-logs, developer/playground (dev-only).
 
-## Progress
-- Paper Card/List/Menu/SegmentedButtons on the remaining screens already pick up fz colours from the theme fix in #05 (white surfaces, ink text, fz outlines).
-- Remaining structural redesign (settings sub-components, review-extractions, food-quiz, menu, home ⋮ menu, person children) should be done screen-by-screen with device feedback.
+## Progress (all code done; device check pending)
+- [x] BrainDumpSection
+- [x] Settings: Appearance / Language → Pill groups; AIConfiguration → one data-driven provider section (FormSection + PrimaryButton + FormInput)
+- [x] menu screen + ExportImport: PrimaryButton outline, plain About rows (no List.Item)
+- [x] Home ⋮ menu: Paper `Menu` → `ActionSheet`
+- [x] review-extractions: FormSection cards, Pill chips, PillGroup intensity, PrimaryButton
+- [x] food-quiz: QuizCard/Complete/Progress/Controls, PrimaryButton, Pill, own progress bar
+- [x] person children: PartnerBadge, SocialLinksStrip (fz colours). PhotoBrowser left as is: dark photo overlay, white/green on black is intentional
+- [x] SecretsSetup: FormSection + PrimaryButton (password dialog stays Paper Dialog, themed by #05)
+- [ ] Verify on device: Settings, Menu, Home ⋮ sheet, Review extractions (also the edit dialog), Food quiz (swipe still works), Secrets setup
