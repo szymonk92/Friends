@@ -31,6 +31,7 @@ export default function NetworkScreen() {
   const [selectedRelationTypes, setSelectedRelationTypes] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [graphTouched, setGraphTouched] = useState(false);
 
   const { data: selectedPersonRelations = [] } = usePersonRelations(selectedPersonId || '');
 
@@ -177,7 +178,7 @@ export default function NetworkScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
+      <ScrollView scrollEnabled={!graphTouched} style={styles.scrollContent} contentContainerStyle={styles.scrollContentInner}>
         {/* Filters */}
         {showFilters && (
           <View style={styles.filterSection}>
@@ -246,6 +247,7 @@ export default function NetworkScreen() {
         <View style={styles.graphCard}>
           {filteredPeople.length > 0 ? (
             <ForceDirectedGraph
+              onTouchingChange={setGraphTouched}
               people={filteredPeople}
               connections={filteredConnections}
               selectedPersonId={selectedPersonId}

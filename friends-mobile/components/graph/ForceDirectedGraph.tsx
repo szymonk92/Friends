@@ -38,6 +38,8 @@ interface ForceDirectedGraphProps {
   people: Array<{ id: string; name: string; photoPath?: string | null }>;
   connections: GraphConnection[];
   selectedPersonId: string | null;
+  /** True while a finger is on the graph, so the parent can lock its ScrollView (it steals pinch on Android). */
+  onTouchingChange?: (touching: boolean) => void;
   onSelectPerson: (personId: string | null) => void;
 }
 
@@ -120,6 +122,7 @@ export default function ForceDirectedGraph({
   connections,
   selectedPersonId,
   onSelectPerson,
+  onTouchingChange,
 }: ForceDirectedGraphProps) {
   const font = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), FONT_SIZE);
   const initialsFont = useFont(require('@/lib/fonts/SpaceGrotesk-VariableFont.ttf'), INITIALS_FONT_SIZE);
@@ -163,6 +166,8 @@ export default function ForceDirectedGraph({
   selectedRef.current = selectedPersonId;
   const onSelectRef = useRef(onSelectPerson);
   onSelectRef.current = onSelectPerson;
+  const touchingRef = useRef(onTouchingChange);
+  touchingRef.current = onTouchingChange;
   const widthRef = useRef(width);
   widthRef.current = width;
 
@@ -181,12 +186,14 @@ export default function ForceDirectedGraph({
   }, [selectedPersonId, commitCamera]);
 
   const gesture = useMemo(() => {
-    const start = { cam: { x: 0, y: 0, scale: 1 }, fx: 0, fy: 0 };
+    const start = { cam: { x: 0, y: 0, scale: 1 }, fx: 0, fy: 0, wx: 0, wy: 0, pinned: false };
 
     // One finger pans; two fingers are handled entirely by pinch (zoom + move together).
     const pan = Gesture.Pan()
       .runOnJS(true)
       .maxPointers(1)
+      .onBegin(() => touchingRef.current?.(true))
+      .onFinalize(() => touchingRef.current?.(false))
       .onStart(() => {
         start.cam = { ...cameraRef.current };
       })
@@ -202,16 +209,32 @@ export default function ForceDirectedGraph({
     // stays under the (moving) focal point.
     const pinch = Gesture.Pinch()
       .runOnJS(true)
+      .onBegin(() => touchingRef.current?.(true))
+      .onFinalize(() => touchingRef.current?.(false))
       .onStart((e) => {
         start.cam = { ...cameraRef.current };
-        start.fx = e.focalX;
-        start.fy = e.focalY;
+        // With someone selected, zoom around that person (they stay put on screen);
+        // otherwise around the fingers.
+        const sel = selectedRef.current ? positionsRef.current.get(selectedRef.current) : undefined;
+        if (sel) {
+          start.wx = sel.x;
+          start.wy = sel.y;
+          start.fx = sel.x * start.cam.scale + start.cam.x;
+          start.fy = sel.y * start.cam.scale + start.cam.y;
+          start.pinned = true;
+        } else {
+          start.wx = (e.focalX - start.cam.x) / start.cam.scale;
+          start.wy = (e.focalY - start.cam.y) / start.cam.scale;
+          start.fx = e.focalX;
+          start.fy = e.focalY;
+          start.pinned = false;
+        }
       })
       .onUpdate((e) => {
         const scale = Math.max(MIN_SCALE, Math.min(start.cam.scale * e.scale, MAX_SCALE));
-        const wx = (start.fx - start.cam.x) / start.cam.scale;
-        const wy = (start.fy - start.cam.y) / start.cam.scale;
-        commitCamera({ x: e.focalX - wx * scale, y: e.focalY - wy * scale, scale });
+        const fx = start.pinned ? start.fx : e.focalX;
+        const fy = start.pinned ? start.fy : e.focalY;
+        commitCamera({ x: fx - start.wx * scale, y: fy - start.wy * scale, scale });
       });
 
     const tap = Gesture.Tap()
