@@ -1500,5 +1500,9 @@
     "hint": "Pick one, then tick everyone it applies to. Changes save right away.",
     "count_one": "{{count}} person",
     "count_other": "{{count}} people"
+  },
+  "reminders": {
+    "reachOutTitle": "Reach out to {{name}}",
+    "reachOutMessage": "It's been a while since you contacted {{name}}. Consider reaching out!"
   }
 }

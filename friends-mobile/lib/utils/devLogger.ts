@@ -103,6 +103,8 @@ const log = async (
   data?: any,
   category?: string
 ): Promise<void> => {
+  // Release builds keep only warnings/errors: no debug noise or personal data in the log file.
+  if (typeof __DEV__ !== 'undefined' && !__DEV__ && level !== 'WARN' && level !== 'ERROR') return;
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,

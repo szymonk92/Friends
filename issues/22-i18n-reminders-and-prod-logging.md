@@ -1,6 +1,6 @@
 # 22 — Reminder text hardcoded English; debug logging in production
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P3 · **Effort:** S
 

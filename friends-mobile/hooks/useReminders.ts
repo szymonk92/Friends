@@ -1,3 +1,4 @@
+import { tr } from '@/lib/i18n/labels';
 import { db, getCurrentUserId } from '@/lib/db';
 import { reminders, people } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -181,8 +182,12 @@ export function useCreateContactReminder() {
 
       return createReminder.mutateAsync({
         personId: data.personId,
-        title: `Reach out to ${data.personName}`,
-        message: `It's been a while since you contacted ${data.personName}. Consider reaching out!`,
+        title: tr('reminders.reachOutTitle', `Reach out to ${data.personName}`, { name: data.personName }),
+        message: tr(
+          'reminders.reachOutMessage',
+          `It's been a while since you contacted ${data.personName}. Consider reaching out!`,
+          { name: data.personName }
+        ),
         reminderType: 'contact',
         scheduledFor,
         repeatInterval: 'none',
