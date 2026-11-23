@@ -1,6 +1,6 @@
 # 11 — Birthday notifications not rescheduled on edit/delete
 
-**Status:** todo
+**Status:** done
 **Depends on:** 10
 **Priority:** P1 · **Effort:** S
 

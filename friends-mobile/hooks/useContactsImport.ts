@@ -1,3 +1,4 @@
+import { scheduleBirthdayReminders } from '@/lib/notifications/birthday-reminders';
 import * as Contacts from 'expo-contacts';
 import { Platform } from 'react-native';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -233,6 +234,8 @@ export function useImportContacts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      // Imported contacts may carry birthdays.
+      scheduleBirthdayReminders().catch(() => {});
     },
   });
 }

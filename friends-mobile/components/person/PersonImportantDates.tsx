@@ -12,7 +12,6 @@ import {
 } from '@/lib/utils/dates';
 import {
   addBirthdayToCalendar,
-  scheduleBirthdayReminders,
 } from '@/lib/notifications/birthday-reminders';
 import { LineIcon } from '@/components/LineIcon';
 import {
@@ -101,7 +100,6 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
   const toggleReminder = async () => {
     try {
       await updatePerson.mutateAsync({ id: person.id, birthdayReminder: !person.birthdayReminder });
-      await scheduleBirthdayReminders();
     } catch (error) {
       fzAlert(t('common.error'), t('settingsScreen.saveFailed'));
     }
@@ -117,7 +115,6 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
           dateOfBirth: parsedDate,
           dateOfBirthPrecision: precision,
         });
-        await scheduleBirthdayReminders();
       } else {
         await updateRelation.mutateAsync({
           id: target.id,

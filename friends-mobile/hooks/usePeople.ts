@@ -1,3 +1,4 @@
+import { scheduleBirthdayReminders } from '@/lib/notifications/birthday-reminders';
 import { db, getCurrentUserId } from '@/lib/db';
 import { people, files, events, type NewPerson, type Person } from '@/lib/db/schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +30,11 @@ async function checkNameExists(userId: string, name: string, excludeId?: string)
   const existingPeople = await db.select().from(people).where(and(...conditions)).limit(1);
   return existingPeople.length > 0;
 }
+
+const BIRTHDAY_FIELDS = ['dateOfBirth', 'dateOfBirthPrecision', 'birthdayReminder', 'name', 'deletedAt'] as const;
+
+const rescheduleBirthdays = () =>
+  scheduleBirthdayReminders().catch((e) => peopleLogger.warn('Birthday reschedule failed', { error: String(e) }));
 
 /**
  * Hook to fetch all people
@@ -164,8 +170,9 @@ export function useCreatePerson() {
       perf.end(true, { personId: created?.id, name: data.name });
       return created;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
+      if (variables.dateOfBirth) rescheduleBirthdays();
     },
   });
 }
@@ -202,6 +209,8 @@ export function useUpdatePerson() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['people', variables.id] });
+      // Yearly birthday notifications are pre-scheduled; refresh them whenever an input changes.
+      if (BIRTHDAY_FIELDS.some((k) => k in variables)) rescheduleBirthdays();
     },
   });
 }
@@ -221,6 +230,7 @@ export function useDeletePerson() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      rescheduleBirthdays();
     },
   });
 }
