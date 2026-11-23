@@ -120,7 +120,7 @@ export default function SettingsScreen() {
   return (
     <>
       <AppBar title={t('settings.title')} />
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={{ padding: fz.s.edge }}>
         <AppearanceSettings
           fontFamily={fontFamily}
           setFontFamily={setFontFamily}
@@ -177,7 +177,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: fz.paper,
-    paddingTop: 16,
   },
   spacer: {
     height: 40,
