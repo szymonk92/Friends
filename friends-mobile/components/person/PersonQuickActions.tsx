@@ -144,14 +144,13 @@ export default function PersonQuickActions({ personId, personName }: PersonQuick
               multiline
               numberOfLines={3}
               autoFocus
-              style={styles.dialogFont}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setDialogVisible(false)}>
+            <Button onPress={() => setDialogVisible(false)}>
               {t('common.cancel')}
             </Button>
-            <Button labelStyle={styles.dialogFont} mode="contained" onPress={handleSave}>
+            <Button mode="contained" onPress={handleSave}>
               {t('profile.log')}
             </Button>
           </Dialog.Actions>
@@ -168,9 +167,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
 });

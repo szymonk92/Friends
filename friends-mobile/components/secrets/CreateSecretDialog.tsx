@@ -48,7 +48,7 @@ export default function CreateSecretDialog({
             value={newSecretTitle}
             onChangeText={setNewSecretTitle}
             mode="outlined"
-            style={[styles.input, styles.dialogFont]}
+            style={styles.input}
           />
           <TextInput
             label={t('secrets.content')}
@@ -57,7 +57,7 @@ export default function CreateSecretDialog({
             mode="outlined"
             multiline
             numberOfLines={4}
-            style={[styles.input, styles.dialogFont]}
+            style={styles.input}
             secureTextEntry
           />
           <Menu
@@ -68,7 +68,6 @@ export default function CreateSecretDialog({
                 mode="outlined"
                 onPress={() => setShowPersonMenu(true)}
                 style={styles.personSelector}
-                labelStyle={styles.dialogFont}
                 icon="account"
               >
                 {selectedPersonId
@@ -95,16 +94,15 @@ export default function CreateSecretDialog({
               />
             ))}
           </Menu>
-          <Text variant="bodySmall" style={[styles.dialogHint, styles.dialogFont]}>
+          <Text variant="bodySmall" style={styles.dialogHint}>
             {isPasswordBased ? t('secrets.encryptedPassword') : t('secrets.encryptedBiometric')}
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button labelStyle={styles.dialogFont} onPress={onDismiss}>
+          <Button onPress={onDismiss}>
             {t('common.cancel')}
           </Button>
           <Button
-            labelStyle={styles.dialogFont}
             onPress={handleCreateSecret}
             loading={createSecretPending}
             disabled={createSecretPending}
@@ -123,9 +121,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
   input: {

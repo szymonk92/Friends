@@ -311,7 +311,7 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               placeholder={t('dates.namePlaceholder')}
               value={dateName}
               onChangeText={setDateName}
-              style={[{ marginBottom: 16 }, styles.dialogFont]}
+              style={{ marginBottom: 16 }}
             />
             <PaperInput
               mode="outlined"
@@ -319,18 +319,16 @@ export default function PersonImportantDates({ person }: PersonImportantDatesPro
               placeholder={t('dates.datePlaceholder')}
               value={dateValue}
               onChangeText={setDateValue}
-              style={styles.dialogFont}
             />
-            <Text variant="labelSmall" style={[{ opacity: 0.6, marginTop: 4 }, styles.dialogFont]}>
+            <Text variant="labelSmall" style={{ opacity: 0.6, marginTop: 4 }}>
               {t('dates.hint')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={closeDialog}>
+            <Button onPress={closeDialog}>
               {t('common.cancel')}
             </Button>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={handleAddImportantDate}
               loading={isAddingDate}
               disabled={isAddingDate}
@@ -362,9 +360,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
 });

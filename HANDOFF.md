@@ -8,10 +8,11 @@ Improve FriendZ (friends-mobile): fix audited bugs, improve the who-knows-whom n
 
 ## Done
 - #01 graph rewrite (device check pending) · #04 tokens
+- Bugs: 08 09 10 11 12 14 15 16 17 18 19 20 21 22 23 (one commit each)
 - Issues 01–23 written; index `issues/README.md` (regenerate: `$CLAUDE_JOB_DIR/tmp/index.sh`, or edit by hand)
 
 ## In progress
-Sweep order: 08 → 09 → 10 → 11 → 12 → 14 → 15 → 17 → 18 → 19 → 20 → 23 → 22 → 16 → 21 → 05 → 06 → 07.
+Now: design 05 → 06 → 07 (visual — mark in-progress until seen on device), then PR.
 Not in this PR: 02 (needs device), 03 (feature), 13 (needs native crypto lib + migration decision).
 
 ## Next steps

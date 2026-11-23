@@ -328,10 +328,10 @@ export default function ReviewExtractionsScreen() {
               label={t('reviewExtractions.whatLabel')}
               value={editedLabel}
               onChangeText={setEditedLabel}
-              style={[styles.dialogInput, styles.dialogFont]}
+              style={styles.dialogInput}
             />
 
-            <Text variant="titleSmall" style={[styles.dialogLabel, styles.dialogFont]}>
+            <Text variant="titleSmall" style={styles.dialogLabel}>
               {t('relationForm.intensity')}
             </Text>
             <SegmentedButtons
@@ -345,11 +345,10 @@ export default function ReviewExtractionsScreen() {
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setEditDialogVisible(false)}>
+            <Button onPress={() => setEditDialogVisible(false)}>
               {t('common.cancel')}
             </Button>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={handleSaveEdit}
               loading={editMutation.isPending}
               disabled={!editedLabel.trim() || editMutation.isPending}
@@ -490,9 +489,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
   dialogInput: {

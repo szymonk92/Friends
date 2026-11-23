@@ -55,7 +55,7 @@ export default function AmbiguityResolutionDialog({
           {t('ambiguity.title', { name: currentMatch.nameInStory })}
         </Dialog.Title>
         <Dialog.Content>
-          <Text style={[styles.helperText, styles.dialogFont]}>
+          <Text style={styles.helperText}>
             {t('ambiguity.helper', { name: currentMatch.nameInStory })}
           </Text>
 
@@ -97,11 +97,10 @@ export default function AmbiguityResolutionDialog({
           </RadioButton.Group>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button labelStyle={styles.dialogFont} onPress={onCancel}>
+          <Button onPress={onCancel}>
             {t('common.cancel')}
           </Button>
           <Button
-            labelStyle={styles.dialogFont}
             mode="contained"
             onPress={handleNext}
             disabled={!resolutions[currentMatch.nameInStory]}
@@ -123,9 +122,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
   helperText: {

@@ -320,13 +320,13 @@ export default function ImportContactsScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('skip')}>
+            <Button onPress={() => onReviewDecision('skip')}>
               {t('importContacts.skip')}
             </Button>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('create')}>
+            <Button onPress={() => onReviewDecision('create')}>
               {t('importContacts.addNew')}
             </Button>
-            <Button labelStyle={s.dialogFont} onPress={() => onReviewDecision('update')}>
+            <Button onPress={() => onReviewDecision('update')}>
               {t('importContacts.updateExisting')}
             </Button>
           </Dialog.Actions>
@@ -390,5 +390,4 @@ const s = StyleSheet.create({
   fabText: { color: fz.onInk, fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
   dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
   dialogTitle: { fontFamily: fz.font },
-  dialogFont: { fontFamily: fz.font },
 });

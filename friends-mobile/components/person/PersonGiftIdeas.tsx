@@ -156,10 +156,10 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               placeholder={t('gifts.itemPlaceholder')}
               value={giftItem}
               onChangeText={setGiftItem}
-              style={[{ marginBottom: 12 }, styles.dialogFont]}
+              style={{ marginBottom: 12 }}
             />
 
-            <Text variant="labelMedium" style={[{ marginBottom: 8 }, styles.dialogFont]}>
+            <Text variant="labelMedium" style={{ marginBottom: 8 }}>
               {t('gifts.priority')}
             </Text>
             <SegmentedButtons
@@ -179,7 +179,7 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               placeholder={t('gifts.occasionPlaceholder')}
               value={giftOccasion}
               onChangeText={setGiftOccasion}
-              style={[{ marginBottom: 12 }, styles.dialogFont]}
+              style={{ marginBottom: 12 }}
             />
 
             <PaperInput
@@ -190,15 +190,13 @@ export default function PersonGiftIdeas({ personId, personName }: PersonGiftIdea
               onChangeText={setGiftNotes}
               multiline
               numberOfLines={2}
-              style={styles.dialogFont}
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button labelStyle={styles.dialogFont} onPress={() => setAddGiftDialogVisible(false)}>
+            <Button onPress={() => setAddGiftDialogVisible(false)}>
               {t('common.cancel')}
             </Button>
             <Button
-              labelStyle={styles.dialogFont}
               onPress={handleAddGiftIdea}
               loading={isAddingGift}
               disabled={isAddingGift}
@@ -218,9 +216,6 @@ const styles = StyleSheet.create({
     backgroundColor: fz.card,
   },
   dialogTitle: {
-    fontFamily: fz.font,
-  },
-  dialogFont: {
     fontFamily: fz.font,
   },
 });
