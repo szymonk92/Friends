@@ -6,6 +6,8 @@ Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom grap
 ## State (2026-11-23)
 - `main`: PR #10, #11 (#13 Argon2id secrets + #07 screens → fz, both `done`) and #12 (Expo SDK 58 / RN 0.88.1 / React 19.3) merged. `npm run ci` green (368 tests).
 - Verified on R5CY141Z1DD: new secrets (biometric) work, old XOR ones are intentionally unreadable, Settings redesign OK.
+- PR #13 merged: drizzle-orm 0.45, @anthropic-ai/sdk 1.x (no `temperature`). async-storage stays 2.2.0 (Expo 58 pin), R8 stays off.
+- iOS rebuilt on SDK 58 (`expo prebuild --platform ios`, scheme `InnerCircle`, bundle `com.szymonk92.friendz`), installed on iPhone, launches (7-day profile).
 - Not hand-tested: password mode (Argon2 unlock time; tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s), graph gestures on gesture-handler 3, notifications.
 
 ## Device checklist (one build covers #07 + #13 + SDK 58)
@@ -18,7 +20,7 @@ Improve FriendZ (friends-mobile): fix audited bugs, make the who-knows-whom grap
 - Native: ported from a fresh `expo prebuild` in a temp dir: Gradle 9.4.1, `android.builtInKotlin=false`/`newDsl=false`, `proguard-android-optimize.txt`, `sentry.gradle.kts`. R8 (`enableMinifyInReleaseBuilds`) deliberately NOT enabled.
 - Skia 2.14: `Skia.Path.Circle()` instead of `Make().addCircle`. RN 0.88: `ViewToken` not exported; FlatList header/empty must be `undefined`, not `null`.
 - Still on old majors, separate task: async-storage 3, @anthropic-ai/sdk 1.x, drizzle 0.45.
-- iOS not rebuilt (`ios/` is gitignored, local only).
+- `ios/` is gitignored, local only; app name is Inner Circle (workspace `InnerCircle`).
 
 ## Key paths
 - Graph: `app/network.tsx`, `components/graph/*`, `lib/graph/{layout,suggestions}.ts`
