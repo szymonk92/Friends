@@ -10,6 +10,8 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // d3 packages are ESM-only; use their bundled UMD builds under Jest.
+    '^d3-(force|quadtree|dispatch|timer)$': '<rootDir>/node_modules/d3-$1/dist/d3-$1.js',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   collectCoverageFrom: [

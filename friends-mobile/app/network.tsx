@@ -77,12 +77,21 @@ export default function NetworkScreen() {
 
   const hasActiveFilters = selectedTags.length > 0 || selectedRelationTypes.length > 0;
 
-  const selectedConnections = useMemo(() => {
+  // Who the selected person knows (within the current filter), with the person on the other end.
+  const selectedLinks = useMemo(() => {
     if (!selectedPersonId) return [];
-    return filteredConnections.filter(
-      (c) => c.person1Id === selectedPersonId || c.person2Id === selectedPersonId
-    );
-  }, [selectedPersonId, filteredConnections]);
+    const byId = new Map(filteredPeople.map((p) => [p.id, p]));
+    return filteredConnections.flatMap((connection) => {
+      const otherId =
+        connection.person1Id === selectedPersonId
+          ? connection.person2Id
+          : connection.person2Id === selectedPersonId
+            ? connection.person1Id
+            : null;
+      const other = otherId ? byId.get(otherId) : undefined;
+      return other ? [{ connection, other }] : [];
+    });
+  }, [selectedPersonId, filteredConnections, filteredPeople]);
 
   const isLoading = loadingPeople || loadingConnections;
 
@@ -228,12 +237,18 @@ export default function NetworkScreen() {
 
         {/* Graph */}
         <View style={styles.graphCard}>
-          <ForceDirectedGraph
-            people={filteredPeople}
-            connections={filteredConnections}
-            selectedPersonId={selectedPersonId}
-            onSelectPerson={setSelectedPersonId}
-          />
+          {filteredPeople.length > 0 ? (
+            <ForceDirectedGraph
+              people={filteredPeople}
+              connections={filteredConnections}
+              selectedPersonId={selectedPersonId}
+              onSelectPerson={setSelectedPersonId}
+            />
+          ) : (
+            <View style={styles.noMatches}>
+              <Text style={fzText.sub}>{t('search.noResults')}</Text>
+            </View>
+          )}
         </View>
         <Text style={[fzText.time, { paddingHorizontal: fz.s.edge, marginTop: 8 }]}>
           {t('network.hint')}
@@ -244,7 +259,8 @@ export default function NetworkScreen() {
           <NetworkPersonDetails
             person={selectedPerson}
             relations={selectedPersonRelations}
-            connectionCount={selectedConnections.length}
+            links={selectedLinks}
+            onSelectPerson={setSelectedPersonId}
           />
         )}
 
@@ -292,6 +308,7 @@ const styles = StyleSheet.create({
     marginHorizontal: fz.s.edge, backgroundColor: fz.card, borderRadius: fz.rCard,
     borderWidth: 1, borderColor: fz.cardBorder, padding: 8, overflow: 'hidden',
   },
+  noMatches: { height: 450, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   primaryBtn: {
     backgroundColor: fz.ink, height: 50, borderRadius: fz.rButton,

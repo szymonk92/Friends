@@ -40,7 +40,6 @@ export function useConnections() {
   return useQuery({
     queryKey: ['connections'],
     queryFn: async () => {
-      console.log('[useConnections] Fetching connections...');
       const userId = await getCurrentUserId();
       const result = await db
         .select()
@@ -48,14 +47,6 @@ export function useConnections() {
         .where(and(eq(connections.userId, userId), isNull(connections.deletedAt)))
         .orderBy(desc(connections.createdAt));
 
-      console.log('[useConnections] Fetched connections:', {
-        count: result.length,
-        sample: result.slice(0, 3).map((c) => ({
-          id: c.id,
-          person1Id: c.person1Id,
-          person2Id: c.person2Id,
-        })),
-      });
 
       return result;
     },
