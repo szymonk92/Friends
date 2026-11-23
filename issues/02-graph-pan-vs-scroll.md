@@ -1,8 +1,7 @@
 # 02 — Graph: one-finger pan fights the page ScrollView
 
-**Status:** blocked
+**Status:** done
 **Depends on:** 01
-**Blocked by:** needs a real-device gesture test on R5CY141Z1DD (behaviour of RNGH Pan inside ScrollView can't be judged from code)
 **Priority:** P2 · **Effort:** S
 
 ## Goal
@@ -17,3 +16,6 @@ Rewriting gestures onto Reanimated worklets.
 
 ## Open questions
 Full-screen graph + bottom sheet is the cleaner UX — preferred?
+
+## Result
+Page `ScrollView` is disabled while a finger is on the graph (`onTouchingChange`); it also stole the pinch on Android. Verified on device. Pinch zooms around the selected person when one is selected.

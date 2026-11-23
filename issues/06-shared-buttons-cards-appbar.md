@@ -1,6 +1,6 @@
 # 06 — Shared PrimaryButton / FzCard / AppBar / EmptyState
 
-**Status:** in-progress
+**Status:** done
 **Depends on:** 04
 **Priority:** P2 · **Effort:** M
 
@@ -22,4 +22,4 @@ New visual design — extraction only, pixels should stay the same.
 - [x] Shared `AppBar` instead of local rows: network (both states), shared-interests, import-contacts
 - Paper `mode="contained"` buttons are ink via the theme (#05) — left as is
 - Skipped `FzCard` / `EmptyState` / remaining local ink buttons (onboarding, addStory bottom bar, note, pickers): same values already, so extraction is churn without visual change. Do it when one of them needs to change.
-- [ ] Verify on device: network, shared-interests, import-contacts headers; empty states on People/Stories
+- [x] Verified on device R5CY141Z1DD

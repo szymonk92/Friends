@@ -11,10 +11,10 @@ Improve FriendZ (friends-mobile): fix audited bugs, improve the who-knows-whom n
 - 04 tokens → `done`
 
 ## In progress — code done, needs a device look (R5CY141Z1DD)
-- 01 graph rewrite · 03 "might know each other" suggestions
+- 05 06 & 01–03 verified on device → `done`
 - 05 Paper theme mapped to fz (dialogs/cards/menus) · 06 PrimaryButton + shared AppBar · 07 BrainDumpSection
 - 13 secrets: XChaCha20-Poly1305 done; password-mode KDF + allowBackup need a decision
-- 02 blocked: graph pan vs ScrollView, only testable on device
+
 
 ## Next steps
 1. Install a build on the phone, check: Network (pan/pinch/tap/double-tap, labels, suggestions), dialogs in Settings/Add story, Add/Edit person brain dump, secrets create/view

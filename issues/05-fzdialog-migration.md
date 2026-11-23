@@ -1,6 +1,6 @@
 # 05 — Migrate Paper `Dialog` to `FzDialog`
 
-**Status:** in-progress
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** M
 
@@ -18,4 +18,4 @@ Changing dialog behaviour/content.
 - [x] Paper theme (`lib/theme.ts`) mapped to fz: `elevation.level1-5` → `fz.card` (dialogs/cards/menus were MD3 grey #e8e8e8/#f5f5f5), `onSurface` → ink, `onSurfaceVariant` → textBody, `outline`/`outlineVariant` → fz outline/hairline, error/warning → fz.danger/warn. Restyles every remaining Paper Dialog/Card/Menu/List at once.
 - [x] Deleted all 13 `dialogFont` copies (theme already sets Space Grotesk)
 - [x] Settings: 3 API-key dialogs + 6 handlers → one table-driven dialog (305 → 195 lines)
-- [ ] Verify on device (dialogs in settings, addStory, gifts, tags, important dates, secrets, import contacts)
+- [x] Verified on device R5CY141Z1DD

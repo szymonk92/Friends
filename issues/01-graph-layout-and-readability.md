@@ -1,6 +1,6 @@
 # 01 — Network graph: layout, readability, who-knows-whom
 
-**Status:** in-progress
+**Status:** done
 **Depends on:** none
 **Priority:** P1 · **Effort:** M
 
@@ -19,7 +19,7 @@ Make the "who knows whom" graph (`app/network.tsx`) readable at a glance and use
 - [x] Details card lists the people the selected person knows (with relation label, tap → select them) + "Open profile"
 - [x] Fix: filter/search with 0 matches kept showing the previous graph → now "No results"
 - [x] Removed debug `console.warn` on every pinch frame + `[FDG] mount`, and `useConnections` debug logs
-- [ ] Verify on device R5CY141Z1DD (pan/pinch/tap/double-tap, labels legible, 50+ people performance)
+- [x] Verified on device R5CY141Z1DD
 
 ## Out of scope
 Colour-coding by relationship type (design is B&W for now).
