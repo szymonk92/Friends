@@ -8,10 +8,11 @@ Improve Inner Circle (repo/dir still `Friends`/`friends-mobile`, bundle `com.fri
 - Verified on R5CY141Z1DD: new secrets (biometric) work, old XOR ones are intentionally unreadable, Settings redesign OK.
 - PR #13 merged: drizzle-orm 0.45, @anthropic-ai/sdk 1.x (no `temperature`). async-storage stays 2.2.0 (Expo 58 pin), R8 stays off.
 - iOS rebuilt on SDK 58 (`expo prebuild --platform ios`, scheme `InnerCircle`, bundle `com.szymonk92.friendz`), installed on iPhone, launches (7-day profile).
+- PR #14 merged: Secrets unlock once per visit (key in memory, locks on leave/background); verified on both phones. Argon2 ~3 s now only on entry.
 - Not hand-tested: password mode (Argon2 unlock time; tune `DEFAULT_KDF` in `lib/crypto/password-kdf.ts` if > ~3 s), graph gestures on gesture-handler 3, notifications.
 
 ## Still to verify by hand (nothing blocking)
-- Secrets password mode: setup + unlock; Argon2 time on Hermes (tune `DEFAULT_KDF` if > ~3 s).
+- Secrets password mode works on both phones; unlock ~3 s on iPhone (tune `DEFAULT_KDF` only if it bothers).
 - Graph gestures (pan/pinch/tap) on gesture-handler 3, both phones; notifications; photos; export; status bar look.
 - Done on device: biometric secrets (old XOR ones intentionally unreadable), Settings redesign, iOS launches.
 
