@@ -1,6 +1,6 @@
 # 15 — Pending extraction metadata JSON-encoded twice
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** S
 

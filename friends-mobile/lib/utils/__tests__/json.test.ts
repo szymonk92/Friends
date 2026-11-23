@@ -28,3 +28,10 @@ describe('parseJsonObject', () => {
     expect(parseJsonObject('42', fallback)).toBe(fallback);
   });
 });
+
+describe('parseJsonObject double-encoded', () => {
+  it('unwraps a JSON object that was stringified twice', () => {
+    const twice = JSON.stringify(JSON.stringify({ precision: 'year' }));
+    expect(parseJsonObject<{ precision?: string }>(twice, {}).precision).toBe('year');
+  });
+});

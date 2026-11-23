@@ -175,7 +175,7 @@ export function useExtractStory() {
           intensity: rel.intensity || null,
           confidence: rel.confidence,
           category: rel.category || null,
-          metadata: rel.metadata ? JSON.stringify(rel.metadata) : null,
+          metadata: rel.metadata ?? null, // already a JSON string (see relationData)
           status: rel.status || 'current',
           reviewStatus: 'pending' as const,
           extractionReason: `AI confidence: ${(rel.confidence * 100).toFixed(0)}%`,
