@@ -1,6 +1,6 @@
 # 19 — Home birthday badge: duplicated logic, leap-day bug, untranslated
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** S
 

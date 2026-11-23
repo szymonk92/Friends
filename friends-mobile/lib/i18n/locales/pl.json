@@ -65,7 +65,9 @@
     "keepClose_one": "{{count}} osoba, którą trzymasz blisko",
     "keepClose_few": "{{count}} osoby, które trzymasz blisko",
     "keepClose_many": "{{count}} osób, które trzymasz blisko",
-    "keepClose_other": "{{count}} osób, które trzymasz blisko"
+    "keepClose_other": "{{count}} osób, które trzymasz blisko",
+    "bdayToday": "Dziś!",
+    "bdayInDays": "{{count}} d."
   },
   "network": {
     "title": "Sieć",

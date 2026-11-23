@@ -63,7 +63,9 @@
     "clearFilters": "Clear filters",
     "myNetwork": "My Network",
     "keepClose_one": "{{count}} person you keep close",
-    "keepClose_other": "{{count}} people you keep close"
+    "keepClose_other": "{{count}} people you keep close",
+    "bdayToday": "Today!",
+    "bdayInDays": "{{count}}d"
   },
   "network": {
     "title": "Network",

@@ -21,16 +21,7 @@ import { fz, fzText } from '@/lib/design/tokens';
 import { ChainLogo } from '@/components/ChainLogo';
 import { IconCircle } from '@/components/IconCircle';
 import { Pill } from '@/components/Pill';
-
-function getDaysUntilBirthday(dateOfBirth: Date | null | undefined): number | null {
-  if (!dateOfBirth) return null;
-  const today = new Date();
-  const dob = new Date(dateOfBirth);
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-  if (nextBirthday < todayStart) nextBirthday.setFullYear(today.getFullYear() + 1);
-  return Math.round((nextBirthday.getTime() - todayStart.getTime()) / 86400000);
-}
+import { getDaysUntilBirthday, hasExactBirthday } from '@/lib/notifications/birthday-reminders';
 
 export default function PeopleListScreen() {
   const { t } = useTranslation();
@@ -362,12 +353,12 @@ export default function PeopleListScreen() {
                   <View style={s.nameRow}>
                     <Text style={fzText.name} numberOfLines={1}>{item.name}</Text>
                     {(() => {
-                      const exact = !item.dateOfBirthPrecision || item.dateOfBirthPrecision === 'day';
-                      const days = exact ? getDaysUntilBirthday(item.dateOfBirth) : null;
+                      const days =
+                        item.dateOfBirth && hasExactBirthday(item) ? getDaysUntilBirthday(item.dateOfBirth) : null;
                       if (days === null || days > 7) return null;
                       return (
                         <View style={s.bday}>
-                          <Text style={s.bdayText}>🎂 {days === 0 ? 'Today!' : `${days}d`}</Text>
+                          <Text style={s.bdayText}>🎂 {days === 0 ? t('people.bdayToday') : t('people.bdayInDays', { count: days })}</Text>
                         </View>
                       );
                     })()}
