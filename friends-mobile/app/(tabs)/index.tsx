@@ -429,6 +429,6 @@ const s = StyleSheet.create({
   },
   rowBody: { flex: 1, minWidth: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
-  bday: { backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
-  bdayText: { fontSize: 11, fontWeight: '600', color: '#E65100', fontFamily: fz.font },
+  bday: { backgroundColor: fz.warnBg, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  bdayText: { fontSize: 11, fontWeight: '600', color: fz.warn, fontFamily: fz.font },
 });

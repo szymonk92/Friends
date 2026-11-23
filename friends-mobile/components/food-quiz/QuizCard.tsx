@@ -66,13 +66,13 @@ export default function QuizCard({
       <Animated.View style={[styles.skipOverlay, { opacity: skipOpacity }]}>
         <View style={styles.overlayBadge}>
           <Text style={styles.overlayText}>{t('foodQuiz.overlayIdk')}</Text>
-          <QuestionIcon size={28} color="#1B1815" weight="bold" />
+          <QuestionIcon size={28} color={fz.ink} weight="bold" />
         </View>
       </Animated.View>
 
       <Card style={styles.questionCard}>
         <Card.Content style={styles.questionContent}>
-          <ForkKnifeIcon size={40} color="#1B1815" weight="bold" style={styles.foodIcon} />
+          <ForkKnifeIcon size={40} color={fz.ink} weight="bold" style={styles.foodIcon} />
           <Text variant="headlineMedium" style={styles.questionText}>
             {t('foodQuiz.question', { name: currentPerson?.name?.split(' ')[0] })}
           </Text>

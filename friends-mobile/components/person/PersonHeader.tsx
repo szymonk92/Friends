@@ -111,7 +111,7 @@ export default function PersonHeader({ person, onAvatarPress }: PersonHeaderProp
         <TouchableOpacity onPress={onAvatarPress} style={styles.avatarContainer} activeOpacity={0.8}>
           <Avatar name={person.name} photoPath={profilePhoto?.filePath} size={84} variant="ink" />
           <View style={styles.avatarBadge}>
-            <LineIcon name="camera" size={12} color="#fff" />
+            <LineIcon name="camera" size={12} color={fz.onInk} />
           </View>
         </TouchableOpacity>
 

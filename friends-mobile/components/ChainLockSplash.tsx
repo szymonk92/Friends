@@ -120,7 +120,7 @@ export default function ChainLockSplash() {
                 height: 80,
                 borderRadius: 40,
                 borderWidth: 2,
-                borderColor: '#111',
+                borderColor: fz.ink,
               },
             ]}
           />
@@ -134,7 +134,7 @@ export default function ChainLockSplash() {
                   height={40}
                   rx={13}
                   fill="none"
-                  stroke="#111"
+                  stroke={fz.ink}
                   strokeWidth={6.5}
                 />
               </Svg>
@@ -148,7 +148,7 @@ export default function ChainLockSplash() {
                   height={40}
                   rx={13}
                   fill="none"
-                  stroke="#111"
+                  stroke={fz.ink}
                   strokeWidth={6.5}
                 />
               </Svg>
@@ -162,7 +162,7 @@ export default function ChainLockSplash() {
               fontFamily: 'Inter',
               fontWeight: '600',
               fontSize: 28,
-              color: '#111',
+              color: fz.ink,
               letterSpacing: -0.56,
             }}
           >
@@ -178,7 +178,7 @@ export default function ChainLockSplash() {
           alignSelf: 'center',
           fontFamily: 'Inter',
           fontSize: 12,
-          color: '#b3aea4',
+          color: fz.textDim,
           letterSpacing: 0.48,
         }}
       >

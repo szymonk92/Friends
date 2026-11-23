@@ -78,7 +78,7 @@ export default function PersonPhotos({ personId, currentPhotoId }: PersonPhotosP
             <Image source={{ uri: photo.filePath }} style={styles.thumb} />
             {currentPhotoId === photo.id && (
               <View style={styles.profileBadge}>
-                <LineIcon name="check" size={12} color="#fff" strokeWidth={3} />
+                <LineIcon name="check" size={12} color={fz.onInk} strokeWidth={3} />
               </View>
             )}
           </TouchableOpacity>

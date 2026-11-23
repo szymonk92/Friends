@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     fontFamily: fz.font,
   },
   securityTimer: {
-    color: '#ff5722',
+    color: fz.warn,
     marginBottom: 12,
   },
   secretContent: {

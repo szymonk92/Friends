@@ -308,7 +308,7 @@ export default function TimelineScreen() {
             <IconCircle
               icon={filtersVisible ? 'filterRemove' : 'filter'}
               fill={hasActiveFilters ? fz.ink : 'transparent'}
-              color={hasActiveFilters ? '#fff' : fz.ink}
+              color={hasActiveFilters ? fz.onInk : fz.ink}
               onPress={() => setFiltersVisible(!filtersVisible)}
             />
           </View>

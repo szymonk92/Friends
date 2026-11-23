@@ -85,7 +85,7 @@ function SheetAction({
       style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }]}
       onPress={onPress}
     >
-      <Text style={[fzText.name, destructive && { color: '#D32F2F' }]}>{label}</Text>
+      <Text style={[fzText.name, destructive && { color: fz.danger }]}>{label}</Text>
     </Pressable>
   );
 }

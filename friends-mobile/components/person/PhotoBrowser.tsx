@@ -1,3 +1,4 @@
+import { fz } from '@/lib/design/tokens';
 import { useState } from 'react';
 import {
   StyleSheet,
@@ -63,11 +64,11 @@ export default function PhotoBrowser({
       <View style={[styles.container, { backgroundColor: 'rgba(0, 0, 0, 0.95)' }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
-          <IconButton icon="close" iconColor="#fff" size={24} onPress={onClose} />
+          <IconButton icon="close" iconColor={fz.onInk} size={24} onPress={onClose} />
           <Text variant="titleMedium" style={styles.counter}>
             {currentIndex + 1} / {photos.length}
           </Text>
-          <IconButton icon="dots-vertical" iconColor="#fff" size={24} onPress={() => setOptionsPhotoId(photos[currentIndex]?.id ?? null)}
+          <IconButton icon="dots-vertical" iconColor={fz.onInk} size={24} onPress={() => setOptionsPhotoId(photos[currentIndex]?.id ?? null)}
           />
         </View>
 
@@ -96,7 +97,7 @@ export default function PhotoBrowser({
         {/* Footer with profile indicator */}
         {photos[currentIndex]?.id === currentPhotoId && (
           <View style={[styles.footer, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
-            <IconButton icon="account-check" iconColor="#4caf50" size={20} />
+            <IconButton icon="account-check" iconColor={fz.success} size={20} />
             <Text variant="bodySmall" style={styles.profileText}>
               {t('photos.profilePhoto')}
             </Text>
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   counter: {
-    color: '#fff',
+    color: fz.onInk,
     fontWeight: '600',
   },
   footer: {
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   profileText: {
-    color: '#4caf50',
+    color: fz.success,
     fontWeight: '600',
   },
   imageContainer: {

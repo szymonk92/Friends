@@ -489,7 +489,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             style={[styles.primaryBtn, !canSave && styles.disabled]}
           >
             {isProcessing ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={fz.onInk} />
             ) : (
               <Text style={fzText.btn}>
                 {isEdit
@@ -578,7 +578,7 @@ ${t('addStory.tokensUsed', { tokens: result.tokensUsed || 'N/A' })}`;
             <Button labelStyle={styles.dialogFont} onPress={handleCancelDiscard}>
               {t('common.cancel')}
             </Button>
-            <Button labelStyle={styles.dialogFont} onPress={handleDiscard} textColor="#d32f2f">
+            <Button labelStyle={styles.dialogFont} onPress={handleDiscard} textColor={fz.danger}>
               {t('addStory.discard')}
             </Button>
           </Dialog.Actions>
@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
   debugCode: {
     fontFamily: 'monospace',
     fontSize: 10,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: fz.surface,
     padding: 8,
     borderRadius: 4,
     marginBottom: 8,

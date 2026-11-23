@@ -18,8 +18,8 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
         <IconButton
           icon="thumb-down"
           mode="contained"
-          containerColor="#ffebee"
-          iconColor="#d32f2f"
+          containerColor={fz.dangerBg}
+          iconColor={fz.danger}
           size={32}
           onPress={() => onSwipe('left')}
           style={styles.button}
@@ -44,8 +44,8 @@ export default function QuizControls({ onSwipe }: QuizControlsProps) {
         <IconButton
           icon="thumb-up"
           mode="contained"
-          containerColor="#e8f5e9"
-          iconColor="#2e7d32"
+          containerColor={fz.successBg}
+          iconColor={fz.success}
           size={32}
           onPress={() => onSwipe('right')}
           style={styles.button}

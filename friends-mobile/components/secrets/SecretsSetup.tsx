@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   warningText: {
-    color: '#f57c00',
+    color: fz.warn,
     fontWeight: '500',
   },
   setupButton: {
@@ -227,11 +227,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   warningBanner: {
-    backgroundColor: '#fff3e0',
+    backgroundColor: fz.warnBg,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
-    color: '#e65100',
+    color: fz.warn,
     fontWeight: '500',
     lineHeight: 20,
   },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errorText: {
-    color: '#d32f2f',
+    color: fz.danger,
     marginTop: -8,
     marginBottom: 8,
   },

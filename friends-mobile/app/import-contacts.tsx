@@ -368,17 +368,17 @@ const s = StyleSheet.create({
   },
   rowBody: { flex: 1, minWidth: 0 },
   dupText: {
-    fontFamily: fz.font, fontSize: 12, color: '#C77700', marginTop: 2,
+    fontFamily: fz.font, fontSize: 12, color: fz.warn, marginTop: 2,
   },
   existsText: {
     fontFamily: fz.font, fontSize: 12, color: fz.textMute, marginTop: 2,
   },
   chip: {
-    backgroundColor: '#FFF3E0', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
+    backgroundColor: fz.warnBg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
   },
   chipMuted: { backgroundColor: fz.surface },
   chipText: {
-    fontFamily: fz.font, fontWeight: '500', fontSize: 11, color: '#C77700',
+    fontFamily: fz.font, fontWeight: '500', fontSize: 11, color: fz.warn,
   },
   fab: {
     position: 'absolute', right: fz.s.edge, left: fz.s.edge, height: 50,
@@ -387,7 +387,7 @@ const s = StyleSheet.create({
     shadowColor: fz.ink, shadowOpacity: 0.32, shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
-  fabText: { color: '#fff', fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
+  fabText: { color: fz.onInk, fontFamily: fz.font, fontWeight: '600', fontSize: 15 },
   dialog: { borderRadius: fz.rCard, backgroundColor: fz.card },
   dialogTitle: { fontFamily: fz.font },
   dialogFont: { fontFamily: fz.font },

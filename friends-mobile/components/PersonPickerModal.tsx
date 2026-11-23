@@ -89,7 +89,7 @@ export function PersonPickerModal({
               }}
             >
               <View style={styles.createIcon}>
-                <LineIcon name="plus" size={16} color="#fff" />
+                <LineIcon name="plus" size={16} color={fz.onInk} />
               </View>
               <View style={styles.createBody}>
                 <Text style={fzText.name}>{create.label(typed)}</Text>
@@ -119,7 +119,7 @@ export function PersonPickerModal({
               }}
               right={
                 <View style={[styles.check, selected && styles.checkOn]}>
-                  {selected && <LineIcon name="check" size={14} color="#fff" />}
+                  {selected && <LineIcon name="check" size={14} color={fz.onInk} />}
                 </View>
               }
             />

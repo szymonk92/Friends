@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#fff',
+    color: fz.onInk,
     fontFamily: fz.font,
     fontSize: 24,
     fontWeight: 'bold',

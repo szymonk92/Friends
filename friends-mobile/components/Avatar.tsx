@@ -41,7 +41,7 @@ export function Avatar({ name, photoPath, size = 40, variant = 'surface', style 
       ]}
     >
       <Text
-        style={[styles.text, { color: isInk ? '#fff' : fz.ink, fontSize: Math.max(10, size * 0.36) }]}
+        style={[styles.text, { color: isInk ? fz.onInk : fz.ink, fontSize: Math.max(10, size * 0.36) }]}
       >
         {getInitials(name)}
       </Text>

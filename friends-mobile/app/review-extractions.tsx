@@ -106,9 +106,9 @@ export default function ReviewExtractionsScreen() {
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return '#4caf50'; // Green
-    if (confidence >= 0.65) return '#ff9800'; // Orange
-    return '#f44336'; // Red
+    if (confidence >= 0.8) return fz.success; // Green
+    if (confidence >= 0.65) return fz.warn; // Orange
+    return fz.danger; // Red
   };
 
   const getConfidenceLabel = (confidence: number) => {
@@ -131,7 +131,7 @@ export default function ReviewExtractionsScreen() {
       <>
         <AppBar title={t('reviewExtractions.title')} />
         <CenteredContainer style={styles.centered}>
-          <CheckCircleIcon size={40} color="#1B1815" weight="bold" style={styles.emptyIcon} />
+          <CheckCircleIcon size={40} color={fz.ink} weight="bold" style={styles.emptyIcon} />
           <Text variant="headlineSmall" style={styles.emptyTitle}>
             {t('reviewExtractions.caughtUp')}
           </Text>
@@ -170,7 +170,7 @@ export default function ReviewExtractionsScreen() {
               {extraction.isConflict ? (
                 <>
                   <View style={styles.conflictTitleRow}>
-                    <WarningIcon size={16} color="#e65100" weight="bold" />
+                    <WarningIcon size={16} color={fz.warn} weight="bold" />
                     <Text variant="titleSmall" style={styles.conflictTitle}>
                       {t('reviewExtractions.conflict')}
                     </Text>
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   },
   conflictCard: {
     borderLeftWidth: 4,
-    borderLeftColor: '#ff9800',
+    borderLeftColor: fz.warn,
   },
   conflictTitleRow: {
     flexDirection: 'row',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   conflictTitle: {
-    color: '#e65100',
+    color: fz.warn,
     fontWeight: 'bold',
   },
   conflictDescription: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   conflictSide: {
     flex: 1,
     padding: 8,
-    backgroundColor: '#fff3e0',
+    backgroundColor: fz.warnBg,
     borderRadius: 8,
   },
   conflictSideLabel: {
