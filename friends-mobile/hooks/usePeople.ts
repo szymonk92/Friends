@@ -21,7 +21,7 @@ export type PersonWithPhoto = Person & {
 /**
  * Check if a person name already exists (case-insensitive)
  */
-async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
+export async function checkNameExists(userId: string, name: string, excludeId?: string): Promise<boolean> {
   const normalizedName = name.trim().toLowerCase();
   const conditions = [
     activePeople(userId),

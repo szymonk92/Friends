@@ -1,6 +1,6 @@
 # 20 — Choosing NEW for an ambiguous name can abort extraction
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** S
 

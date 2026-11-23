@@ -1,7 +1,7 @@
 import { activePeople } from '@/lib/db/filters';
 import { useMutation } from '@tanstack/react-query';
 import { extractRelationsFromStorySession, shouldAutoAccept } from '@/lib/ai/extraction';
-import { useCreatePerson, useUpdatePerson } from './usePeople';
+import { checkNameExists, useCreatePerson, useUpdatePerson } from './usePeople';
 import { useCreateRelations } from './useRelations';
 import { useMarkStoryProcessed } from './useStories';
 import { db, getCurrentUserId } from '@/lib/db';
@@ -83,8 +83,12 @@ export function useExtractStory() {
       for (const extractedPerson of extractionResult.people) {
         if (extractedPerson.isNew) {
           // Create new person
+          // Names are unique; a user-forced "new Anna" next to an existing Anna gets "Anna (2)"
+          // instead of aborting the whole extraction half-way.
+          let name = extractedPerson.name;
+          for (let n = 2; await checkNameExists(userId, name); n++) name = `${extractedPerson.name} (${n})`;
           const newPerson = await createPerson.mutateAsync({
-            name: extractedPerson.name,
+            name,
             personType: extractedPerson.personType,
             addedBy: 'ai_extraction',
             dataCompleteness: 'minimal',
