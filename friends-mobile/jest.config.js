@@ -23,6 +23,8 @@ module.exports = {
     '!jest.config.js',
   ],
   transform: {
+    // @noble/ciphers is ESM-only .js; ts-jest (allowJs) compiles it to CJS.
+    '^.+/node_modules/@noble/.+\\.js$': ['ts-jest', { tsconfig: { allowJs: true, module: 'commonjs' } }],
     '^.+\\.tsx?$': [
       'ts-jest',
       {
@@ -35,7 +37,7 @@ module.exports = {
     ],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-paper|@testing-library)/)',
+    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-paper|@testing-library|@noble)/)',
   ],
   modulePathIgnorePatterns: ['<rootDir>/app/', '<rootDir>/hooks/'],
 };

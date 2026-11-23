@@ -191,10 +191,11 @@ export function useDeleteSecret() {
 
   return useMutation({
     mutationFn: async (secretId: string) => {
-      // Soft delete
+      // Soft delete, wiping the ciphertext so it isn't left in the DB / backups.
       await db
         .update(secrets)
         .set({
+          encryptedContent: '',
           deletedAt: new Date(),
           updatedAt: new Date(),
         })

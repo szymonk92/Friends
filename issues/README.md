@@ -14,7 +14,7 @@
 | [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | done | none | P1 |
 | [11](11-birthday-notifications-not-rescheduled.md) | Birthday notifications not rescheduled on edit/delete | done | 10 | P1 |
 | [12](12-extraction-uses-deleted-people.md) | AI extraction & review queue include deleted people/stories | done | none | P1 |
-| [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | todo | none | P1 (security) |
+| [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | in-progress | none | P1 (security) |
 | [14](14-deleted-person-leftovers.md) | Deleting a person leaves connections, events, reminders visible | done | none | P2 |
 | [15](15-pending-metadata-double-json.md) | Pending extraction metadata JSON-encoded twice | done | none | P2 |
 | [16](16-import-export-gaps.md) | Import: no UI refresh, orphan ids; export misses events, CSV escaping | done | 09 | P2 |

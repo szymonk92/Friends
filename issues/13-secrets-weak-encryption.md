@@ -1,6 +1,6 @@
 # 13 — Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext
 
-**Status:** todo
+**Status:** in-progress
 **Depends on:** none
 **Priority:** P1 (security) · **Effort:** M
 
@@ -15,3 +15,13 @@
 
 ## Out of scope
 —
+
+## Progress
+- [x] New secrets: XChaCha20-Poly1305, random 24-byte nonce per secret, `v2:` prefix (`lib/crypto/aead.ts`, pure-JS audited `@noble/ciphers` → no native rebuild). Tested: round-trip, nonce uniqueness, wrong key + tampering rejected.
+- [x] Legacy XOR secrets still decrypt (no migration needed to open them)
+- [x] Deleting a secret wipes `encryptedContent`
+- [x] Android release JS bundle builds with the new dependency
+- [ ] Re-encrypt legacy secrets to v2 on next unlock
+- [ ] Password mode: salted PBKDF2/Argon2, store a verifier not the key (needs a flow redesign — decision)
+- [ ] `allowBackup=false` (decision: users lose Android backup of the DB)
+- [ ] Verify create/view/delete secret on device
