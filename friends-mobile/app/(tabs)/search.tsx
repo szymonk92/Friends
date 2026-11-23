@@ -180,7 +180,7 @@ export default function SearchScreen() {
     } else if (result.type === 'relation' && result.personId) {
       router.push(`/person/${result.personId}`);
     } else if (result.type === 'story') {
-      router.push('/stories');
+      router.push(`/story/${result.id}`);
     }
   };
 

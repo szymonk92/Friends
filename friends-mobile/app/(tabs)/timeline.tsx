@@ -203,6 +203,17 @@ export default function TimelineScreen() {
           notes: notes.trim() || undefined,
           eventDate: parsedDate,
         });
+        // People added while editing get their own copy (one event row = one person).
+        await Promise.all(
+          selectedPersonIds.slice(1).map((personId) =>
+            createEvent.mutateAsync({
+              personId,
+              eventType: eventType as any,
+              notes: notes.trim() || undefined,
+              eventDate: parsedDate,
+            })
+          )
+        );
         fzAlert(t('common.success'), t('timeline.updated'));
       } else {
         await Promise.all(

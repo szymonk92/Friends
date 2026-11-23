@@ -1,6 +1,6 @@
 # 23 — Small UX bugs: search story result, timeline multi-person edit
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P3 · **Effort:** S
 
