@@ -22,6 +22,7 @@
 - [x] Deleting a secret wipes `encryptedContent`
 - [x] Android release JS bundle builds with the new dependency
 - [x] Re-encrypt legacy secrets to v2 when opened
-- [ ] Password mode: salted PBKDF2/Argon2, store a verifier not the key (needs a flow redesign — decision)
-- [ ] `allowBackup=false` (decision: users lose Android backup of the DB)
-- [ ] Verify create/view/delete secret on device
+- [x] Password mode: random data key wrapped with Argon2id(salt, m=19 MiB, t=2) + XChaCha20-Poly1305; no hash/verifier stored (wrong password fails authentication). Params stored in the record (`lib/crypto/password-kdf.ts`)
+- [x] `allowBackup` stays on: DB holds only `v2:` ciphertext, the key is in Keystore (`WHEN_PASSCODE_SET_THIS_DEVICE_ONLY`, device-bound, not backed up)
+- [x] Legacy XOR secrets and pre-#13 password setups are no longer supported (decision: ignore existing secrets); legacy password setup counts as not set up
+- [ ] Verify on device: create/view/delete in biometric mode; password mode setup + unlock (check Argon2 unlock time on Hermes, tune `DEFAULT_KDF` if > ~3 s)
