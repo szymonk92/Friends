@@ -1,6 +1,6 @@
 # 07 — Redesign remaining old-style screens
 
-**Status:** in-progress
+**Status:** done
 **Depends on:** 04, 05, 06
 **Priority:** P2 · **Effort:** L
 

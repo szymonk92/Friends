@@ -8,13 +8,13 @@
 | [04](04-design-tokens-status-colors.md) | Design tokens: onInk, danger, warn; remove remaining hex literals | done | none | P2 |
 | [05](05-fzdialog-migration.md) | Migrate Paper `Dialog` to `FzDialog` | in-progress | none | P2 |
 | [06](06-shared-buttons-cards-appbar.md) | Shared PrimaryButton / FzCard / AppBar / EmptyState | in-progress | 04 | P2 |
-| [07](07-redesign-old-screens.md) | Redesign remaining old-style screens | in-progress | 04, 05, 06 | P2 |
+| [07](07-redesign-old-screens.md) | Redesign remaining old-style screens | done | 04, 05, 06 | P2 |
 | [08](08-extraction-wrong-query-key.md) | AI extraction invalidates wrong query key → stale conflicts, duplicate relations | done | none | P1 |
 | [09](09-dates-utc-off-by-one.md) | Dates shift one day in UTC+ (Poland): met date, exports, brain-dump diff | done | none | P1 |
 | [10](10-cannot-clear-birthday.md) | Birthday / date precision can't be cleared from edit form | done | none | P1 |
 | [11](11-birthday-notifications-not-rescheduled.md) | Birthday notifications not rescheduled on edit/delete | done | 10 | P1 |
 | [12](12-extraction-uses-deleted-people.md) | AI extraction & review queue include deleted people/stories | done | none | P1 |
-| [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | in-progress | none | P1 (security) |
+| [13](13-secrets-weak-encryption.md) | Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext | done | none | P1 (security) |
 | [14](14-deleted-person-leftovers.md) | Deleting a person leaves connections, events, reminders visible | done | none | P2 |
 | [15](15-pending-metadata-double-json.md) | Pending extraction metadata JSON-encoded twice | done | none | P2 |
 | [16](16-import-export-gaps.md) | Import: no UI refresh, orphan ids; export misses events, CSV escaping | done | 09 | P2 |

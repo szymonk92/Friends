@@ -1,6 +1,6 @@
 # 13 — Secrets: repeating-key XOR encryption; deleted secrets keep ciphertext
 
-**Status:** in-progress
+**Status:** done
 **Depends on:** none
 **Priority:** P1 (security) · **Effort:** M
 
