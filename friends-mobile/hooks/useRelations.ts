@@ -106,6 +106,7 @@ export function useCreateRelation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
       queryClient.invalidateQueries({ queryKey: ['relations', 'person', data.subjectId] });
     },
   });
@@ -130,6 +131,7 @@ export function useCreateRelations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
     },
   });
 }
@@ -151,6 +153,7 @@ export function useUpdateRelation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
       if (data?.subjectId) {
         queryClient.invalidateQueries({ queryKey: ['relations', 'person', data.subjectId] });
       }
@@ -170,6 +173,7 @@ export function useDeleteRelation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relations'] });
+      queryClient.invalidateQueries({ queryKey: ['gifts'] }); // gifts are WANTS relations
     },
   });
 }

@@ -105,6 +105,7 @@ export function useCreateGiftIdea() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['gifts'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] }); // gifts are WANTS relations
       queryClient.invalidateQueries({ queryKey: ['gifts', 'person', data.subjectId] });
     },
   });
@@ -156,6 +157,7 @@ export function useUpdateGiftIdea() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gifts'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] }); // gifts are WANTS relations
     },
   });
 }
@@ -172,6 +174,7 @@ export function useDeleteGiftIdea() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gifts'] });
+      queryClient.invalidateQueries({ queryKey: ['relations'] }); // gifts are WANTS relations
     },
   });
 }

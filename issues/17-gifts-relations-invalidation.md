@@ -1,6 +1,6 @@
 # 17 — Gifts and Relations sections go out of sync
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** S
 
