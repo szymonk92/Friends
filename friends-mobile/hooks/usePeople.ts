@@ -88,7 +88,7 @@ export function usePeople(filter?: {
           const photosResults = await db
             .select({ id: files.id, filePath: files.filePath })
             .from(files)
-            .where(inArray(files.id, photoIds));
+            .where(and(inArray(files.id, photoIds), isNull(files.deletedAt)));
 
           for (const photo of photosResults) {
             photoMap[photo.id] = resolvePhotoUri(photo.filePath);

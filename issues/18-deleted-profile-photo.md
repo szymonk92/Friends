@@ -1,6 +1,6 @@
 # 18 — Deleting current profile photo leaves a broken avatar
 
-**Status:** todo
+**Status:** done
 **Depends on:** none
 **Priority:** P2 · **Effort:** S
 
